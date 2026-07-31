@@ -1,0 +1,267 @@
+
+.inventory-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-left: 4px solid #e5e7eb;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.summary-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+}
+
+.summary-icon.small-printer {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-left-color: #3b82f6;
+}
+
+.summary-icon.large-printer {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-left-color: #f59e0b;
+}
+
+.summary-icon.stock {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-left-color: #10b981;
+}
+
+.summary-icon.asset {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border-left-color: #8b5cf6;
+}
+
+.summary-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.summary-count {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+
+.action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.action-badge.action-move {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.action-badge.action-clone {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #86efac;
+}
+
+.action-badge.action-add {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+.action-badge.action-update {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.action-badge.action-other {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+
+.branch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.branch-badge.from-branch {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.branch-badge.to-branch {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.branch-badge.new-item {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
+  font-weight: 600;
+}
+
+.arrow-icon {
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+.page-ranges-display {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 150px;
+}
+
+.page-range-item {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.page-range-item small {
+  color: #475569;
+  font-weight: 500;
+}
+
+
+.printer-id-badge,
+.asset-id-badge {
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: bold;
+  border: 1px solid #d1d5db;
+}
+
+.qty-badge {
+  background-color: #ede9fe;
+  color: #5b21b6;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border: 1px solid #c4b5fd;
+}
+
+
+.no-data-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.no-data-message svg {
+  color: #d1d5db;
+  margin-bottom: 20px;
+}
+
+.no-data-message h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #374151;
+}
+
+.no-data-message p {
+  margin: 0;
+  font-size: 14px;
+}
+
+
+.stock-readings-table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.stock-readings-table td {
+  vertical-align: middle;
+  padding: 12px 8px;
+}
+
+.stock-readings-table tr:hover {
+  background-color: #f9fafb;
+}
+
+
+@media (max-width: 768px) {
+  .inventory-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .summary-card {
+    padding: 15px;
+    gap: 10px;
+  }
+
+  .summary-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .summary-count {
+    font-size: 20px;
+  }
+
+  .stock-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .stock-readings-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 480px) {
+  .inventory-summary {
+    grid-template-columns: 1fr;
+  }
+}
+

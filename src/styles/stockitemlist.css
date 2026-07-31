@@ -1,0 +1,59 @@
+.stock-item-list-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.stock-item-list-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.stock-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.can{
+  margin-left: 10px;
+}
+
+.stock-table th,
+.stock-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.stock-table th {
+  background-color: #f8f9fa;
+  color: black;
+}
+
+.stock-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.stock-table tr:hover {
+  background-color: #ddd;
+}
+
+.stock-table td input[type="text"],
+.stock-table td input[type="number"] {
+  width: 80%;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.stock-table td button {
+  margin-bottom: 3px;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.stock-table td button:hover {
+  background-color: #0056b3;
+}

@@ -1,0 +1,258 @@
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.popup-overlay-visible {
+  opacity: 1;
+}
+
+
+.popup-container {
+  background: white;
+  border-radius: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  transform: scale(0.8) translateY(20px);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  border: 1px solid #ccc;
+}
+
+.popup-visible {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 16px 24px;
+  border-bottom: 1px solid #ccc;
+}
+
+.popup-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.popup-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  background: #007bff;
+}
+
+.popup-icon-success {
+  background: #28a745;
+  border-radius: 50%;
+}
+
+.popup-icon-error {
+  background: #dc3545;
+    border-radius: 50%;
+}
+
+.popup-icon-info {
+  background: #007bff;
+    border-radius: 50%;
+}
+
+.popup-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.popup-close-btn {
+
+  background: white;
+  border: none;
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  margin-left: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.popup-close-btn:hover {
+  background-color: #f8f9fa;
+  color: #374151;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.popup-close-btn:active {
+  background-color: #e9ecef;
+  transform: scale(0.95);
+}
+
+
+.popup-content {
+  padding: 16px 24px;
+  color: #333;
+  line-height: 1.6;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.popup-content p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+.popup-content p:last-child {
+  margin-bottom: 0;
+}
+
+
+.popup-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid #ccc;
+  background-color: #ffffff;
+}
+
+.popup-countdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popup-countdown span {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.popup-progress-bar {
+  width: 100%;
+  height: 3px;
+  background-color: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.popup-progress-fill {
+  height: 100%;
+  background: #007bff;
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+
+.popup-success .popup-progress-fill {
+  background: #28a745;
+}
+
+
+.popup-error .popup-progress-fill {
+  background: #dc3545;
+}
+
+
+@media (max-width: 480px) {
+  .popup-container {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .popup-header {
+    padding: 16px 16px 12px 20px;
+  }
+
+  .popup-content {
+    padding: 12px 20px;
+  }
+
+  .popup-footer {
+    padding: 12px 20px 16px;
+  }
+
+  .popup-title {
+    font-size: 16px;
+  }
+
+  .popup-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .popup-close-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    margin-left: 8px;
+  }
+}
+
+
+@keyframes popupEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+
+@keyframes popupExit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+}
+
+
+.popup-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popup-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.popup-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.popup-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

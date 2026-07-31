@@ -1,0 +1,154 @@
+.search-stock-container {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 1000px;
+    margin: 0 auto;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+  
+  .search-stock-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .search-stock-container .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .search-stock-container .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .search-stock-container .form-group select{ 
+    width: 92%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .search-stock-container .form-group input {
+    width: 90%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .search-stock-container .form-group input[type="date"] {
+    padding: 8px 10px;
+  }
+
+  /* .search-stock-container button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 15px;
+    margin-bottom: 2px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  } */
+  .button{
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 15px;
+    margin-bottom: 2px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .search-stock-container button:hover {
+    background-color: #0056b3;
+  }
+  
+  .stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .stock-table th, .stock-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .stock-table th {
+    background-color: #f1f1f1;
+  }
+  
+  .stock-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .stock-table tr:hover {
+    background-color: #f1f1f1;
+  }
+/* Adjusted spacing between Save and Cancel buttons */
+.save-btn, .cancel-btn {
+  margin-right: 5px; /* Reduced margin */
+  padding: 5px 10px; /* Maintain same padding */
+  display: inline-block; /* Ensure they are inline */
+}
+
+.custom-toast {
+  background-color: #ffffff;
+  border-left: 5px ;
+  color: #333333;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-close-button {
+  color: #000000;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-top: 10px;
+  float: right;
+}
+
+.custom-close-button:hover {
+  color: #000000;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pagination-button {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background-color: white;
+  color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0 10px;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.pagination-button.disabled {
+  border-color: #ccc;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-button:not(.disabled):hover {
+  background-color: #000;
+  color: white;
+}
+
+.page-number {
+  font-size: 18px;
+  font-weight: bold;
+}

@@ -1,0 +1,21 @@
+.admin-total-amount-container {
+    background-color: #f8f9fa; /* Example admin-specific background */
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  .admin-total-amount-container h2 {
+    color: #343a40; /* Admin-specific heading color */
+  }
+  
+  .admin-total-amount-container .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .admin-total-amount-container .total-amount {
+    text-align: right;
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  

@@ -1,0 +1,33 @@
+.add-category-popup .popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+  
+  .add-category-popup .popup-content h2 {
+    margin-bottom: 20px;
+  }
+  
+  .popup-buttons button {
+    margin-right: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .popup-buttons button:hover {
+    opacity: 0.9;
+  }
+  
+  .error {
+    color: red;
+    margin-bottom: 10px;
+  }
+  

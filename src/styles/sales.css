@@ -1,0 +1,295 @@
+/* POS Page Container */
+.pos-container {
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pos-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.pos-main-content {
+  display: flex;
+  gap: 2rem;
+}
+
+/* Item Selection Panel */
+.pos-item-selection {
+  flex: 2;
+  border-right: 1px solid #ddd;
+  padding-right: 2rem;
+}
+
+.search-bar {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.item-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  height: 60vh;
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.item-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background-color: #fff;
+}
+
+.item-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.item-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.item-card p {
+  margin: 0;
+  color: #007bff;
+  font-weight: bold;
+}
+
+.item-card span {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* Bill Summary Panel */
+.pos-bill-summary {
+  flex: 1;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-bill-summary h3 {
+  margin-top: 0;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.5rem;
+}
+
+.bill-items-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.bill-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed #ddd;
+}
+
+.bill-item-row input {
+  width: 40px;
+  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.bill-item-row button {
+  background: none;
+  border: none;
+  color: red;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.bill-totals {
+  border-top: 2px solid #333;
+  padding-top: 1rem;
+}
+
+.bill-totals p, .bill-totals h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+}
+
+.bill-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.generate-bill-btn, .clear-bill-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.generate-bill-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.generate-bill-btn:hover {
+  background-color: #218838;
+}
+
+.clear-bill-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.clear-bill-btn:hover {
+  background-color: #c82333;
+}
+
+/* Sales Receipt History Page */
+.sales-history-container {
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.sales-history-container h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.sales-history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sales-history-table th, .sales-history-table td {
+  border: 1px solid #ddd;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.sales-history-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.sales-history-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.sales-history-table button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.sales-history-table button:hover {
+  background-color: #0056b3;
+}
+
+/* Modal for Receipt View */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.receipt-container {
+  padding: 1rem;
+  border: 1px solid #eee;
+}
+
+.receipt-header, .receipt-details, .receipt-footer {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.receipt-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.receipt-items-table th, .receipt-items-table td {
+  border-bottom: 1px solid #ddd;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.receipt-items-table th {
+  font-weight: bold;
+}
+
+.receipt-totals {
+  text-align: right;
+  border-top: 2px solid #333;
+  padding-top: 0.5rem;
+}
+
+.modal-print-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+
+.loading-state, .error-state {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: #555;
+}
