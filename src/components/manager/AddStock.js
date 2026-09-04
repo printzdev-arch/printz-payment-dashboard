@@ -6,7 +6,6 @@ import {
   getDocs,
   query,
   where,
-  updateDoc,
   doc,
   setDoc,
   getDoc,
@@ -27,7 +26,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "../../styles/stocklist.css";
 import Popup from "../common/Popup";
 import { usePopup } from "../../hooks/usePopup";
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
 
 const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) {
@@ -42,7 +41,7 @@ const formatCurrency = (amount) => {
 };
 
 const AddStock = () => {
-  const [branchName, setBranchName] = useState("");
+  // Removed unused branchName local state (selectedBranch already holds it)
   const [itemName, setItemName] = useState("");
   const [stockId, setStockId] = useState("");
   const [amount, setAmount] = useState("");
@@ -67,11 +66,11 @@ const AddStock = () => {
   const [suggestedStockId, setSuggestedStockId] = useState("STK001");
   const [stockIdStatus, setStockIdStatus] = useState("");
   const [idMessage, setIdMessage] = useState("");
-  const [categoryId, setCategoryId] = useState('');
-  const [categoryName, setCategoryName] = useState('');
+  const [categoryId, setCategoryId] = useState("");
+  const [categoryName, setCategoryName] = useState("");
   const [categoryLoading, setCategoryLoading] = useState(false);
 
-  const { popup, showSuccess, showError, showInfo, hidePopup } = usePopup();
+  const { popup, showSuccess, showError, showInfo } = usePopup();
 
   const fetchBranches = async () => {
     try {
@@ -94,6 +93,8 @@ const AddStock = () => {
 
       if (sortedBranches.length > 0 && !selectedBranch) {
         setSelectedBranch(sortedBranches[0].name);
+        // Ensure userId is also initialized for the default branch selection
+        setUserId(sortedBranches[0].id);
       }
     } catch (error) {
       showError("Failed to fetch branch names: " + error.message);
@@ -109,8 +110,12 @@ const AddStock = () => {
       }));
 
       // Separate "OTHERS" from the rest of the categories
-      const othersCategory = categoryData.find(cat => cat.name.toUpperCase() === 'OTHERS');
-      const otherCategories = categoryData.filter(cat => cat.name.toUpperCase() !== 'OTHERS');
+      const othersCategory = categoryData.find(
+        (cat) => cat.name.toUpperCase() === "OTHERS"
+      );
+      const otherCategories = categoryData.filter(
+        (cat) => cat.name.toUpperCase() !== "OTHERS"
+      );
 
       // Sort the rest of the categories alphabetically
       otherCategories.sort((a, b) => a.name.localeCompare(b.name));
@@ -119,7 +124,7 @@ const AddStock = () => {
       if (othersCategory) {
         otherCategories.push(othersCategory);
       }
-      
+
       setCategories(otherCategories);
     } catch (error) {
       showError("Failed to fetch categories: " + error.message);
@@ -129,7 +134,7 @@ const AddStock = () => {
   useEffect(() => {
     fetchBranches();
     fetchCategories();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedBranch) {
@@ -137,7 +142,16 @@ const AddStock = () => {
     } else {
       setStockItems([]);
     }
-  }, [selectedBranch]);
+  }, [selectedBranch]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep userId synchronized with selectedBranch even when it's auto-selected
+  useEffect(() => {
+    if (!selectedBranch || branches.length === 0) return;
+    const selected = branches.find((b) => b.name === selectedBranch);
+    if (selected && selected.id !== userId) {
+      setUserId(selected.id);
+    }
+  }, [selectedBranch, branches, userId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -145,7 +159,7 @@ const AddStock = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [stockId, selectedBranch]);
+  }, [stockId, selectedBranch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkStockIdAvailability = async () => {
     if (!stockId || !selectedBranch) {
@@ -232,7 +246,6 @@ const AddStock = () => {
   const handleBranchChange = (event) => {
     const selectedBranchName = event.target.value.trim();
     setSelectedBranch(selectedBranchName);
-    setBranchName(selectedBranchName);
 
     const selectedBranch = branches.find(
       (branch) => branch.name === selectedBranchName
@@ -389,6 +402,11 @@ const AddStock = () => {
           ...doc.data(),
         }));
 
+        // Check if a stock with the same ID already exists in THIS branch
+        const existsInThisBranch = existingStocks.some(
+          (stock) => stock.branchName === selectedBranch
+        );
+
         const stockWithDiffName = existingStocks.find(
           (stock) => stock.itemName !== itemName
         );
@@ -399,6 +417,7 @@ const AddStock = () => {
             match: false,
             docId: null,
             message: `Stock ID already exists with different item name: "${stockWithDiffName.itemName}" in branch "${stockWithDiffName.branchName}"`,
+            existsInThisBranch,
           };
         }
 
@@ -413,6 +432,7 @@ const AddStock = () => {
             match: true,
             docId: exactMatch.id,
             data: exactMatch,
+            existsInThisBranch,
           };
         }
 
@@ -421,13 +441,14 @@ const AddStock = () => {
           match: false,
           docId: null,
           message: `Stock ID already exists in other branch: "${existingStocks[0].branchName}"`,
+          existsInThisBranch,
         };
       }
 
-      return { exists: false };
+      return { exists: false, existsInThisBranch: false };
     } catch (error) {
       showError("Error checking stock ID: " + error.message);
-      return { exists: false, error: error.message };
+      return { exists: false, error: error.message, existsInThisBranch: false };
     }
   };
 
@@ -442,7 +463,10 @@ const AddStock = () => {
       return;
     }
 
-    if (!userId) {
+    // Derive a safe userId in case state hasn't synced yet
+    const effectiveUserId =
+      userId || branches.find((b) => b.name === selectedBranch)?.id || "";
+    if (!effectiveUserId) {
       showError("User ID is required. Please select a branch.");
       return;
     }
@@ -483,7 +507,12 @@ const AddStock = () => {
           continue;
         }
 
-        if (item.qty === undefined || item.qty === null || isNaN(item.qty) || item.qty < 0) {
+        if (
+          item.qty === undefined ||
+          item.qty === null ||
+          isNaN(item.qty) ||
+          item.qty < 0
+        ) {
           results.failed++;
           results.reasons.push(
             `Stock ID "${item.stockId}" (${item.stockName}): Invalid quantity (must be 0 or greater)`
@@ -504,86 +533,55 @@ const AddStock = () => {
           continue;
         }
 
-        if (stockCheck.exists && stockCheck.match) {
-          try {
-            const stockRef = doc(db, "stocks", stockCheck.docId);
-            const newQty =
-              Number(stockCheck.data.qty || 0) + Number(item.qty || 0);
+        // Enforce: no duplicate stockId allowed within the SAME branch
+        if (stockCheck.existsInThisBranch) {
+          results.failed++;
+          results.reasons.push(
+            `Stock ID "${item.stockId}" (${item.stockName}): Already exists in branch "${selectedBranch}"`
+          );
+          continue;
+        }
 
-            await updateDoc(stockRef, {
-              qty: newQty,
-              timestamp: new Date(),
-            });
+        // If stockId exists only in other branches, allow creation in this branch
+        try {
+          const stockData = {
+            userId: effectiveUserId,
+            branchName: selectedBranch,
+            itemName: item.stockName,
+            category: item.category,
+            amount: hasPageRanges ? 0 : Number(item.price),
+            qty: Number(item.qty),
+            description: item.description,
+            stockId: item.stockId,
+            timestamp: new Date(),
+          };
 
-            await addDoc(collection(db, "inventoryMovements"), {
-              type: "stock",
-              action: "update",
-              stockId: item.stockId,
-              itemName: item.stockName,
-              category: item.category,
-              quantity: Number(item.qty),
-              amount: hasPageRanges ? 0 : Number(item.price),
-              fromBranch: null,
-              toBranch: selectedBranch,
-              movementDate: new Date(),
-              performedBy: currentUser?.email || "Unknown",
-              details: {
-                previousQuantity: Number(stockCheck.data.qty || 0),
-                newQuantity: newQty,
-                quantityAdded: Number(item.qty),
-                description: item.description || "",
-                source: "CSV Upload",
-              },
-            });
+          await addDoc(collection(db, "stocks"), stockData);
 
-            results.updated++;
-          } catch (error) {
-            results.failed++;
-            results.reasons.push(
-              `Stock ID "${item.stockId}" (${item.stockName}): Failed to update quantity - ${error.message}`
-            );
-          }
-        } else {
-          try {
-            const stockData = {
-              userId,
-              branchName: selectedBranch,
-              itemName: item.stockName,
-              category: item.category,
-              amount: hasPageRanges ? 0 : Number(item.price),
-              qty: Number(item.qty),
-              description: item.description,
-              stockId: item.stockId,
-              timestamp: new Date(),
-            };
+          await addDoc(collection(db, "inventoryMovements"), {
+            type: "stock",
+            action: "add",
+            stockId: item.stockId,
+            itemName: item.stockName,
+            category: item.category,
+            quantity: Number(item.qty),
+            amount: hasPageRanges ? 0 : Number(item.price),
+            fromBranch: null,
+            toBranch: selectedBranch,
+            movementDate: new Date(),
+            performedBy: currentUser?.email || "Unknown",
+            details: {
+              description: item.description || "",
+              source: "CSV Upload",
+            },
+          });
 
-            await addDoc(collection(db, "stocks"), stockData);
-
-            await addDoc(collection(db, "inventoryMovements"), {
-              type: "stock",
-              action: "add",
-              stockId: item.stockId,
-              itemName: item.stockName,
-              category: item.category,
-              quantity: Number(item.qty),
-              amount: hasPageRanges ? 0 : Number(item.price),
-              fromBranch: null,
-              toBranch: selectedBranch,
-              movementDate: new Date(),
-              performedBy: currentUser?.email || "Unknown",
-              details: {
-                description: item.description || "",
-                source: "CSV Upload",
-              },
-            });
-
-            results.created++;
-          } catch (error) {
-            results.failed++;
-            results.reasons.push(
-              `Stock ID "${item.stockId}" (${item.stockName}): Failed to create new stock - ${error.message}`
-            );
-          }
+          results.created++;
+        } catch (error) {
+          results.failed++;
+          results.reasons.push(
+            `Stock ID "${item.stockId}" (${item.stockName}): Failed to create new stock - ${error.message}`
+          );
         }
       }
 
@@ -592,7 +590,9 @@ const AddStock = () => {
         successMessage += `✅ Created ${results.created} new stock items`;
       }
       if (results.updated > 0) {
-        successMessage += `${successMessage ? ", " : "✅ "}Updated ${results.updated} existing items`;
+        successMessage += `${successMessage ? ", " : "✅ "}Updated ${
+          results.updated
+        } existing items`;
       }
 
       if (successMessage) {
@@ -634,48 +634,26 @@ const AddStock = () => {
     try {
       const stockCheck = await checkStockIdExists(stockId, itemName);
 
-      if (stockCheck.exists && !stockCheck.match) {
-        showError(stockCheck.message);
+      // Enforce: no duplicate stockId allowed within the SAME branch
+      if (stockCheck.existsInThisBranch) {
+        showError(
+          `Stock ID "${stockId}" already exists in branch "${selectedBranch}"`
+        );
         setLoading(false);
         return;
       }
 
-      if (stockCheck.exists && stockCheck.match) {
-        const stockRef = doc(db, "stocks", stockCheck.docId);
-        const newQty = Number(stockCheck.data.qty || 0) + Number(qty || 0);
-
-        await updateDoc(stockRef, {
-          qty: newQty,
-          timestamp: new Date(),
-        });
-
-        const currentUser = JSON.parse(localStorage.getItem("user"));
-        await addDoc(collection(db, "inventoryMovements"), {
-          type: "stock",
-          action: "update",
-          stockId: stockId,
-          itemName: itemName,
-          category: category,
-          quantity: Number(qty),
-          amount: hasPageRanges ? 0 : Number(amount),
-          fromBranch: null,
-          toBranch: selectedBranch,
-          movementDate: new Date(),
-          performedBy: currentUser?.email || "Unknown",
-          details: {
-            previousQuantity: Number(stockCheck.data.qty || 0),
-            newQuantity: newQty,
-            quantityAdded: Number(qty),
-            description: description || "",
-          },
-        });
-
-        showSuccess(
-          `Updated quantity for "${itemName}" (added ${qty} units)`
-        );
-      } else {
+      // If it exists only in other branches, allow creation in this branch
+      {
+        const effectiveUserId =
+          userId || branches.find((b) => b.name === selectedBranch)?.id || "";
+        if (!effectiveUserId) {
+          showError("User ID is required. Please select a branch.");
+          setLoading(false);
+          return;
+        }
         const stockData = {
-          userId,
+          userId: effectiveUserId,
           branchName: selectedBranch,
           itemName,
           category,
@@ -739,54 +717,63 @@ const AddStock = () => {
   };
 
   const handleAddCategorySubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const trimmedCategoryId = categoryId.trim();
-  const trimmedCategoryName = categoryName.trim();
+    const trimmedCategoryId = categoryId.trim();
+    const trimmedCategoryName = categoryName.trim();
 
-  if (!trimmedCategoryId || !trimmedCategoryName) {
-    showError('Both fields are required');
-    return;
-  }
-
-  setCategoryLoading(true);
-
-  try {
-    const categoryRef = doc(db, 'categories', trimmedCategoryId);
-    const docSnap = await getDoc(categoryRef);
-    if (docSnap.exists()) {
-      showError('Category ID already exists');
-      setCategoryLoading(false);
+    if (!trimmedCategoryId || !trimmedCategoryName) {
+      showError("Both fields are required");
       return;
     }
 
-    await setDoc(categoryRef, {
-      categoryId: trimmedCategoryId,
-      categoryName: trimmedCategoryName.toUpperCase(),
-    });
+    setCategoryLoading(true);
 
-    // Optimistically update the categories state
-    setCategories((prevCategories) => {
-      const updatedCategories = [...prevCategories, { id: trimmedCategoryId, name: trimmedCategoryName.toUpperCase() }];
-      // Sort and append "OTHERS" as per the original logic
-      const othersCategory = updatedCategories.find(cat => cat.name.toUpperCase() === 'OTHERS');
-      const otherCategories = updatedCategories.filter(cat => cat.name.toUpperCase() !== 'OTHERS');
-      otherCategories.sort((a, b) => a.name.localeCompare(b.name));
-      return othersCategory ? [...otherCategories, othersCategory] : otherCategories;
-    });
+    try {
+      const categoryRef = doc(db, "categories", trimmedCategoryId);
+      const docSnap = await getDoc(categoryRef);
+      if (docSnap.exists()) {
+        showError("Category ID already exists");
+        setCategoryLoading(false);
+        return;
+      }
 
-    setCategoryLoading(false);
-    handleCategoryReset();
-    showSuccess('Category added successfully');
-  } catch (error) {
-    showError(error.message || 'Failed to add category');
-    setCategoryLoading(false);
-  }
-};
+      await setDoc(categoryRef, {
+        categoryId: trimmedCategoryId,
+        categoryName: trimmedCategoryName.toUpperCase(),
+      });
+
+      // Optimistically update the categories state
+      setCategories((prevCategories) => {
+        const updatedCategories = [
+          ...prevCategories,
+          { id: trimmedCategoryId, name: trimmedCategoryName.toUpperCase() },
+        ];
+        // Sort and append "OTHERS" as per the original logic
+        const othersCategory = updatedCategories.find(
+          (cat) => cat.name.toUpperCase() === "OTHERS"
+        );
+        const otherCategories = updatedCategories.filter(
+          (cat) => cat.name.toUpperCase() !== "OTHERS"
+        );
+        otherCategories.sort((a, b) => a.name.localeCompare(b.name));
+        return othersCategory
+          ? [...otherCategories, othersCategory]
+          : otherCategories;
+      });
+
+      setCategoryLoading(false);
+      handleCategoryReset();
+      showSuccess("Category added successfully");
+    } catch (error) {
+      showError(error.message || "Failed to add category");
+      setCategoryLoading(false);
+    }
+  };
 
   const handleCategoryReset = () => {
-    setCategoryId('');
-    setCategoryName('');
+    setCategoryId("");
+    setCategoryName("");
   };
 
   const handleReset = () => {
@@ -821,9 +808,7 @@ const AddStock = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentItems = filteredStockItems.slice(startIndex, endIndex);
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
+  // Pagination change handled by previousPage/nextPage and direct setCurrentPage where needed
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value.trim());
@@ -870,9 +855,18 @@ const AddStock = () => {
         </div>
 
         <div className="stock-card-content">
-          <form onSubmit={handleSubmit} style={{ width: "100%", overflow: "hidden" }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ width: "100%", overflow: "hidden" }}
+          >
             {selectedBranch && (
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "30px",
+                }}
+              >
                 <div
                   className="stock-csv-upload-section"
                   style={{
@@ -883,7 +877,7 @@ const AddStock = () => {
                     borderRadius: "8px",
                     backgroundColor: "#f9f9f9",
                     maxWidth: "50%",
-                    overflow: "hidden"
+                    overflow: "hidden",
                   }}
                 >
                   <h4>
@@ -896,7 +890,8 @@ const AddStock = () => {
                       marginBottom: "15px",
                     }}
                   >
-                    Format: stockId, stockName, category, qty, price, description
+                    Format: stockId, stockName, category, qty, price,
+                    description
                   </p>
 
                   <div className="stock-date-picker-wrapper">
@@ -924,29 +919,66 @@ const AddStock = () => {
                         </div>
                       </div>
                       <div className="stock-card-content">
-                        <div className="stock-table-wrapper" style={{ overflowX: "auto", maxWidth: "100%" }}>
-                          <table className="stock-readings-table" style={{ minWidth: "700px", width: "100%" }}>
+                        <div
+                          className="stock-table-wrapper"
+                          style={{ overflowX: "auto", maxWidth: "100%" }}
+                        >
+                          <table
+                            className="stock-readings-table"
+                            style={{ minWidth: "700px", width: "100%" }}
+                          >
                             <thead>
                               <tr>
-                                <th style={{ textAlign: 'center', width: '50px', minWidth: '50px' }}>S.No</th>
-                                <th style={{ minWidth: '100px' }}>Stock ID</th>
-                                <th style={{ minWidth: '120px' }}>Stock Name</th>
-                                <th style={{ minWidth: '100px' }}>Category</th>
-                                <th style={{ minWidth: '80px' }}>Quantity</th>
-                                <th style={{ minWidth: '100px' }}>Price</th>
-                                <th style={{ minWidth: '150px' }}>Description</th>
+                                <th
+                                  style={{
+                                    textAlign: "center",
+                                    width: "50px",
+                                    minWidth: "50px",
+                                  }}
+                                >
+                                  S.No
+                                </th>
+                                <th style={{ minWidth: "100px" }}>Stock ID</th>
+                                <th style={{ minWidth: "120px" }}>
+                                  Stock Name
+                                </th>
+                                <th style={{ minWidth: "100px" }}>Category</th>
+                                <th style={{ minWidth: "80px" }}>Quantity</th>
+                                <th style={{ minWidth: "100px" }}>Price</th>
+                                <th style={{ minWidth: "150px" }}>
+                                  Description
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {csvData.slice(0, 5).map((item, index) => (
                                 <tr key={index}>
-                                  <td style={{ textAlign: 'center' }}>{index + 1}</td>
-                                  <td style={{ wordBreak: 'break-word' }}>{item.stockId}</td>
-                                  <td style={{ wordBreak: 'break-word' }}>{item.stockName}</td>
-                                  <td style={{ wordBreak: 'break-word' }}>{item.category}</td>
-                                  <td style={{ textAlign: 'center' }}>{item.qty}</td>
-                                  <td style={{ textAlign: 'right' }}>₹{item.price}</td>
-                                  <td style={{ wordBreak: 'break-word', maxWidth: '200px' }}>{item.description}</td>
+                                  <td style={{ textAlign: "center" }}>
+                                    {index + 1}
+                                  </td>
+                                  <td style={{ wordBreak: "break-word" }}>
+                                    {item.stockId}
+                                  </td>
+                                  <td style={{ wordBreak: "break-word" }}>
+                                    {item.stockName}
+                                  </td>
+                                  <td style={{ wordBreak: "break-word" }}>
+                                    {item.category}
+                                  </td>
+                                  <td style={{ textAlign: "center" }}>
+                                    {item.qty}
+                                  </td>
+                                  <td style={{ textAlign: "right" }}>
+                                    ₹{item.price}
+                                  </td>
+                                  <td
+                                    style={{
+                                      wordBreak: "break-word",
+                                      maxWidth: "200px",
+                                    }}
+                                  >
+                                    {item.description}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -999,7 +1031,7 @@ const AddStock = () => {
                     borderRadius: "8px",
                     backgroundColor: "#f9f9f9",
                     maxWidth: "50%",
-                    overflow: "hidden"
+                    overflow: "hidden",
                   }}
                 >
                   <h4>Add New Category</h4>
@@ -1022,14 +1054,20 @@ const AddStock = () => {
                         id="categoryName"
                         type="text"
                         value={categoryName}
-                        onChange={(e) => setCategoryName(e.target.value.trim().toUpperCase())}
+                        onChange={(e) =>
+                          setCategoryName(e.target.value.trim().toUpperCase())
+                        }
                         className="stock-select-input"
                         required
                         disabled={categoryLoading}
                       />
                     </div>
                     <div className="stock-action-buttons">
-                      <button disabled={categoryLoading} type="submit" className="stock-save-button">
+                      <button
+                        disabled={categoryLoading}
+                        type="submit"
+                        className="stock-save-button"
+                      >
                         {categoryLoading ? (
                           <>
                             <div
@@ -1206,7 +1244,9 @@ const AddStock = () => {
                   {pageRanges.map((range, index) => (
                     <div key={index} className="stock-date-picker-container">
                       <div className="stock-date-picker-wrapper">
-                        <label htmlFor={`pageRange-${index}`}>PAGE RANGE (e.g., "1-10 PAGES")</label>
+                        <label htmlFor={`pageRange-${index}`}>
+                          PAGE RANGE (e.g., "1-10 PAGES")
+                        </label>
                         <input
                           id={`pageRange-${index}`}
                           type="text"
@@ -1398,15 +1438,33 @@ const AddStock = () => {
               </div>
             ) : (
               <>
-                <div className="stock-table-wrapper" style={{ overflowX: "auto", maxWidth: "100%" }}>
-                  <table className="stock-readings-table" style={{ minWidth: "800px", width: "100%" }}>
+                <div
+                  className="stock-table-wrapper"
+                  style={{ overflowX: "auto", maxWidth: "100%" }}
+                >
+                  <table
+                    className="stock-readings-table"
+                    style={{ minWidth: "800px", width: "100%" }}
+                  >
                     <thead>
                       <tr>
-                        <th style={{ textAlign: "center", width: "50px", minWidth: "50px" }}>S.No</th>
+                        <th
+                          style={{
+                            textAlign: "center",
+                            width: "50px",
+                            minWidth: "50px",
+                          }}
+                        >
+                          S.No
+                        </th>
                         <th style={{ minWidth: "100px" }}>Stock ID</th>
                         <th style={{ minWidth: "140px" }}>Item Name</th>
-                        <th style={{ textAlign: "center", minWidth: "100px" }}>Category</th>
-                        <th style={{ textAlign: "center", minWidth: "80px" }}>Quantity</th>
+                        <th style={{ textAlign: "center", minWidth: "100px" }}>
+                          Category
+                        </th>
+                        <th style={{ textAlign: "center", minWidth: "80px" }}>
+                          Quantity
+                        </th>
                         <th style={{ minWidth: "120px" }}>Pricing</th>
                         <th style={{ minWidth: "150px" }}>Description</th>
                       </tr>
@@ -1419,17 +1477,37 @@ const AddStock = () => {
                         return (
                           <React.Fragment key={item.id}>
                             <tr>
-                              <td rowSpan={totalRows} style={{ textAlign: "center" }}>
+                              <td
+                                rowSpan={totalRows}
+                                style={{ textAlign: "center" }}
+                              >
                                 {startIndex + index + 1}
                               </td>
-                              <td rowSpan={totalRows} style={{ wordBreak: "break-word" }}>
+                              <td
+                                rowSpan={totalRows}
+                                style={{ wordBreak: "break-word" }}
+                              >
                                 {(item.stockId || "N/A").toUpperCase()}
                               </td>
-                              <td rowSpan={totalRows} style={{ wordBreak: "break-word" }}>{item.itemName}</td>
-                              <td rowSpan={totalRows} style={{ textAlign: "center", wordBreak: "break-word" }}>
+                              <td
+                                rowSpan={totalRows}
+                                style={{ wordBreak: "break-word" }}
+                              >
+                                {item.itemName}
+                              </td>
+                              <td
+                                rowSpan={totalRows}
+                                style={{
+                                  textAlign: "center",
+                                  wordBreak: "break-word",
+                                }}
+                              >
                                 {item.category || "N/A"}
                               </td>
-                              <td rowSpan={totalRows} style={{ textAlign: "center" }}>
+                              <td
+                                rowSpan={totalRows}
+                                style={{ textAlign: "center" }}
+                              >
                                 <span
                                   className={`qty-badge ${
                                     (item.qty || 0) === 0
@@ -1448,9 +1526,17 @@ const AddStock = () => {
                                   {formatCurrency(item.pageRanges[0].price)}
                                 </td>
                               ) : (
-                                <td style={{ wordBreak: "break-word" }}>{formatCurrency(item.amount)}</td>
+                                <td style={{ wordBreak: "break-word" }}>
+                                  {formatCurrency(item.amount)}
+                                </td>
                               )}
-                              <td rowSpan={totalRows} style={{ wordBreak: "break-word", maxWidth: "200px" }}>
+                              <td
+                                rowSpan={totalRows}
+                                style={{
+                                  wordBreak: "break-word",
+                                  maxWidth: "200px",
+                                }}
+                              >
                                 {item.description || "N/A"}
                               </td>
                             </tr>
@@ -1475,7 +1561,11 @@ const AddStock = () => {
                 </div>
 
                 <div className="stock-pagination">
-                  <button onClick={previousPage} disabled={currentPage === 1} className="stock-pagination-button">
+                  <button
+                    onClick={previousPage}
+                    disabled={currentPage === 1}
+                    className="stock-pagination-button"
+                  >
                     <FaRegArrowAltCircleLeft />
                   </button>
                   <span className="stock-page-info">

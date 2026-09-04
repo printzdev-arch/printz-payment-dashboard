@@ -1,20 +1,36 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { FaUserCircle } from "react-icons/fa";
 import { IoExitOutline } from "react-icons/io5";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/authservice";
-import { FaChevronDown } from "react-icons/fa";
 import Logo from "../../assets/logo.png";
 import "../../styles/sidebar.css";
 import { useAuth } from "../../App";
 
 const ManagerLayout = ({ children }) => {
-  const [isEnterDataOpen, setIsEnterDataOpen] = useState(false);
-  const [isRevenueDataOpen, setIsRevenueDataOpen] = useState(false);
-  const [isPosOpen, setIsPosOpen] = useState(false);
-  const [profilePicUrl, setProfilePicUrl] = useState("");
-  const [branchName, setBranchName] = useState("");
+  // Initialize synchronously from localStorage to avoid a render flash
+  const [profilePicUrl, setProfilePicUrl] = useState(() => {
+    try {
+      return localStorage.getItem("profilePicUrl") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const [branchName, setBranchName] = useState(() => {
+    try {
+      return localStorage.getItem("userBranchName") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const [gradientEnabled, setGradientEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebarGradientEnabled");
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,50 +53,24 @@ const ManagerLayout = ({ children }) => {
     fetchUserData();
   }, [currentUser]);
 
+  // Persist profilePicUrl and branchName to localStorage when they change
   useEffect(() => {
-    const path = location.pathname;
-
-    if (
-      path.includes("/printer-readings-manager") ||
-      path.includes("/jumbo-xerox") ||
-      path.includes("/stock-list-manager") ||
-      path.includes("/total-amount-display")
-    ) {
-      setIsEnterDataOpen(true);
-    } else {
-      setIsEnterDataOpen(false);
+    try {
+      if (profilePicUrl) localStorage.setItem("profilePicUrl", profilePicUrl);
+      else localStorage.removeItem("profilePicUrl");
+    } catch (e) {
+      /* ignore */
     }
+  }, [profilePicUrl]);
 
-    if (
-      path.includes("/display-printer-readings-manager") ||
-      path.includes("/search-stock-list-manager") ||
-      path.includes("/jumbo-xerox-list-manager") ||
-      path.includes("/total-amount-list-manager")
-    ) {
-      setIsRevenueDataOpen(true);
-    } else {
-      setIsRevenueDataOpen(false);
+  useEffect(() => {
+    try {
+      if (branchName) localStorage.setItem("userBranchName", branchName);
+      else localStorage.removeItem("userBranchName");
+    } catch (e) {
+      /* ignore */
     }
-
-    // Logic for POS menu to keep it open when its sub-routes are active
-    if (path.includes("/sales-order") || path.includes("/sales-receipt")) {
-      setIsPosOpen(true);
-    } else {
-      setIsPosOpen(false);
-    }
-  }, [location.pathname]);
-
-  const toggleEnterData = () => {
-    setIsEnterDataOpen((prevState) => !prevState);
-  };
-
-  const toggleRevenueData = () => {
-    setIsRevenueDataOpen((prevState) => !prevState);
-  };
-
-  const togglePos = () => {
-    setIsPosOpen((prevState) => !prevState);
-  };
+  }, [branchName]);
 
   const isActiveRoute = (route) => {
     return location.pathname === route;
@@ -96,13 +86,15 @@ const ManagerLayout = ({ children }) => {
     }
   };
 
-  const handleProfile = () => {
-    navigate("/profile");
+  const toggleGradient = () => {
+    const newValue = !gradientEnabled;
+    setGradientEnabled(newValue);
+    localStorage.setItem("sidebarGradientEnabled", JSON.stringify(newValue));
   };
 
   return (
     <div className="layout">
-      <div className="sidebar">
+      <div className={`sidebar ${gradientEnabled ? "gradient-enabled" : ""}`}>
         {/* Sidebar Logo */}
         <div className="sidebar-logo">
           <img src={Logo || "/placeholder.svg"} alt="logo" />
@@ -120,7 +112,9 @@ const ManagerLayout = ({ children }) => {
           <li>
             <NavLink
               to="/manager-dashboard"
-              className={isActiveRoute("/manager-dashboard") ? "active-link" : ""}
+              className={
+                isActiveRoute("/manager-dashboard") ? "active-link" : ""
+              }
             >
               Dashboard
             </NavLink>
@@ -128,7 +122,9 @@ const ManagerLayout = ({ children }) => {
           <li>
             <NavLink
               to="/printer-readings-manager"
-              className={isActiveRoute("/printer-readings-manager") ? "active-link" : ""}
+              className={
+                isActiveRoute("/printer-readings-manager") ? "active-link" : ""
+              }
             >
               Account Sheet Generation
             </NavLink>
@@ -141,54 +137,17 @@ const ManagerLayout = ({ children }) => {
               Generate PDF Report
             </NavLink>
           </li>
-          
-          {/* POS Section (New) */}
-          {/* <li className="dropdown-menu">
-            <div
-              onClick={togglePos}
-              className={`dropdown-header-pos ${
-                isPosOpen || location.pathname.includes("/sales-order") || location.pathname.includes("/sales-receipt")
-                  ? "active-link"
-                  : ""
-              }`}
-            >
-              <span>POS</span>
-              <FaChevronDown className={`dropdown-icon ${isPosOpen ? "open" : ""}`} />
-            </div>
-            {isPosOpen && (
-              <ul className="dropdown-list">
-                <li>
-                  <NavLink
-                    to="/sales-order"
-                    className={isActiveRoute("/sales-order") ? "active-link-sub" : ""}
-                  >
-                    Sales Order
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/sales-invoice"
-                    className={isActiveRoute("/sales-receipt") ? "active-link-sub" : ""}
-                  >
-                    Sales Receipt
-                  </NavLink>
-                </li>
-              </ul>
-            )}
-          </li> */}
         </ul>
 
         {/* Sidebar Footer */}
         <div className="sidebar-footer">
-          {/* Profile Section (Commented out as in original code) */}
-          {/* <div className="profile-section" onClick={handleProfile}>
-            {profilePicUrl ? (
-              <img src={profilePicUrl || "/placeholder.svg"} alt="Profile" className="profile-avatar-sidebar" />
-            ) : (
-              <FaUserCircle size={24} className="profile-icon-sidebar" />
-            )}
-            <span className="profile-text">Profile</span>
-          </div> */}
+          {/* Gradient Toggle */}
+          <div className="gradient-toggle-section">
+            <button onClick={toggleGradient} className="gradient-toggle-button">
+              <span>{gradientEnabled ? "Disable" : "Enable"} Gradient</span>
+            </button>
+          </div>
+
           <button onClick={handleLogout} className="logout-button">
             <IoExitOutline size={20} />
             <span>Logout</span>

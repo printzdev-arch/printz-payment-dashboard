@@ -416,6 +416,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 1;

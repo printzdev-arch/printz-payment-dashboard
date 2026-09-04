@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "../../App";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +22,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const emailOrPhone = emailRef.current.value;
+    const emailOrPhone = emailRef.current.value.trim();
     const password = passwordRef.current.value;
 
     if (!emailOrPhone || !password) {
@@ -57,18 +56,19 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if (role && currentUser) { // <<< MODIFIED: Check for currentUser
-        // Use the email from the auth context for accuracy
-        const user = {
-            email: currentUser.email,
-        };
-        localStorage.setItem("user", JSON.stringify(user));
+    if (role && currentUser) {
+      // <<< MODIFIED: Check for currentUser
+      // Use the email from the auth context for accuracy
+      const user = {
+        email: currentUser.email,
+      };
+      localStorage.setItem("user", JSON.stringify(user));
 
-        if (role === "admin") navigate("/admin-dashboard");
-        else if (role === "manager") navigate("/manager-dashboard");
-        else navigate("/login");
+      if (role === "admin") navigate("/admin-dashboard");
+      else if (role === "manager") navigate("/manager-dashboard");
+      else navigate("/login");
     }
-}, [role, navigate, currentUser]); // <<< MODIFIED: Added currentUser dependency
+  }, [role, navigate, currentUser]); // <<< MODIFIED: Added currentUser dependency
 
   // Inline styles
   const inputStyle = {
@@ -79,7 +79,7 @@ const Login = () => {
     fontSize: "14px",
     outline: "none",
     boxSizing: "border-box",
-    height: '48px', // Ensure consistent height
+    height: "48px", // Ensure consistent height
   };
 
   const inputWrapperStyle = {
@@ -92,21 +92,21 @@ const Login = () => {
   };
 
   // Find this style object again
-const toggleBtnStyle = {
+  const toggleBtnStyle = {
     position: "absolute",
     right: "12px", // Adjust this value for perfect placement
-    height: '100%',
+    height: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
 
     // --- Add these lines to override the global button styles ---
-    minWidth: 'auto',
+    minWidth: "auto",
     margin: 0,
     padding: 0,
-    border: 'none',
-    background: 'transparent',
+    border: "none",
+    background: "transparent",
     // ---------------------------------------------------------
 
     fontSize: "16px",
@@ -174,7 +174,7 @@ const toggleBtnStyle = {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: '20px' }}>
+            <div className="form-group" style={{ marginTop: "20px" }}>
               <button
                 type="submit"
                 className="login-btn"
@@ -189,10 +189,10 @@ const toggleBtnStyle = {
                   borderRadius: "6px",
                   cursor: "pointer",
                   fontWeight: "bold",
-                  height: '48px', // Match input field height for consistency
+                  height: "48px", // Match input field height for consistency
                 }}
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? "Signing in..." : "Sign In"}
               </button>
             </div>
           </form>

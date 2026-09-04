@@ -33,6 +33,43 @@
   z-index: 999;
 }
 
+/* Prevent showing text caret/insertion point inside the sidebar UI
+   while still allowing outline focus styles for accessibility. */
+.sidebar, .sidebar * {
+  -webkit-user-select: none; /* disable text selection */
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  caret-color: transparent; /* hide text caret */
+}
+
+/* Allow actual input elements inside sidebar (if any) to be selectable */
+.sidebar input, .sidebar textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  caret-color: auto;
+}
+
+.sidebar.gradient-enabled {
+  /* fallback solid color while gradient paints */
+  background-color: #e94f5f;
+  background: linear-gradient(135deg,
+    rgba(233, 79, 95, 1) 0%,
+    rgba(219, 80, 99, 1) 10%,
+    rgba(200, 76, 102, 1) 20%,
+    rgba(186, 75, 106, 1) 30%,
+    rgba(160, 75, 111, 1) 40%,
+    rgba(139, 73, 114, 1) 50%,
+    rgba(116, 71, 120, 1) 60%,
+    rgba(96, 71, 124, 1) 70%,
+    rgba(83, 72, 129, 1) 80%,
+    rgba(73, 74, 133, 1) 90%
+  );
+  color: #ffffff;
+}
+
 .sidebar.collapsed {
   width: 60px;
 }
@@ -125,6 +162,118 @@
   transform: translateX(4px);
 }
 
+/* Gradient-enabled styles - comprehensive text color override */
+.sidebar.gradient-enabled * {
+  color: inherit;
+}
+
+.sidebar.gradient-enabled .nav-item,
+.sidebar.gradient-enabled .sidebar ul li a,
+.sidebar.gradient-enabled .sidebar ul li > a,
+.sidebar.gradient-enabled .sidebar a,
+.sidebar.gradient-enabled .dropdown-header-pos,
+.sidebar.gradient-enabled .dropdown-btn,
+.sidebar.gradient-enabled .sidebar ul li,
+.sidebar.gradient-enabled .sidebar ul li span {
+  color: #ffffff !important;
+}
+
+.sidebar.gradient-enabled .nav-item:hover,
+.sidebar.gradient-enabled .sidebar ul li a:hover,
+.sidebar.gradient-enabled .sidebar ul li > a:hover,
+.sidebar.gradient-enabled .sidebar a:hover,
+.sidebar.gradient-enabled .dropdown-header-pos:hover,
+.sidebar.gradient-enabled .dropdown-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff !important;
+  transform: translateX(4px);
+}
+
+.sidebar.gradient-enabled .sidebar .dropdown-item {
+  color: #ffffff !important;
+}
+
+.sidebar.gradient-enabled .sidebar .dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff !important;
+  transform: translateX(8px);
+}
+
+.sidebar.gradient-enabled .active-link {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.sidebar.gradient-enabled .dropdown-item.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.sidebar.gradient-enabled .branch-display {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.sidebar.gradient-enabled .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.sidebar.gradient-enabled .profile-section {
+  color: #ffffff;
+}
+
+.sidebar.gradient-enabled .profile-section:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.sidebar.gradient-enabled .logout-button {
+  color: #ffcccc;
+}
+
+.sidebar.gradient-enabled .logout-button:hover {
+  background-color: rgba(255, 0, 0, 0.2);
+  color: #ffffff;
+}
+
+/* --- Gradient Toggle --- */
+.gradient-toggle-section {
+  margin-bottom: 0.5rem;
+}
+
+.gradient-toggle-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #4b5563;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.gradient-toggle-button:hover {
+  background-color: #f3f4f6;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.sidebar.gradient-enabled .gradient-toggle-button {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}
+
+.sidebar.gradient-enabled .gradient-toggle-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
 .nav-icon {
   font-size: 16px;
   margin-right: 0.75rem;
@@ -212,7 +361,6 @@
 
 .sidebar .dropdown-item {
   text-decoration: none;
-  color: #6b7280;
   display: block;
   padding: 0.75rem 1rem;
   border-radius: 3px;
@@ -226,6 +374,46 @@
   background-color: #f3f4f6;
   color: #3b82f6;
   transform: translateX(8px);
+}
+
+/* --- Improved Dropdown Styling --- */
+/* Make dropdown header buttons match normal menu items */
+.sidebar .dropdown-btn {
+  width: 100%; /* match full width like links */
+  margin: 0.5rem 0; /* same vertical rhythm as links */
+  padding: 0.75rem 1rem; /* same hit area as links */
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Indent dropdown lists and visually group */
+.sidebar .dropdown {
+  margin: 0.25rem 0 0.25rem 0.75rem;
+  padding-left: 0.25rem;
+  border-left: 2px solid #f1f5f9; /* subtle guide */
+}
+
+/* Make dropdown items slightly smaller and lighter than main items */
+.sidebar .dropdown-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.sidebar .dropdown-item:hover {
+  transform: translateX(4px); /* subtler movement for sub-items */
+}
+
+/* Nested dropdown header (e.g., Assets inside Extra features) */
+.sidebar .dropdown .dropdown-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 14px;
+  margin: 0.25rem 0;
+}
+
+/* Extra indent for deeper nested lists, if any */
+.sidebar .dropdown .dropdown {
+  margin-left: 1rem;
 }
 
 /* --- Active States --- */

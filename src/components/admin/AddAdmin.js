@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { app, auth, db } from "../../services/authservice";
 import { setDoc, doc, getDocs, collection } from "firebase/firestore";
-import { FaEye, FaEyeSlash, FaTimes, FaEdit, FaTrash, FaArrowLeft, FaArrowRight, FaKey } from "react-icons/fa";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaTimes,
+  FaEdit,
+  FaTrash,
+  FaArrowLeft,
+  FaArrowRight,
+  FaKey,
+} from "react-icons/fa";
 import { MdOutlineFileDownloadDone } from "react-icons/md";
-import { FaUndo } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 import "../../styles/addmanager.css";
 import Popup from "../common/Popup";
@@ -34,12 +42,15 @@ const AddAdmin = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [adminToDelete, setAdminToDelete] = useState(null);
   const [branches, setBranches] = useState([]);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
-  const totalPages = Math.ceil(admins.length / itemsPerPage);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showCapabilitiesDropdown, setShowCapabilitiesDropdown] =
+    useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -48,14 +59,7 @@ const AddAdmin = () => {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchAdmins();
-    }
-    fetchBranches();
-  }, [currentUser]);
-
-  const fetchBranches = async () => {
+  const fetchBranches = useCallback(async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "branches"));
       const branchData = querySnapshot.docs.map((doc) => ({
@@ -63,7 +67,9 @@ const AddAdmin = () => {
         name: doc.data().name,
         address: doc.data().address || "",
       }));
-      const sortedBranches = branchData.sort((a, b) => a.name.localeCompare(b.name));
+      const sortedBranches = branchData.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
       setBranches(sortedBranches);
       if (sortedBranches.length > 0 && !selectedBranch) {
         setSelectedBranch(sortedBranches[0].name);
@@ -72,25 +78,54 @@ const AddAdmin = () => {
     } catch (error) {
       console.error("Failed to fetch branch names: ", error);
     }
-  };
-
-  const handleBranchChange = (event) => {
-    const selectedBranchName = event.target.value;
-    setSelectedBranch(selectedBranchName);
-    const selectedBranchData = branches.find((branch) => branch.name === selectedBranchName);
-    setLocation(selectedBranchData ? selectedBranchData.address || "" : "");
-  };
+  }, [selectedBranch]);
 
   const fetchAdmins = async () => {
     const querySnapshot = await getDocs(collection(db, "users"));
     const adminList = querySnapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((user) => user.role === "admin" && user.id !== auth.currentUser?.uid);
+      .filter(
+        (user) => user.role === "admin" && user.id !== auth.currentUser?.uid
+      );
     setAdmins(adminList);
   };
 
+  const handleBranchChange = (event) => {
+    const selectedBranchName = event.target.value;
+    setSelectedBranch(selectedBranchName);
+    const selectedBranchData = branches.find(
+      (branch) => branch.name === selectedBranchName
+    );
+    setLocation(selectedBranchData ? selectedBranchData.address || "" : "");
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchAdmins();
+      fetchBranches();
+    }
+  }, [currentUser, fetchBranches]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showCapabilitiesDropdown &&
+        !event.target.closest(".custom-dropdown")
+      ) {
+        setShowCapabilitiesDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showCapabilitiesDropdown]);
+
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
-  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
+  const toggleConfirmPasswordVisibility = () =>
+    setShowConfirmPassword(!showConfirmPassword);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,15 +144,19 @@ const AddAdmin = () => {
     try {
       if (editMode) {
         const docRef = doc(db, `users/${currentAdmin.id}`);
-        await setDoc(docRef, {
-          name,
-          email,
-          phone,
-          branch: selectedBranch,
-          location,
-          role: "admin",
-          permissions: userPermissions,
-        }, { merge: true });
+        await setDoc(
+          docRef,
+          {
+            name,
+            email,
+            phone,
+            branch: selectedBranch,
+            location,
+            role: "admin",
+            permissions: userPermissions,
+          },
+          { merge: true }
+        );
       } else {
         if (!currentUser) {
           setError("Authentication error. Please log in again.");
@@ -136,16 +175,25 @@ const AddAdmin = () => {
           branch: selectedBranch,
           location,
           role: "admin",
-          permissions: userPermissions
+          permissions: userPermissions,
         });
       }
       setLoading(false);
       handleReset();
       fetchAdmins();
-      showSuccess("Admin Saved Successfully", `Admin ${name} has been ${editMode ? 'updated' : 'created'} successfully.`);
+      setShowAddDialog(false);
+      showSuccess(
+        "Admin Saved Successfully",
+        `Admin ${name} has been ${
+          editMode ? "updated" : "created"
+        } successfully.`
+      );
     } catch (error) {
       setError(error.message || "Failed to save admin");
-      showError("Save Failed", `Failed to save admin: ${error.message || 'Unknown error'}.`);
+      showError(
+        "Save Failed",
+        `Failed to save admin: ${error.message || "Unknown error"}.`
+      );
       setLoading(false);
     }
   };
@@ -162,6 +210,8 @@ const AddAdmin = () => {
     setError("");
     setEditMode(false);
     setCurrentAdmin(null);
+    setShowAddDialog(false);
+    setShowCapabilitiesDropdown(false);
   };
 
   const handleEdit = (admin) => {
@@ -173,6 +223,23 @@ const AddAdmin = () => {
     setSelectedBranch(admin.branch);
     setLocation(admin.location);
     setPermissions(Object.keys(admin.permissions || {}));
+    setShowAddDialog(true);
+  };
+
+  const openAddDialog = () => {
+    setEditMode(false);
+    setCurrentAdmin(null);
+    setName("");
+    setEmail("");
+    setPhone("");
+    setSelectedBranch(branches.length > 0 ? branches[0].name : "");
+    setLocation(branches.length > 0 ? branches[0].address : "");
+    setPassword("");
+    setConfirmPassword("");
+    setPermissions([]);
+    setError("");
+    setShowAddDialog(true);
+    setShowCapabilitiesDropdown(false);
   };
 
   const handlePasswordReset = async () => {
@@ -183,7 +250,9 @@ const AddAdmin = () => {
     setIsSendingReset(true);
     try {
       await sendPasswordResetEmail(auth, currentAdmin.email);
-      toast.success(`Password reset email sent to ${currentAdmin.email}. Please check the spam folder if you can't find the email.`);
+      toast.success(
+        `Password reset email sent to ${currentAdmin.email}. Please check the spam folder if you can't find the email.`
+      );
     } catch (error) {
       console.error("Password reset error:", error);
       toast.error(error.message || "Failed to send password reset email.");
@@ -211,15 +280,21 @@ const AddAdmin = () => {
       const uidToDelete = adminToDelete.id || adminToDelete.uid;
 
       await deleteUserCallable({
-        uid: uidToDelete
+        uid: uidToDelete,
       });
 
       fetchAdmins();
       setShowDeleteModal(false);
       setAdminToDelete(null);
-      showSuccess("Admin Deleted", `Admin ${adminToDelete.name} has been deleted successfully.`);
+      showSuccess(
+        "Admin Deleted",
+        `Admin ${adminToDelete.name} has been deleted successfully.`
+      );
     } catch (error) {
-      showError("Delete Failed", `Failed to delete admin: ${error.message || 'Unknown error'}.`);
+      showError(
+        "Delete Failed",
+        `Failed to delete admin: ${error.message || "Unknown error"}.`
+      );
     }
   };
 
@@ -228,234 +303,506 @@ const AddAdmin = () => {
     setAdminToDelete(null);
   };
 
+  // Filter admins based on search term
+  const filteredAdmins = admins.filter((admin) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      admin.name?.toLowerCase().includes(searchLower) ||
+      admin.email?.toLowerCase().includes(searchLower) ||
+      admin.branch?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const totalFilteredPages = Math.ceil(filteredAdmins.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentAdmins = admins.slice(indexOfFirstItem, indexOfLastItem);
+  const currentAdmins = filteredAdmins.slice(indexOfFirstItem, indexOfLastItem);
+
+  const formatCapability = (cap) => {
+    // Remove "is" prefix
+    let formatted = cap.startsWith("is") ? cap.slice(2) : cap;
+    // Insert space before capital letters (except first)
+    formatted = formatted.replace(/([A-Z])/g, " $1").trim();
+    return formatted;
+  };
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
-
-  const handlePermissionChange = (e) => {
-    const { value, checked } = e.target;
-    setPermissions((prev) => {
-      if (checked) {
-        return [...prev, value];
-      } else {
-        return prev.filter((p) => p !== value);
-      }
-    });
-  };
 
   return (
     <div className="add-manager-page">
       <Popup {...popup} />
-      <div className="form-container">
-        <h2>{editMode ? "Edit Admin" : "Add Admin"}</h2>
-        {error && <p className="error">{error}</p>}
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label>Name</label>
-            <input
-              type="text"
-              value={name}
-              style={{ width: "100%" }}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={editMode} />
-          </div>
 
-          {editMode && (
-            <div className="reset-password-action">
+      {/* Add/Edit Admin Dialog */}
+      {showAddDialog && (
+        <div className="modal-overlay" onClick={() => setShowAddDialog(false)}>
+          <div
+            className="modal-content admin-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>{editMode ? "Edit Admin" : "Add Admin"}</h2>
               <button
-                type="button"
-                className="reset-password-button"
-                onClick={handlePasswordReset}
-                disabled={isSendingReset || !currentUser}
+                className="close-button"
+                onClick={() => setShowAddDialog(false)}
               >
-                <FaKey /> {isSendingReset ? 'Sending Email...' : 'Send Password Reset Email'}
+                <FaTimes />
               </button>
             </div>
-          )}
 
-          <div>
-            <label>Phone Number</label>
-            <input
-              type="text"
-              value={phone}
-              style={{ width: "100%" }}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
+            <form onSubmit={handleSubmit} className="modal-form">
+              {error && <p className="error">{error}</p>}
+
+              <div className="form-group-horizontal">
+                <label>Name:</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              <div className="form-group-horizontal">
+                <label>Email:</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={editMode}
+                  placeholder="Enter email address"
+                />
+              </div>
+
+              {editMode && (
+                <div className="reset-password-section">
+                  <button
+                    type="button"
+                    className="reset-password-button"
+                    onClick={handlePasswordReset}
+                    disabled={isSendingReset || !currentUser}
+                  >
+                    <FaKey />
+                    {isSendingReset
+                      ? "Sending Email..."
+                      : "Send Password Reset Email"}
+                  </button>
+                </div>
+              )}
+
+              <div className="form-group-horizontal">
+                <label>Phone Number:</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  placeholder="Enter phone number"
+                />
+              </div>
+
+              <div className="form-group-horizontal">
+                <label>Branch Name:</label>
+                <select value={selectedBranch} onChange={handleBranchChange}>
+                  <option value="" disabled>
+                    Select a branch...
+                  </option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.name}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group-horizontal">
+                <label>Location:</label>
+                <input
+                  type="text"
+                  value={location}
+                  disabled
+                  placeholder="Auto-filled from branch selection"
+                />
+              </div>
+
+              <div className="form-group-horizontal capabilities-group">
+                <label>Capabilities:</label>
+                <div className="custom-dropdown">
+                  <div
+                    className="dropdown-header"
+                    onClick={() =>
+                      setShowCapabilitiesDropdown(!showCapabilitiesDropdown)
+                    }
+                  >
+                    <span>
+                      {permissions.length > 0
+                        ? `${permissions.length} capability${
+                            permissions.length > 1 ? "ies" : "y"
+                          } selected`
+                        : "Select capabilities..."}
+                    </span>
+                    <FaTimes
+                      className={`dropdown-arrow ${
+                        showCapabilitiesDropdown ? "rotated" : ""
+                      }`}
+                      style={{
+                        transform: showCapabilitiesDropdown
+                          ? "rotate(45deg)"
+                          : "rotate(0deg)",
+                      }}
+                    />
+                  </div>
+                  {showCapabilitiesDropdown && (
+                    <div className="dropdown-content">
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isDashboardCapability"
+                          value="isDashboardCapability"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes(
+                            "isDashboardCapability"
+                          )}
+                        />
+                        <label htmlFor="isDashboardCapability">
+                          Dashboard Capability
+                        </label>
+                      </div>
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isPrinterCapability"
+                          value="isPrinterCapability"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes("isPrinterCapability")}
+                        />
+                        <label htmlFor="isPrinterCapability">
+                          Printer Capability
+                        </label>
+                      </div>
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isStockCapability"
+                          value="isStockCapability"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes("isStockCapability")}
+                        />
+                        <label htmlFor="isStockCapability">
+                          Stock Capability
+                        </label>
+                      </div>
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isRevenueCapability"
+                          value="isRevenueCapability"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes("isRevenueCapability")}
+                        />
+                        <label htmlFor="isRevenueCapability">
+                          Revenue Capability
+                        </label>
+                      </div>
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isAddAdmin"
+                          value="isAddAdmin"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes("isAddAdmin")}
+                        />
+                        <label htmlFor="isAddAdmin">Add Admin</label>
+                      </div>
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isAddManager"
+                          value="isAddManager"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes("isAddManager")}
+                        />
+                        <label htmlFor="isAddManager">Add Manager</label>
+                      </div>
+                      <div className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id="isExtraCapability"
+                          value="isExtraCapability"
+                          onChange={(e) => {
+                            const { value, checked } = e.target;
+                            setPermissions((prev) => {
+                              if (checked) {
+                                return [...prev, value];
+                              } else {
+                                return prev.filter((p) => p !== value);
+                              }
+                            });
+                          }}
+                          checked={permissions.includes("isExtraCapability")}
+                        />
+                        <label htmlFor="isExtraCapability">
+                          Extra Features
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!editMode && (
+                <>
+                  <div className="form-group-horizontal password-container">
+                    <label>Password:</label>
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        placeholder="Enter password"
+                      />
+                      <span
+                        className="password-toggle"
+                        onClick={togglePasswordVisibility}
+                      >
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="form-group-horizontal password-container">
+                    <label>Confirm Password:</label>
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        placeholder="Confirm password"
+                      />
+                      <span
+                        className="password-toggle"
+                        onClick={toggleConfirmPasswordVisibility}
+                      >
+                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddDialog(false);
+                    handleReset();
+                  }}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={loading || !currentUser}
+                  type="submit"
+                  className="submit-btn"
+                >
+                  <MdOutlineFileDownloadDone />{" "}
+                  {editMode ? "Save Changes" : "Add Admin"}
+                </button>
+              </div>
+            </form>
           </div>
-          <div>
-            <label>Branch Name:</label>
+        </div>
+      )}
+
+      <div className="table-container">
+        <div className="table-header">
+          <h2>Admins</h2>
+          <div
+            className="table-controls"
+            style={{ display: "flex", alignItems: "center", gap: "10px" }}
+          >
             <select
-              value={selectedBranch}
-              onChange={handleBranchChange}
-              className="input-style"
-              style={{ width: "100%" }}
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="items-per-page-select"
+              style={{
+                padding: "5px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
             >
-              <option value="" disabled>Select...</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.name}>
-                  {branch.name}
-                </option>
-              ))}
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={15}>15 per page</option>
+              <option value={20}>20 per page</option>
             </select>
-          </div>
-          <div>
-            <label>Location:</label>
-            <input type="text" value={location} className="input-style" style={{ width: "100%" }} disabled />
-          </div>
-          <div className="form-group">
-            <label>Capabilities</label>
-            <div className="size-checkboxes">
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isDashboardCapability"
-                  value="isDashboardCapability"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isDashboardCapability")}
-                />
-                <label htmlFor="isDashboardCapability">Dashboard Capability</label>
-              </div>
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isPrinterCapability"
-                  value="isPrinterCapability"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isPrinterCapability")}
-                />
-                <label htmlFor="isPrinterCapability">Printer Capability</label>
-              </div>
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isStockCapability"
-                  value="isStockCapability"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isStockCapability")}
-                />
-                <label htmlFor="isStockCapability">Stock Capability</label>
-              </div>
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isRevenueCapability"
-                  value="isRevenueCapability"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isRevenueCapability")}
-                />
-                <label htmlFor="isRevenueCapability">Revenue Capability</label>
-              </div>
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isAddAdmin"
-                  value="isAddAdmin"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isAddAdmin")}
-                />
-                <label htmlFor="isAddAdmin">Add Admin</label>
-              </div>
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isAddManager"
-                  value="isAddManager"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isAddManager")}
-                />
-                <label htmlFor="isAddManager">Add Manager</label>
-              </div>
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isExtraCapability"
-                  value="isExtraCapability"
-                  onChange={handlePermissionChange}
-                  checked={permissions.includes("isExtraCapability")}
-                />
-                <label htmlFor="isExtraCapability">Extra features</label>
-              </div>
-            </div>
-          </div>
-          {!editMode && (
-            <>
-              <div className="password-container">
-                <label>Password</label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <span onClick={togglePasswordVisibility}>{showPassword ? <FaEyeSlash /> : <FaEye />}</span>
-              </div>
-              <div className="password-container">
-                <label>Confirm Password</label>
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                <span onClick={toggleConfirmPasswordVisibility}>
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-            </>
-          )}
-          <div className="button-group">
-            <button disabled={loading || !currentUser} type="submit">
-              <MdOutlineFileDownloadDone /> {editMode ? "Save" : "Add Admin"}
-            </button>
-            <button type="button" onClick={handleReset}>
-              {editMode ? <FaTimes /> : <FaUndo />} {editMode ? "Cancel" : "Reset"}
+            <button className="add-admin-btn" onClick={openAddDialog}>
+              Add Admin
             </button>
           </div>
-        </form>
-      </div>
+        </div>
 
-      <div className="card-container">
-        <h2>Admins</h2>
-        {currentAdmins.map((admin) => (
-          <div className="manager-card" key={admin.id}>
-            <h3>{admin.name}</h3>
-            <p>{admin.email}</p>
-            <p>{admin.branch}</p>
-            <div className="card-actions">
-              <FaEdit
-                onClick={() => currentUser ? handleEdit(admin) : null}
-                className={`edit-icon ${!currentUser ? 'disabled' : ''}`}
-              />
-              <FaTrash
-                onClick={() => currentUser ? handleDelete(admin) : null}
-                className={`delete-icon ${!currentUser ? 'disabled' : ''}`}
-              />
-            </div>
-          </div>
-        ))}
+        <div className="search-container">
+          <input
+            type="text"
+            placeholder="Search admins by name, email, or branch..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset to first page when searching
+            }}
+            className="search-input"
+          />
+        </div>
 
-        {totalPages > 1 && (
+        <div className="table-wrapper">
+          <table className="admins-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Branch</th>
+                <th>Capabilities</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentAdmins.map((admin) => (
+                <tr key={admin.id}>
+                  <td>{admin.name}</td>
+                  <td>{admin.email}</td>
+                  <td>{admin.phone}</td>
+                  <td>{admin.branch}</td>
+                  <td>
+                    <div
+                      className="capabilities-list"
+                      title={Object.keys(admin.permissions || {})
+                        .map(formatCapability)
+                        .join(", ")}
+                    >
+                      {Object.keys(admin.permissions || {})
+                        .map(formatCapability)
+                        .join(", ")}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <FaEdit
+                        onClick={() => (currentUser ? handleEdit(admin) : null)}
+                        className={`action-icon edit-icon ${
+                          !currentUser ? "disabled" : ""
+                        }`}
+                        title="Edit Admin"
+                      />
+                      <FaTrash
+                        onClick={() =>
+                          currentUser ? handleDelete(admin) : null
+                        }
+                        className={`action-icon delete-icon ${
+                          !currentUser ? "disabled" : ""
+                        }`}
+                        title="Delete Admin"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {totalFilteredPages > 1 && (
           <div className="pagination-controls">
             <button
-              className={`pagination-button ${currentPage === 1 ? "disabled" : ""}`}
+              className={`pagination-button ${
+                currentPage === 1 ? "disabled" : ""
+              }`}
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
+              style={{
+                fontSize: "12px",
+                padding: "5px 10px",
+                borderRadius: "4px",
+              }}
             >
               <FaArrowLeft />
             </button>
-            <span className="page-number">{currentPage}</span>
+            <span className="page-info">
+              Page {currentPage} of {totalFilteredPages}
+            </span>
             <button
-              className={`pagination-button ${currentPage === totalPages ? "disabled" : ""}`}
+              className={`pagination-button ${
+                currentPage === totalFilteredPages ? "disabled" : ""
+              }`}
               onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              disabled={currentPage === totalFilteredPages}
+              style={{
+                fontSize: "12px",
+                padding: "5px 10px",
+                borderRadius: "4px",
+              }}
             >
               <FaArrowRight />
             </button>

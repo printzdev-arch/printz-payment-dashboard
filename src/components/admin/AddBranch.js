@@ -314,7 +314,7 @@ const AddBranch = () => {
                 ) : (
                   branches.map((movement, index) => (
                     <tr key={index}>
-                      <td style={{textAlign: "center"}}>{index + 1}</td>
+                      <td style={{ textAlign: "center" }}>{index + 1}</td>
                       <td>{movement.name}</td>
                       <td>{movement.address}</td>
                       <td>
@@ -327,7 +327,7 @@ const AddBranch = () => {
                           className="edit"
                           onClick={() => handleEditBranch(movement)}
                           disabled={loading}
-                          style={{padding:'5px'}}
+                          style={{ padding: "5px" }}
                         >
                           Edit
                         </button>
@@ -337,7 +337,7 @@ const AddBranch = () => {
                             handleDeleteBranch(movement.id, movement.name)
                           }
                           disabled={loading}
-                          style={{padding:'5px'}}
+                          style={{ padding: "5px" }}
                         >
                           Delete
                         </button>

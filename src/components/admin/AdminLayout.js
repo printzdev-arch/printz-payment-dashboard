@@ -1,25 +1,46 @@
-import { useState, useEffect } from "react"
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { FaCaretDown, FaCaretRight, FaUserCircle } from "react-icons/fa"
-import { IoExitOutline } from "react-icons/io5"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "../../services/authservice"
-import Logo from "../../assets/logo.png"
-import "../../styles/sidebar.css"
-import { useAuth } from "../../App"
+import { useState, useEffect } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { FaCaretDown, FaCaretRight, FaUserCircle } from "react-icons/fa";
+import { IoExitOutline } from "react-icons/io5";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/authservice";
+import Logo from "../../assets/logo.png";
+import "../../styles/sidebar.css";
+import { useAuth } from "../../App";
 
 const AdminLayout = ({ children }) => {
-  const [isRevenueDataOpen, setIsRevenueDataOpen] = useState(false)
-  const [isPrinterDataOpen, setIsPrinterDataOpen] = useState(false)
-  const [isStockDataOpen, setIsStockDataOpen] = useState(false)
-  const [isAssetsDataOpen, setIsAssetsDataOpen] = useState(false)
-  const [isAdditionalOpen, setIsAdditionalOpen] = useState(false)
-  const [profilePicUrl, setProfilePicUrl] = useState("")
-  const [userRole, setUserRole] = useState("")
+  const [isRevenueToggled, setIsRevenueToggled] = useState(false);
+  const [isPrinterToggled, setIsPrinterToggled] = useState(false);
+  const [isStockToggled, setIsStockToggled] = useState(false);
+  const [isAssetsToggled, setIsAssetsToggled] = useState(false);
+  const [isAdditionalToggled, setIsAdditionalToggled] = useState(false);
+  // Initialize profile pic from localStorage (synchronous) to avoid flicker
+  const initialProfilePic = (() => {
+    try {
+      const raw = localStorage.getItem("profilePicUrl");
+      return raw ? raw : "";
+    } catch (e) {
+      return "";
+    }
+  })();
 
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { permissions, logout, currentUser } = useAuth()
+  const [profilePicUrl, setProfilePicUrl] = useState(initialProfilePic);
+  // Read initial gradient preference synchronously to avoid a render flash
+  const initialGradient = (() => {
+    try {
+      const raw = localStorage.getItem("sidebarGradientEnabled");
+      return raw !== null ? JSON.parse(raw) : false;
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  const [gradientEnabled, setGradientEnabled] = useState(initialGradient);
+  // Removed unused userRole state
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { permissions, logout, currentUser } = useAuth();
 
   const {
     isDashboardCapability = false,
@@ -29,121 +50,137 @@ const AdminLayout = ({ children }) => {
     isAddAdmin = false,
     isAddManager = false,
     isExtraCapability = false,
-  } = permissions || {}
+  } = permissions || {};
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
-        const userDoc = doc(db, "users", currentUser.uid)
-        const userSnapshot = await getDoc(userDoc)
+        const userDoc = doc(db, "users", currentUser.uid);
+        const userSnapshot = await getDoc(userDoc);
         if (userSnapshot.exists()) {
-          const userData = userSnapshot.data()
-          setUserRole(userData.role || "")
-          setProfilePicUrl(userData.profilePicUrl || "")
+          const userData = userSnapshot.data();
+          const pic =
+            userData.profilePicUrl ||
+            (currentUser && currentUser.photoURL) ||
+            "";
+          setProfilePicUrl(pic);
+          try {
+            localStorage.setItem("profilePicUrl", pic);
+          } catch (e) {
+            // ignore
+          }
         }
       }
-    }
-    fetchUserData()
-  }, [currentUser])
+    };
+    fetchUserData();
+  }, [currentUser]);
 
-  
+  // keep localStorage in sync when user toggles gradient
   useEffect(() => {
-    const path = location.pathname
-
-    
-    if (path.includes("/admin-daily-readings-revenue") || path.includes("/admin-stock-readings-revenue")) {
-      setIsRevenueDataOpen(true)
+    try {
+      localStorage.setItem(
+        "sidebarGradientEnabled",
+        JSON.stringify(gradientEnabled)
+      );
+    } catch (e) {
+      // ignore
     }
+  }, [gradientEnabled]);
 
-    
-    if (
-      path.includes("/add-printer-manager") ||
-      path.includes("/move-printer-manager") ||
-      path.includes("/printer-list")
-    ) {
-      setIsPrinterDataOpen(true)
-    }
+  // Compute if dropdown should be open: either manually toggled or path matches
+  const isRevenueDataOpen =
+    isRevenueToggled ||
+    location.pathname.includes("/admin-daily-readings-revenue") ||
+    location.pathname.includes("/admin-stock-readings-revenue");
 
-    
-    if (
-      path.includes("/add-stock-manager") ||
-      path.includes("/move-stock-manager") ||
-      path.includes("/stock-list") ||
-      path.includes("/add-category")
-    ) {
-      setIsStockDataOpen(true)
-    }
+  const isPrinterDataOpen =
+    isPrinterToggled ||
+    location.pathname.includes("/add-printer-manager") ||
+    location.pathname.includes("/move-printer-manager") ||
+    location.pathname.includes("/printer-list");
 
+  const isStockDataOpen =
+    isStockToggled ||
+    location.pathname.includes("/add-stock-manager") ||
+    location.pathname.includes("/move-stock-manager") ||
+    location.pathname.includes("/stock-list") ||
+    location.pathname.includes("/add-category");
 
+  const isAssetsDataOpen =
+    isAssetsToggled ||
+    location.pathname.includes("/add-assets") ||
+    location.pathname.includes("/move-assets") ||
+    location.pathname.includes("/assets-list");
 
-    
-    if (path.includes("/add-assets") || path.includes("/move-assets") || path.includes("/assets-list")) {
-      setIsAssetsDataOpen(true)
-    }
-
-    
-    if (
-      path.includes("/pastDateRequests") ||
-      path.includes("/previous-balance-list") ||
-      path.includes("/inventory-tracking") ||
-      path.includes("/export-data") ||
-      path.includes("/add-expense") ||
-      path.includes("/jumbo-xerox-csv-verifier")
-    ) {
-      setIsAdditionalOpen(true)
-    }
-  }, [location.pathname])
+  const isAdditionalOpen =
+    isAdditionalToggled ||
+    location.pathname.includes("/pastDateRequests") ||
+    location.pathname.includes("/previous-balance-list") ||
+    location.pathname.includes("/inventory-tracking") ||
+    location.pathname.includes("/export-data") ||
+    location.pathname.includes("/add-expense") ||
+    location.pathname.includes("/jumbo-xerox-csv-verifier") ||
+    isAssetsDataOpen;
 
   const toggleRevenueData = () => {
-    setIsRevenueDataOpen((prevState) => !prevState)
-  }
+    setIsRevenueToggled((prev) => !prev);
+  };
 
   const togglePrinterData = () => {
-    setIsPrinterDataOpen((prevState) => !prevState)
-  }
+    setIsPrinterToggled((prev) => !prev);
+  };
 
   const toggleStockData = () => {
-    setIsStockDataOpen((prevState) => !prevState)
-  }
-
+    setIsStockToggled((prev) => !prev);
+  };
 
   const toggleAssetsData = () => {
-    setIsAssetsDataOpen((prevState) => !prevState)
-  }
+    setIsAssetsToggled((prev) => !prev);
+  };
 
   const toggleAdditionaldData = () => {
-    setIsAdditionalOpen((prevState) => !prevState)
-  }
+    setIsAdditionalToggled((prev) => !prev);
+  };
 
   const isActiveRoute = (route) => {
-    return location.pathname === route
-  }
+    return location.pathname === route;
+  };
 
   const handleLogout = async () => {
     try {
-      localStorage.removeItem("userBranchName")
-      await logout()
-      navigate("/login")
+      localStorage.removeItem("userBranchName");
+      await logout();
+      navigate("/login");
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error("Logout error:", error);
     }
-  }
+  };
 
   const handleProfile = () => {
-    navigate("/profile")
-  }
+    navigate("/profile");
+  };
+
+  const toggleGradient = () => {
+    const newValue = !gradientEnabled;
+    setGradientEnabled(newValue);
+    localStorage.setItem("sidebarGradientEnabled", JSON.stringify(newValue));
+  };
 
   return (
     <div className="layout">
-      <div className="sidebar">
-        {}
+      <div className={`sidebar ${gradientEnabled ? "gradient-enabled" : ""}`}>
         <div className="sidebar-logo">
-          <img src={Logo || "/placeholder.svg"} alt="logo"  width="100%"/>
+          <img src={Logo || "/placeholder.svg"} alt="logo" width="100%" />
         </div>
         <ul>
           {isDashboardCapability && (
             <li>
-              <NavLink to="/admin-dashboard" className={isActiveRoute("/admin-dashboard") ? "active-link" : ""}>
+              <NavLink
+                to="/admin-dashboard"
+                className={
+                  isActiveRoute("/admin-dashboard") ? "active-link" : ""
+                }
+              >
                 Dashboard
               </NavLink>
             </li>
@@ -152,12 +189,18 @@ const AdminLayout = ({ children }) => {
           {isAddAdmin && (
             <>
               <li>
-                <NavLink to="/add-admin" className={isActiveRoute("/add-admin") ? "active-link" : ""}>
-                  Add Admin
+                <NavLink
+                  to="/add-admin"
+                  className={isActiveRoute("/add-admin") ? "active-link" : ""}
+                >
+                  Admins
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/add-branch" className={isActiveRoute("/add-branch") ? "active-link" : ""}>
+                <NavLink
+                  to="/add-branch"
+                  className={isActiveRoute("/add-branch") ? "active-link" : ""}
+                >
                   Add Branch
                 </NavLink>
               </li>
@@ -166,7 +209,10 @@ const AdminLayout = ({ children }) => {
 
           {isAddManager && (
             <li>
-              <NavLink to="/add-manager" className={isActiveRoute("/add-manager") ? "active-link" : ""}>
+              <NavLink
+                to="/add-manager"
+                className={isActiveRoute("/add-manager") ? "active-link" : ""}
+              >
                 Add Manager
               </NavLink>
             </li>
@@ -182,7 +228,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/add-printer-manager"
-                      className={isActiveRoute("/add-printer-manager") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/add-printer-manager")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Add Printer
                     </NavLink>
@@ -190,7 +240,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/move-printer-manager"
-                      className={isActiveRoute("/move-printer-manager") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/move-printer-manager")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Move Printer
                     </NavLink>
@@ -198,7 +252,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/printer-list"
-                      className={isActiveRoute("/printer-list") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/printer-list")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Printer List
                     </NavLink>
@@ -218,7 +276,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/add-stock-manager"
-                      className={isActiveRoute("/add-stock-manager") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/add-stock-manager")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Add Stock
                     </NavLink>
@@ -226,7 +288,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/move-stock-manager"
-                      className={isActiveRoute("/move-stock-manager") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/move-stock-manager")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Move Stock
                     </NavLink>
@@ -234,7 +300,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/stock-list"
-                      className={isActiveRoute("/stock-list") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/stock-list")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Stock List
                     </NavLink>
@@ -252,12 +322,11 @@ const AdminLayout = ({ children }) => {
             </li>
           )}
 
-          
-
           {isRevenueCapability && (
             <li className="dropdown-container">
               <button onClick={toggleRevenueData} className="dropdown-btn">
-                Revenue Data {isRevenueDataOpen ? <FaCaretDown /> : <FaCaretRight />}
+                Revenue Data{" "}
+                {isRevenueDataOpen ? <FaCaretDown /> : <FaCaretRight />}
               </button>
               {isRevenueDataOpen && (
                 <ul className="dropdown">
@@ -265,7 +334,9 @@ const AdminLayout = ({ children }) => {
                     <NavLink
                       to="/admin-daily-readings-revenue"
                       className={
-                        isActiveRoute("/admin-daily-readings-revenue") ? "dropdown-item active" : "dropdown-item"
+                        isActiveRoute("/admin-daily-readings-revenue")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
                       }
                     >
                       Daily Readings Revenue
@@ -275,7 +346,9 @@ const AdminLayout = ({ children }) => {
                     <NavLink
                       to="/admin-stock-readings-revenue"
                       className={
-                        isActiveRoute("/admin-stock-readings-revenue") ? "dropdown-item active" : "dropdown-item"
+                        isActiveRoute("/admin-stock-readings-revenue")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
                       }
                     >
                       Stock Readings Revenue
@@ -289,53 +362,67 @@ const AdminLayout = ({ children }) => {
           {isExtraCapability && (
             <li className="dropdown-container">
               <button onClick={toggleAdditionaldData} className="dropdown-btn">
-                Extra features {isAdditionalOpen ? <FaCaretDown /> : <FaCaretRight />}
+                Extra features{" "}
+                {isAdditionalOpen ? <FaCaretDown /> : <FaCaretRight />}
               </button>
 
-              
               {isAdditionalOpen && (
                 <ul className="dropdown">
-
-<li className="dropdown-container">
-            <button onClick={toggleAssetsData} className="dropdown-btn">
-              Assets {isAssetsDataOpen ? <FaCaretDown /> : <FaCaretRight />}
-            </button>
-            {isAssetsDataOpen && (
-              <ul className="dropdown">
-                
-                <li>
-                  <NavLink
-                    to="/add-assets"
-                    className={isActiveRoute("/add-assets") ? "dropdown-item active" : "dropdown-item"}
-                  >
-                    Add Assets
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/move-assets"
-                    className={isActiveRoute("/move-assets") ? "dropdown-item active" : "dropdown-item"}
-                  >
-                    Move Assets
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/assets-list"
-                    className={isActiveRoute("/assets-list") ? "dropdown-item active" : "dropdown-item"}
-                  >
-                    Assets List
-                  </NavLink>
-                </li>
-              </ul>
-            )}
-          </li>
-
+                  <li className="dropdown-container">
+                    <button onClick={toggleAssetsData} className="dropdown-btn">
+                      Assets{" "}
+                      {isAssetsDataOpen ? <FaCaretDown /> : <FaCaretRight />}
+                    </button>
+                    {isAssetsDataOpen && (
+                      <ul className="dropdown">
+                        <li>
+                          <NavLink
+                            to="/add-assets"
+                            className={
+                              isActiveRoute("/add-assets")
+                                ? "dropdown-item active"
+                                : "dropdown-item"
+                            }
+                          >
+                            Add Assets
+                          </NavLink>
+                        </li>
+                        <li>
+                          <NavLink
+                            to="/move-assets"
+                            className={
+                              isActiveRoute("/move-assets")
+                                ? "dropdown-item active"
+                                : "dropdown-item"
+                            }
+                          >
+                            Move Assets
+                          </NavLink>
+                        </li>
+                        <li>
+                          <NavLink
+                            to="/assets-list"
+                            className={
+                              isActiveRoute("/assets-list")
+                                ? "dropdown-item active"
+                                : "dropdown-item"
+                            }
+                          >
+                            Assets List
+                          </NavLink>
+                        </li>
+                      </ul>
+                    )}
+                  </li>
 
                   <li>
                     <NavLink
                       to="/pastDateRequests"
-                      className={isActiveRoute("/pastDateRequests") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/pastDateRequests")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Past Date Requests
                     </NavLink>
@@ -343,7 +430,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/previous-balance-list"
-                      className={isActiveRoute("/previous-balance-list") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/previous-balance-list")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Previous Balance List
                     </NavLink>
@@ -351,7 +442,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/inventory-tracking"
-                      className={isActiveRoute("/inventory-tracking") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/inventory-tracking")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Inventory Tracking
                     </NavLink>
@@ -359,7 +454,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/export-data"
-                      className={isActiveRoute("/export-data") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/export-data")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Export Data
                     </NavLink>
@@ -367,7 +466,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/add-expense"
-                      className={isActiveRoute("/add-expense") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/add-expense")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Add Expense
                     </NavLink>
@@ -375,7 +478,11 @@ const AdminLayout = ({ children }) => {
                   <li>
                     <NavLink
                       to="/jumbo-xerox-csv-verifier"
-                      className={isActiveRoute("/jumbo-xerox-csv-verifier") ? "dropdown-item active" : "dropdown-item"}
+                      className={
+                        isActiveRoute("/jumbo-xerox-csv-verifier")
+                          ? "dropdown-item active"
+                          : "dropdown-item"
+                      }
                     >
                       Jumbo Xerox CSV Verifier
                     </NavLink>
@@ -386,11 +493,21 @@ const AdminLayout = ({ children }) => {
           )}
         </ul>
 
-        {}
         <div className="sidebar-footer">
+          {/* Gradient Toggle */}
+          <div className="gradient-toggle-section">
+            <button onClick={toggleGradient} className="gradient-toggle-button">
+              <span>{gradientEnabled ? "Disable" : "Enable"} Gradient</span>
+            </button>
+          </div>
+
           <div className="profile-section" onClick={handleProfile}>
             {profilePicUrl ? (
-              <img src={profilePicUrl || "/placeholder.svg"} alt="Profile" className="profile-avatar-sidebar" />
+              <img
+                src={profilePicUrl || "/placeholder.svg"}
+                alt="Profile"
+                className="profile-avatar-sidebar"
+              />
             ) : (
               <FaUserCircle size={24} className="profile-icon-sidebar" />
             )}
@@ -404,7 +521,7 @@ const AdminLayout = ({ children }) => {
       </div>
       <div className="content">{children}</div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminLayout
+export default AdminLayout;

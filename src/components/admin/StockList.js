@@ -24,26 +24,24 @@ import {
   FaSearch,
   FaTrash,
 } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
 import "../../styles/stocklist.css";
 import "react-toastify/dist/ReactToastify.css";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import Popup from "../common/Popup";
 import { usePopup } from "../../hooks/usePopup";
+import ConfirmationDialog from "../common/ConfirmationDialog";
 
 const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) {
     return "₹0";
   }
-  let [integer, decimal] = Number.parseFloat(amount).toFixed(0).split(".");
-  integer = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-  if (integer.length > 4 && integer.includes(",,")) {
-    integer = integer.replace(",,", ",");
-  }
-
-  return `₹${integer}${decimal ? "." + decimal : ""}`;
+  const numAmount = Number.parseFloat(amount);
+  // Always show 2 decimal places for consistency
+  return `₹${numAmount.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 };
 
 const StockList = () => {
@@ -63,6 +61,8 @@ const StockList = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const Categories = [
     { id: 1, name: "Calendars & Diaries" },
@@ -209,19 +209,19 @@ const StockList = () => {
       } else if (sortField === "stockId") {
         // Natural sort for stock IDs containing numbers
         const naturalSort = (str1, str2) => {
-          return str1.localeCompare(str2, undefined, { 
-            numeric: true, 
-            sensitivity: 'base' 
+          return str1.localeCompare(str2, undefined, {
+            numeric: true,
+            sensitivity: "base",
           });
         };
-        
+
         const comparison = naturalSort(String(valueA), String(valueB));
         return sortOrder === "asc" ? comparison : -comparison;
       } else {
         // Convert strings to uppercase for text comparison
         valueA = String(valueA).toUpperCase();
         valueB = String(valueB).toUpperCase();
-        
+
         if (valueA < valueB) {
           return sortOrder === "asc" ? -1 : 1;
         }
@@ -319,22 +319,39 @@ const StockList = () => {
   };
 
   const handleDelete = async (id) => {
+    const stockToDelete = stocks.find((stock) => stock.id === id);
+    setItemToDelete(stockToDelete);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
     try {
-      await deleteDoc(doc(db, "stocks", id));
+      await deleteDoc(doc(db, "stocks", itemToDelete.id));
       showSuccess("Stock Deleted", "Stock item deleted successfully");
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
     } catch (error) {
       showError(
         "Delete Failed",
         `Failed to delete stock: ${error.message}. Please try again.`
       );
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setItemToDelete(null);
   };
 
   // Bulk delete functions
   const handleSelectItem = (stockId) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       if (prev.includes(stockId)) {
-        return prev.filter(id => id !== stockId);
+        return prev.filter((id) => id !== stockId);
       } else {
         return [...prev, stockId];
       }
@@ -345,7 +362,7 @@ const StockList = () => {
     if (selectAll) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(filteredStocks.map(stock => stock.id));
+      setSelectedItems(filteredStocks.map((stock) => stock.id));
     }
     setSelectAll(!selectAll);
   };
@@ -360,18 +377,24 @@ const StockList = () => {
 
   const confirmBulkDelete = async () => {
     try {
-      const promises = selectedItems.map(stockId => 
+      const promises = selectedItems.map((stockId) =>
         deleteDoc(doc(db, "stocks", stockId))
       );
-      
+
       await Promise.all(promises);
-      
-      showSuccess("Bulk Delete Success", `Successfully deleted ${selectedItems.length} stock item(s)`);
+
+      showSuccess(
+        "Bulk Delete Success",
+        `Successfully deleted ${selectedItems.length} stock item(s)`
+      );
       setSelectedItems([]);
       setSelectAll(false);
       setShowBulkDeleteConfirm(false);
     } catch (error) {
-      showError("Bulk Delete Failed", "Failed to delete selected stocks: " + error.message);
+      showError(
+        "Bulk Delete Failed",
+        "Failed to delete selected stocks: " + error.message
+      );
     }
   };
 
@@ -564,18 +587,30 @@ const StockList = () => {
 
             {/* Bulk Actions Bar */}
             {filteredAndSortedStocks.length > 0 && (
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "10px 15px",
-                backgroundColor: "#f8f9fa",
-                borderRadius: "6px",
-                margin: "15px",
-                border: "1px solid #e9ecef"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: "500" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px 15px",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "6px",
+                  margin: "15px",
+                  border: "1px solid #e9ecef",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "15px" }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={selectAll}
@@ -604,7 +639,7 @@ const StockList = () => {
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px"
+                      gap: "6px",
                     }}
                   >
                     <FaTrash size={12} />
@@ -623,7 +658,9 @@ const StockList = () => {
                         <input
                           type="checkbox"
                           checked={selectAll}
-                          onChange={() => handleSelectAll(filteredAndSortedStocks)}
+                          onChange={() =>
+                            handleSelectAll(filteredAndSortedStocks)
+                          }
                           style={{ transform: "scale(1.2)" }}
                         />
                       </th>
@@ -688,7 +725,9 @@ const StockList = () => {
                           QTY
                         </div>
                       </th>
-                      <th colSpan="2" style={{ textAlign: "center" }}>PRICING</th>
+                      <th colSpan="2" style={{ textAlign: "center" }}>
+                        PRICING
+                      </th>
                       <th style={{ textAlign: "center" }}>ACTIONS</th>
                     </tr>
                     <tr>
@@ -712,7 +751,10 @@ const StockList = () => {
                         return (
                           <React.Fragment key={stock.id}>
                             <tr>
-                              <td rowSpan={totalRows} style={{ textAlign: "center", width: "50px" }}>
+                              <td
+                                rowSpan={totalRows}
+                                style={{ textAlign: "center", width: "50px" }}
+                              >
                                 <input
                                   type="checkbox"
                                   checked={selectedItems.includes(stock.id)}
@@ -1105,71 +1147,32 @@ const StockList = () => {
       )}
 
       {/* Bulk Delete Confirmation Dialog */}
-      {showBulkDeleteConfirm && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: "white",
-            padding: "30px",
-            borderRadius: "8px",
-            minWidth: "400px",
-            textAlign: "center",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)"
-          }}>
-            <div style={{ marginBottom: "20px" }}>
-              <FaTrash size={48} color="#dc3545" style={{ marginBottom: "15px" }} />
-              <h3 style={{ margin: "0 0 10px 0", color: "#333" }}>Confirm Bulk Delete</h3>
-              <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
-                Are you sure you want to delete {selectedItems.length} selected stock item(s)?
-                <br />
-                <strong>This action cannot be undone.</strong>
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
-              <button
-                onClick={cancelBulkDelete}
-                style={{
-                  padding: "10px 20px",
-                  border: "1px solid #ccc",
-                  backgroundColor: "#f8f9fa",
-                  color: "#333",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500"
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmBulkDelete}
-                style={{
-                  padding: "10px 20px",
-                  border: "none",
-                  backgroundColor: "#dc3545",
-                  color: "white",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500"
-                }}
-              >
-                Delete {selectedItems.length} Items
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationDialog
+        open={showBulkDeleteConfirm}
+        onClose={cancelBulkDelete}
+        onConfirm={confirmBulkDelete}
+        title="Confirm Bulk Delete"
+        description={`Are you sure you want to delete ${selectedItems.length} selected stock item(s)? This action cannot be undone.`}
+        icon={<FaTrash />}
+        confirmText={`Delete ${selectedItems.length} Items`}
+        cancelText="Cancel"
+        confirmColor="#dc3545"
+      />
+
+      {/* Individual Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        description={`Are you sure you want to delete "${
+          itemToDelete?.itemName || "this stock item"
+        }"? This action cannot be undone.`}
+        icon={<FaTrash />}
+        confirmText="Yes"
+        cancelText="Cancel"
+        confirmColor="#e91e63"
+      />
     </div>
   );
 };

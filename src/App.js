@@ -6,11 +6,18 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { auth, db } from "./services/authservice";
 import { doc, getDoc } from "firebase/firestore";
 import Shimmer from "./components/common/shimmer";
 
+// Import bulk delete utility for global access
+import "./utils/deleteRecordsByBranch";
 
 // All your component imports are preserved
 
@@ -65,7 +72,6 @@ import AddExpense from "./components/admin/AddExpense";
 import SalesOrder from "./components/manager/SalesOrder";
 import SalesInvoice from "./components/manager/SalesInvoice";
 
-
 // --- 1. CONTEXT AND HOOK ARE CREATED HERE ---
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -99,9 +105,7 @@ const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-
-
-   // --- ADDED BACK: The login, logout, and resetPassword functions ---
+  // --- ADDED BACK: The login, logout, and resetPassword functions ---
   const login = async (email, password) => {
     return signInWithEmailAndPassword(auth, email, password);
   };
@@ -113,7 +117,7 @@ const AuthProvider = ({ children }) => {
   const resetPassword = async (email) => {
     return sendPasswordResetEmail(auth, email);
   };
- // --- UPDATED: Add the functions to the value provided by the context ---
+  // --- UPDATED: Add the functions to the value provided by the context ---
   const value = {
     currentUser,
     role,
@@ -124,14 +128,14 @@ const AuthProvider = ({ children }) => {
   };
 
   if (loading) {
-    return <div><Shimmer /> </div>;
+    return (
+      <div>
+        <Shimmer />{" "}
+      </div>
+    );
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 const pageTitleMapping = {
@@ -162,7 +166,7 @@ const pageTitleMapping = {
   "/inventory-tracking": "Inventory Tracking",
   "/export-data": "Export Data",
   "/jumbo-xerox-csv-verifier": "Jumbo Xerox CSV Verifier",
-    "/sales-order": "Sales Order",
+  "/sales-order": "Sales Order",
   "/sales-invoice": "Sales Invoice",
 };
 
@@ -292,7 +296,7 @@ const AppContent = () => {
               roles={["manager"]}
               component={() => (
                 <ManagerLayout>
-                  <SalesOrder/>
+                  <SalesOrder />
                 </ManagerLayout>
               )}
             />
@@ -305,7 +309,7 @@ const AppContent = () => {
               roles={["manager"]}
               component={() => (
                 <ManagerLayout>
-                  <SalesInvoice/>
+                  <SalesInvoice />
                 </ManagerLayout>
               )}
             />
@@ -566,7 +570,7 @@ const AppContent = () => {
               component={() => (
                 <ManagerLayout>
                   <JumboXeroxPage />
-                </ ManagerLayout>
+                </ManagerLayout>
               )}
             />
           }
@@ -739,7 +743,6 @@ const AppContent = () => {
     </>
   );
 };
-
 
 // --- 3. THE MAIN EXPORTED COMPONENT WRAPS EVERYTHING ---
 const App = () => {
