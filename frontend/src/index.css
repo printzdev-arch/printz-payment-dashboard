@@ -1,0 +1,165 @@
+html,
+body,
+button,
+input,
+select,
+textarea,
+table,
+th,
+td {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc !important;
+  background: #f8fafc !important;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Global Date Picker Input Clickability */
+input[type="date"] {
+  cursor: pointer !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer !important;
+}
+
+.stock-input-wrapper:has(input[type="date"]),
+.revenue-input-wrapper:has(input[type="date"]),
+.display-readings-input-wrapper:has(input[type="date"]),
+.add-assets-input-wrap:has(input[type="date"]),
+.printer-date-input-wrapper:has(input[type="date"]),
+.stock-date-input-wrapper:has(input[type="date"]),
+.total-date-input-wrapper:has(input[type="date"]),
+.jumbo-date-input-wrapper:has(input[type="date"]) {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   PrintZ Modern Toast Notifications (react-toastify Theme Overrides)
+   ========================================================================== */
+.Toastify__toast-container {
+  z-index: 999999 !important;
+  padding: 16px !important;
+  width: auto !important;
+  max-width: 440px !important;
+  pointer-events: auto !important;
+}
+
+.Toastify__toast {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border-radius: 14px !important;
+  padding: 14px 18px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.1), 0 4px 12px -2px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  min-height: 52px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.Toastify__toast:hover {
+  box-shadow: 0 14px 35px -4px rgba(0, 0, 0, 0.14), 0 6px 16px -2px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-1px);
+}
+
+.Toastify__toast-body {
+  margin: 0 !important;
+  padding: 0 8px 0 6px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  line-height: 1.45 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.Toastify__toast-icon {
+  width: 22px !important;
+  margin-right: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.Toastify__close-button {
+  color: #94a3b8 !important;
+  opacity: 0.7 !important;
+  align-self: center !important;
+  transition: all 0.15s ease !important;
+  padding: 4px !important;
+}
+
+.Toastify__close-button:hover {
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+/* Success Toast */
+.Toastify__toast--success {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%) !important;
+  border: 1.5px solid #86efac !important;
+}
+.Toastify__toast--success .Toastify__toast-icon svg {
+  fill: #059669 !important;
+}
+.Toastify__toast--success .Toastify__progress-bar {
+  background: linear-gradient(90deg, #10b981, #059669) !important;
+  height: 3.5px !important;
+}
+
+/* Warning Toast */
+.Toastify__toast--warning {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%) !important;
+  border: 1.5px solid #fde68a !important;
+}
+.Toastify__toast--warning .Toastify__toast-icon svg {
+  fill: #d97706 !important;
+}
+.Toastify__toast--warning .Toastify__progress-bar {
+  background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+  height: 3.5px !important;
+}
+
+/* Error Toast */
+.Toastify__toast--error {
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%) !important;
+  border: 1.5px solid #fecaca !important;
+}
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: #dc2626 !important;
+}
+.Toastify__toast--error .Toastify__progress-bar {
+  background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+  height: 3.5px !important;
+}
+
+/* Info Toast */
+.Toastify__toast--info {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%) !important;
+  border: 1.5px solid #bae6fd !important;
+}
+.Toastify__toast--info .Toastify__toast-icon svg {
+  fill: #0284c7 !important;
+}
+.Toastify__toast--info .Toastify__progress-bar {
+  background: linear-gradient(90deg, #0ea5e9, #0284c7) !important;
+  height: 3.5px !important;
+}
+

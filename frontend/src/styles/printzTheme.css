@@ -1,0 +1,1462 @@
+/* PrintZ Modern Theme Design System */
+
+:root {
+  --printz-primary: #059669;
+  --printz-primary-hover: #047857;
+  --printz-primary-light: #ecfdf5;
+  --printz-primary-border: #a7f3d0;
+  
+  --printz-dark-sidebar: #042f24;
+  --printz-bg-page: #f8fafc;
+  --printz-card-bg: #ffffff;
+  
+  --printz-text-dark: #111827;
+  --printz-text-muted: #6b7280;
+  --printz-text-light: #9ca3af;
+  
+  --printz-border: #e5e7eb;
+  --printz-border-focus: #10b981;
+  
+  --printz-radius-lg: 16px;
+  --printz-radius-md: 10px;
+  --printz-radius-sm: 8px;
+  
+  --printz-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --printz-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+}
+
+.printz-page-container {
+  padding: 8px 24px 28px 24px;
+  background-color: var(--printz-bg-page);
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--printz-text-dark);
+  box-sizing: border-box;
+}
+
+/* Breadcrumb */
+.printz-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--printz-text-muted);
+  margin-bottom: 6px;
+}
+
+.printz-breadcrumb a,
+.printz-breadcrumb span.link {
+  color: var(--printz-text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.printz-breadcrumb a:hover {
+  color: var(--printz-primary);
+}
+
+.printz-breadcrumb .separator {
+  color: #d1d5db;
+  font-size: 12px;
+}
+
+.printz-breadcrumb .current {
+  color: var(--printz-primary);
+  font-weight: 500;
+}
+
+/* Page Header Row */
+.printz-page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.printz-header-title-area h1 {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.01em;
+}
+
+.printz-header-title-area h1 span.highlight {
+  color: var(--printz-primary);
+}
+
+.printz-header-title-area p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--printz-text-muted, #64748b);
+}
+
+/* Header Actions with Toy Illustration */
+.printz-header-actions-with-toy {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.team-management-illustration-wrap {
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 1100px) {
+  .team-management-illustration-wrap {
+    transform: scale(0.88);
+    transform-origin: right center;
+  }
+}
+
+@media (max-width: 860px) {
+  .team-management-illustration-wrap {
+    display: none !important;
+  }
+}
+
+.branch-header-illustration-wrap,
+.manager-header-illustration-wrap,
+.admin-header-illustration-wrap,
+.stock-header-illustration-wrap,
+.printer-header-illustration-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 360px;
+  height: 88px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: 20px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.admin-dashboard-header-illustration-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 360px;
+  height: 88px;
+  max-width: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.assets-header-illustration-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 188px;
+  height: 88px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: 20px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.branch-header-illustration-wrap svg,
+.manager-header-illustration-wrap svg,
+.admin-header-illustration-wrap svg,
+.stock-header-illustration-wrap svg,
+.printer-header-illustration-wrap svg,
+.admin-dashboard-header-illustration-wrap svg,
+.assets-header-illustration-wrap svg {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+@media (max-width: 1280px) {
+  .branch-header-illustration-wrap,
+  .manager-header-illustration-wrap,
+  .admin-header-illustration-wrap,
+  .stock-header-illustration-wrap,
+  .printer-header-illustration-wrap,
+  .admin-dashboard-header-illustration-wrap,
+  .assets-header-illustration-wrap {
+    transform: scale(0.9);
+    transform-origin: right center;
+  }
+}
+
+@media (max-width: 768px) {
+  .branch-header-illustration-wrap,
+  .manager-header-illustration-wrap,
+  .admin-header-illustration-wrap,
+  .stock-header-illustration-wrap,
+  .printer-header-illustration-wrap,
+  .admin-dashboard-header-illustration-wrap,
+  .assets-header-illustration-wrap {
+    display: none !important;
+  }
+}
+
+/* Modern Clean Input Wrapper matching Edit Admin Popup */
+.printz-input-wrapper-modern {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 0 14px !important;
+  height: 48px !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+.printz-input-wrapper-modern.multiline {
+  height: auto !important;
+  min-height: 48px !important;
+  padding: 10px 14px !important;
+  align-items: flex-start !important;
+}
+
+.printz-input-wrapper-modern:focus-within {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+}
+
+.printz-input-badge-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 9px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.printz-input-badge-icon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.3 !important;
+}
+
+.printz-input-badge-icon.badge-green {
+  background: linear-gradient(180deg, #07d49b 0%, #03ae79 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(3, 174, 121, 0.28) !important;
+}
+
+.printz-input-badge-icon.badge-blue {
+  background: linear-gradient(180deg, #508bfe 0%, #2c72fd 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(44, 114, 253, 0.28) !important;
+}
+
+.printz-input-badge-icon.badge-orange {
+  background: linear-gradient(180deg, #ff8c15 0%, #fb770d 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(251, 119, 13, 0.28) !important;
+}
+
+/* Strip any border/stroke, background, or outline from inputs inside the modern wrapper */
+.printz-input-wrapper-modern input,
+.printz-input-wrapper-modern .printz-input-clean,
+.printz-input-wrapper-modern input[type="text"],
+.printz-input-wrapper-modern input[type="email"],
+.printz-input-wrapper-modern input[type="password"],
+.printz-input-wrapper-modern input[type="tel"] {
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  border-width: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  min-width: 0 !important;
+  border-radius: 0 !important;
+}
+
+.printz-input-wrapper-modern input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.printz-input-wrapper-modern input::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+}
+
+.printz-input-wrapper-modern select,
+.printz-input-wrapper-modern .printz-select-clean {
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  border-width: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  cursor: pointer !important;
+  min-width: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+.printz-input-wrapper-modern select:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Clear button pinned to the right end */
+.printz-input-wrapper-modern .printz-input-clear-btn {
+  margin-left: auto !important;
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  border-radius: 50% !important;
+  transition: color 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.printz-input-wrapper-modern .printz-input-clear-btn:hover {
+  color: #475569 !important;
+}
+
+/* Full Header Banner spanning left to right */
+.printz-header-banner-full {
+  width: 100%;
+  background: linear-gradient(90deg, #E8FAF2 0%, #F0FFF9 50%, #E8FAF2 100%);
+  border: 1px solid #dcfce7;
+  border-radius: 16px;
+  padding: 12px 24px !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 2px 10px rgba(4, 120, 87, 0.04);
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .printz-header-banner-full {
+    flex-wrap: wrap;
+    padding: 16px;
+    gap: 16px;
+  }
+}
+
+/* Header Promotion/Banner Card */
+.printz-header-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 1px solid #dcfce7;
+  border-radius: var(--printz-radius-lg);
+  padding: 12px 20px;
+  box-shadow: var(--printz-shadow-sm);
+}
+
+.printz-banner-storefront-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  background: #ecfdf5;
+  border-radius: 12px;
+  color: var(--printz-primary);
+}
+
+.printz-header-banner .banner-text h4 {
+  margin: 0 0 2px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.printz-header-banner .banner-text p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--printz-text-muted);
+}
+
+/* Branch Promotional Card */
+.branch-promo-card {
+  width: 100%;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #dcfce7;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.05);
+  background: #f0fff9;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.branch-promo-card:hover {
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.09);
+}
+
+@media (max-width: 768px) {
+  .branch-promo-card {
+    margin-bottom: 12px;
+  }
+}
+
+/* Summary KPI Cards Grid */
+.printz-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1024px) {
+  .printz-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .printz-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.printz-summary-card {
+  background: var(--printz-card-bg);
+  border: 1px solid var(--printz-border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: var(--printz-shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.printz-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--printz-shadow-md);
+}
+
+.printz-summary-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.printz-summary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.printz-summary-icon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.3 !important;
+}
+
+.printz-summary-icon.green {
+  background: linear-gradient(180deg, #07d49b 0%, #03ae79 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(3, 174, 121, 0.28);
+}
+
+.printz-summary-icon.blue {
+  background: linear-gradient(180deg, #508bfe 0%, #2c72fd 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(44, 114, 253, 0.28);
+}
+
+.printz-summary-icon.orange {
+  background: linear-gradient(180deg, #ff8c15 0%, #fb770d 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(251, 119, 13, 0.28);
+}
+
+.printz-summary-icon.pink {
+  background: linear-gradient(180deg, #f472b6 0%, #db2777 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.28);
+}
+
+.printz-summary-icon.purple {
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
+}
+
+.printz-summary-content {
+  flex: 1;
+}
+
+.printz-summary-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+}
+
+.printz-summary-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.printz-summary-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.15;
+}
+
+.printz-summary-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.printz-summary-subtitle {
+  font-size: 12px;
+  color: var(--printz-text-muted);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Progress bar inside summary card */
+.printz-summary-progress-bg {
+  width: 100%;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 9999px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.printz-summary-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.printz-summary-progress-bar.green {
+  background: #10b981;
+}
+
+.printz-summary-progress-bar.pink {
+  background: #f43f5e;
+}
+
+/* PrintZ Card & Form */
+.printz-card {
+  background: var(--printz-card-bg);
+  border: 1px solid var(--printz-border);
+  border-radius: var(--printz-radius-lg);
+  padding: 24px;
+  box-shadow: var(--printz-shadow-sm);
+  margin-bottom: 24px;
+}
+
+.printz-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.printz-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.printz-card-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.printz-card-header-text h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.printz-card-header-text p {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: var(--printz-text-muted);
+}
+
+.printz-card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Form layouts */
+.printz-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .printz-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  .printz-manager-form-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .printz-manager-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.printz-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.printz-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.printz-form-label .required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.printz-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--printz-border);
+  border-radius: var(--printz-radius-md);
+  padding: 0 14px;
+  transition: all 0.2s ease;
+  height: 44px;
+}
+
+.printz-input-wrapper:focus-within {
+  border-color: var(--printz-border-focus);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.printz-input-prefix-icon {
+  color: #9ca3af;
+  margin-right: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.printz-input {
+  border: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  color: #1f2937 !important;
+  width: 100% !important;
+  box-shadow: none !important;
+  font-family: inherit;
+}
+
+.printz-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Buttons */
+.printz-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--printz-radius-md);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+  min-width: auto;
+}
+
+.printz-btn-primary:hover:not(:disabled) {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(5, 150, 105, 0.25);
+}
+
+.printz-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.printz-btn-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid var(--printz-border);
+  border-radius: var(--printz-radius-md);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: auto;
+}
+
+.printz-btn-reset:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.printz-btn-reset:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.printz-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ==========================================================================
+   UNIFIED MODERN PRINTZ LOADING UI (Used across Admin & Manager dashboards)
+   ========================================================================== */
+.admin-loading-container,
+.manager-dashboard-loading,
+.printz-loading-container,
+.revenue-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  gap: 16px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+  max-width: 480px;
+  margin: 40px auto;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.admin-loading-container::before,
+.manager-dashboard-loading::before,
+.printz-loading-container::before,
+.revenue-loading-box::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #10b981, #059669, #34d399);
+}
+
+.admin-loading-container p,
+.manager-dashboard-loading p,
+.printz-loading-container p,
+.revenue-loading-box p {
+  margin: 0;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.admin-loading-spinner,
+.manager-dashboard-loading-spinner,
+.printz-loading-spinner,
+.total-loading-spinner,
+.revenue-loading-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3.5px solid rgba(16, 185, 129, 0.15);
+  border-top-color: #059669;
+  border-right-color: #10b981;
+  border-radius: 50%;
+  animation: printzSpin 0.85s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+@keyframes printzSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   PRINTZ UNIFIED MODERN PAGINATION STYLES
+   ========================================================================== */
+
+.printz-pagination,
+.stock-pagination,
+.printer-pagination-row,
+.add-stock-pagination-footer,
+.move-stock-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.printz-pagination-left,
+.stock-pagination-left,
+.move-stock-pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.printz-page-info,
+.stock-page-info,
+.printer-pagination-info,
+.add-stock-pagination-info,
+.move-stock-page-info {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.printz-page-info strong,
+.stock-page-info strong,
+.move-stock-page-info strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.printz-per-page-wrapper,
+.stock-per-page-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 3px 8px;
+}
+
+.printz-per-page-label,
+.stock-per-page-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.printz-per-page-select,
+.stock-per-page-select {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.printz-per-page-select:focus,
+.stock-per-page-select:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.12);
+}
+
+.printz-pagination-nav,
+.stock-pagination-nav,
+.printer-pagination-btns,
+.add-stock-pagination-controls,
+.move-stock-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.printz-page-btn,
+.stock-page-btn,
+.printer-page-btn,
+.add-stock-page-nav-btn,
+.move-stock-page-btn,
+.stock-pagination-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.printz-page-btn:hover:not(:disabled),
+.stock-page-btn:hover:not(:disabled),
+.printer-page-btn:hover:not(:disabled),
+.add-stock-page-nav-btn:hover:not(:disabled),
+.move-stock-page-btn:hover:not(:disabled),
+.stock-pagination-button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.printz-page-btn:disabled,
+.stock-page-btn:disabled,
+.printer-page-btn:disabled,
+.add-stock-page-nav-btn:disabled,
+.move-stock-page-btn:disabled,
+.stock-pagination-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.printz-page-pills-group,
+.stock-page-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.printz-page-pill,
+.stock-page-pill {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.printz-page-pill:hover:not(.active):not(.dots),
+.stock-page-pill:hover:not(.active):not(.dots) {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #e2e8f0;
+}
+
+.printz-page-pill.active,
+.stock-page-pill.active,
+.printer-page-btn.active,
+.add-stock-page-active {
+  background: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25) !important;
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.printz-page-pill.dots,
+.stock-page-pill.dots {
+  cursor: default;
+  color: #94a3b8;
+  letter-spacing: 1px;
+}
+
+/* ==========================================================================
+   GLOBAL UI POLISH: COMFORTABLE SCROLLING, SLIM SCROLLBARS & TABLE DENSITY
+   ========================================================================== */
+
+/* 1. Global Comfortable Smooth Scrollbars */
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 2. Prevent Horizontal Left-Right Scroll on Page Views */
+html, body, #root, .main-content-wrap, .content-body {
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
+.printz-page-container,
+.add-assets-page-container,
+.revenue-page-container,
+.stock-page-container,
+.move-stock-page-container,
+.move-printer-page-container,
+.display-readings-page-container,
+.printer-list-page-container {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* 3. Global Dropdown / Selection List Modern Font & Styling */
+select,
+select.add-assets-select,
+select.stock-select-field,
+select.printer-select,
+.admin-branch-selector {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border-radius: 8px !important;
+}
+
+select option {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  color: #1e293b !important;
+  background-color: #ffffff !important;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+}
+
+/* 4. Global Table Badges & Date Elements: Keep in a Single Straight Row */
+.add-assets-id-badge,
+.balance-status-badge,
+.revenue-badge-available,
+.stock-badge,
+.table-date-badge,
+.date-cell,
+.nowrap-cell,
+table td span[class*="badge"],
+table td span[class*="date"],
+table td span[class*="time"] {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  display: inline-block;
+}
+
+td[data-type="date"],
+th[data-type="date"] {
+  white-space: nowrap !important;
+}
+
+table th,
+table td {
+  vertical-align: middle !important;
+}
+
+/* 5. Comfortable & Compact Table Row Heights Across All Tables */
+.printz-modern-table td,
+.add-assets-table td,
+.printer-table td,
+.stock-table td,
+.balance-directory-table td,
+.move-stock-table td {
+  padding: 8px 14px !important;
+  font-size: 12.5px !important;
+}
+
+.printz-modern-table th,
+.add-assets-table th,
+.printer-table th,
+.stock-table th,
+.balance-directory-table th,
+.move-stock-table th {
+  padding: 8px 14px !important;
+  font-size: 11.5px !important;
+}
+
+/* 6. Date Picker Input Elements & Universal Calendar Popup (Matching Reference Design) */
+input[type="date"] {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+}
+
+/* Universal React-Datepicker Popup Styling */
+.react-datepicker-popper {
+  z-index: 999999 !important;
+}
+
+.react-datepicker {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 14px 35px -4px rgba(0, 0, 0, 0.14), 0 6px 12px -2px rgba(0, 0, 0, 0.05) !important;
+  padding: 12px 14px !important;
+  box-sizing: border-box !important;
+}
+
+.react-datepicker__triangle {
+  display: none !important;
+}
+
+.react-datepicker__header {
+  background: #ffffff !important;
+  border-bottom: none !important;
+  padding: 4px 0 10px 0 !important;
+  position: relative !important;
+}
+
+.react-datepicker__current-month {
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-bottom: 12px !important;
+  letter-spacing: -0.01em !important;
+  text-align: center !important;
+  display: block !important;
+}
+
+/* Horizontal Left and Right Navigation Arrows */
+.react-datepicker__navigation {
+  top: 10px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  outline: none !important;
+  z-index: 20 !important;
+}
+
+.react-datepicker__navigation:hover {
+  background: #f1f5f9 !important;
+}
+
+.react-datepicker__navigation--previous {
+  left: 6px !important;
+}
+
+.react-datepicker__navigation--next {
+  right: 6px !important;
+}
+
+.react-datepicker__navigation-icon {
+  position: relative !important;
+  top: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.react-datepicker__navigation-icon::before {
+  content: "" !important;
+  display: block !important;
+  border-color: #94a3b8 !important;
+  border-style: solid !important;
+  border-width: 2.5px 2.5px 0 0 !important;
+  width: 7px !important;
+  height: 7px !important;
+  position: absolute !important;
+  top: -4px !important;
+}
+
+.react-datepicker__navigation-icon--previous::before {
+  right: -3px !important;
+  transform: rotate(225deg) !important;
+}
+
+.react-datepicker__navigation-icon--next::before {
+  left: -5px !important;
+  transform: rotate(45deg) !important;
+}
+
+/* Day Names (Su, Mo, Tu, We, Th, Fr, Sa) */
+.react-datepicker__day-names {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-bottom: 6px !important;
+}
+
+.react-datepicker__day-name {
+  color: #64748b !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  width: 34px !important;
+  line-height: 34px !important;
+  margin: 0 !important;
+  text-align: center !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+/* Month Grid & Days */
+.react-datepicker__month {
+  margin: 0 !important;
+}
+
+.react-datepicker__week {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-bottom: 3px !important;
+}
+
+.react-datepicker__day {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #1e293b !important;
+  border-radius: 9px !important;
+  transition: all 0.15s ease !important;
+  text-align: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+}
+
+/* Selected Date */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 9px !important;
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35) !important;
+}
+
+/* Range Selection Styling */
+.react-datepicker__day--in-range {
+  background-color: #dcfce7 !important;
+  color: #065f46 !important;
+  border-radius: 0 !important;
+  font-weight: 600 !important;
+}
+
+.react-datepicker__day--range-start {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-radius: 9px 0 0 9px !important;
+  font-weight: 700 !important;
+}
+
+.react-datepicker__day--range-end {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-radius: 0 9px 9px 0 !important;
+  font-weight: 700 !important;
+}
+
+.react-datepicker__day--range-start.react-datepicker__day--range-end {
+  border-radius: 9px !important;
+}
+
+.react-datepicker__day--in-selecting-range {
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+}
+
+/* Datepicker inputs */
+.admin-dp-custom-input {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 12px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-family: 'Poppins', sans-serif !important;
+  color: #1e293b !important;
+  font-weight: 500 !important;
+  background-color: #ffffff !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.admin-dp-custom-input:hover,
+.admin-dp-custom-input:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12) !important;
+}
+
+/* Outside month days */
+.react-datepicker__day--outside-month {
+  color: #94a3b8 !important;
+  opacity: 0.5 !important;
+}
+
+/* Today's date */
+.react-datepicker__day--today {
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+/* Global Smooth & Comfortable Slim Scrollbars */
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

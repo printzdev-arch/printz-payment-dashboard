@@ -1,0 +1,44 @@
+/* ==========================================================================
+   PRINTZ PDF GENERATOR & PREVIEW REPORT STYLES
+   ========================================================================== */
+
+.pdf-preview-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure no horizontal scroll across all preview tables */
+.pdf-preview-container table {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-collapse: collapse;
+}
+
+.pdf-preview-container .revenue-card {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1024px) {
+  .pdf-preview-container .two-column-container {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Datepicker Approved Dates Visual Highlighting */
+.react-datepicker__day--highlighted {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  position: relative;
+}
+
+.react-datepicker__day--highlighted:hover {
+  background-color: #bbf7d0 !important;
+  color: #065f46 !important;
+}
+
+.react-datepicker__day--highlighted.react-datepicker__day--selected {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}

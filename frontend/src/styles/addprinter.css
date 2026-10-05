@@ -1,0 +1,1644 @@
+/* ==========================================================================
+   PRINTZ ADD PRINTER FORM STYLES - REFINED & PROFESSIONAL
+   ========================================================================== */
+
+.add-printer-page-container {
+  padding: 8px 24px 20px 24px;
+  background-color: var(--printz-bg-page, #f8fafc);
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Illustration wrap in header */
+.printer-header-illustration-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 360px;
+  height: 88px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .printer-header-illustration-wrap {
+    display: none;
+  }
+}
+
+/* Main Card / Container */
+.add-printer-main-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.add-printer-form-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Form Section Cards */
+.printer-section-card,
+.printer-fieldset {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.printer-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .printer-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.printer-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.printer-form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.printer-form-field label .req {
+  color: #ef4444;
+}
+
+/* Modern Input Wrapper with prefix icon */
+.printer-input-wrapper {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.printer-input-wrapper:focus-within {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  background: #ffffff;
+}
+
+.printer-input-prefix-icon {
+  color: #64748b;
+  margin-right: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.printer-input-wrapper:focus-within .printer-input-prefix-icon {
+  color: #059669;
+}
+
+.printer-select-chevron {
+  position: absolute;
+  right: 14px;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.printer-field-input,
+.printer-field-select {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13.5px;
+  color: #0f172a;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-weight: 500;
+}
+
+.printer-field-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 28px;
+}
+
+.printer-field-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.printer-input-wrapper.disabled {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.printer-field-input.disabled {
+  background: transparent;
+  color: #94a3b8;
+  cursor: not-allowed;
+  font-weight: 500;
+}
+
+/* Custom Branch Dropdown (Opens downwards below trigger) */
+.custom-branch-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-branch-trigger {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.custom-branch-trigger.active-dropdown {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12) !important;
+  background: #ffffff !important;
+}
+
+.custom-branch-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: branchDropdownSlideDown 0.18s ease-out;
+}
+
+@keyframes branchDropdownSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-branch-dropdown-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+}
+
+.custom-branch-dropdown-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: #0f172a;
+  width: 100%;
+  font-family: inherit;
+}
+
+.custom-branch-dropdown-search input::placeholder {
+  color: #94a3b8;
+}
+
+.custom-branch-dropdown-clear {
+  background: #e2e8f0;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.custom-branch-dropdown-clear:hover {
+  background: #cbd5e1;
+  color: #1e293b;
+}
+
+.custom-branch-dropdown-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custom-branch-dropdown-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-branch-dropdown-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.custom-branch-dropdown-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.custom-branch-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  user-select: none;
+}
+
+.custom-branch-dropdown-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.custom-branch-dropdown-item.selected {
+  background: #ecfdf5;
+  color: #059669;
+  font-weight: 600;
+}
+
+.custom-branch-dropdown-item .branch-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-branch-dropdown-item .icon-default {
+  color: #94a3b8;
+}
+
+.custom-branch-dropdown-item .icon-selected {
+  color: #059669;
+}
+
+.custom-branch-dropdown-item .branch-item-check {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.custom-branch-dropdown-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+
+/* Machine Type Toggle Cards */
+.printer-type-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 868px) {
+  .printer-type-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.printer-hw-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.printer-hw-card-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.printer-hw-card-btn.active-mfp {
+  background: #ecfdf5;
+  border-color: #10b981;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.printer-hw-card-btn.active-sfp {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.printer-hw-card-btn.active-lfp {
+  background: #f5f3ff;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.printer-hw-card-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.printer-hw-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.printer-hw-icon-wrap {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mfp-icon-wrap {
+  background: #e6f7f0;
+}
+
+.sfp-icon-wrap {
+  background: #eff6ff;
+}
+
+.lfp-icon-wrap {
+  background: #f5f3ff;
+}
+
+.printer-hw-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.printer-hw-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+}
+
+.printer-hw-desc {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.printer-hw-card-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.printer-hw-check-badge {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.printer-hw-radio-circle {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* Service Pills */
+.printer-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ==========================================================================
+   AVAILABLE SERVICES & RATES SECTION - ACCORDING TO DESIGN
+   ========================================================================== */
+
+.printer-services-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.printer-services-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 2px;
+}
+
+.printer-services-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.printer-services-tag-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.12);
+}
+
+.printer-services-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.printer-services-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.printer-add-custom-service-btn {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.printer-add-custom-service-btn:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.printer-custom-service-bar {
+  display: flex;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  margin-top: 4px;
+}
+
+/* Service Tab Cards Row */
+.printer-service-tabs-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .printer-service-tabs-row {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+.printer-service-tab-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  min-height: 54px;
+  box-sizing: border-box;
+}
+
+.printer-service-tab-card:hover {
+  border-color: #cbd5e1;
+  background: #fbfcfe;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* Live / Active Glowing Outline */
+.printer-service-tab-card.live {
+  border: 2px solid #10b981;
+  box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.22), 0 4px 14px rgba(16, 185, 129, 0.1);
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.printer-service-tab-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.printer-service-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.printer-service-tab-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.printer-service-tab-card.live .printer-service-tab-name {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Service Tab Price Chip */
+.printer-service-tab-price-chip {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.printer-service-tab-card.live .printer-service-tab-price-chip {
+  background: #059669;
+  color: #ffffff;
+  border-color: #059669;
+}
+
+/* Overview Configured Rates Row */
+.printer-configured-rates-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.printer-summary-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.printer-summary-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.printer-rate-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-rate-summary-pill:hover {
+  border-color: #059669;
+  background: #f0fdf4;
+}
+
+.printer-pill-name {
+  font-weight: 600;
+  color: #334155;
+}
+
+.printer-pill-price {
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.printer-service-tab-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Green Tick Circle Badge */
+.printer-service-check-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+  animation: popTick 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popTick {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.printer-service-chevron {
+  color: #94a3b8;
+  transition: transform 0.15s ease;
+}
+
+.printer-service-tab-card:hover .printer-service-chevron {
+  color: #64748b;
+  transform: translateX(2px);
+}
+
+.printer-service-tab-del-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.printer-service-tab-del-btn:hover {
+  background: #fee2e2;
+}
+
+/* Active Service Rate Panel Below */
+.printer-active-service-panel {
+  border: 2px solid #a7f3d0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff 60%, #f0fdf4 100%);
+  padding: 26px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.08);
+  gap: 24px;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .printer-active-service-panel {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+  }
+}
+
+.printer-active-service-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 2;
+  flex: 1;
+  max-width: 600px;
+}
+
+.printer-active-service-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.printer-active-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: #d1fae5;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.printer-active-service-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.printer-active-service-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 3px 0 0 0;
+}
+
+.printer-active-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.printer-active-input-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.printer-active-input-label .req {
+  color: #ef4444;
+}
+
+.printer-active-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.printer-active-input-box {
+  display: flex;
+  align-items: center;
+  width: 320px;
+  max-width: 100%;
+  height: 46px;
+  background: #ffffff;
+  border: 1.5px solid #34d399;
+  border-radius: 11px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.printer-active-input-box:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.printer-active-currency-box {
+  width: 44px;
+  height: 100%;
+  background: #ecfdf5;
+  border-right: 1px solid #d1fae5;
+  color: #059669;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.printer-active-input-field {
+  flex: 1;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.printer-active-input-field::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Rate Confirm Button */
+.printer-rate-confirm-btn {
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1.5px solid #10b981;
+  background: #10b981;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.printer-rate-confirm-btn:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.25);
+}
+
+.printer-rate-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.printer-rate-confirm-btn.is-confirmed {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+}
+
+.printer-rate-confirm-btn.is-confirmed:hover:not(:disabled) {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+/* Watermark Illustration Container */
+.printer-active-watermark-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+  margin-right: 20px;
+}
+
+@media (max-width: 768px) {
+  .printer-active-watermark-wrap {
+    display: none;
+  }
+}
+
+.printer-active-watermark-circle {
+  width: 105px;
+  height: 105px;
+  border-radius: 50%;
+  background: #e6fcf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 0 12px rgba(52, 211, 153, 0.1);
+}
+
+/* Watermark Bubbles */
+.printer-bubble {
+  display: block;
+}
+
+.printer-bubble.bubble-ring {
+  position: absolute;
+  top: 10px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid #a7f3d0;
+  z-index: 0;
+}
+
+.printer-bubble.bubble-dot-small {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6ee7b7;
+  z-index: 0;
+}
+
+.printer-bubble.bubble-dot-medium {
+  position: absolute;
+  bottom: 18px;
+  left: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a7f3d0;
+  z-index: 0;
+}
+
+/* Legacy service pills preserved for Jumbo or other fallback */
+.printer-service-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.printer-service-pill:hover {
+  border-color: #059669;
+  color: #059669;
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.printer-service-pill.selected {
+  background: #ecfdf5;
+  border-color: #059669;
+  color: #065f46;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.12);
+}
+
+.printer-pill-del-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.printer-pill-del-btn:hover {
+  background: #fee2e2;
+}
+
+/* Pricing Grid */
+.printer-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  background: #f8fafc;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.printer-rate-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
+}
+
+.printer-rate-item:focus-within {
+  border-color: #a7f3d0;
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.08);
+}
+
+.printer-rate-item label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  word-break: break-word;
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+}
+
+.printer-rate-input-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.printer-rate-input-box:focus-within {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+.printer-rate-currency {
+  font-size: 14px;
+  font-weight: 700;
+  color: #059669;
+  user-select: none;
+}
+
+.printer-rate-input-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+/* ==========================================================================
+   JUMBOXEROX SERVICES & RATES - MATCHING EXACT SCREENSHOT
+   ========================================================================== */
+
+.jumbo-section-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.jumbo-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 2px;
+}
+
+.jumbo-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.jumbo-tag-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.12);
+}
+
+.jumbo-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.jumbo-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.jumbo-add-custom-btn {
+  background: #ffffff;
+  color: #059669;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 9px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.08);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.jumbo-add-custom-btn:hover {
+  background: #ecfdf5;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.15);
+}
+
+/* Jumbo Service Tabs Row */
+.jumbo-service-tabs-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .jumbo-service-tabs-row {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
+.jumbo-service-tab-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  min-height: 52px;
+  box-sizing: border-box;
+}
+
+.jumbo-service-tab-card:hover {
+  border-color: #cbd5e1;
+  background: #fbfcfe;
+  transform: translateY(-1px);
+}
+
+.jumbo-service-tab-card.live {
+  border: 2px solid #10b981;
+  box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.22), 0 4px 14px rgba(16, 185, 129, 0.1);
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.jumbo-service-tab-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.jumbo-service-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jumbo-service-tab-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.jumbo-service-tab-card.live .jumbo-service-tab-name {
+  color: #0f172a;
+}
+
+.jumbo-service-tab-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Paper Sizes Container Card */
+.jumbo-paper-sizes-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+}
+
+.jumbo-paper-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jumbo-paper-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jumbo-paper-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.jumbo-paper-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Paper sizes row */
+.jumbo-paper-sizes-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.jumbo-paper-size-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  position: relative;
+}
+
+.jumbo-paper-size-btn:hover:not(.active) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.jumbo-paper-size-btn.active {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+}
+
+.jumbo-size-tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  margin-left: 2px;
+}
+
+.jumbo-paper-size-btn:not(.active) .jumbo-size-tick {
+  background: #10b981;
+  color: #ffffff;
+}
+
+/* Active Rate Input Panel */
+.jumbo-active-rate-panel {
+  border: 1.5px solid #a7f3d0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff 65%, #f0fdf4 100%);
+  padding: 20px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .jumbo-active-rate-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.jumbo-active-rate-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  max-width: 550px;
+  z-index: 2;
+}
+
+.jumbo-active-rate-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jumbo-active-rate-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #d1fae5;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
+}
+
+.jumbo-rate-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.jumbo-rate-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.jumbo-rate-input-box {
+  display: flex;
+  align-items: center;
+  width: 320px;
+  max-width: 100%;
+  height: 46px;
+  background: #ffffff;
+  border: 1.5px solid #34d399;
+  border-radius: 11px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.jumbo-rate-input-box:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.jumbo-rate-currency-box {
+  width: 44px;
+  height: 100%;
+  background: #ecfdf5;
+  border-right: 1px solid #d1fae5;
+  color: #059669;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.jumbo-rate-input-field {
+  flex: 1;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.jumbo-rate-input-field::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Watermark Illustration Container */
+.jumbo-watermark-wrap {
+  position: relative;
+  width: 140px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+  margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+  .jumbo-watermark-wrap {
+    display: none;
+  }
+}
+
+.jumbo-watermark-glow {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 243, 208, 0.5) 0%, rgba(240, 253, 244, 0) 70%);
+  z-index: 0;
+}
+
+/* Alert Box */
+.printer-lfp-alert {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.06);
+}
+
+.printer-lfp-alert-content h5 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.printer-lfp-alert-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #b45309;
+  line-height: 1.5;
+}
+
+/* Form Action Buttons */
+.add-printer-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 0;
+  margin-top: -4px;
+  border-top: none;
+}
+
+.add-printer-actions-bar .printz-btn-primary,
+.add-printer-actions-bar .printz-btn-secondary {
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.printz-btn-secondary {
+  background: #ffffff;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.printz-btn-secondary:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.printz-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

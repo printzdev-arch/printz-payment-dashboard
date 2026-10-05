@@ -1,0 +1,1339 @@
+/* ==========================================================================
+   PRINTZ MODERN PRINTER LIST STYLES
+   ========================================================================== */
+
+.printer-list-page-container {
+  padding: 8px 24px 20px 24px;
+  background-color: var(--printz-bg-page, #f8fafc);
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #0f172a;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Full Header Banner */
+.printz-header-banner-full {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Reusable Section Card matching AddPrinter & MovePrinter */
+.printer-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Filter Card Toolbar */
+.printer-filter-card {
+  padding: 16px 20px;
+}
+
+.printer-filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+}
+
+.printer-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.printer-filter-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.printer-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+/* 44px Select Input Wrapper */
+.printer-input-wrapper {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.printer-store-select-wrapper {
+  min-width: 240px;
+}
+
+.printer-input-wrapper:focus-within {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  background: #ffffff;
+}
+
+.printer-input-prefix-icon {
+  color: #64748b;
+  margin-right: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.printer-input-wrapper:focus-within .printer-input-prefix-icon {
+  color: #059669;
+}
+
+.printer-select-chevron {
+  position: absolute;
+  right: 14px;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.printer-field-select {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13.5px;
+  color: #0f172a;
+  padding: 0 28px 0 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Store Badge & Status */
+.printer-branch-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ecfdf5;
+  color: #047857;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid #a7f3d0;
+}
+
+.printer-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* Inactive Toggle Pill */
+.printer-filter-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.printer-inactive-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  font-family: inherit;
+}
+
+.printer-inactive-toggle-pill:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.printer-inactive-toggle-pill.active {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.printer-inactive-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.printer-inactive-toggle-pill.active .printer-inactive-indicator {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #ffffff;
+}
+
+/* Card Section Header */
+.printer-services-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.printer-services-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.printer-services-tag-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #e6f7f0;
+  border: 1.5px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #059669;
+}
+
+.printer-services-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.printer-services-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.printer-needs-id-counter {
+  color: #ef4444;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Header Tools & Select All / Bulk Delete */
+.printer-table-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.printer-select-all-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  font-family: inherit;
+}
+
+.printer-select-all-pill:hover {
+  border-color: #059669;
+  background: #f0fdf4;
+  color: #047857;
+}
+
+.printer-select-all-pill.active {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #047857;
+}
+
+.printer-bulk-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+  transition: all 0.15s ease;
+  user-select: none;
+  font-family: inherit;
+}
+
+.printer-bulk-delete-btn:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Main Table Container */
+.printer-table-card {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.printer-table-card .printer-services-header-row {
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.printer-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.printer-modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+/* Signature Mint Green Header */
+.printer-modern-table thead th {
+  background-color: #eaf7ee !important;
+  color: #047857 !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 13px 18px !important;
+  border-bottom: 1px solid #d1fae5 !important;
+  white-space: nowrap;
+}
+
+.printer-modern-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease;
+}
+
+.printer-modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.printer-modern-table tbody tr.row-needs-id {
+  background-color: #fffbfb;
+  border-left: 3.5px solid #ef4444;
+}
+
+.printer-modern-table tbody td {
+  padding: 14px 18px;
+  vertical-align: top;
+  color: #1e293b;
+  font-size: 13.5px;
+}
+
+/* Monospace ID Badge */
+.printer-id-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  letter-spacing: -0.01em;
+}
+
+.printer-id-missing-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Type Pills */
+.printer-type-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.printer-type-pill.lfp {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.printer-type-pill.sfp {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.printer-type-pill.mfp {
+  background-color: #faf5ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+/* Service Chips & Rates */
+.printer-services-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.printer-services-header-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.printer-service-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  padding: 5px 8px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+}
+
+.printer-service-item-row:hover {
+  border-color: #cbd5e1;
+  background-color: #f1f5f9;
+}
+
+.printer-service-item-row.editing {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+}
+
+.printer-service-name-text {
+  font-weight: 600;
+  color: #334155;
+}
+
+.printer-service-price-text {
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Micro Action Buttons in Service Chips */
+.printer-service-micro-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.printer-service-micro-btn.delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.printer-service-micro-btn.delete:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.printer-service-micro-btn.edit {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.printer-service-micro-btn.edit:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* Add Service Button */
+.printer-add-service-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px dashed #a7f3d0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: fit-content;
+  margin-top: 4px;
+  font-family: inherit;
+}
+
+.printer-add-service-btn:hover {
+  background: #d1fae5;
+  border-color: #059669;
+}
+
+/* Inline Edit Card inside Service */
+.printer-inline-service-form {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.printer-inline-form-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.printer-inline-form-inputs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.printer-inline-input {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  outline: none;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.printer-inline-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.12);
+}
+
+.printer-inline-btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-inline-btn-save:hover {
+  background: #047857;
+}
+
+.printer-inline-btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-inline-btn-cancel:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Edit Row Input Fields */
+.printer-table-edit-input {
+  width: 100%;
+  height: 36px;
+  padding: 4px 10px;
+  border: 1.5px solid #059669;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  background: #ffffff;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* Actions Cell */
+.printer-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.printer-btn-view {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-btn-view:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.printer-btn-view:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.printer-btn-edit {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-btn-edit:hover:not(:disabled) {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+
+.printer-btn-delete {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-btn-delete:hover:not(:disabled) {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+}
+
+.printer-btn-edit:disabled,
+.printer-btn-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Pagination Row */
+.printer-pagination-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.printer-pagination-info {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.printer-pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.printer-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.printer-page-btn:hover:not(:disabled) {
+  border-color: #059669;
+  color: #059669;
+  background: #f0fdf4;
+}
+
+.printer-page-btn.active {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.printer-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+/* Empty State */
+.printer-empty-state {
+  padding: 56px 24px;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.printer-empty-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #94a3b8;
+}
+
+.printer-empty-title {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.printer-empty-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 360px;
+}
+
+/* Bulk Delete Modal Dialog */
+.printer-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.printer-modal-box {
+  background: #ffffff;
+  padding: 28px 32px;
+  border-radius: 16px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
+  border: 1px solid #f1f5f9;
+}
+
+.printer-modal-alert-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+}
+
+.printer-modal-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.printer-modal-text {
+  margin: 0 0 24px 0;
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.printer-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.printer-modal-btn-cancel {
+  padding: 10px 20px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.printer-modal-btn-cancel:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.printer-modal-btn-confirm {
+  padding: 10px 20px;
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+
+.printer-modal-btn-confirm:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Printer View & Edit Popup Modal (Small & Comfortable) */
+.printer-details-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: printerModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes printerModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.printer-details-modal-box {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 660px;
+  width: 100%;
+  max-height: 88vh;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: printerModalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes printerModalSlideUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.printer-details-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 26px;
+  background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 100%);
+  border-bottom: 1px solid #e2e8f0;
+  gap: 12px;
+}
+
+.printer-details-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.printer-details-modal-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.printer-details-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.printer-details-modal-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.printer-details-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-details-modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.printer-details-modal-body {
+  padding: 22px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Banner */
+.printer-modal-banner {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.printer-modal-banner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.printer-modal-id-tag {
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 7px;
+  letter-spacing: 0.04em;
+  font-family: monospace;
+}
+
+.printer-modal-type-chip {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 7px;
+  letter-spacing: 0.04em;
+}
+
+.printer-modal-status-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 7px;
+}
+
+.printer-modal-status-badge.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.printer-modal-status-badge.inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.printer-modal-name-text {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* 2-col info grid */
+.printer-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.printer-modal-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.printer-modal-card-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.printer-modal-card-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Pricing Table */
+.printer-modal-pricing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.printer-modal-section-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.printer-modal-pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.printer-modal-pricing-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1.5px solid #cbd5e1;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.printer-modal-pricing-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+/* Form in Edit Mode */
+.printer-modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.printer-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.printer-modal-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.printer-modal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.printer-modal-input,
+.printer-modal-select {
+  height: 40px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.printer-modal-input:focus,
+.printer-modal-select:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+}
+
+.printer-modal-tier-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.printer-modal-tier-input {
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.printer-modal-tier-del {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: #fee2e2;
+  color: #dc2626;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.printer-modal-tier-del:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.printer-modal-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px dashed #a7f3d0;
+  border-radius: 6px;
+  cursor: pointer;
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.printer-modal-add-btn:hover {
+  background: #d1fae5;
+  border-color: #059669;
+}
+
+/* Footer */
+.printer-details-modal-footer {
+  padding: 16px 26px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.printer-modal-btn-cancel {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.printer-modal-btn-cancel:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.printer-modal-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #059669;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+  transition: all 0.15s ease;
+}
+
+.printer-modal-btn-primary:hover:not(:disabled) {
+  background: #047857;
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35);
+}
+
+.printer-modal-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
