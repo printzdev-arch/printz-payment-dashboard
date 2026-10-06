@@ -379,16 +379,32 @@ const JumboXeroxSection = ({
           }
 
           if (docData.jumboCounter) {
+            const startVal =
+              docData.jumboCounter.start !== undefined &&
+              docData.jumboCounter.start !== null
+                ? String(docData.jumboCounter.start)
+                : "";
+            const endVal =
+              docData.jumboCounter.end !== undefined &&
+              docData.jumboCounter.end !== null
+                ? String(docData.jumboCounter.end)
+                : "";
+            const sftVal =
+              docData.jumboCounter.sftPrinted !== undefined &&
+              docData.jumboCounter.sftPrinted !== null &&
+              docData.jumboCounter.sftPrinted !== ""
+                ? String(docData.jumboCounter.sftPrinted)
+                : startVal !== "" || endVal !== ""
+                ? Math.max(
+                    0,
+                    (Number(endVal) || 0) - (Number(startVal) || 0)
+                  ).toFixed(2)
+                : "";
+
             setJumboCounter({
-              start:
-                docData.jumboCounter.start === 0
-                  ? ""
-                  : docData.jumboCounter.start || "",
-              end:
-                docData.jumboCounter.end === 0
-                  ? ""
-                  : docData.jumboCounter.end || "",
-              sftPrinted: docData.jumboCounter.sftPrinted || "",
+              start: startVal,
+              end: endVal,
+              sftPrinted: sftVal,
             });
           }
         } else {
@@ -573,14 +589,16 @@ const JumboXeroxSection = ({
 
       const updatedCounter = { ...jumboCounter, [field]: cleanedValue };
 
-      if (
-        (field === "start" || field === "end") &&
-        updatedCounter.start !== "" &&
-        updatedCounter.end !== ""
-      ) {
-        updatedCounter.sftPrinted = Math.abs(
-          Number(updatedCounter.end) - Number(updatedCounter.start)
-        ).toFixed(2);
+      if (field === "start" || field === "end") {
+        const startVal =
+          updatedCounter.start !== "" ? Number(updatedCounter.start) : 0;
+        const endVal =
+          updatedCounter.end !== "" ? Number(updatedCounter.end) : 0;
+        if (updatedCounter.start !== "" || updatedCounter.end !== "") {
+          updatedCounter.sftPrinted = Math.max(0, endVal - startVal).toFixed(2);
+        } else {
+          updatedCounter.sftPrinted = "";
+        }
       }
 
       setJumboCounter(updatedCounter);
@@ -625,22 +643,48 @@ const JumboXeroxSection = ({
         })),
       ];
 
+      const counterStart =
+        jumboCounter.start !== "" ? Number(jumboCounter.start) : 0;
+      const counterEnd =
+        jumboCounter.end !== "" ? Number(jumboCounter.end) : 0;
+      const counterSft =
+        jumboCounter.sftPrinted !== ""
+          ? Number(jumboCounter.sftPrinted)
+          : Math.max(0, counterEnd - counterStart);
+
       const dataToSave = {
+        id: hasExistingJumboData && jumboDocId ? jumboDocId : undefined,
         userId,
         branchName,
         date: dateString,
         rows: allRows,
-        jumboCounter,
+        jumboCounter: {
+          start: counterStart,
+          end: counterEnd,
+          sftPrinted: counterSft,
+        },
         totalAmount: jumboTotals.amount,
       };
 
       if (hasExistingJumboData && jumboDocId) {
-        await api.put(`/jumbo-xerox/readings/${jumboDocId}`, dataToSave);
+        try {
+          await api.put(`/jumbo-xerox/readings/${jumboDocId}`, dataToSave);
+        } catch (putErr) {
+          if (putErr.response?.status === 404) {
+            await api.post("/jumbo-xerox/readings", {
+              ...dataToSave,
+              id: jumboDocId,
+              _id: jumboDocId,
+            });
+          } else {
+            throw putErr;
+          }
+        }
         showSuccess("Large Format Printing readings updated successfully");
       } else {
         const res = await api.post("/jumbo-xerox/readings", dataToSave);
         const created = res.data?.data;
-        if (created) {
+        if (created?.id || created?._id) {
           setJumboDocId(created.id || created._id);
         }
         setHasExistingJumboData(true);

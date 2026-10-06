@@ -1292,7 +1292,7 @@ const PdfGenerator = () => {
 
     const formattedDate = selectedDate.split("-").reverse().join("-");
     pdf.save(`Printz_Shop_Report_${data.branch}_${formattedDate}.pdf`);
-    toast.success("PDF generated successfully!");
+    toast.success("PDF downloaded successfully!");
   };
 
   useEffect(() => {

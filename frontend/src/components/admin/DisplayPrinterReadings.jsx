@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import jsPDF from "jspdf";
 import api from "../../services/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -233,7 +234,7 @@ const DisplayPrinterReadings = () => {
       // Save PDF
       const formattedDate = date.split("-").reverse().join("-");
       pdf.save(`Printer_Readings_${branchName}_${formattedDate}.pdf`);
-      successToast("PDF generated successfully");
+      successToast("PDF downloaded successfully!");
     } catch (error) {
       console.error("Error generating PDF:", error);
       errorToast("Failed to generate PDF");
@@ -529,156 +530,156 @@ const DisplayPrinterReadings = () => {
             {printers
               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               .map((printer) => {
-              const grandTotal = printer.prices.reduce((sum, price) => {
-                const final =
-                  readings[printer.printerId]?.[price.size]?.FINAL_READING ??
-                  readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
-                  0;
-                const starting =
-                  readings[printer.printerId]?.[price.size]?.STARTING ?? 0;
-                return sum + calculateTotal(final, starting, price.price);
-              }, 0);
+                const grandTotal = printer.prices.reduce((sum, price) => {
+                  const final =
+                    readings[printer.printerId]?.[price.size]?.FINAL_READING ??
+                    readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
+                    0;
+                  const starting =
+                    readings[printer.printerId]?.[price.size]?.STARTING ?? 0;
+                  return sum + calculateTotal(final, starting, price.price);
+                }, 0);
 
-              const typeLower = (printer.type || printer.printerType || "").toLowerCase();
-              const typeBadgeClass = typeLower.includes("large")
-                ? "lfp"
-                : typeLower.includes("small")
-                ? "sfp"
-                : "mfp";
+                const typeLower = (printer.type || printer.printerType || "").toLowerCase();
+                const typeBadgeClass = typeLower.includes("large")
+                  ? "lfp"
+                  : typeLower.includes("small")
+                    ? "sfp"
+                    : "mfp";
 
-              return (
-                <div key={printer.printerId} className="printer-section-card display-readings-printer-card">
-                  <div className="display-readings-card-header">
-                    <div className="display-readings-header-left">
-                      <div className="display-readings-tag-icon">
-                        <Printer size={20} />
-                      </div>
-                      <div className="display-readings-title-wrap">
-                        <h3 className="display-readings-title">{printer.printerName}</h3>
-                        <div className="display-readings-badges-row">
-                          {printer.printerId && (
-                            <span className="printer-id-badge">ID: {printer.printerId}</span>
-                          )}
-                          {(printer.type || printer.printerType) && (
-                            <span className={`printer-type-pill ${typeBadgeClass}`}>
-                              {printer.type || printer.printerType}
-                            </span>
-                          )}
-                          <span className="display-readings-view-badge">View Only</span>
+                return (
+                  <div key={printer.printerId} className="printer-section-card display-readings-printer-card">
+                    <div className="display-readings-card-header">
+                      <div className="display-readings-header-left">
+                        <div className="display-readings-tag-icon">
+                          <Printer size={20} />
+                        </div>
+                        <div className="display-readings-title-wrap">
+                          <h3 className="display-readings-title">{printer.printerName}</h3>
+                          <div className="display-readings-badges-row">
+                            {printer.printerId && (
+                              <span className="printer-id-badge">ID: {printer.printerId}</span>
+                            )}
+                            {(printer.type || printer.printerType) && (
+                              <span className={`printer-type-pill ${typeBadgeClass}`}>
+                                {printer.type || printer.printerType}
+                              </span>
+                            )}
+                            <span className="display-readings-view-badge">View Only</span>
+                          </div>
                         </div>
                       </div>
+
+                      <div className="display-readings-grand-pill">
+                        <span className="display-readings-grand-label">Grand Total</span>
+                        <span className="display-readings-grand-val">{formatCurrency(grandTotal)}</span>
+                      </div>
                     </div>
 
-                    <div className="display-readings-grand-pill">
-                      <span className="display-readings-grand-label">Grand Total</span>
-                      <span className="display-readings-grand-val">{formatCurrency(grandTotal)}</span>
-                    </div>
-                  </div>
-
-                  <div className="display-readings-table-wrap">
-                    <table className="display-readings-table">
-                      <thead>
-                        <tr>
-                          <th className="col-row-title">Metric</th>
-                          {printer.prices.map((price) => (
-                            <th key={price.size} className="printer-size-col">
-                              {price.size}
-                            </th>
-                          ))}
-                          <th className="col-total">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="display-readings-row-header">STARTING</td>
-                          {printer.prices.map((price) => (
-                            <td
-                              key={`${printer.printerId}-${price.size}-STARTING`}
-                              className="display-readings-val-cell"
-                            >
-                              {readings[printer.printerId]?.[price.size]?.STARTING ?? "N/A"}
+                    <div className="display-readings-table-wrap">
+                      <table className="display-readings-table">
+                        <thead>
+                          <tr>
+                            <th className="col-row-title">Metric</th>
+                            {printer.prices.map((price) => (
+                              <th key={price.size} className="printer-size-col">
+                                {price.size}
+                              </th>
+                            ))}
+                            <th className="col-total">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="display-readings-row-header">STARTING</td>
+                            {printer.prices.map((price) => (
+                              <td
+                                key={`${printer.printerId}-${price.size}-STARTING`}
+                                className="display-readings-val-cell"
+                              >
+                                {readings[printer.printerId]?.[price.size]?.STARTING ?? "N/A"}
+                              </td>
+                            ))}
+                            <td className="display-readings-empty-total-cell">
+                              <span className="display-readings-dash">—</span>
                             </td>
-                          ))}
-                          <td className="display-readings-empty-total-cell">
-                            <span className="display-readings-dash">—</span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="display-readings-row-header">FINAL READING</td>
-                          {printer.prices.map((price) => (
-                            <td
-                              key={`${printer.printerId}-${price.size}-FINAL-READING`}
-                              className="display-readings-val-cell"
-                            >
-                              {readings[printer.printerId]?.[price.size]?.FINAL_READING ??
+                          </tr>
+                          <tr>
+                            <td className="display-readings-row-header">FINAL READING</td>
+                            {printer.prices.map((price) => (
+                              <td
+                                key={`${printer.printerId}-${price.size}-FINAL-READING`}
+                                className="display-readings-val-cell"
+                              >
+                                {readings[printer.printerId]?.[price.size]?.FINAL_READING ??
+                                  readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
+                                  "N/A"}
+                              </td>
+                            ))}
+                            <td className="display-readings-empty-total-cell">
+                              <span className="display-readings-dash">—</span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="display-readings-row-header">NO OF COPIES</td>
+                            {printer.prices.map((price) => {
+                              const final =
+                                readings[printer.printerId]?.[price.size]?.FINAL_READING ??
                                 readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
-                                "N/A"}
+                                0;
+                              const starting =
+                                readings[printer.printerId]?.[price.size]?.STARTING ?? 0;
+                              const copies = calculateNoOfCopies(final, starting);
+                              return (
+                                <td
+                                  key={`${printer.printerId}-${price.size}-COPIES`}
+                                  className="printer-copies-cell"
+                                >
+                                  <span className="display-readings-copies-pill">
+                                    {copies} × ₹{price.price}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                            <td className="display-readings-empty-total-cell">
+                              <span className="display-readings-dash">—</span>
                             </td>
-                          ))}
-                          <td className="display-readings-empty-total-cell">
-                            <span className="display-readings-dash">—</span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="display-readings-row-header">NO OF COPIES</td>
-                          {printer.prices.map((price) => {
-                            const final =
-                              readings[printer.printerId]?.[price.size]?.FINAL_READING ??
-                              readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
-                              0;
-                            const starting =
-                              readings[printer.printerId]?.[price.size]?.STARTING ?? 0;
-                            const copies = calculateNoOfCopies(final, starting);
-                            return (
-                              <td
-                                key={`${printer.printerId}-${price.size}-COPIES`}
-                                className="printer-copies-cell"
-                              >
-                                <span className="display-readings-copies-pill">
-                                  {copies} × ₹{price.price}
-                                </span>
-                              </td>
-                            );
-                          })}
-                          <td className="display-readings-empty-total-cell">
-                            <span className="display-readings-dash">—</span>
-                          </td>
-                        </tr>
-                        <tr className="row-total-highlight">
-                          <td className="display-readings-total-title">TOTAL</td>
-                          {printer.prices.map((price) => {
-                            const final =
-                              readings[printer.printerId]?.[price.size]?.FINAL_READING ??
-                              readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
-                              0;
-                            const starting =
-                              readings[printer.printerId]?.[price.size]?.STARTING ?? 0;
-                            const total = calculateTotal(
-                              final,
-                              starting,
-                              price.price
-                            );
-                            return (
-                              <td
-                                key={`${printer.printerId}-${price.size}-TOTAL`}
-                                className="display-readings-size-total"
-                              >
-                                {formatCurrency(total)}
-                              </td>
-                            );
-                          })}
-                          <td className="display-readings-grand-cell">
-                            <span className="display-readings-grand-amount">
-                              {formatCurrency(grandTotal)}
-                            </span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                          </tr>
+                          <tr className="row-total-highlight">
+                            <td className="display-readings-total-title">TOTAL</td>
+                            {printer.prices.map((price) => {
+                              const final =
+                                readings[printer.printerId]?.[price.size]?.FINAL_READING ??
+                                readings[printer.printerId]?.[price.size]?.["FINAL READING"] ??
+                                0;
+                              const starting =
+                                readings[printer.printerId]?.[price.size]?.STARTING ?? 0;
+                              const total = calculateTotal(
+                                final,
+                                starting,
+                                price.price
+                              );
+                              return (
+                                <td
+                                  key={`${printer.printerId}-${price.size}-TOTAL`}
+                                  className="display-readings-size-total"
+                                >
+                                  {formatCurrency(total)}
+                                </td>
+                              );
+                            })}
+                            <td className="display-readings-grand-cell">
+                              <span className="display-readings-grand-amount">
+                                {formatCurrency(grandTotal)}
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
             {/* Standard Pagination */}
             {printers.length > 0 && (

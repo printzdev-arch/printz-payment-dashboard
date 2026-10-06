@@ -9,53 +9,64 @@ class EmailService {
   async getTransporter() {
     if (this.transporter) return this.transporter;
 
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: Number(process.env.SMTP_PORT) === 465,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-      return this.transporter;
+    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : "";
+    const smtpPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, "").trim() : "";
+
+    if (smtpUser && smtpPass) {
+      if (process.env.SMTP_SERVICE || (!process.env.SMTP_HOST && smtpUser.includes("@gmail.com"))) {
+        this.transporter = nodemailer.createTransport({
+          service: process.env.SMTP_SERVICE || "gmail",
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        });
+        console.log(`[EmailService] Real SMTP enabled via ${process.env.SMTP_SERVICE || "gmail"} (${smtpUser})`);
+        return this.transporter;
+      }
+
+      if (process.env.SMTP_HOST) {
+        this.transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: Number(process.env.SMTP_PORT) === 465 || process.env.SMTP_SECURE === "true",
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        });
+        console.log(`[EmailService] Real SMTP enabled via ${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587}`);
+        return this.transporter;
+      }
     }
 
-    // Fallback: create Ethereal test account for local development
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      this.transporter = nodemailer.createTransport({
-        host: testAccount.smtp.host,
-        port: testAccount.smtp.port,
-        secure: testAccount.smtp.secure,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-      return this.transporter;
-    } catch (err) {
-      console.warn("Could not create test email account, using mock transporter:", err.message);
-      this.transporter = {
-        sendMail: async (mailOptions) => {
-          console.log("\n=======================================================");
-          console.log("[MOCK EMAIL SENT]");
-          console.log(`To: ${mailOptions.to}`);
-          console.log(`Subject: ${mailOptions.subject}`);
-          console.log("-------------------------------------------------------");
-          console.log(mailOptions.text || mailOptions.html);
-          console.log("=======================================================\n");
-          return { messageId: "mock-" + Date.now() };
-        },
-      };
-      return this.transporter;
-    }
+    console.warn("\n=========================================================================");
+    console.warn("[EmailService WARNING] No SMTP credentials configured in backend/.env.");
+    console.warn("To receive emails in real inboxes, set SMTP_USER and SMTP_PASS in backend/.env.");
+    console.warn("=========================================================================\n");
+
+    this.transporter = {
+      sendMail: async (mailOptions) => {
+        console.log("\n=======================================================");
+        console.log("[DEV MODE - PASSWORD RESET EMAIL NOTIFICATION]");
+        console.log(`Recipient: ${mailOptions.to}`);
+        console.log(`Subject  : ${mailOptions.subject}`);
+        console.log("-------------------------------------------------------");
+        console.log(mailOptions.text || mailOptions.html);
+        console.log("=======================================================\n");
+        return { messageId: "dev-" + Date.now(), isMock: true };
+      },
+    };
+    return this.transporter;
   }
 
   async sendPasswordResetEmail({ to, name, resetUrl }) {
     const transporter = await this.getTransporter();
-    const fromAddress = process.env.SMTP_FROM || '"Printz Portal" <no-reply@printz.shop>';
+    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : "";
+    const isGmail = process.env.SMTP_SERVICE === "gmail" || smtpUser.includes("@gmail.com");
+    const fromAddress = isGmail
+      ? `"Printz Enterprise" <${smtpUser}>`
+      : process.env.SMTP_FROM || `"Printz Enterprise" <${smtpUser || "no-reply@printz.shop"}>`;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">

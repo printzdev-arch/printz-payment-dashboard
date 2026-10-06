@@ -33,7 +33,7 @@ import autoTable, { applyPlugin } from "jspdf-autotable";
 
 try {
   applyPlugin(jsPDF);
-} catch (e) {}
+} catch (e) { }
 
 import Popup from "../common/Popup.jsx";
 import { usePopup } from "../../hooks/usePopup";
@@ -290,9 +290,9 @@ const StockList = () => {
       hasPageRanges: hasRanges,
       pageRanges: hasRanges
         ? stock.pageRanges.map((r) => ({
-            range: r.range || "",
-            price: r.price ?? 0,
-          }))
+          range: r.range || "",
+          price: r.price ?? 0,
+        }))
         : [{ range: "", price: 0 }],
     });
   };
@@ -314,9 +314,9 @@ const StockList = () => {
       hasPageRanges: hasRanges,
       pageRanges: hasRanges
         ? stock.pageRanges.map((r) => ({
-            range: r.range || "",
-            price: r.price ?? 0,
-          }))
+          range: r.range || "",
+          price: r.price ?? 0,
+        }))
         : [{ range: "", price: 0 }],
     });
   };
@@ -620,7 +620,7 @@ const StockList = () => {
       pdf.save(`Stock_Price_List_${branchName}_${currentDate}.pdf`);
       showSuccess(
         "PDF Generated",
-        "Stock price list PDF generated successfully!"
+        "Stock price list PDF downloaded successfully!!"
       );
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -1182,14 +1182,12 @@ const StockList = () => {
                   </h3>
                   <p className="stock-modal-subtitle">
                     {isModalEditMode
-                      ? `Editing ${
-                          modalFormData.stockId ||
-                          selectedStockModal.stockId ||
-                          selectedStockModal.itemName
-                        }`
-                      : `${selectedStockModal.stockId || "N/A"} • ${
-                          selectedStockModal.branchName || branchName
-                        }`}
+                      ? `Editing ${modalFormData.stockId ||
+                      selectedStockModal.stockId ||
+                      selectedStockModal.itemName
+                      }`
+                      : `${selectedStockModal.stockId || "N/A"} • ${selectedStockModal.branchName || branchName
+                      }`}
                   </p>
                 </div>
               </div>
@@ -1233,19 +1231,18 @@ const StockList = () => {
                         const qty = selectedStockModal.qty || 0;
                         return (
                           <span
-                            className={`stock-qty-badge ${
-                              qty === 0
+                            className={`stock-qty-badge ${qty === 0
                                 ? "zero-stock"
                                 : qty < 5
-                                ? "low-stock"
-                                : "in-stock"
-                            }`}
+                                  ? "low-stock"
+                                  : "in-stock"
+                              }`}
                           >
                             {qty === 0
                               ? "0 Units (Out of Stock)"
                               : qty < 5
-                              ? `${qty} Units (Low Stock)`
-                              : `${qty} Units in Stock`}
+                                ? `${qty} Units (Low Stock)`
+                                : `${qty} Units in Stock`}
                           </span>
                         );
                       })()}
@@ -1307,7 +1304,7 @@ const StockList = () => {
                     </h4>
 
                     {selectedStockModal.pageRanges &&
-                    selectedStockModal.pageRanges.length > 0 ? (
+                      selectedStockModal.pageRanges.length > 0 ? (
                       <div>
                         <table className="stock-modal-pricing-table">
                           <thead>

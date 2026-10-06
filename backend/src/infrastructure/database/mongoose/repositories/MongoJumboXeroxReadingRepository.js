@@ -129,16 +129,30 @@ class MongoJumboXeroxReadingRepository extends IJumboXeroxReadingRepository {
       }
     }
 
-    if (!existing && data.branchName && data.date) {
-      existing = await this.findByBranchAndDate(data.branchName, data.date);
+    if (!existing && (data.branchName || data.branchId) && data.date) {
+      const query = { date: data.date };
+      if (data.branchId) {
+        query.$or = [
+          { branchId: data.branchId },
+          { branchId: data.branchId.toString() },
+          ...(data.branchName ? [{ branchName: new RegExp(`^${data.branchName}$`, "i") }] : []),
+        ];
+      } else {
+        query.branchName = new RegExp(`^${data.branchName}$`, "i");
+      }
+      existing = await JumboXeroxReading.findOne(query);
     }
 
     if (existing) {
-      Object.assign(existing, data);
+      const updateData = { ...data };
+      delete updateData._id;
+      delete updateData.id;
+      Object.assign(existing, updateData);
       await existing.save();
       const branchMap = await this._getBranchMap();
       const branchIdStr = existing.branchId ? existing.branchId.toString() : null;
       const resObj = existing.toJSON ? existing.toJSON() : { ...existing };
+      resObj.id = existing._id ? existing._id.toString() : existing._id;
       resObj.branchName = resObj.branchName || (branchIdStr ? branchMap[branchIdStr] : "") || "";
       return { reading: resObj, isNew: false };
     }
@@ -148,6 +162,7 @@ class MongoJumboXeroxReadingRepository extends IJumboXeroxReadingRepository {
     const branchMap = await this._getBranchMap();
     const branchIdStr = reading.branchId ? reading.branchId.toString() : null;
     const resObj = reading.toJSON ? reading.toJSON() : { ...reading };
+    resObj.id = reading._id ? reading._id.toString() : reading._id;
     resObj.branchName = resObj.branchName || (branchIdStr ? branchMap[branchIdStr] : "") || "";
     return { reading: resObj, isNew: true };
   }

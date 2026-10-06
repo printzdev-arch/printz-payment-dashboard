@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import jsPDF from "jspdf";
 import api from "../../services/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -121,7 +122,7 @@ const AdminDailyReadingsRevenue = () => {
       if (issues.length > 0) {
         toast.warning(
           `Warning: ${selectedBranch} has configuration issues: ${issues.join(", ")}. ` +
-            "Daily readings may not be available.",
+          "Daily readings may not be available.",
           {
             position: "top-right",
             autoClose: 5000,
@@ -1034,7 +1035,7 @@ const AdminDailyReadingsRevenue = () => {
       const formattedDate = dateString.split("-").reverse().join("-");
       pdf.save(`DailyReadings_${branchName}_${formattedDate}.pdf`);
 
-      toast.success("PDF generated successfully");
+      toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF: " + error.message);
@@ -1307,16 +1308,14 @@ const AdminDailyReadingsRevenue = () => {
               return (
                 <div
                   key={step.id}
-                  className={`account-stepper-item ${isActive ? "active" : ""} ${
-                    isSaved ? "completed" : ""
-                  }`}
+                  className={`account-stepper-item ${isActive ? "active" : ""} ${isSaved ? "completed" : ""
+                    }`}
                   onClick={() => setActiveStep(step.id)}
                 >
                   <div className="account-stepper-item-left">
                     <span
-                      className={`account-stepper-badge ${
-                        isActive ? "active" : ""
-                      } ${isSaved ? "saved" : ""}`}
+                      className={`account-stepper-badge ${isActive ? "active" : ""
+                        } ${isSaved ? "saved" : ""}`}
                     >
                       {isSaved ? <Check size={12} strokeWidth={3} /> : step.id}
                     </span>
@@ -1502,9 +1501,9 @@ const AdminDailyReadingsRevenue = () => {
 
               <div style={{ padding: "16px" }}>
                 {printers.map((printer) => {
-                  const printerTotal = Object.values(
-                    printerReadings[printer.printerId] || {}
-                  ).reduce((sum, sizeData) => {
+                  const printerTotal = (printer.prices || []).reduce((sum, priceObj) => {
+                    const sizeData = printerReadings[printer.printerId]?.[priceObj.size];
+                    if (!sizeData) return sum;
                     const starting = sizeData.STARTING;
                     const finalReading = sizeData["FINAL READING"];
                     if (
@@ -1517,8 +1516,14 @@ const AdminDailyReadingsRevenue = () => {
                         0,
                         Number(finalReading) - Number(starting)
                       );
-                      const total = copies * (Number(sizeData.price) || 0);
-                      return sum + total;
+                      const configuredPrice = Number(priceObj.price) || 0;
+                      const effectivePrice =
+                        sizeData.price !== undefined &&
+                        sizeData.price !== null &&
+                        Number(sizeData.price) > 0
+                          ? Number(sizeData.price)
+                          : configuredPrice;
+                      return sum + copies * effectivePrice;
                     }
                     return sum;
                   }, 0);
@@ -1526,9 +1531,8 @@ const AdminDailyReadingsRevenue = () => {
                   return (
                     <div
                       key={printer.id}
-                      className={`revenue-printer-subcard completed ${
-                        printer.isInactiveWithData ? "inactive" : ""
-                      }`}
+                      className={`revenue-printer-subcard completed ${printer.isInactiveWithData ? "inactive" : ""
+                        }`}
                     >
                       <div className="revenue-printer-subcard-header">
                         <div className="revenue-printer-name-wrap">
@@ -1563,13 +1567,22 @@ const AdminDailyReadingsRevenue = () => {
                           </thead>
                           <tbody>
                             {printer.prices?.map((priceObj, index) => {
-                              const sizeData = printerReadings[
+                              const configuredPrice = Number(priceObj.price) || 0;
+                              const existingData = printerReadings[
                                 printer.printerId
-                              ]?.[priceObj.size] || {
+                              ]?.[priceObj.size];
+                              const unitPrice =
+                                existingData?.price !== undefined &&
+                                existingData?.price !== null &&
+                                Number(existingData.price) > 0
+                                  ? Number(existingData.price)
+                                  : configuredPrice;
+
+                              const sizeData = existingData || {
                                 STARTING: "",
                                 "FINAL READING": "",
                                 noOfCopies: 0,
-                                price: Number(priceObj.price) || 0,
+                                price: unitPrice,
                                 total: 0,
                               };
 
@@ -1577,16 +1590,15 @@ const AdminDailyReadingsRevenue = () => {
                               const finalReading = sizeData["FINAL READING"];
                               const copies =
                                 starting !== "" &&
-                                finalReading !== "" &&
-                                !isNaN(starting) &&
-                                !isNaN(finalReading)
+                                  finalReading !== "" &&
+                                  !isNaN(starting) &&
+                                  !isNaN(finalReading)
                                   ? Math.max(
-                                      0,
-                                      Number(finalReading) - Number(starting)
-                                    )
+                                    0,
+                                    Number(finalReading) - Number(starting)
+                                  )
                                   : 0;
-                              const calculatedTotal =
-                                copies * (Number(sizeData.price) || 0);
+                              const calculatedTotal = copies * unitPrice;
 
                               return (
                                 <tr key={index}>
@@ -1624,7 +1636,7 @@ const AdminDailyReadingsRevenue = () => {
                                       : "0"}
                                   </td>
                                   <td className="center">
-                                    ₹{Number(sizeData.price).toFixed(2)}
+                                    ₹{unitPrice.toFixed(2)}
                                   </td>
                                   <td
                                     className="right"
@@ -1887,8 +1899,8 @@ const AdminDailyReadingsRevenue = () => {
                                 (
                                 {row.date
                                   ? new Date(row.date).toLocaleDateString(
-                                      "en-GB"
-                                    )
+                                    "en-GB"
+                                  )
                                   : "No Date"}
                                 ) — {row.paymentMethod?.toUpperCase() || "CASH"}
                               </span>

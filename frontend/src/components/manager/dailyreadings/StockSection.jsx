@@ -493,7 +493,7 @@ const StockSection = ({
                       {getDisplayValue(stock, "closingStock") || "0"}
                     </td>
 
-                    {!stock.pageRanges && (
+                    {(!stock.pageRanges || stock.pageRanges.length === 0) ? (
                       <>
                         <td className="center">-</td>
                         <td className="center">
@@ -520,10 +520,14 @@ const StockSection = ({
                           {formatCurrency((Number(getDisplayValue(stock, "sold")) || 0) * (Number(stock.amount) || 0))}
                         </td>
                       </>
+                    ) : (
+                      <td colSpan="4" className="center" style={{ color: "#64748b", fontSize: "12px", fontStyle: "italic" }}>
+                        See range tiers below
+                      </td>
                     )}
                   </tr>
 
-                  {stock.pageRanges &&
+                  {stock.pageRanges && stock.pageRanges.length > 0 &&
                     stock.pageRanges.map((range, rangeIndex) => (
                       <tr key={`${stock.id}-${rangeIndex}`} style={{ backgroundColor: "#fafbfc" }}>
                         <td colSpan="6" style={{ textAlign: "right", color: "#64748b", fontSize: "12px", fontStyle: "italic" }}>

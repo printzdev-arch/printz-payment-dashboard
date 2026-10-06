@@ -38,15 +38,15 @@ const StockList = () => {
   const [approvedDates, setApprovedDates] = useState([])
   const [stocksPerPage, setStocksPerPage] = useState(10)
   const [isEditing, setIsEditing] = useState(false)
-  const [sortField, setSortField] = useState(null) 
-  const [sortOrder, setSortOrder] = useState("asc") 
+  const [sortField, setSortField] = useState(null)
+  const [sortOrder, setSortOrder] = useState("asc")
   const [stockReadingsCount, setStockReadingsCount] = useState(0)
   const [isStocksUpdated, setIsStocksUpdated] = useState(false)
 
   const isCurrentDate = () => {
     const today = new Date()
-    const formattedToday = formatDateToYYYYMMDD(today) 
-    return date === formattedToday 
+    const formattedToday = formatDateToYYYYMMDD(today)
+    return date === formattedToday
   }
 
   useEffect(() => {
@@ -64,10 +64,10 @@ const StockList = () => {
 
   const handleSort = (field) => {
     if (sortField === field) {
-      
+
       setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"))
     } else {
-      
+
       setSortField(field)
       setSortOrder("asc")
     }
@@ -75,7 +75,7 @@ const StockList = () => {
 
   const sortedStocks = useMemo(() => {
     if (!sortField) {
-      return filteredStocks 
+      return filteredStocks
     }
 
     return [...filteredStocks].sort((a, b) => {
@@ -180,7 +180,7 @@ const StockList = () => {
       })
       setFilteredStocks(filtered)
     }
-    
+
     if (searchTerm !== "") {
       setCurrentPage(1)
     }
@@ -283,8 +283,12 @@ const StockList = () => {
             alert("Could not determine valid branch ID. Please refresh and try again.");
             return;
           }
+          const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
           await api.post("/past-date-requests", {
-            requestedBy: userId,
+            requestedBy: currentUser.name && currentUser.email ? `${currentUser.name} (${currentUser.email})` : (currentUser.email || userId),
+            requestedByName: currentUser.name || "Manager",
+            requestedByEmail: currentUser.email || "",
+            requestedByUserId: userId,
             requestedDate: istDate,
             branchId: resolvedBranchId,
             requestedBranch: branchName,
@@ -511,13 +515,13 @@ const StockList = () => {
           const soldNum = sold === "" ? 0 : Number(sold)
 
           let closingStock = ""
-          
+
           if (opening !== "") {
             if (stock.pageRanges && stock.pageRanges.length > 0) {
-              
+
               closingStock = openingNum + addedNum - soldNum * 2
             } else {
-              
+
               closingStock = openingNum + addedNum - soldNum
             }
           }
@@ -582,15 +586,15 @@ const StockList = () => {
         const rangesTotal = stock.pageRanges.reduce((sum, range) => {
           const rangeSold = Number(range.sold) || 0
           const rangePrice = range.price || 0
-          
+
           return sum + rangeSold * rangePrice
         }, 0)
-        
+
         return total + rangesTotal
       } else {
         const sold = editingValues[`${stock.id}_sold`] !== undefined ? editingValues[`${stock.id}_sold`] : stock.sold
         const stockAmount = Number(stock.amount) || 0
-        
+
         return total + (sold === "" ? 0 : Number(sold)) * stockAmount
       }
     }, 0)
@@ -617,10 +621,10 @@ const StockList = () => {
       return
     }
 
-    
+
     setSearchTerm("")
 
-    const recalculatedFilteredStocks = stocks 
+    const recalculatedFilteredStocks = stocks
 
     const totalAmount = recalculatedFilteredStocks.reduce((total, stock) => {
       if (stock.pageRanges) {
@@ -864,7 +868,7 @@ const StockList = () => {
       const formattedDate = date.split("-").reverse().join("-")
       const searchSuffix = searchTerm ? `_Search_${searchTerm.replace(/\s+/g, "_")}` : ""
       pdf.save(`Stock_Readings_${branchName}_${formattedDate}${searchSuffix}.pdf`)
-      toast.success("PDF generated successfully!")
+      toast.success("PDF downloaded successfully!!")
     } catch (error) {
       console.error("Error generating PDF:", error)
       toast.error("Failed to generate PDF: " + error.message)
@@ -1068,7 +1072,7 @@ const StockList = () => {
                               min="0"
                               value={getDisplayValue(stock, "openingStock")}
                               onChange={(e) => handleInputChange(stock.id, "openingStock", e.target.value)}
-                              readOnly={isCurrentDate()} 
+                              readOnly={isCurrentDate()}
                               className={`stock-reading-input ${isCurrentDate() ? "stock-readonly" : ""}`}
                             />
                           </td>
@@ -1079,11 +1083,10 @@ const StockList = () => {
                               value={getDisplayValue(stock, "addedStock")}
                               onChange={(e) => handleInputChange(stock.id, "addedStock", e.target.value)}
                               readOnly={isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()}
-                              className={`stock-reading-input ${
-                                isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()
+                              className={`stock-reading-input ${isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()
                                   ? "stock-readonly"
                                   : ""
-                              }`}
+                                }`}
                             />
                           </td>
                           <td rowSpan={stock.pageRanges ? stock.pageRanges.length + 1 : 1}>
@@ -1091,12 +1094,11 @@ const StockList = () => {
                               type="number"
                               value={getDisplayValue(stock, "closingStock")}
                               readOnly
-                              className={`stock-reading-input ${
-                                Number(getDisplayValue(stock, "closingStock")) < 0 ? "stock-negative-reading" : ""
-                              }`}
+                              className={`stock-reading-input ${Number(getDisplayValue(stock, "closingStock")) < 0 ? "stock-negative-reading" : ""
+                                }`}
                             />
                           </td>
-                          {!stock.pageRanges && (
+                          {(!stock.pageRanges || stock.pageRanges.length === 0) ? (
                             <>
                               <td></td>
                               <td>
@@ -1106,19 +1108,22 @@ const StockList = () => {
                                   value={getDisplayValue(stock, "sold")}
                                   onChange={(e) => handleInputChange(stock.id, "sold", e.target.value)}
                                   readOnly={isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()}
-                                  className={`stock-reading-input ${
-                                    isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()
+                                  className={`stock-reading-input ${isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()
                                       ? "stock-readonly"
                                       : ""
-                                  }`}
+                                    }`}
                                 />
                               </td>
                               <td>₹{stock.amount}</td>
                               <td>₹{(Number(getDisplayValue(stock, "sold")) || 0) * (Number(stock.amount) || 0)}</td>
                             </>
+                          ) : (
+                            <td colSpan="4" style={{ textAlign: "center", color: "#64748b", fontStyle: "italic", fontSize: "12px" }}>
+                              See range tiers below
+                            </td>
                           )}
                         </tr>
-                        {stock.pageRanges &&
+                        {stock.pageRanges && stock.pageRanges.length > 0 &&
                           stock.pageRanges.map((range, rangeIndex) => (
                             <tr key={`${stock.id}-${rangeIndex}`}>
                               <td>{range.range}</td>
@@ -1129,11 +1134,10 @@ const StockList = () => {
                                   value={range.sold}
                                   onChange={(e) => handlePageRangeChange(stock.id, rangeIndex, e.target.value)}
                                   readOnly={isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()}
-                                  className={`stock-reading-input ${
-                                    isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()
+                                  className={`stock-reading-input ${isFormSaved && !isEditing && !canEditCurrentDate() && !canEditPastDate()
                                       ? "stock-readonly"
                                       : ""
-                                  }`}
+                                    }`}
                                 />
                               </td>
                               <td>₹{range.price}</td>

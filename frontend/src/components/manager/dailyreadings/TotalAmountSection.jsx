@@ -35,6 +35,7 @@ const TotalAmountSection = ({
   isFinalSubmitted,
   onNextStep,
   onPrevStep,
+  isActive = true,
 }) => {
   const { popup, showSuccess, showError, showWarning } = usePopup();
   const [totalAmountRows, setTotalAmountRows] = useState([]);
@@ -510,13 +511,31 @@ const TotalAmountSection = ({
             setPreviousBalanceRows([]);
           }
           const totalSubmitted = docData.isFinalSubmitted === true;
-          onFinalSubmitChange(totalSubmitted);
+          if (totalSubmitted) {
+            onFinalSubmitChange?.(true);
+          }
         } else {
           setHasExistingTotalData(false);
           setIsEditingTotal(true);
-          setTotalAmountRows(updatedDynamicRows);
+          setTotalAmountRows((prevRows) => {
+            if (prevRows && prevRows.length > 0) {
+              return updatedDynamicRows.map((row) => {
+                if (row.type === "manual") {
+                  const existingManual = prevRows.find((p) => p.key === row.key);
+                  if (
+                    existingManual &&
+                    existingManual.amount !== "" &&
+                    existingManual.amount !== undefined
+                  ) {
+                    return { ...row, amount: existingManual.amount };
+                  }
+                }
+                return row;
+              });
+            }
+            return updatedDynamicRows;
+          });
           setPreviousBalanceRows([]);
-          onFinalSubmitChange(false);
         }
       } catch (error) {
         console.error("Error loading total amounts:", error);
@@ -545,8 +564,10 @@ const TotalAmountSection = ({
   ]);
 
   useEffect(() => {
-    loadDataForDate();
-  }, [loadDataForDate]);
+    if (isActive) {
+      loadDataForDate();
+    }
+  }, [isActive, loadDataForDate]);
 
   const handleTotalAmountInputChange = useCallback(
     (key, value) => {
@@ -735,36 +756,8 @@ const TotalAmountSection = ({
     try {
       setIsLoading(true);
 
-      const missingSections = [];
-
-      const [printerRes, jumboRes, stockRes] = await Promise.all([
-        api.get("/printer-readings", { params: { branchName, date: dateString } }).catch(() => ({ data: [] })),
-        api.get("/jumbo-xerox/readings", { params: { branchName, date: dateString } }).catch(() => ({ data: [] })),
-        api.get("/stocks/readings", { params: { branchName, date: dateString } }).catch(() => ({ data: [] })),
-      ]);
-
-      const printerList = printerRes.data?.data || printerRes.data || [];
-      const jumboList = jumboRes.data?.data || jumboRes.data || [];
-      const stockList = stockRes.data?.data || stockRes.data || [];
-
-      if (!Array.isArray(printerList) || printerList.length === 0) {
-        missingSections.push("Printer Readings");
-      }
-      if (!Array.isArray(jumboList) || jumboList.length === 0) {
-        missingSections.push("Jumbo Xerox Readings");
-      }
-      if (!Array.isArray(stockList) || stockList.length === 0) {
-        missingSections.push("Stock Readings");
-      }
-
-      if (missingSections.length > 0) {
-        const missingList = missingSections.join(", ");
-        const errorMsg = `Cannot save Total Amount. The following required reading(s) are missing for ${dateString}: ${missingList}. Please record and save ${missingList} first.`;
-        toast.error(errorMsg);
-        showError(errorMsg);
-        setIsLoading(false);
-        return;
-      }
+      // Other sections are fully validated during Step 5 (Final Submit).
+      // Saving Business & Payments should not block the manager while filling the workflow.
 
       const rowsForStorage = totalAmountRows.map((row) => ({
         itemName: row.itemName,

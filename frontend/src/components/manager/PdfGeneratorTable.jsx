@@ -384,10 +384,22 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                 sizeTypes.push("-");
               }
 
-              const printerGrandTotal = sizeTypes.reduce(
-                (sum, size) => sum + (readings[size]?.total || 0),
-                0
-              );
+              const printerGrandTotal = sizeTypes.reduce((sum, size) => {
+                if (size === "-") return sum;
+                const sizeData = readings[size];
+                if (!sizeData) return sum;
+                const copies = Number(sizeData.noOfCopies) || 0;
+                const configuredPrice = Number(printer.prices?.find((p) => p.size === size)?.price) || 0;
+                const unitPrice =
+                  sizeData.price !== undefined && sizeData.price !== null && Number(sizeData.price) > 0
+                    ? Number(sizeData.price)
+                    : configuredPrice;
+                const total =
+                  sizeData.total !== undefined && sizeData.total !== null && Number(sizeData.total) > 0
+                    ? Number(sizeData.total)
+                    : copies * unitPrice;
+                return sum + total;
+              }, 0);
 
               return (
                 <div
@@ -479,9 +491,21 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                                 fontFamily: "JetBrains Mono, monospace",
                               }}
                             >
-                              {readings[size]?.total
-                                ? `Rs.${readings[size].total}`
-                                : "Rs.0.00"}
+                              {(() => {
+                                if (size === "-") return "—";
+                                const sizeData = readings[size];
+                                const copies = Number(sizeData?.noOfCopies) || 0;
+                                const configuredPrice = Number(printer.prices?.find((p) => p.size === size)?.price) || 0;
+                                const unitPrice =
+                                  sizeData?.price !== undefined && sizeData?.price !== null && Number(sizeData?.price) > 0
+                                    ? Number(sizeData.price)
+                                    : configuredPrice;
+                                const total =
+                                  sizeData?.total !== undefined && sizeData?.total !== null && Number(sizeData?.total) > 0
+                                    ? Number(sizeData.total)
+                                    : copies * unitPrice;
+                                return total > 0 ? `Rs.${total.toFixed(2)}` : "Rs.0.00";
+                              })()}
                             </td>
                           ))}
                           <td

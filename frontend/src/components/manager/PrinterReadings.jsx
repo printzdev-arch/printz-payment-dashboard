@@ -129,8 +129,12 @@ const PrinterReadings = () => {
         setPastDateModal((prev) => ({ ...prev, isSubmitting: false }));
         return;
       }
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
       await api.post("/past-date-requests", {
-        requestedBy: userId,
+        requestedBy: currentUser.name && currentUser.email ? `${currentUser.name} (${currentUser.email})` : (currentUser.email || userId),
+        requestedByName: currentUser.name || "Manager",
+        requestedByEmail: currentUser.email || "",
+        requestedByUserId: userId,
         requestedDate: istDate,
         branchId: resolvedBranchId,
         requestedBranch: branchName,
@@ -191,7 +195,8 @@ const PrinterReadings = () => {
         const approvedDocs = allRequests.filter(
           (req) =>
             req.status === "Approved" &&
-            (req.requestedBranch?.toLowerCase() === branchName?.toLowerCase() ||
+            (req.appliesToAllBranches ||
+              req.requestedBranch?.toLowerCase() === branchName?.toLowerCase() ||
               req.requestedBranch?.toLowerCase() === "all branches")
         );
 
@@ -501,8 +506,8 @@ const PrinterReadings = () => {
           const existingList = (existingReqsRes.data?.data || []).filter(
             (req) =>
               req.requestedBranch?.toLowerCase() === branchName?.toLowerCase() &&
-              req.type === "dailyReadings" &&
-              !req.status
+              (req.type === "dailyReadings" || req.type === "Manual Admin Grant") &&
+              (req.status === "Pending" || !req.status)
           );
           if (existingList.length > 0) {
             toast.info("Request already raised and waiting for approval.");
@@ -519,9 +524,9 @@ const PrinterReadings = () => {
         }
 
         const formattedDate = formatDateToYYYYMMDD(selectedDate);
-        setDate(formattedDate);
+        setDataLoaded(false);
 
-        // Check finalization status before setting dataLoaded
+        // Check finalization status immediately before rendering child components
         try {
           const finalRes = await api.get(
             `/general/finalized-dates?branchName=${encodeURIComponent(branchName)}&date=${encodeURIComponent(formattedDate)}`
@@ -542,6 +547,7 @@ const PrinterReadings = () => {
           );
         }
 
+        setDate(formattedDate);
         setDataLoaded(true);
       } catch (error) {
         console.error("Error in handleDateChange:", error);
@@ -890,14 +896,12 @@ const PrinterReadings = () => {
       // Calculate net amounts for cash and UPI (same logic as in UI)
       if (row.key === "cashInHand" && previousBalanceCash > 0) {
         displayAmount = (Number(row.amount) || 0) + previousBalanceCash;
-        itemName = `${row.itemName} (Base: ${
-          row.amount || 0
-        } + Previous: ${previousBalanceCash})`;
+        itemName = `${row.itemName} (Base: ${row.amount || 0
+          } + Previous: ${previousBalanceCash})`;
       } else if (row.key === "upiCardPayments" && previousBalanceUPI > 0) {
         displayAmount = (Number(row.amount) || 0) - previousBalanceUPI;
-        itemName = `${row.itemName} (Base: ${
-          row.amount || 0
-        } - Previous: ${previousBalanceUPI})`;
+        itemName = `${row.itemName} (Base: ${row.amount || 0
+          } - Previous: ${previousBalanceUPI})`;
       }
 
       return [
@@ -1290,7 +1294,7 @@ const PrinterReadings = () => {
 
     const formattedDate = date.split("-").reverse().join("-");
     pdf.save(`DailyReadings_${data.branch}_${formattedDate}.pdf`);
-    toast.success("PDF generated successfully!");
+    toast.success("PDF downloaded successfully!!");
   };
 
   const handleFinalSubmit = async () => {
@@ -1537,16 +1541,14 @@ const PrinterReadings = () => {
               return (
                 <div
                   key={step.id}
-                  className={`account-stepper-item ${isActive ? "active" : ""} ${
-                    isSaved ? "completed" : ""
-                  }`}
+                  className={`account-stepper-item ${isActive ? "active" : ""} ${isSaved ? "completed" : ""
+                    }`}
                   onClick={() => setActiveStep(step.id)}
                 >
                   <div className="account-stepper-item-left">
                     <span
-                      className={`account-stepper-badge ${
-                        isActive ? "active" : ""
-                      } ${isSaved ? "saved" : ""}`}
+                      className={`account-stepper-badge ${isActive ? "active" : ""
+                        } ${isSaved ? "saved" : ""}`}
                     >
                       {isSaved ? <Check size={12} strokeWidth={3} /> : step.id}
                     </span>
@@ -1739,6 +1741,7 @@ const PrinterReadings = () => {
               isFinalSubmitted={isFinalSubmitted}
               onNextStep={() => setActiveStep(4)}
               onPrevStep={() => setActiveStep(2)}
+              isActive={activeStep === 3}
             />
           </div>
 
@@ -1750,8 +1753,8 @@ const PrinterReadings = () => {
                 typeof date === "string"
                   ? date
                   : date
-                  ? formatDateToYYYYMMDD(date)
-                  : ""
+                    ? formatDateToYYYYMMDD(date)
+                    : ""
               }
               branchName={branchName}
               userId={userId}

@@ -32,6 +32,7 @@ const getRequestById = asyncHandler(async (req, res) => {
 
 const createRequest = asyncHandler(async (req, res) => {
   const requestDto = CreatePastDateRequestDto.fromRequest(req);
+  requestDto.validate();
   const request = await createPastDateRequestUseCase.execute(requestDto);
   const responseDto = PastDateRequestResponseDto.fromEntity(request);
   return ResponseHelper.created(res, responseDto, "Past date request submitted successfully");
@@ -39,6 +40,7 @@ const createRequest = asyncHandler(async (req, res) => {
 
 const updateRequest = asyncHandler(async (req, res) => {
   const updateDto = UpdatePastDateRequestDto.fromRequest(req);
+  updateDto.validate();
   const request = await updatePastDateRequestUseCase.execute(req.params.id, updateDto);
   const responseDto = PastDateRequestResponseDto.fromEntity(request);
   return ResponseHelper.success(res, responseDto, "Past date request updated successfully");

@@ -70,9 +70,19 @@ const PastDateRequests = () => {
       const requestData = records.map((doc1) => {
         const request = { id: doc1.id || doc1._id, ...doc1 };
 
-        if (!request.requestedByName) {
-          request.requestedByName = request.requestedBy || "Unknown";
+        let reqName = doc1.requestedByName;
+        let reqEmail = doc1.requestedByEmail;
+        const reqBy = doc1.requestedBy || "";
+
+        if (!reqName && reqBy.includes("(") && reqBy.includes(")")) {
+          reqName = reqBy.split("(")[0].trim();
+          reqEmail = reqEmail || reqBy.split("(")[1].replace(")", "").trim();
+        } else if (!reqName) {
+          reqName = reqBy || "Unknown User";
         }
+
+        request.requestedByName = reqName;
+        request.requestedByEmail = reqEmail || "";
 
         const bName = doc1.requestedBranch || doc1.branchName || (doc1.branchId && typeof doc1.branchId === "object" ? doc1.branchId.name : "") || "";
         request.requestedBranch = bName;
@@ -156,6 +166,9 @@ const PastDateRequests = () => {
         const nameMatch = (request.requestedByName || "")
           .toLowerCase()
           .includes(q);
+        const emailMatch = (request.requestedByEmail || "")
+          .toLowerCase()
+          .includes(q);
         const branchMatch = (request.requestedBranch || "")
           .toLowerCase()
           .includes(q);
@@ -171,6 +184,7 @@ const PastDateRequests = () => {
         return (
           requestedByMatch ||
           nameMatch ||
+          emailMatch ||
           branchMatch ||
           dateMatch ||
           statusMatch ||
@@ -571,8 +585,14 @@ const PastDateRequests = () => {
                       const timePart = request.requestedDate ? request.requestedDate.split(" ")[1] : "N/A";
                       const emailMatch =
                         request.requestedBy && request.requestedBy.includes("(")
-                          ? request.requestedBy.split("(")[1]?.replace(")", "")
+                          ? request.requestedBy.split("(")[1]?.replace(")", "").trim()
                           : "";
+                      const nameDisplay =
+                        request.requestedByName ||
+                        (request.requestedBy && request.requestedBy.includes("(")
+                          ? request.requestedBy.split("(")[0].trim()
+                          : request.requestedBy || "Unknown User");
+                      const emailDisplay = request.requestedByEmail || emailMatch || "";
 
                       return (
                         <tr key={request.id}>
@@ -608,10 +628,11 @@ const PastDateRequests = () => {
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                   }}
+                                  title={nameDisplay}
                                 >
-                                  {request.requestedByName || "Unknown User"}
+                                  {nameDisplay}
                                 </span>
-                                {emailMatch ? (
+                                {emailDisplay && emailDisplay !== nameDisplay ? (
                                   <span
                                     style={{
                                       fontSize: "11.5px",
@@ -621,23 +642,11 @@ const PastDateRequests = () => {
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
                                     }}
+                                    title={emailDisplay}
                                   >
-                                    {emailMatch}
+                                    {emailDisplay}
                                   </span>
-                                ) : (
-                                  <span
-                                    style={{
-                                      fontSize: "11.5px",
-                                      color: "#64748b",
-                                      lineHeight: "1.2",
-                                      whiteSpace: "nowrap",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                    }}
-                                  >
-                                    {request.requestedBy}
-                                  </span>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </td>

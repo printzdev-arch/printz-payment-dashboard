@@ -8,6 +8,8 @@ const ErrorHelper = require("../../shared/errors/ErrorHelper");
 class CreatePaymentDto {
   constructor({
     branchId,
+    branchName,
+    branch,
     date,
     balance = 0,
     paymentCollectedTillNow = 0,
@@ -15,6 +17,8 @@ class CreatePaymentDto {
     items = [],
   } = {}) {
     this.branchId = branchId ? (typeof branchId === "string" ? branchId.trim() : branchId) : null;
+    this.branchName = branchName ? String(branchName).trim() : (branch ? String(branch).trim() : null);
+    this.branch = this.branchName;
     this.date = date ? String(date).trim() : new Date().toISOString().split("T")[0];
     this.balance = Number(balance) || 0;
     this.paymentCollectedTillNow = Number(paymentCollectedTillNow) || 0;
@@ -30,12 +34,12 @@ class CreatePaymentDto {
   }
 
   validate() {
-    if (!this.branchId) {
-      throw ErrorHelper.badRequest("branchId is required");
+    if (!this.branchId && !this.branchName) {
+      throw ErrorHelper.badRequest("branchId or branchName is required");
     }
 
-    if (!mongoose.Types.ObjectId.isValid(this.branchId)) {
-      throw ErrorHelper.badRequest("Invalid branchId format. Must be a valid 24-character hexadecimal ObjectId.");
+    if (this.branchId && typeof this.branchId === "string" && this.branchId.length === 24 && !mongoose.Types.ObjectId.isValid(this.branchId)) {
+      throw ErrorHelper.badRequest("Invalid branchId format.");
     }
 
     if (!this.date) {

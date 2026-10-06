@@ -36,6 +36,21 @@ const pastDateRequestSchema = new mongoose.Schema(
       required: [true, "Requested by is required"],
       trim: true,
     },
+    requestedByName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    requestedByEmail: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    requestedByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     requestedDate: {
       type: String,
       required: [true, "Requested date is required"],
@@ -81,6 +96,9 @@ const pastDateRequestSchema = new mongoose.Schema(
           branchName: ret.branchName || ret.requestedBranch || null,
           appliesToAllBranches: Boolean(ret.appliesToAllBranches),
           requestedBy: ret.requestedBy,
+          requestedByName: ret.requestedByName || null,
+          requestedByEmail: ret.requestedByEmail || null,
+          requestedByUserId: ret.requestedByUserId || null,
           requestedDate: ret.requestedDate,
           requestedDateAt: ret.requestedDateAt,
           status: ret.status,

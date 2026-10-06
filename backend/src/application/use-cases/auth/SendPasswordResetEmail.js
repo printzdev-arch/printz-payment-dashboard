@@ -24,9 +24,15 @@ class SendPasswordResetEmail {
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
 
-    const clientUrls = (process.env.CLIENT_URL || "http://localhost:3000").split(",");
-    const baseUrl = clientUrls[0].trim();
+    const clientUrls = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
+    const baseUrl = clientUrls.find((u) => u.includes("5173")) || clientUrls[0].trim();
     const resetUrl = `${baseUrl}/forgot-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+
+    const isRealSmtp = Boolean(
+      (process.env.SMTP_HOST || process.env.SMTP_SERVICE) &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS
+    );
 
     await emailService.sendPasswordResetEmail({
       to: user.email,
@@ -36,8 +42,12 @@ class SendPasswordResetEmail {
 
     return {
       success: true,
-      message: `Password reset email sent successfully to ${user.email}`,
+      message: isRealSmtp
+        ? `Password reset email sent successfully to ${user.email}`
+        : `Password reset link generated. (Configure SMTP_USER & SMTP_PASS in backend/.env for inbox delivery)`,
       email: user.email,
+      resetUrl: isRealSmtp ? undefined : resetUrl,
+      isRealSmtp,
     };
   }
 }

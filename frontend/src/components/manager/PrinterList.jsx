@@ -142,10 +142,10 @@ const PrinterList = () => {
         printers.map((p) =>
           p.id === printer.id
             ? {
-                ...p,
-                printerId: editingValue.trim(),
-                needsPrinterIdUpdate: false,
-              }
+              ...p,
+              printerId: editingValue.trim(),
+              needsPrinterIdUpdate: false,
+            }
             : p
         )
       );
@@ -246,12 +246,11 @@ const PrinterList = () => {
       }
 
       doc.save(
-        `Printer_List_${
-          selectedBranch || "All_Branches"
+        `Printer_List_${selectedBranch || "All_Branches"
         }_${new Date().toLocaleDateString()}.pdf`
       );
 
-      toast.success("PDF generated successfully", {
+      toast.success("PDF downloaded successfully!", {
         className: "custom-toast",
         closeButton: ({ closeToast }) => (
           <FaTimes onClick={closeToast} className="custom-close-button" />

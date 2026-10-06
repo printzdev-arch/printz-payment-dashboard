@@ -11,6 +11,9 @@ class CreatePastDateRequestDto {
     requestedBranch = null,
     appliesToAllBranches = false,
     requestedBy,
+    requestedByName = null,
+    requestedByEmail = null,
+    requestedByUserId = null,
     requestedDate,
     status = "Pending",
     type = "Manual Admin Grant",
@@ -23,6 +26,9 @@ class CreatePastDateRequestDto {
       : null;
     this.requestedBranch = requestedBranch ? String(requestedBranch).trim() : null;
     this.requestedBy = requestedBy ? String(requestedBy).trim() : "";
+    this.requestedByName = requestedByName ? String(requestedByName).trim() : null;
+    this.requestedByEmail = requestedByEmail ? String(requestedByEmail).trim() : null;
+    this.requestedByUserId = requestedByUserId || null;
     this.requestedDate = requestedDate ? String(requestedDate).trim() : "";
     this.status = status ? String(status).trim() : "Pending";
     this.type = type ? String(type).trim() : "Manual Admin Grant";
@@ -39,8 +45,27 @@ class CreatePastDateRequestDto {
   static fromRequest(req) {
     const body = req.body || {};
     let requestedBy = body.requestedBy;
-    if (!requestedBy && req.user) {
-      requestedBy = req.user.id || req.user._id || req.user.email || "Admin";
+    let requestedByName = body.requestedByName || null;
+    let requestedByEmail = body.requestedByEmail || null;
+    let requestedByUserId = body.requestedByUserId || null;
+
+    if (req.user) {
+      requestedByUserId = requestedByUserId || req.user.id || req.user._id;
+      requestedByName = requestedByName || req.user.name || req.user.username;
+      requestedByEmail = requestedByEmail || req.user.email;
+    }
+
+    if (!requestedBy) {
+      if (requestedByName && requestedByEmail) {
+        requestedBy = `${requestedByName} (${requestedByEmail})`;
+      } else if (req.user) {
+        requestedBy = req.user.name ? `${req.user.name} (${req.user.email})` : (req.user.email || "Admin");
+      } else {
+        requestedBy = "User";
+      }
+    } else if (requestedByName && requestedByEmail && mongoose.Types.ObjectId.isValid(String(requestedBy).trim())) {
+      // If requestedBy was passed as raw ObjectId but we have user name and email, format nicely
+      requestedBy = `${requestedByName} (${requestedByEmail})`;
     }
 
     const branchNameStr = body.requestedBranch || body.requestedBranchName || body.branch || null;
@@ -56,6 +81,9 @@ class CreatePastDateRequestDto {
       requestedBranch: isAll ? "All Branches" : branchNameStr,
       appliesToAllBranches: isAll,
       requestedBy: requestedBy || "User",
+      requestedByName: requestedByName,
+      requestedByEmail: requestedByEmail,
+      requestedByUserId: requestedByUserId,
       requestedDate: body.requestedDate || body.date,
       status: body.status || "Pending",
       type: body.type || "Manual Admin Grant",
@@ -149,6 +177,11 @@ class PastDateRequestResponseDto {
     this.branchName = bName || null;
     this.appliesToAllBranches = Boolean(entity.appliesToAllBranches);
     this.requestedBy = entity.requestedBy || "";
+    this.requestedByName = entity.requestedByName || null;
+    this.requestedByEmail = entity.requestedByEmail || null;
+    this.requestedByUserId = entity.requestedByUserId
+      ? (entity.requestedByUserId.toString ? entity.requestedByUserId.toString() : entity.requestedByUserId)
+      : null;
     this.requestedDate = entity.requestedDate || "";
     this.requestedDateAt = entity.requestedDateAt || null;
     this.status = entity.status || "Pending";

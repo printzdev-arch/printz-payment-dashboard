@@ -92,9 +92,8 @@ const JumboXerox = () => {
 
     printersData.forEach((printer) => {
       dynamicRows.push({
-        itemName: `TOTAL ${
-          printer.printerName || `PRINTER ${printer.printerId}`
-        }`,
+        itemName: `TOTAL ${printer.printerName || `PRINTER ${printer.printerId}`
+          }`,
         amount: 0,
         key: `printer_${printer.printerId}`,
         type: "printer",
@@ -405,8 +404,8 @@ const JumboXerox = () => {
       field === "sftPrinted"
         ? value
         : value === ""
-        ? ""
-        : Number.parseFloat(value.replace(/[^0-9.]/g, "")) || "";
+          ? ""
+          : Number.parseFloat(value.replace(/[^0-9.]/g, "")) || "";
     const updatedCounter = { ...jumboCounter, [field]: cleanedValue };
 
     if (
@@ -529,8 +528,12 @@ const JumboXerox = () => {
         );
 
         if (confirmPastDate) {
+          const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
           await api.post("/past-date-requests", {
-            requestedBy: userId,
+            requestedBy: currentUser.name && currentUser.email ? `${currentUser.name} (${currentUser.email})` : (currentUser.email || userId),
+            requestedByName: currentUser.name || "Manager",
+            requestedByEmail: currentUser.email || "",
+            requestedByUserId: userId,
             requestedDate: istDate,
             requestedBranch: branchName,
             status: null,
@@ -823,7 +826,7 @@ const JumboXerox = () => {
       const formattedDate = dateString.split("-").reverse().join("-");
       pdf.save(`JumboXerox_${branchName}_${formattedDate}.pdf`);
 
-      toast.success("PDF generated successfully");
+      toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF: " + error.message);
@@ -908,7 +911,7 @@ const JumboXerox = () => {
         <>
           <form onSubmit={handleSubmit} className="jumbo-main-form">
             <div className="jumbo-tables-container">
-              {}
+              { }
               <div className="jumbo-table-column">
                 <div className="jumbo-table-card">
                   <div className="jumbo-table-header">
@@ -928,7 +931,7 @@ const JumboXerox = () => {
                             key={index}
                             className={
                               row.key === "totalBusiness" ||
-                              row.key === "cashAsPerAccounts"
+                                row.key === "cashAsPerAccounts"
                                 ? "jumbo-highlight-row"
                                 : ""
                             }
@@ -964,7 +967,7 @@ const JumboXerox = () => {
                 </div>
               </div>
 
-              {}
+              { }
               <div className="jumbo-table-column">
                 <div className="jumbo-table-card">
                   <div className="jumbo-table-header">
@@ -1001,7 +1004,7 @@ const JumboXerox = () => {
                         {Object.entries(groupedJumboData).map(
                           ([type, items]) => (
                             <React.Fragment key={type}>
-                              {}
+                              { }
                               <tr>
                                 <td
                                   colSpan="4"
@@ -1017,7 +1020,7 @@ const JumboXerox = () => {
                                 </td>
                               </tr>
 
-                              {}
+                              { }
                               {items.map((item, idx) => {
                                 const globalIndex = jumboRows.findIndex(
                                   (row) =>
@@ -1093,7 +1096,7 @@ const JumboXerox = () => {
                           )
                         )}
 
-                        {}
+                        { }
                         <tr className="jumbo-total-row">
                           <td className="jumbo-reading-type" colSpan="2">
                             TOTAL
@@ -1112,7 +1115,7 @@ const JumboXerox = () => {
                   </div>
                 </div>
 
-                {}
+                { }
 
                 <div className="jumbo-table-card jumbo-counter-section">
                   <div className="jumbo-table-header">

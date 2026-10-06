@@ -503,7 +503,7 @@ const JumboXeroxList = () => {
       const formattedDate = dateString.split("-").reverse().join("-")
       pdf.save(`JumboXerox_${branchName}_${formattedDate}.pdf`)
 
-      toast.success("PDF generated successfully")
+      toast.success("PDF downloaded successfully!")
     } catch (error) {
       console.error("Error generating PDF:", error)
       toast.error("Failed to generate PDF: " + error.message)

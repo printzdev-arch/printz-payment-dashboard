@@ -438,8 +438,12 @@ const TotalAmountDisplay = () => {
             alert("Could not determine valid branch ID. Please refresh and try again.");
             return;
           }
+          const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
           await api.post("/past-date-requests", {
-            requestedBy: userId,
+            requestedBy: currentUser.name && currentUser.email ? `${currentUser.name} (${currentUser.email})` : (currentUser.email || userId),
+            requestedByName: currentUser.name || "Manager",
+            requestedByEmail: currentUser.email || "",
+            requestedByUserId: userId,
             requestedDate: istDate,
             branchId: resolvedBranchId,
             requestedBranch: branchName,
@@ -622,7 +626,7 @@ const TotalAmountDisplay = () => {
           1: { halign: "right" },
         },
         didParseCell: (data) => {
-          
+
           const totalBusinessIndex = rows.findIndex(
             (row) => row.key === "totalBusiness"
           );
@@ -631,7 +635,7 @@ const TotalAmountDisplay = () => {
             data.cell.styles.fontStyle = "bold";
           }
 
-          
+
           const cashAccountsIndex = rows.findIndex(
             (row) => row.key === "cashAsPerAccounts"
           );
@@ -640,7 +644,7 @@ const TotalAmountDisplay = () => {
             data.cell.styles.fontStyle = "bold";
           }
 
-          
+
           if (data.row.index === totalAmountData.length - 1) {
             data.cell.styles.fillColor = [30, 58, 138];
             data.cell.styles.textColor = [255, 255, 255];
@@ -654,7 +658,7 @@ const TotalAmountDisplay = () => {
       const formattedDate = dateString.split("-").reverse().join("-");
       pdf.save(`TotalAmount_${branchName}_${formattedDate}.pdf`);
 
-      toast.success("PDF generated successfully");
+      toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF: " + error.message);

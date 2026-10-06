@@ -25,9 +25,15 @@ class MongoPaymentRepository extends IPaymentRepository {
     const branchIdentifier = filters.branchId || filters.branchName || filters.branch;
     if (branchIdentifier) {
       const resolvedId = await this._resolveBranchId(branchIdentifier);
+      const orConditions = [
+        { branchName: new RegExp(`^${branchIdentifier}$`, "i") },
+        { branch: new RegExp(`^${branchIdentifier}$`, "i") },
+      ];
       if (resolvedId) {
-        query.branchId = resolvedId;
+        orConditions.push({ branchId: resolvedId });
+        orConditions.push({ branchId: resolvedId.toString() });
       }
+      query.$or = orConditions;
     }
 
     if (filters.date) {
@@ -47,12 +53,23 @@ class MongoPaymentRepository extends IPaymentRepository {
   }
 
   async create(data) {
-    const branchId = data.branchId
-      ? (typeof data.branchId === "string" ? new mongoose.Types.ObjectId(data.branchId) : data.branchId)
-      : null;
+    let resolvedBranchId = null;
+    let resolvedBranchName = data.branchName || data.branch || null;
+    if (data.branchId && mongoose.Types.ObjectId.isValid(data.branchId)) {
+      resolvedBranchId = new mongoose.Types.ObjectId(data.branchId);
+    } else if (data.branchId || resolvedBranchName) {
+      resolvedBranchId = await this._resolveBranchId(data.branchId || resolvedBranchName);
+    }
+
+    if (resolvedBranchId && !resolvedBranchName) {
+      const b = await Branch.findById(resolvedBranchId).lean();
+      if (b) resolvedBranchName = b.name;
+    }
 
     const docData = {
-      branchId: branchId,
+      branchId: resolvedBranchId || data.branchId || null,
+      branchName: resolvedBranchName || null,
+      branch: resolvedBranchName || null,
       date: data.date,
       dateAt: data.dateAt || (data.date ? new Date(data.date) : new Date()),
       balance: typeof data.balance === "number" ? data.balance : Number(data.balance) || 0,

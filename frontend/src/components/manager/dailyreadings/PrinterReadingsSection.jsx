@@ -328,7 +328,49 @@ const PrinterReadingsSection = ({
             setIsEditingPrinter(false);
             setPrinterDocId(docData.id || docData._id);
             if (docData.readings) {
-              setPrinterReadings(docData.readings);
+              const mergedReadings = { ...initialReadings };
+              allRelevantPrinters.forEach((printer) => {
+                const pId = printer.printerId;
+                if (!mergedReadings[pId]) mergedReadings[pId] = {};
+                const savedPrinter = docData.readings[pId] || {};
+
+                printer.prices?.forEach((priceObj) => {
+                  const configuredPrice = Number(priceObj.price) || 0;
+                  const savedSize = savedPrinter[priceObj.size];
+
+                  if (savedSize) {
+                    const starting =
+                      savedSize.STARTING !== undefined ? savedSize.STARTING : "";
+                    const finalReading =
+                      savedSize["FINAL READING"] !== undefined
+                        ? savedSize["FINAL READING"]
+                        : "";
+                    const savedPrice = Number(savedSize.price);
+                    const unitPrice =
+                      !isNaN(savedPrice) && savedPrice > 0
+                        ? savedPrice
+                        : configuredPrice;
+
+                    const copies =
+                      starting !== "" &&
+                      finalReading !== "" &&
+                      !isNaN(starting) &&
+                      !isNaN(finalReading)
+                        ? Math.max(0, Number(finalReading) - Number(starting))
+                        : 0;
+
+                    mergedReadings[pId][priceObj.size] = {
+                      STARTING: starting,
+                      "FINAL READING": finalReading,
+                      noOfCopies: copies,
+                      price: unitPrice,
+                      total: copies * unitPrice,
+                      isPreLoaded: Boolean(savedSize.isPreLoaded),
+                    };
+                  }
+                });
+              });
+              setPrinterReadings(mergedReadings);
             } else {
               setPrinterReadings(initialReadings);
             }
@@ -381,9 +423,9 @@ const PrinterReadingsSection = ({
             (d) =>
               Boolean(d.isFinalSubmitted) || Boolean(d.isLocked)
           );
-          onFinalSubmitChange?.(anyFinal);
-        } else {
-          onFinalSubmitChange?.(false);
+          if (anyFinal) {
+            onFinalSubmitChange?.(true);
+          }
         }
       } catch (e) {
         console.error("[v0] PrinterReadingsSection final check failed:", e);
@@ -428,86 +470,63 @@ const PrinterReadingsSection = ({
         if (currentData?.isPreLoaded) {
           return;
         }
-
-        setPrinterReadings((prev) => {
-          const updated = { ...prev };
-          if (!updated[printerId]) updated[printerId] = {};
-          if (!updated[printerId][size]) {
-            updated[printerId][size] = {
-              STARTING: "",
-              "FINAL READING": "",
-              noOfCopies: 0,
-              price: 0,
-              total: 0,
-              isPreLoaded: false,
-            };
-          }
-
-          updated[printerId][size].isPreLoaded = false;
-          updated[printerId][size][field] = cleanedValue;
-
-          const starting = updated[printerId][size].STARTING;
-          const finalReading = updated[printerId][size]["FINAL READING"];
-
-          if (
-            starting !== "" &&
-            finalReading !== "" &&
-            !isNaN(starting) &&
-            !isNaN(finalReading)
-          ) {
-            const startingNum = Number(starting) || 0;
-            const finalReadingNum = Number(finalReading) || 0;
-            const copies = Math.max(0, finalReadingNum - startingNum);
-            const price = Number(updated[printerId][size].price) || 0;
-            updated[printerId][size].noOfCopies = copies;
-            updated[printerId][size].total = copies * price;
-          } else {
-            updated[printerId][size].noOfCopies = 0;
-            updated[printerId][size].total = 0;
-          }
-
-          return updated;
-        });
-      } else {
-        setPrinterReadings((prev) => {
-          const updated = { ...prev };
-          if (!updated[printerId]) updated[printerId] = {};
-          if (!updated[printerId][size]) {
-            updated[printerId][size] = {
-              STARTING: "",
-              "FINAL READING": "",
-              noOfCopies: 0,
-              price: 0,
-              total: 0,
-              isPreLoaded: false,
-            };
-          }
-
-          updated[printerId][size][field] = cleanedValue;
-
-          const starting = updated[printerId][size].STARTING;
-          const finalReading = updated[printerId][size]["FINAL READING"];
-
-          if (
-            starting !== "" &&
-            finalReading !== "" &&
-            !isNaN(starting) &&
-            !isNaN(finalReading)
-          ) {
-            const startingNum = Number(starting) || 0;
-            const finalReadingNum = Number(finalReading) || 0;
-            const copies = Math.max(0, finalReadingNum - startingNum);
-            const price = Number(updated[printerId][size].price) || 0;
-            updated[printerId][size].noOfCopies = copies;
-            updated[printerId][size].total = copies * price;
-          } else {
-            updated[printerId][size].noOfCopies = 0;
-            updated[printerId][size].total = 0;
-          }
-
-          return updated;
-        });
       }
+
+      // Find configured price from printer
+      const printerObj = printers.find((p) => p.printerId === printerId);
+      const priceObj = printerObj?.prices?.find((p) => p.size === size);
+      const configuredPrice = Number(priceObj?.price) || 0;
+
+      setPrinterReadings((prev) => {
+        const updated = { ...prev };
+        if (!updated[printerId]) updated[printerId] = {};
+        if (!updated[printerId][size]) {
+          updated[printerId][size] = {
+            STARTING: "",
+            "FINAL READING": "",
+            noOfCopies: 0,
+            price: configuredPrice,
+            total: 0,
+            isPreLoaded: false,
+          };
+        } else {
+          updated[printerId][size] = { ...updated[printerId][size] };
+        }
+
+        if (field === "STARTING") {
+          updated[printerId][size].isPreLoaded = false;
+        }
+
+        updated[printerId][size][field] = cleanedValue;
+
+        const starting = updated[printerId][size].STARTING;
+        const finalReading = updated[printerId][size]["FINAL READING"];
+
+        const existingPrice = Number(updated[printerId][size].price);
+        const effectivePrice =
+          !isNaN(existingPrice) && existingPrice > 0
+            ? existingPrice
+            : configuredPrice;
+        updated[printerId][size].price = effectivePrice;
+
+        if (
+          starting !== "" &&
+          finalReading !== "" &&
+          !isNaN(starting) &&
+          !isNaN(finalReading)
+        ) {
+          const startingNum = Number(starting) || 0;
+          const finalReadingNum = Number(finalReading) || 0;
+          const copies = Math.max(0, finalReadingNum - startingNum);
+          updated[printerId][size].noOfCopies = copies;
+          updated[printerId][size].total = copies * effectivePrice;
+        } else {
+          updated[printerId][size].noOfCopies = 0;
+          updated[printerId][size].total = 0;
+        }
+
+        return updated;
+      });
 
       const key = `${printerId}-${size}`;
       if (printerValidationErrors[key]) {
@@ -527,6 +546,7 @@ const PrinterReadingsSection = ({
       canEditPastDate,
       printerValidationErrors,
       printerReadings,
+      printers,
       showWarning,
     ]
   );
@@ -646,9 +666,9 @@ const PrinterReadingsSection = ({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       {printers.map((printer) => {
-            const printerTotal = Object.values(
-              printerReadings[printer.printerId] || {}
-            ).reduce((sum, sizeData) => {
+            const printerTotal = (printer.prices || []).reduce((sum, priceObj) => {
+              const sizeData = printerReadings[printer.printerId]?.[priceObj.size];
+              if (!sizeData) return sum;
               const starting = sizeData.STARTING;
               const finalReading = sizeData["FINAL READING"];
               if (
@@ -661,8 +681,14 @@ const PrinterReadingsSection = ({
                   0,
                   Number(finalReading) - Number(starting)
                 );
-                const total = copies * (Number(sizeData.price) || 0);
-                return sum + total;
+                const configuredPrice = Number(priceObj.price) || 0;
+                const effectivePrice =
+                  sizeData.price !== undefined &&
+                  sizeData.price !== null &&
+                  Number(sizeData.price) > 0
+                    ? Number(sizeData.price)
+                    : configuredPrice;
+                return sum + copies * effectivePrice;
               }
               return sum;
             }, 0);
@@ -716,13 +742,22 @@ const PrinterReadingsSection = ({
                     </thead>
                     <tbody>
                       {printer.prices?.map((priceObj, index) => {
-                        const sizeData = printerReadings[printer.printerId]?.[
+                        const configuredPrice = Number(priceObj.price) || 0;
+                        const existingData = printerReadings[printer.printerId]?.[
                           priceObj.size
-                        ] || {
+                        ];
+                        const unitPrice =
+                          existingData?.price !== undefined &&
+                          existingData?.price !== null &&
+                          Number(existingData.price) > 0
+                            ? Number(existingData.price)
+                            : configuredPrice;
+
+                        const sizeData = existingData || {
                           STARTING: "",
                           "FINAL READING": "",
                           noOfCopies: 0,
-                          price: Number(priceObj.price) || 0,
+                          price: unitPrice,
                           total: 0,
                         };
 
@@ -739,8 +774,7 @@ const PrinterReadingsSection = ({
                               )
                             : 0;
 
-                        const calculatedTotal =
-                          copies * (Number(sizeData.price) || 0);
+                        const calculatedTotal = copies * unitPrice;
                         const validationKey = `${printer.printerId}-${priceObj.size}`;
                         const hasError =
                           printerValidationErrors[validationKey];
@@ -837,7 +871,7 @@ const PrinterReadingsSection = ({
                             </td>
                             <td className="center">
                               <div className="printer-cell-pill-grey">
-                                ₹{Number(sizeData.price).toFixed(2)}
+                                ₹{unitPrice.toFixed(2)}
                               </div>
                             </td>
                             <td className="center">

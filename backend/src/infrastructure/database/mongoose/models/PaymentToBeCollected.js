@@ -17,10 +17,21 @@ const mongoose = require("mongoose");
 const paymentToBeCollectedSchema = new mongoose.Schema(
   {
     branchId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed,
       ref: "Branch",
-      required: [true, "Branch ID is required"],
+      default: null,
       index: true,
+    },
+    branchName: {
+      type: String,
+      trim: true,
+      index: true,
+      default: null,
+    },
+    branch: {
+      type: String,
+      trim: true,
+      default: null,
     },
     date: {
       type: String,
@@ -68,6 +79,8 @@ const paymentToBeCollectedSchema = new mongoose.Schema(
         return {
           _id: ret._id,
           branchId: ret.branchId,
+          branchName: ret.branchName || ret.branch || "",
+          branch: ret.branch || ret.branchName || "",
           date: ret.date,
           dateAt: ret.dateAt,
           balance: typeof ret.balance === "number" ? ret.balance : 0,

@@ -22,7 +22,7 @@ import CalendarSelect from "../common/CalendarSelect.jsx";
 
 try {
   applyPlugin(jsPDF);
-} catch (e) {}
+} catch (e) { }
 
 const SearchStockList = () => {
   const [stocks, setStocks] = useState([]);
@@ -317,7 +317,7 @@ const SearchStockList = () => {
 
       const formattedDate = date.split("-").reverse().join("-");
       pdf.save(`Stock_Readings_${branchName}_${formattedDate}.pdf`);
-      toast.success("PDF generated successfully!");
+      toast.success("PDF downloaded successfully!!");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF: " + error.message);
@@ -511,18 +511,17 @@ const SearchStockList = () => {
                           </td>
                           <td rowSpan={rowSpan} className="center">
                             <span
-                              className={`stock-qty-badge ${
-                                Number(stock.closingStock) === 0
+                              className={`stock-qty-badge ${Number(stock.closingStock) === 0
                                   ? "zero-stock"
                                   : Number(stock.closingStock) < 5
-                                  ? "low-stock"
-                                  : "in-stock"
-                              }`}
+                                    ? "low-stock"
+                                    : "in-stock"
+                                }`}
                             >
                               {stock.closingStock || 0}
                             </span>
                           </td>
-                          {!stock.pageRanges ? (
+                          {(!stock.pageRanges || !Array.isArray(stock.pageRanges) || stock.pageRanges.length === 0) ? (
                             <>
                               <td>Standard</td>
                               <td className="center" style={{ fontWeight: 600 }}>
@@ -540,18 +539,18 @@ const SearchStockList = () => {
                               >
                                 {formatCurrency(
                                   (Number(stock.sold) || 0) *
-                                    (Number(stock.amount) || 0)
+                                  (Number(stock.amount) || 0)
                                 )}
                               </td>
                             </>
                           ) : (
                             <>
-                              <td>{stock.pageRanges[0].range}</td>
+                              <td>{stock.pageRanges[0]?.range || "-"}</td>
                               <td className="center" style={{ fontWeight: 600 }}>
-                                {stock.pageRanges[0].sold || 0}
+                                {stock.pageRanges[0]?.sold || 0}
                               </td>
                               <td className="stock-price-text">
-                                ₹{stock.pageRanges[0].price}
+                                ₹{stock.pageRanges[0]?.price || 0}
                               </td>
                               <td
                                 style={{
@@ -561,8 +560,8 @@ const SearchStockList = () => {
                                 }}
                               >
                                 {formatCurrency(
-                                  (Number(stock.pageRanges[0].sold) || 0) *
-                                    Number(stock.pageRanges[0].price)
+                                  (Number(stock.pageRanges[0]?.sold) || 0) *
+                                  Number(stock.pageRanges[0]?.price || 0)
                                 )}
                               </td>
                             </>
@@ -588,7 +587,7 @@ const SearchStockList = () => {
                               >
                                 {formatCurrency(
                                   (Number(range.sold) || 0) *
-                                    Number(range.price)
+                                  Number(range.price)
                                 )}
                               </td>
                             </tr>

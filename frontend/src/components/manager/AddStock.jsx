@@ -173,24 +173,32 @@ const AddStock = () => {
     }
 
     try {
+      const trimmedStockId = stockId.trim().toUpperCase();
       const res = await api.get("/stocks/items", {
-        params: { stockId: stockId.toUpperCase() },
+        params: { stockId: trimmedStockId },
       });
-      const existing = res.data?.data || [];
+      const rawExisting = res.data?.data || [];
+      const existing = rawExisting.filter(
+        (stock) => (stock.stockId || "").trim().toUpperCase() === trimmedStockId
+      );
 
       if (existing.length === 0) {
         setIdMessage("New Stock ID");
         setStockIdStatus("new");
       } else {
+        const branchLower = selectedBranch.trim().toLowerCase();
         const inThisBranch = existing.find(
-          (stock) => stock.branchName === selectedBranch
+          (stock) =>
+            (stock.branchName && stock.branchName.trim().toLowerCase() === branchLower) ||
+            (stock.branch && stock.branch.trim().toLowerCase() === branchLower)
         );
         if (inThisBranch) {
           setIdMessage("Stock ID already exists in this branch");
           setStockIdStatus("duplicate");
         } else {
+          const otherBranch = existing[0].branchName || existing[0].branch || "another branch";
           setIdMessage(
-            `Stock ID exists in other branch: "${existing[0].branchName}"`
+            `Stock ID exists in other branch: "${otherBranch}"`
           );
           setStockIdStatus("exists_other");
         }
@@ -516,37 +524,48 @@ const AddStock = () => {
 
   const checkStockIdExists = async (stockId, itemName) => {
     try {
+      const trimmedStockId = String(stockId || "").trim().toUpperCase();
+      const trimmedItemName = String(itemName || "").trim().toLowerCase();
+      const branchLower = (selectedBranch || "").trim().toLowerCase();
+
       const res = await api.get("/stocks/items", {
-        params: { stockId },
+        params: { stockId: trimmedStockId },
       });
-      const existingStocks = (res.data?.data || []).map((doc) => ({
-        id: doc.id || doc._id,
-        ...doc,
-      }));
+      const existingStocks = (res.data?.data || [])
+        .map((doc) => ({
+          id: doc.id || doc._id,
+          ...doc,
+        }))
+        .filter((stock) => (stock.stockId || "").trim().toUpperCase() === trimmedStockId);
 
       if (existingStocks.length > 0) {
         // Check if a stock with the same ID already exists in THIS branch
         const existsInThisBranch = existingStocks.some(
-          (stock) => stock.branchName === selectedBranch
+          (stock) =>
+            (stock.branchName && stock.branchName.trim().toLowerCase() === branchLower) ||
+            (stock.branch && stock.branch.trim().toLowerCase() === branchLower)
         );
 
         const stockWithDiffName = existingStocks.find(
-          (stock) => stock.itemName !== itemName
+          (stock) => (stock.itemName || "").trim().toLowerCase() !== trimmedItemName
         );
 
         if (stockWithDiffName) {
+          const otherBranchName = stockWithDiffName.branchName || stockWithDiffName.branch || "another branch";
           return {
             exists: true,
             match: false,
             docId: null,
-            message: `Stock ID already exists with different item name: "${stockWithDiffName.itemName}" in branch "${stockWithDiffName.branchName}"`,
+            message: `Stock ID already exists with different item name: "${stockWithDiffName.itemName}" in branch "${otherBranchName}"`,
             existsInThisBranch,
           };
         }
 
         const exactMatch = existingStocks.find(
           (stock) =>
-            stock.itemName === itemName && stock.branchName === selectedBranch
+            (stock.itemName || "").trim().toLowerCase() === trimmedItemName &&
+            ((stock.branchName && stock.branchName.trim().toLowerCase() === branchLower) ||
+             (stock.branch && stock.branch.trim().toLowerCase() === branchLower))
         );
 
         if (exactMatch) {
@@ -559,16 +578,17 @@ const AddStock = () => {
           };
         }
 
+        const otherBranch = existingStocks[0].branchName || existingStocks[0].branch || "another branch";
         return {
           exists: true,
           match: false,
           docId: null,
-          message: `Stock ID already exists in other branch: "${existingStocks[0].branchName}"`,
+          message: `Stock ID already exists in other branch: "${otherBranch}"`,
           existsInThisBranch,
         };
       }
 
-      return { exists: false, existsInThisBranch: false };
+      return { exists: false, match: false, docId: null, existsInThisBranch: false };
     } catch (error) {
       showError("Error checking stock ID: " + (error.response?.data?.message || error.message));
       return { exists: false, error: error.message, existsInThisBranch: false };
@@ -732,6 +752,7 @@ const AddStock = () => {
           );
           const stockData = {
             userId: effectiveUserId,
+            branchId: effectiveUserId,
             branchName: selectedBranch,
             itemName: item.stockName,
             category: item.category,
@@ -852,6 +873,7 @@ const AddStock = () => {
         }
         const stockData = {
           userId: effectiveUserId,
+          branchId: effectiveUserId,
           branchName: selectedBranch,
           itemName,
           category,

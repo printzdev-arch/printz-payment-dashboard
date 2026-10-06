@@ -492,7 +492,7 @@ const AdminStockReadingsRevenue = () => {
       pdf.save(`Stock_Readings_${branchName}_${formattedDate}.pdf`);
       showSuccess(
         "PDF Generated",
-        "Stock readings PDF generated successfully!"
+        "Stock readings PDF downloaded successfully!!"
       );
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -829,199 +829,199 @@ const AdminStockReadingsRevenue = () => {
                   </tr>
                 ) : (
                   currentStocks.map((stock, index) => {
-                  const hasPageRanges = Boolean(
-                    stock.pageRanges && stock.pageRanges.length > 0
-                  );
-                  const rowSpan = hasPageRanges ? stock.pageRanges.length : 1;
-                  const closingStockNum = Number(stock.closingStock);
-                  const hasClosingVal =
-                    stock.closingStock !== "" &&
-                    stock.closingStock !== null &&
-                    stock.closingStock !== undefined &&
-                    !isNaN(closingStockNum);
-                  const closingBadgeClass = !hasClosingVal
-                    ? ""
-                    : closingStockNum === 0
-                    ? "zero-stock"
-                    : closingStockNum <= 5
-                    ? "low-stock"
-                    : "in-stock";
+                    const hasPageRanges = Boolean(
+                      stock.pageRanges && stock.pageRanges.length > 0
+                    );
+                    const rowSpan = hasPageRanges ? stock.pageRanges.length : 1;
+                    const closingStockNum = Number(stock.closingStock);
+                    const hasClosingVal =
+                      stock.closingStock !== "" &&
+                      stock.closingStock !== null &&
+                      stock.closingStock !== undefined &&
+                      !isNaN(closingStockNum);
+                    const closingBadgeClass = !hasClosingVal
+                      ? ""
+                      : closingStockNum === 0
+                        ? "zero-stock"
+                        : closingStockNum <= 5
+                          ? "low-stock"
+                          : "in-stock";
 
-                  const firstRange = hasPageRanges
-                    ? stock.pageRanges[0]
-                    : null;
-                  const firstSoldQty = hasPageRanges
-                    ? Number(firstRange?.sold) || 0
-                    : Number(stock.sold) || 0;
-                  const firstUnitPrice = hasPageRanges
-                    ? Number(firstRange?.price) || 0
-                    : Number(stock.amount) || 0;
-                  const firstAmount = firstSoldQty * firstUnitPrice;
+                    const firstRange = hasPageRanges
+                      ? stock.pageRanges[0]
+                      : null;
+                    const firstSoldQty = hasPageRanges
+                      ? Number(firstRange?.sold) || 0
+                      : Number(stock.sold) || 0;
+                    const firstUnitPrice = hasPageRanges
+                      ? Number(firstRange?.price) || 0
+                      : Number(stock.amount) || 0;
+                    const firstAmount = firstSoldQty * firstUnitPrice;
 
-                  return (
-                    <React.Fragment key={stock.id || index}>
-                      <tr>
-                        <td rowSpan={rowSpan} className="center td-sno">
-                          {indexOfFirstStock + index + 1}
-                        </td>
-                        <td rowSpan={rowSpan} className="td-item">
-                          <div className="revenue-stock-item-info">
-                            <span className="revenue-stock-item-name">
-                              {stock.itemName}
+                    return (
+                      <React.Fragment key={stock.id || index}>
+                        <tr>
+                          <td rowSpan={rowSpan} className="center td-sno">
+                            {indexOfFirstStock + index + 1}
+                          </td>
+                          <td rowSpan={rowSpan} className="td-item">
+                            <div className="revenue-stock-item-info">
+                              <span className="revenue-stock-item-name">
+                                {stock.itemName}
+                              </span>
+                              {stock.stockId &&
+                                stock.stockId !== stock.itemName && (
+                                  <span className="revenue-stock-id-tag">
+                                    {stock.stockId}
+                                  </span>
+                                )}
+                            </div>
+                          </td>
+                          <td rowSpan={rowSpan} className="center td-category">
+                            <span className="revenue-category-chip">
+                              {stock.category || "General"}
                             </span>
-                            {stock.stockId &&
-                              stock.stockId !== stock.itemName && (
-                                <span className="revenue-stock-id-tag">
-                                  {stock.stockId}
-                                </span>
-                              )}
-                          </div>
-                        </td>
-                        <td rowSpan={rowSpan} className="center td-category">
-                          <span className="revenue-category-chip">
-                            {stock.category || "General"}
-                          </span>
-                        </td>
-                        <td rowSpan={rowSpan} className="center td-num">
-                          <span
-                            className={
-                              !stock.openingStock ||
-                              Number(stock.openingStock) === 0
-                                ? "revenue-num-muted"
-                                : "revenue-num-val"
-                            }
-                          >
-                            {stock.openingStock !== "" &&
-                            stock.openingStock !== null &&
-                            stock.openingStock !== undefined
-                              ? stock.openingStock
-                              : "—"}
-                          </span>
-                        </td>
-                        <td rowSpan={rowSpan} className="center td-num">
-                          <span
-                            className={
-                              !stock.addedStock ||
-                              Number(stock.addedStock) === 0
-                                ? "revenue-num-muted"
-                                : "revenue-num-val"
-                            }
-                          >
-                            {stock.addedStock !== "" &&
-                            stock.addedStock !== null &&
-                            stock.addedStock !== undefined
-                              ? stock.addedStock
-                              : "—"}
-                          </span>
-                        </td>
-                        <td
-                          rowSpan={rowSpan}
-                          className="center td-stock-badge"
-                        >
-                          {hasClosingVal ? (
+                          </td>
+                          <td rowSpan={rowSpan} className="center td-num">
                             <span
-                              className={`stock-qty-badge ${closingBadgeClass}`}
+                              className={
+                                !stock.openingStock ||
+                                  Number(stock.openingStock) === 0
+                                  ? "revenue-num-muted"
+                                  : "revenue-num-val"
+                              }
                             >
-                              {stock.closingStock}
+                              {stock.openingStock !== "" &&
+                                stock.openingStock !== null &&
+                                stock.openingStock !== undefined
+                                ? stock.openingStock
+                                : "—"}
                             </span>
-                          ) : (
-                            <span className="revenue-num-muted">—</span>
-                          )}
-                        </td>
-
-                        {/* Sold Pages */}
-                        <td className="center td-pages">
-                          {hasPageRanges ? (
-                            <span className="stock-pages-text">
-                              {firstRange.range}
+                          </td>
+                          <td rowSpan={rowSpan} className="center td-num">
+                            <span
+                              className={
+                                !stock.addedStock ||
+                                  Number(stock.addedStock) === 0
+                                  ? "revenue-num-muted"
+                                  : "revenue-num-val"
+                              }
+                            >
+                              {stock.addedStock !== "" &&
+                                stock.addedStock !== null &&
+                                stock.addedStock !== undefined
+                                ? stock.addedStock
+                                : "—"}
                             </span>
-                          ) : (
-                            <span className="stock-pages-dash">—</span>
-                          )}
-                        </td>
-
-                        {/* Sold Qty */}
-                        <td className="center td-sold-qty">
-                          <span
-                            className={
-                              firstSoldQty > 0
-                                ? "revenue-sold-positive"
-                                : "revenue-sold-zero"
-                            }
+                          </td>
+                          <td
+                            rowSpan={rowSpan}
+                            className="center td-stock-badge"
                           >
-                            {firstSoldQty}
-                          </span>
-                        </td>
-
-                        {/* Unit Price */}
-                        <td className="right td-price">
-                          {formatCurrency(firstUnitPrice)}
-                        </td>
-
-                        {/* Amount */}
-                        <td className="right td-amount">
-                          <span
-                            className={
-                              firstAmount > 0
-                                ? "revenue-amount-positive"
-                                : "revenue-amount-zero"
-                            }
-                          >
-                            {formatCurrency(firstAmount)}
-                          </span>
-                        </td>
-                      </tr>
-
-                      {/* Subsequent page ranges */}
-                      {hasPageRanges &&
-                        stock.pageRanges
-                          .slice(1)
-                          .map((range, rangeIndex) => {
-                            const rangeQty = Number(range.sold) || 0;
-                            const rangePrice = Number(range.price) || 0;
-                            const rangeAmount = rangeQty * rangePrice;
-
-                            return (
-                              <tr
-                                key={`${stock.id || index}-${rangeIndex + 1}`}
+                            {hasClosingVal ? (
+                              <span
+                                className={`stock-qty-badge ${closingBadgeClass}`}
                               >
-                                <td className="center td-pages">
-                                  <span className="stock-pages-text">
-                                    {range.range}
-                                  </span>
-                                </td>
-                                <td className="center td-sold-qty">
-                                  <span
-                                    className={
-                                      rangeQty > 0
-                                        ? "revenue-sold-positive"
-                                        : "revenue-sold-zero"
-                                    }
-                                  >
-                                    {rangeQty}
-                                  </span>
-                                </td>
-                                <td className="right td-price">
-                                  {formatCurrency(rangePrice)}
-                                </td>
-                                <td className="right td-amount">
-                                  <span
-                                    className={
-                                      rangeAmount > 0
-                                        ? "revenue-amount-positive"
-                                        : "revenue-amount-zero"
-                                    }
-                                  >
-                                    {formatCurrency(rangeAmount)}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                    </React.Fragment>
-                  );
-                })
-              )}
+                                {stock.closingStock}
+                              </span>
+                            ) : (
+                              <span className="revenue-num-muted">—</span>
+                            )}
+                          </td>
+
+                          {/* Sold Pages */}
+                          <td className="center td-pages">
+                            {hasPageRanges ? (
+                              <span className="stock-pages-text">
+                                {firstRange.range}
+                              </span>
+                            ) : (
+                              <span className="stock-pages-dash">—</span>
+                            )}
+                          </td>
+
+                          {/* Sold Qty */}
+                          <td className="center td-sold-qty">
+                            <span
+                              className={
+                                firstSoldQty > 0
+                                  ? "revenue-sold-positive"
+                                  : "revenue-sold-zero"
+                              }
+                            >
+                              {firstSoldQty}
+                            </span>
+                          </td>
+
+                          {/* Unit Price */}
+                          <td className="right td-price">
+                            {formatCurrency(firstUnitPrice)}
+                          </td>
+
+                          {/* Amount */}
+                          <td className="right td-amount">
+                            <span
+                              className={
+                                firstAmount > 0
+                                  ? "revenue-amount-positive"
+                                  : "revenue-amount-zero"
+                              }
+                            >
+                              {formatCurrency(firstAmount)}
+                            </span>
+                          </td>
+                        </tr>
+
+                        {/* Subsequent page ranges */}
+                        {hasPageRanges &&
+                          stock.pageRanges
+                            .slice(1)
+                            .map((range, rangeIndex) => {
+                              const rangeQty = Number(range.sold) || 0;
+                              const rangePrice = Number(range.price) || 0;
+                              const rangeAmount = rangeQty * rangePrice;
+
+                              return (
+                                <tr
+                                  key={`${stock.id || index}-${rangeIndex + 1}`}
+                                >
+                                  <td className="center td-pages">
+                                    <span className="stock-pages-text">
+                                      {range.range}
+                                    </span>
+                                  </td>
+                                  <td className="center td-sold-qty">
+                                    <span
+                                      className={
+                                        rangeQty > 0
+                                          ? "revenue-sold-positive"
+                                          : "revenue-sold-zero"
+                                      }
+                                    >
+                                      {rangeQty}
+                                    </span>
+                                  </td>
+                                  <td className="right td-price">
+                                    {formatCurrency(rangePrice)}
+                                  </td>
+                                  <td className="right td-amount">
+                                    <span
+                                      className={
+                                        rangeAmount > 0
+                                          ? "revenue-amount-positive"
+                                          : "revenue-amount-zero"
+                                      }
+                                    >
+                                      {formatCurrency(rangeAmount)}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                      </React.Fragment>
+                    );
+                  })
+                )}
 
                 {/* Grand Total Row */}
                 <tr className="revenue-table-total-row">

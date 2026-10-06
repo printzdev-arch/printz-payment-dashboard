@@ -1222,7 +1222,7 @@ const StockList = () => {
                                 }`}
                               />
                             </td>
-                            {!stock.pageRanges && (
+                            {(!stock.pageRanges || stock.pageRanges.length === 0) ? (
                               <>
                                 <td></td>
                                 <td>
@@ -1248,9 +1248,13 @@ const StockList = () => {
                                     0) * (Number(stock.amount) || 0)}
                                 </td>
                               </>
+                            ) : (
+                              <td colSpan="4" style={{ textAlign: "center", color: "#64748b", fontStyle: "italic", fontSize: "12px" }}>
+                                See range tiers below
+                              </td>
                             )}
                           </tr>
-                          {stock.pageRanges &&
+                          {stock.pageRanges && stock.pageRanges.length > 0 &&
                             stock.pageRanges.map((range, rangeIndex) => (
                               <tr key={`${stock.id}-${rangeIndex}`}>
                                 <td>{range.range}</td>
