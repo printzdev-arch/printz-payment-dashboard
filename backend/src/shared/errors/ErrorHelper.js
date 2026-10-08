@@ -29,6 +29,10 @@ class ErrorHelper {
     return new AppError(message, 400, "VALIDATION_ERROR", details);
   }
 
+  static unprocessableEntity(message = "Unprocessable Entity", details = null) {
+    return new AppError(message, 422, "UNPROCESSABLE_ENTITY", details);
+  }
+
   static database(message = "Database operation failed", details = null) {
     return new AppError(message, 500, "DATABASE_ERROR", details);
   }

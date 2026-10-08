@@ -4,10 +4,23 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./infrastructure/config/swagger");
+const env = require("./infrastructure/config/env");
 const routes = require("./presentation/routes");
 const notFound = require("./presentation/middleware/notFound.middleware");
 const errorHandler = require("./presentation/middleware/error.middleware");
-const env = require("./infrastructure/config/env");
+const { setupDesignEventListeners } = require("./shared/events/design/designEvents.listener");
+const { setupSlaEventListeners } = require("./shared/events/sla/slaEvents.listener");
+const DesignAllocationService = require("./application/services/design/designAllocation.service");
+const slaSchedulerService = require("./application/services/sla/slaScheduler.service");
+
+// Initialize design event listeners (auto-allocate on DESIGN_QUEUE, auto-release on cancel)
+setupDesignEventListeners(DesignAllocationService);
+
+// Initialize SLA event listeners & scheduler
+setupSlaEventListeners();
+if (env.NODE_ENV !== "test") {
+  slaSchedulerService.startScheduler();
+}
 
 const app = express();
 
@@ -85,6 +98,7 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api", routes);
+app.use("/api/v1", routes);
 
 // 404 & Global Error Handling
 app.use(notFound);

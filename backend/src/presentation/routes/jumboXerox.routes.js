@@ -24,7 +24,6 @@ router.delete("/configurations/:id", authorizeRoles("admin"), jumboXeroxControll
 // Daily readings
 router.get("/readings", jumboXeroxController.getAllReadings);
 router.post("/readings", jumboXeroxController.saveReading);
-router.put("/readings/:id", jumboXeroxController.saveReading);
 router.delete("/readings/:id", authorizeRoles("admin"), jumboXeroxController.deleteReading);
 
 module.exports = router;

@@ -56,7 +56,6 @@ class RefreshToken {
     }
 
     return {
-      token: tokenPair.accessToken,
       accessToken: tokenPair.accessToken,
       refreshToken: tokenPair.refreshToken,
       expiresIn: tokenPair.expiresIn,

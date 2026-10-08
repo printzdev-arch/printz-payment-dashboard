@@ -44,7 +44,6 @@ class LoginUser {
     const tokenPair = this.tokenService.generateTokenPair(tokenPayload);
 
     return {
-      token: tokenPair.accessToken,
       accessToken: tokenPair.accessToken,
       refreshToken: tokenPair.refreshToken,
       expiresIn: tokenPair.expiresIn,

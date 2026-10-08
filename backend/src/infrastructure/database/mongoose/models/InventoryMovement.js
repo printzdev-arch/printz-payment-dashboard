@@ -5,12 +5,12 @@ const inventoryMovementSchema = new mongoose.Schema(
     legacyFirestoreId: String,
     action: {
       type: String,
-      enum: ["add", "clone", "move", "update", "delete"],
+      enum: ["add", "clone", "move", "update", "delete", "consume", "JOB_CONSUMPTION", "OUT"],
       required: true,
     },
     type: {
       type: String,
-      enum: ["asset", "printer", "stock"],
+      enum: ["asset", "printer", "stock", "JOB_CONSUMPTION"],
       required: true,
     },
     category: String,

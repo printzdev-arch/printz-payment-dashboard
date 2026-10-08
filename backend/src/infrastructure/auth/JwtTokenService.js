@@ -42,7 +42,6 @@ class JwtTokenService {
     return {
       accessToken,
       refreshToken,
-      token: accessToken, // Backward compatibility
       tokenType: "Bearer",
       expiresIn: this.accessExpiresIn,
     };

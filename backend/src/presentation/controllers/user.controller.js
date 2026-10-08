@@ -66,22 +66,11 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const updateUser = asyncHandler(async (req, res) => {
-  const currentUserId = (req.user?._id || req.user?.id || req.user?.uid || "").toString();
-  const isAdmin = req.user?.role === "admin";
   const targetId = (req.params.id === "profile" || req.params.id === "me")
-    ? currentUserId
+    ? (req.user?._id || req.user?.id || req.user?.uid || "").toString()
     : req.params.id;
 
-  if (!isAdmin && currentUserId !== targetId) {
-    return ResponseHelper.forbidden(res, "You are not authorized to update another user's profile");
-  }
-
   const updateUserDto = UpdateUserDto.fromRequest(req);
-  if (!isAdmin) {
-    delete updateUserDto.role;
-    delete updateUserDto.permissions;
-    delete updateUserDto.isActive;
-  }
   updateUserDto.validate();
   const user = await updateUserUseCase.execute(targetId, updateUserDto);
   return ResponseHelper.success(

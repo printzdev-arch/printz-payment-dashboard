@@ -31,29 +31,14 @@ class MongoStockRepository extends IStockRepository {
           { branchName: new RegExp(`^${branch.name}$`, "i") },
         ];
       } else {
-        const branchConds = [
+        query.$or = [
           { branchId: branchIdentifier },
           { branchName: new RegExp(`^${branchIdentifier}$`, "i") },
         ];
-        if (mongoose.Types.ObjectId.isValid(branchIdentifier)) {
-          branchConds.push({ branchId: new mongoose.Types.ObjectId(branchIdentifier) });
-        }
-        query.$or = branchConds;
       }
     }
 
-    if (filters.stockId) {
-      const escaped = String(filters.stockId).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.stockId = new RegExp(`^${escaped}$`, "i");
-    }
-    if (filters.itemName) {
-      const escaped = String(filters.itemName).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.itemName = new RegExp(`^${escaped}$`, "i");
-    }
-    if (filters.category) {
-      const escaped = String(filters.category).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.category = new RegExp(`^${escaped}$`, "i");
-    }
+    if (filters.category) query.category = new RegExp(`^${filters.category}$`, "i");
     if (filters.status) query.status = filters.status;
 
     return StockItem.find(query).sort({ itemName: 1 });
@@ -61,18 +46,12 @@ class MongoStockRepository extends IStockRepository {
 
   async findById(id) {
     if (!id) return null;
-    const trimmed = String(id).trim();
-    if (mongoose.Types.ObjectId.isValid(trimmed)) {
-      const item = await StockItem.findById(trimmed);
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      const item = await StockItem.findById(id);
       if (item) return item;
     }
-    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return StockItem.findOne({
-      $or: [
-        { _id: trimmed },
-        { stockId: new RegExp(`^${escaped}$`, "i") },
-        { legacyFirestoreId: trimmed },
-      ],
+      $or: [{ _id: id }, { stockId: id }, { legacyFirestoreId: id }],
     });
   }
 
@@ -82,39 +61,14 @@ class MongoStockRepository extends IStockRepository {
     if (targetId && mongoose.Types.ObjectId.isValid(targetId)) {
       item = await StockItem.findById(targetId).catch(() => null);
     }
+    if (!item && data.stockId && data.branchId) {
+      item = await StockItem.findOne({ stockId: data.stockId, branchId: data.branchId });
+    }
 
     const payload = data.toJSON ? data.toJSON() : { ...data };
     delete payload.id;
-
-    // Resolve branch details
     if (payload.branchId && typeof payload.branchId === "string" && mongoose.Types.ObjectId.isValid(payload.branchId)) {
       payload.branchId = new mongoose.Types.ObjectId(payload.branchId);
-    }
-    if (!payload.branchId && payload.branchName) {
-      const branch = await this._resolveBranch(payload.branchName);
-      if (branch) payload.branchId = branch._id;
-    }
-    if (payload.branchId && !payload.branchName) {
-      const branch = await this._resolveBranch(payload.branchId);
-      if (branch) payload.branchName = branch.name;
-    }
-
-    if (!item && data.stockId) {
-      const stockEscaped = String(data.stockId).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const branchConds = [];
-      if (payload.branchId) {
-        branchConds.push({ branchId: payload.branchId });
-        branchConds.push({ branchId: payload.branchId.toString() });
-      }
-      if (payload.branchName) {
-        branchConds.push({ branchName: new RegExp(`^${payload.branchName}$`, "i") });
-      }
-      if (branchConds.length > 0) {
-        item = await StockItem.findOne({
-          stockId: new RegExp(`^${stockEscaped}$`, "i"),
-          $or: branchConds,
-        });
-      }
     }
 
     if (item) {

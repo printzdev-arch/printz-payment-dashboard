@@ -1108,4 +1108,11 @@ const swaggerDocument = {
   },
 };
 
+// Merge modular Production OpenAPI Documentation
+const productionSwagger = require("./production.swagger");
+swaggerDocument.tags.push(...productionSwagger.tags);
+Object.assign(swaggerDocument.components.schemas, productionSwagger.schemas);
+Object.assign(swaggerDocument.paths, productionSwagger.paths);
+
 module.exports = swaggerDocument;
+

@@ -2,39 +2,12 @@ const mongoose = require("mongoose");
 const IJumboXeroxRepository = require("../../../../domain/repositories/IJumboXeroxRepository");
 const JumboXerox = require("../models/JumboXerox");
 
-const Branch = require("../models/Branch");
-
 class MongoJumboXeroxRepository extends IJumboXeroxRepository {
-  async _resolveBranch(identifier) {
-    if (!identifier) return null;
-    const trimmed = String(identifier).trim();
-    if (mongoose.Types.ObjectId.isValid(trimmed)) {
-      const branch = await Branch.findById(trimmed).lean();
-      if (branch) return branch;
-    }
-    return Branch.findOne({
-      $or: [
-        { name: new RegExp(`^${trimmed}$`, "i") },
-        { code: new RegExp(`^${trimmed}$`, "i") },
-      ],
-    }).lean();
-  }
-
   async findAll(filters = {}) {
     const query = {};
 
-    const branchIdentifier = filters.branchId || filters.branchName || filters.branch;
-    if (branchIdentifier) {
-      const branch = await this._resolveBranch(branchIdentifier);
-      if (branch) {
-        query.$or = [
-          { branchId: branch._id },
-          { branchId: branch._id.toString() },
-          { branchName: new RegExp(`^${branch.name}$`, "i") },
-        ];
-      } else if (mongoose.Types.ObjectId.isValid(branchIdentifier)) {
-        query.branchId = new mongoose.Types.ObjectId(branchIdentifier);
-      }
+    if (filters.branchId && mongoose.Types.ObjectId.isValid(filters.branchId)) {
+      query.branchId = new mongoose.Types.ObjectId(filters.branchId);
     }
     if (filters.printerId) {
       query.printerId = String(filters.printerId).trim();

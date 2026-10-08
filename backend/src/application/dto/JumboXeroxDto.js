@@ -94,8 +94,6 @@ class JumboXeroxMachineResponseDto {
 class SaveJumboXeroxReadingDto {
   constructor({
     _id,
-    id,
-    branchId,
     branchName,
     branch,
     date,
@@ -108,21 +106,8 @@ class SaveJumboXeroxReadingDto {
     totalAmount,
     rows = [],
     notes,
-    jumboCounter,
-    totalQty,
-    totalSqMeters,
-    userId,
-    submittedBy,
-    readings,
-    status,
-    isFinalSubmitted,
-    isLocked,
   } = {}) {
-    if (_id || id) {
-      this._id = _id || id;
-      this.id = id || _id;
-    }
-    if (branchId) this.branchId = branchId;
+    if (_id) this._id = _id;
     this.branchName = (branchName || branch || "").trim();
     this.branch = this.branchName;
     this.date = date || new Date().toISOString().split("T")[0];
@@ -130,34 +115,16 @@ class SaveJumboXeroxReadingDto {
     this.name = this.machineName;
     this.startReading = Number(startReading) || 0;
     this.endReading = Number(endReading) || 0;
-    this.totalSqFt =
-      totalSqFt !== undefined
-        ? Number(totalSqFt)
-        : Math.max(0, this.endReading - this.startReading);
+    this.totalSqFt = totalSqFt !== undefined ? Number(totalSqFt) : Math.max(0, this.endReading - this.startReading);
     this.rate = Number(rate) || 0;
-    this.totalAmount =
-      totalAmount !== undefined
-        ? Number(totalAmount)
-        : this.totalSqFt * this.rate;
+    this.totalAmount = totalAmount !== undefined ? Number(totalAmount) : this.totalSqFt * this.rate;
     this.rows = Array.isArray(rows) ? rows : [];
     this.notes = notes ? notes.trim() : "";
-    if (jumboCounter !== undefined) this.jumboCounter = jumboCounter;
-    if (totalQty !== undefined) this.totalQty = Number(totalQty) || 0;
-    if (totalSqMeters !== undefined) this.totalSqMeters = Number(totalSqMeters) || 0;
-    if (userId) this.userId = userId;
-    if (submittedBy) this.submittedBy = submittedBy;
-    if (readings) this.readings = readings;
-    if (status) this.status = status;
-    if (isFinalSubmitted !== undefined) this.isFinalSubmitted = isFinalSubmitted;
-    if (isLocked !== undefined) this.isLocked = isLocked;
   }
 
   static fromRequest(req) {
     const data = { ...req.body };
-    if (req.params?.id) {
-      data._id = req.params.id;
-      data.id = req.params.id;
-    }
+    if (req.params?.id) data._id = req.params.id;
     return new SaveJumboXeroxReadingDto(data);
   }
 }

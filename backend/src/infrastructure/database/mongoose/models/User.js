@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "manager"],
+      enum: ["admin", "manager", "designer", "production", "operator", "staff"],
       default: "manager",
     },
     permissions: {
@@ -92,10 +92,6 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
-    return next();
-  }
-  // Prevent double-hashing if the password is already a valid bcrypt hash
-  if (typeof this.password === "string" && /^\$2[aby]\$\d{2}\$/.test(this.password)) {
     return next();
   }
   this.password = await passwordService.hashPassword(this.password);

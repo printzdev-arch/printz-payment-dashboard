@@ -57,6 +57,12 @@ const saleSchema = new mongoose.Schema(
       required: [true, "Manager ID is required"],
       index: true,
     },
+    jobOrderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "JobOrder",
+      default: null,
+      index: true,
+    },
     invoiceNo: {
       type: String,
       required: [true, "Invoice number is required"],

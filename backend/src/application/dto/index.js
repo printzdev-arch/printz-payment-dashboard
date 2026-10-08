@@ -53,6 +53,22 @@ const { CreateCategoryDto, CategoryResponseDto } = require("./CategoryDto");
 const { FinalizeDateDto } = require("./GeneralDto");
 const { CreateSaleDto, SaleResponseDto } = require("./SaleDto");
 
+// Production DTOs
+const {
+  PlanProductionDto,
+  UpdateProductionOrderDto,
+  ProductionOrderResponseDto,
+  StartOperationDto,
+  CompleteOperationDto,
+  ProductionOperationResponseDto,
+  PerformQualityCheckDto,
+  QualityCheckResponseDto,
+  CreateReprintRequestDto,
+  ReprintRequestResponseDto,
+  DeliverOrderDto,
+  DeliveryOrderResponseDto,
+} = require("./production");
+
 // Aliases for backwards compatibility
 const UserCreateDto = CreateUserDto;
 
@@ -130,4 +146,18 @@ module.exports = {
   // Sales
   CreateSaleDto,
   SaleResponseDto,
+
+  // Production
+  PlanProductionDto,
+  UpdateProductionOrderDto,
+  ProductionOrderResponseDto,
+  StartOperationDto,
+  CompleteOperationDto,
+  ProductionOperationResponseDto,
+  PerformQualityCheckDto,
+  QualityCheckResponseDto,
+  CreateReprintRequestDto,
+  ReprintRequestResponseDto,
+  DeliverOrderDto,
+  DeliveryOrderResponseDto,
 };
