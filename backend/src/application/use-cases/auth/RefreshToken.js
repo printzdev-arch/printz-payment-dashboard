@@ -61,8 +61,6 @@ class RefreshToken {
       expiresIn: tokenPair.expiresIn,
       user: {
         _id: user._id,
-        id: user._id,
-        uid: user._id,
         name: user.name,
         email: user.email,
         phone: user.phone,

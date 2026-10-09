@@ -16,7 +16,7 @@ const jobAssignmentSchema = new mongoose.Schema(
     },
     assignmentType: {
       type: String,
-      enum: ["DESIGNER", "OPERATOR", "QC_INSPECTOR"],
+      enum: ["DESIGNER", "OPERATOR", "QC", "QC_INSPECTOR", "OTHER"],
       default: "DESIGNER",
       index: true,
     },
@@ -75,6 +75,10 @@ const jobAssignmentSchema = new mongoose.Schema(
 
 jobAssignmentSchema.index({ jobOrderId: 1, assignmentType: 1, currentAssignment: 1 });
 jobAssignmentSchema.index({ employeeId: 1, status: 1, currentAssignment: 1 });
+jobAssignmentSchema.index(
+  { jobOrderId: 1, assignmentType: 1 },
+  { unique: true, partialFilterExpression: { currentAssignment: true } }
+);
 
 const JobAssignment =
   mongoose.models.JobAssignment ||

@@ -2,29 +2,29 @@ const { body, param } = require("express-validator");
 const { validate } = require("./auth.validator");
 
 const createUserValidator = [
+  body("employeeId")
+    .notEmpty()
+    .withMessage("employeeId is required")
+    .isMongoId()
+    .withMessage("Invalid employeeId format"),
   body("email")
+    .notEmpty()
+    .withMessage("Email is required")
     .isEmail()
     .withMessage("Valid email is required")
     .normalizeEmail(),
   body("password")
+    .notEmpty()
+    .withMessage("Password is required")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long"),
-  body("name")
-    .trim()
-    .notEmpty()
-    .withMessage("Name is required"),
-  body("role")
-    .isIn(["admin", "manager"])
-    .withMessage("Role must be either 'admin' or 'manager'"),
-  body("branch")
+  body("username")
     .optional()
     .trim(),
-  body("location")
+  body("sendInvite")
     .optional()
-    .trim(),
-  body("phone")
-    .optional()
-    .trim(),
+    .isBoolean()
+    .withMessage("sendInvite must be a boolean"),
   validate,
 ];
 
@@ -40,8 +40,13 @@ const updateUserValidator = [
     .normalizeEmail(),
   body("role")
     .optional()
-    .isIn(["admin", "manager"])
-    .withMessage("Role must be either 'admin' or 'manager'"),
+    .isString(),
+  body("roleIds")
+    .optional()
+    .isArray(),
+  body("branchIds")
+    .optional()
+    .isArray(),
   body("permissions")
     .optional()
     .isObject()

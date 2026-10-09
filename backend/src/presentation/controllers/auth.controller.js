@@ -17,7 +17,11 @@ const logoutUserUseCase = new LogoutUser({ userRepository, tokenBlacklistService
 
 const login = asyncHandler(async (req, res) => {
   const loginDto = LoginDto.fromRequest(req);
-  const result = await loginUserUseCase.execute(loginDto);
+  const requestContext = {
+    ip: req.ip || req.connection?.remoteAddress,
+    userAgent: req.headers["user-agent"],
+  };
+  const result = await loginUserUseCase.execute(loginDto, requestContext);
   if (result && result.user) {
     result.user = UserResponseDto.fromEntity(result.user);
   }
@@ -37,7 +41,13 @@ const getMe = asyncHandler(async (req, res) => {
 
 const logout = asyncHandler(async (req, res) => {
   const logoutDto = LogoutDto.fromRequest(req);
-  const result = await logoutUserUseCase.execute(logoutDto);
+  const payload = {
+    ...(typeof logoutDto === "object" ? logoutDto : {}),
+    userId: req.user?._id || req.user?.id || req.user?.userId,
+    ip: req.ip || req.connection?.remoteAddress,
+    userAgent: req.headers["user-agent"],
+  };
+  const result = await logoutUserUseCase.execute(payload);
   return ResponseHelper.success(res, result, "Logged out successfully");
 });
 

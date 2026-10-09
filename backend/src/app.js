@@ -68,7 +68,13 @@ app.use(
   "/api-docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerDocument, {
-    customCss: ".swagger-ui .topbar { display: none }",
+    customCss: `
+      .swagger-ui .topbar { display: none; }
+      .swagger-ui .opblock-summary-description { display: none !important; }
+      .swagger-ui .opblock-tag small, .swagger-ui .opblock-tag-description { display: none !important; }
+      .swagger-ui .response-col_links { display: none !important; }
+      .swagger-ui .responses-table .response-col_description__inner { display: none !important; }
+    `,
     customSiteTitle: "Printz Payment Dashboard - Swagger API Explorer",
     swaggerOptions: {
       tagsSorter: "alpha",
@@ -85,6 +91,25 @@ app.use(
 app.get("/api-docs.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerDocument);
+});
+
+// Health check endpoint for staging / production monitoring & load balancers
+app.get(["/health", "/api/v1/health"], (req, res) => {
+  const dbState = require("mongoose").connection.readyState;
+  const dbStatusMap = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
+  const isHealthy = dbState === 1;
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? "healthy" : "unhealthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: env.NODE_ENV,
+    database: {
+      status: dbStatusMap[dbState] || "unknown",
+      readyState: dbState,
+    },
+    version: "1.0.0",
+  });
 });
 
 // Root welcome route

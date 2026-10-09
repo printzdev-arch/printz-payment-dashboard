@@ -3,6 +3,11 @@ const router = express.Router();
 
 const authRoutes = require("./auth.routes");
 const userRoutes = require("./user.routes");
+const employeeRoutes = require("./employee.routes");
+const roleRoutes = require("./role.routes");
+const permissionRoutes = require("./permission.routes");
+const departmentRoutes = require("./department.routes");
+const designationRoutes = require("./designation.routes");
 const printerRoutes = require("./printer.routes");
 const printerReadingRoutes = require("./printerReading.routes");
 const jumboXeroxRoutes = require("./jumboXerox.routes");
@@ -14,7 +19,26 @@ const branchRoutes = require("./branch.routes");
 const reportRoutes = require("./report.routes");
 const generalRoutes = require("./general.routes");
 
-// Production module routes
+// Common services (Module 02)
+const approvalRoutes = require("./common/approval.routes");
+const attachmentRoutes = require("./common/attachment.routes");
+const auditLogRoutes = require("./common/auditLog.routes");
+const numberSequenceRoutes = require("./common/numberSequence.routes");
+
+// Inventory routes (Module 03)
+const inventoryItemRoutes = require("./inventory/inventoryItem.routes");
+const inventoryBalanceRoutes = require("./inventory/inventoryBalance.routes");
+const inventoryTransactionRoutes = require("./inventory/inventoryTransaction.routes");
+const purchaseReceiptRoutes = require("./inventory/purchaseReceipt.routes");
+
+// POS routes (Module 04)
+const saleReceiptRoutes = require("./pos/saleReceipt.routes");
+
+// Product order & warehouse transfer routes (Module 05)
+const productOrderRoutes = require("./product-order/productOrderRoutes");
+const stockTransferRoutes = require("./product-order/stockTransferRoutes");
+
+// Production module routes (Module 08)
 const {
   router: productionModuleRouter,
   productionOrdersRoutes,
@@ -46,9 +70,35 @@ const {
   reprintRequestValidator,
 } = require("../validators/production/production.validator");
 
-// Mount modular sub-routers
+// Mount Module 01: Auth, Users, Roles, Permissions, Employees, Departments, Designations
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
+router.use("/employees", employeeRoutes);
+router.use("/roles", roleRoutes);
+router.use("/permissions", permissionRoutes);
+router.use("/departments", departmentRoutes);
+router.use("/designations", designationRoutes);
+
+// Mount Module 02: Common Services
+router.use("/audit-logs", auditLogRoutes);
+router.use("/approvals", approvalRoutes);
+router.use("/attachments", attachmentRoutes);
+router.use("/number-sequences", numberSequenceRoutes);
+
+// Mount Module 03: Inventory & Masters
+router.use("/inventory-items", inventoryItemRoutes);
+router.use("/inventory-balances", inventoryBalanceRoutes);
+router.use("/inventory-transactions", inventoryTransactionRoutes);
+router.use("/purchase-receipts", purchaseReceiptRoutes);
+
+// Mount Module 04: POS Sale Receipts
+router.use("/sale-receipts", saleReceiptRoutes);
+
+// Mount Module 05: Product Orders & Stock Transfers
+router.use("/product-orders", productOrderRoutes);
+router.use("/stock-transfers", stockTransferRoutes);
+
+// Legacy / Support routers
 router.use("/printers", printerRoutes);
 router.use("/printer-readings", printerReadingRoutes);
 router.use("/jumbo-xerox", jumboXeroxRoutes);
@@ -60,17 +110,17 @@ router.use("/branches", branchRoutes);
 router.use("/reports", reportRoutes);
 router.use("/general", generalRoutes);
 
-// Mount Job Order & Design sub-routers
+// Mount Modules 06 & 07: Job Order & Design sub-routers
 router.use("/job-orders", jobOrderRoutes);
 router.use("/design", designRoutes);
 
-// Mount SLA & Designer Performance sub-routers (Module 09)
+// Mount Module 09: SLA & Designer Performance sub-routers
 router.use("/sla-configurations", slaConfigurationRoutes);
 router.use("/sla", slaRoutes);
 router.use("/designer-ratings", designerRatingRoutes);
 router.use("/designers", designerPerformanceRoutes);
 
-// Mount Production sub-routers at standard endpoints
+// Mount Module 08: Production sub-routers at standard endpoints
 router.use("/production-orders", productionOrdersRoutes);
 router.use("/production-operations", productionOperationsRoutes);
 router.use("/production-queue", productionQueueRoutes);

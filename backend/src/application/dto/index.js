@@ -53,6 +53,13 @@ const { CreateCategoryDto, CategoryResponseDto } = require("./CategoryDto");
 const { FinalizeDateDto } = require("./GeneralDto");
 const { CreateSaleDto, SaleResponseDto } = require("./SaleDto");
 
+const {
+  CreateEmployeeDto,
+  UpdateEmployeeDto,
+  DeactivateEmployeeDto,
+} = require("./EmployeeDto");
+const { CreateRoleDto, UpdateRoleDto } = require("./RoleDto");
+
 // Production DTOs
 const {
   PlanProductionDto,
@@ -85,6 +92,15 @@ module.exports = {
   UpdateUserPermissionsDto,
   UpdateUserRoleDto,
   UserResponseDto,
+
+  // Employees
+  CreateEmployeeDto,
+  UpdateEmployeeDto,
+  DeactivateEmployeeDto,
+
+  // Roles
+  CreateRoleDto,
+  UpdateRoleDto,
 
   // Branches
   CreateBranchDto,

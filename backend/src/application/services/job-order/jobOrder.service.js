@@ -152,10 +152,25 @@ class JobOrderService {
       colorMode: it.colorMode || "",
       sides: it.sides || "SINGLE",
       finishing: Array.isArray(it.finishing)
-        ? it.finishing.map((f, i) => (typeof f === "string" ? { code: f, name: f, sequence: i + 1 } : f))
+        ? it.finishing.map((f, i) => {
+            if (typeof f === "string") return { code: f, name: f, sequence: i + 1 };
+            const code = f.code || f.process || f.operationCode || "FINISHING";
+            const name = f.name || f.option || f.process || code;
+            const notes = f.notes || (f.option ? `Option: ${f.option}` : "");
+            const sequence = f.sequence || i + 1;
+            return { code, name, notes, sequence };
+          })
         : [],
       materials: Array.isArray(it.materials)
-        ? it.materials.map((m) => (typeof m === "string" ? { itemName: m } : m))
+        ? it.materials.map((m) => {
+            if (typeof m === "string") return { itemName: m, quantity: 1, unit: "PCS" };
+            return {
+              itemId: m.itemId || null,
+              itemName: m.itemName || "",
+              quantity: Number(m.quantity) || 0,
+              unit: m.unit || "",
+            };
+          })
         : [],
       specification: it.specification || "",
       estimatedCost: Number(it.estimatedCost) || 0,
@@ -261,10 +276,25 @@ class JobOrderService {
       colorMode: it.colorMode || "",
       sides: it.sides || "SINGLE",
       finishing: Array.isArray(it.finishing)
-        ? it.finishing.map((f, i) => (typeof f === "string" ? { code: f, name: f, sequence: i + 1 } : f))
+        ? it.finishing.map((f, i) => {
+            if (typeof f === "string") return { code: f, name: f, sequence: i + 1 };
+            const code = f.code || f.process || f.operationCode || "FINISHING";
+            const name = f.name || f.option || f.process || code;
+            const notes = f.notes || (f.option ? `Option: ${f.option}` : "");
+            const sequence = f.sequence || i + 1;
+            return { code, name, notes, sequence };
+          })
         : [],
       materials: Array.isArray(it.materials)
-        ? it.materials.map((m) => (typeof m === "string" ? { itemName: m } : m))
+        ? it.materials.map((m) => {
+            if (typeof m === "string") return { itemName: m, quantity: 1, unit: "PCS" };
+            return {
+              itemId: m.itemId || null,
+              itemName: m.itemName || "",
+              quantity: Number(m.quantity) || 0,
+              unit: m.unit || "",
+            };
+          })
         : [],
       specification: it.specification || "",
       estimatedCost: Number(it.estimatedCost) || 0,
@@ -475,6 +505,32 @@ class JobOrderService {
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
 
     return jobApprovalRepository.findByJobOrderId(job._id, approvalType);
+  }
+
+  static async skipDesign(id, reason = "", user = null) {
+    const job = await jobOrderRepository.findById(id);
+    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
+    const JobWorkflowService = require("./jobWorkflow.service");
+    return JobWorkflowService.transition(job._id, "PRODUCTION_PLANNING", {
+      reason: reason || "Direct print-ready artwork provided",
+      actorId: user?._id,
+      user,
+    });
+  }
+
+  static async hold(id, reason = "", user = null) {
+    const JobWorkflowService = require("./jobWorkflow.service");
+    return JobWorkflowService.hold(id, reason, user?._id);
+  }
+
+  static async resume(id, user = null) {
+    const JobWorkflowService = require("./jobWorkflow.service");
+    return JobWorkflowService.resume(id, user?._id);
+  }
+
+  static async cancel(id, reason = "", user = null) {
+    const JobWorkflowService = require("./jobWorkflow.service");
+    return JobWorkflowService.cancel(id, reason, user?._id);
   }
 }
 

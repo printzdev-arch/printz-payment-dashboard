@@ -7,10 +7,17 @@ const env = require("../config/env");
  */
 class JwtTokenService {
   constructor() {
-    this.accessSecret = env.JWT_ACCESS_SECRET || env.JWT_SECRET || "printz_default_access_secret_2026";
+    this.accessSecret = env.JWT_ACCESS_SECRET || env.JWT_SECRET;
     this.accessExpiresIn = env.JWT_ACCESS_EXPIRES_IN || env.JWT_EXPIRES_IN || "15m";
-    this.refreshSecret = env.JWT_REFRESH_SECRET || "printz_default_refresh_secret_2026";
+    this.refreshSecret = env.JWT_REFRESH_SECRET;
     this.refreshExpiresIn = env.JWT_REFRESH_EXPIRES_IN || "7d";
+
+    if (env.isProduction && (!this.accessSecret || !this.refreshSecret)) {
+      throw new Error(
+        "[FATAL SECURITY ERROR] JwtTokenService cannot initialize in production without JWT_ACCESS_SECRET and JWT_REFRESH_SECRET."
+      );
+    }
+
     this.secret = this.accessSecret;
     this.expiresIn = this.accessExpiresIn;
   }
@@ -19,6 +26,9 @@ class JwtTokenService {
    * Generate an Access Token (short-lived)
    */
   generateAccessToken(payload) {
+    if (!this.accessSecret) {
+      throw new Error("JWT Access Secret is not configured.");
+    }
     return jwt.sign(payload, this.accessSecret, {
       expiresIn: this.accessExpiresIn,
     });
@@ -28,6 +38,9 @@ class JwtTokenService {
    * Generate a Refresh Token (long-lived)
    */
   generateRefreshToken(payload) {
+    if (!this.refreshSecret) {
+      throw new Error("JWT Refresh Secret is not configured.");
+    }
     return jwt.sign(payload, this.refreshSecret, {
       expiresIn: this.refreshExpiresIn,
     });
@@ -58,6 +71,9 @@ class JwtTokenService {
    * Verify an Access Token
    */
   verifyAccessToken(token) {
+    if (!this.accessSecret) {
+      throw new Error("JWT Access Secret is not configured.");
+    }
     return jwt.verify(token, this.accessSecret);
   }
 
@@ -65,6 +81,9 @@ class JwtTokenService {
    * Verify a Refresh Token
    */
   verifyRefreshToken(token) {
+    if (!this.refreshSecret) {
+      throw new Error("JWT Refresh Secret is not configured.");
+    }
     return jwt.verify(token, this.refreshSecret);
   }
 

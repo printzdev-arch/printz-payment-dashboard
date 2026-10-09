@@ -1,0 +1,93 @@
+/**
+ * All 64 Standard Permission Codes for PrintZ System
+ */
+const PERMISSIONS = Object.freeze({
+  ADMIN: {
+    EMPLOYEE_VIEW: "admin.employee.view",
+    EMPLOYEE_CREATE: "admin.employee.create",
+    EMPLOYEE_UPDATE: "admin.employee.update",
+    EMPLOYEE_STATUS: "admin.employee.status",
+    EMPLOYEE_DEACTIVATE: "admin.employee.deactivate",
+    USER_MANAGE: "admin.user.manage",
+    ROLE_VIEW: "admin.role.view",
+    ROLE_MANAGE: "admin.role.manage",
+    MASTER_MANAGE: "admin.master.manage",
+    SENSITIVE_VIEW: "hr.employee.sensitive.view",
+  },
+  COMMON: {
+    AUDIT_LOG_VIEW: "audit.log.view",
+    APPROVAL_VIEW: "approval.view",
+    APPROVAL_DECIDE: "approval.decide",
+    ATTACHMENT_UPLOAD: "attachment.upload",
+  },
+  INVENTORY: {
+    ITEM_VIEW: "inventory.item.view",
+    ITEM_MANAGE: "inventory.item.manage",
+    BALANCE_VIEW: "inventory.balance.view",
+    ADJUST: "inventory.adjust",
+    PURCHASE_CREATE: "inventory.purchase.create",
+  },
+  POS: {
+    SALE_RECEIPT_VIEW: "pos.saleReceipt.view",
+    SALE_RECEIPT_CREATE: "pos.saleReceipt.create",
+    SALE_RECEIPT_VOID: "pos.saleReceipt.void",
+    PRICE_OVERRIDE: "pos.saleReceipt.priceOverride",
+    PRODUCT_ORDER_VIEW: "pos.productOrder.view",
+    PRODUCT_ORDER_CREATE: "pos.productOrder.create",
+    PRODUCT_ORDER_APPROVE: "pos.productOrder.approve",
+    TRANSFER_DISPATCH: "inventory.transfer.dispatch",
+    TRANSFER_RECEIVE: "inventory.transfer.receive",
+  },
+  JOB: {
+    ORDER_VIEW: "job.order.view",
+    ORDER_CREATE: "job.order.create",
+    ORDER_UPDATE: "job.order.update",
+    ORDER_CANCEL: "job.order.cancel",
+    ORDER_HOLD: "job.order.hold",
+    ESTIMATE_APPROVE: "job.estimate.approve",
+    INVOICE_CREATE: "job.invoice.create",
+  },
+  DESIGN: {
+    ALLOCATION_MANAGE: "design.allocation.manage",
+    WORK_VIEW: "design.work.view",
+    WORK_UPDATE: "design.work.update",
+    SAMPLE_UPLOAD: "design.sample.upload",
+    SAMPLE_DECIDE: "design.sample.decide",
+    RATING_CREATE: "design.rating.create",
+  },
+  PRODUCTION: {
+    ORDER_VIEW: "production.order.view",
+    ORDER_MANAGE: "production.order.manage",
+    OPERATION_UPDATE: "production.operation.update",
+    QC_CHECK_PERFORM: "qc.check.perform",
+    REPRINT_REQUEST: "reprint.request",
+    REPRINT_APPROVE: "reprint.approve",
+    DELIVERY_UPDATE: "delivery.update",
+  },
+  SLA: {
+    VIEW: "sla.view",
+    CONFIGURE: "sla.configure",
+  },
+  DASHBOARDS: {
+    ADMIN_VIEW: "dashboard.admin.view",
+    MANAGER_VIEW: "dashboard.manager.view",
+    DESIGNER_VIEW: "dashboard.designer.view",
+    HR_VIEW: "dashboard.hr.view",
+  },
+  HR: {
+    SELF_VIEW: "hr.self.view",
+    ATTENDANCE_VIEW: "hr.attendance.view",
+    ATTENDANCE_MANAGE: "hr.attendance.manage",
+    ATTENDANCE_SYNC: "hr.attendance.sync",
+    REGULARIZATION_APPROVE: "hr.regularization.approve",
+    LEAVE_APPLY: "hr.leave.apply",
+    LEAVE_APPROVE: "hr.leave.approve",
+    LEAVE_CONFIGURE: "hr.leave.configure",
+    SALARY_VIEW: "hr.salary.view",
+    SALARY_CONFIGURE: "hr.salary.configure",
+    SALARY_PROCESS: "hr.salary.process",
+    SALARY_APPROVE: "hr.salary.approve",
+  },
+});
+
+module.exports = PERMISSIONS;

@@ -5,6 +5,7 @@ const productionOperationRepository = require("../../../infrastructure/database/
 const ProductionStateService = require("./productionState.service");
 const RoundRobinService = require("./roundRobin.service");
 const ErrorHelper = require("../../../shared/errors/ErrorHelper");
+const JobItem = require("../../../infrastructure/database/mongoose/models/job-order/JobItem");
 
 class ProductionPlanningService {
   /**
@@ -38,20 +39,25 @@ class ProductionPlanningService {
       );
     }
 
-    const itemsToProduce =
-      job.items && job.items.length > 0
-        ? job.items.filter((item) => item.needsProduction !== false)
-        : [
-            {
-              _id: new mongoose.Types.ObjectId(),
-              itemName: job.title || "Print Job",
-              quantity: 1,
-              finishing: [],
-            },
-          ];
+    let itemsToProduce = [];
+    if (job.items && job.items.length > 0) {
+      itemsToProduce = job.items.filter((item) => item.needsProduction !== false);
+    } else {
+      const dbItems = await mongoose.model("JobItem").find({ jobOrderId: job._id }).lean();
+      if (dbItems && dbItems.length > 0) {
+        itemsToProduce = dbItems.filter((item) => item.needsProduction !== false);
+      }
+    }
 
     if (itemsToProduce.length === 0) {
-      throw ErrorHelper.badRequest("No items in this Job Order require production.");
+      itemsToProduce = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          itemName: job.title || "Print Job",
+          quantity: 1,
+          finishing: [],
+        },
+      ];
     }
 
     const createdProductionOrders = [];
@@ -124,8 +130,8 @@ class ProductionPlanningService {
       // 2. Finishing Operations from jobItems.finishing[]
       if (item.finishing && Array.isArray(item.finishing)) {
         for (const finishingItem of item.finishing) {
-          const opCode = (finishingItem.code || "FINISHING").toUpperCase().trim();
-          const opName = finishingItem.name || opCode;
+          const opCode = (finishingItem.code || finishingItem.process || finishingItem.operationCode || "FINISHING").toUpperCase().trim();
+          const opName = finishingItem.name || finishingItem.option || opCode;
           const finishingOperator = await RoundRobinService.getNextEmployee(job.branchId, opCode);
 
           operationsToCreate.push({

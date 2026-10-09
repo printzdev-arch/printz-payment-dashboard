@@ -14,15 +14,13 @@ const validate = (req, res, next) => {
 };
 
 const loginValidator = [
-  body("email")
-    .notEmpty()
-    .withMessage("Email or phone number is required")
-    .customSanitizer((val) => {
-      if (typeof val === "string") {
-        const trimmed = val.trim();
-        return trimmed.includes("@") ? trimmed.toLowerCase() : trimmed;
+  body()
+    .custom((body) => {
+      const id = body.email || body.username || body.identifier || body.phone;
+      if (!id || typeof id !== "string" || !id.trim()) {
+        throw new Error("Username, email, or phone number is required");
       }
-      return val;
+      return true;
     }),
   body("password")
     .notEmpty()

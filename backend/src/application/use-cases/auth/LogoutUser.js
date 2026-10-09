@@ -22,6 +22,20 @@ class LogoutUser {
       }
     }
 
+    if (userId) {
+      const auditService = require("../../../infrastructure/audit/AuditService");
+      await auditService.log({
+        event: "AUTH_LOGOUT",
+        action: "LOGOUT",
+        userId,
+        resourceType: "User",
+        resourceId: userId,
+        ipAddress: typeof input === "object" ? input.ip : null,
+        userAgent: typeof input === "object" ? input.userAgent : null,
+        status: "SUCCESS",
+      });
+    }
+
     return {
       loggedOut: true,
       ...(userId ? { userId } : {}),

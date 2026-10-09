@@ -53,9 +53,7 @@ class User {
 
   toSafeObject() {
     return {
-      id: this.id,
-      uid: this.id ? this.id.toString() : "",
-      _id: this._id,
+      _id: this._id || (this.id ? this.id.toString() : ""),
       name: this.name,
       email: this.email,
       phone: this.phone,

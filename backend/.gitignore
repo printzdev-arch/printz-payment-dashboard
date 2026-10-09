@@ -106,7 +106,8 @@ out/
 # ===================================================
 # File Uploads, Caches & Temporary Files
 # ===================================================
-uploads/
+uploads/*
+!uploads/.gitkeep
 temp_uploads/
 tmp/
 temp/
@@ -132,14 +133,6 @@ temp/
 *.sln
 *.sw?
 *~
-
-# ===================================================
-# AI Assistants & Local Agent Cache
-# ===================================================
-.agents/
-.cursor/
-.claude/
-.gemini/
 
 # ===================================================
 # Operating System Files

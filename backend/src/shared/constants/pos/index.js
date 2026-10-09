@@ -1,0 +1,25 @@
+/**
+ * API 04 - POS & Sales Constants
+ */
+
+const PAYMENT_MODES = {
+  CASH: "CASH",
+  UPI: "UPI",
+  CARD: "CARD",
+  NET_BANKING: "NET_BANKING",
+  CREDIT: "CREDIT",
+  CHEQUE: "CHEQUE",
+};
+
+const PAYMENT_STATUSES = {
+  UNPAID: "UNPAID",
+  PARTIAL: "PARTIAL",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+  CANCELLED: "CANCELLED",
+};
+
+module.exports = {
+  PAYMENT_MODES,
+  PAYMENT_STATUSES,
+};

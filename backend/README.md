@@ -1,208 +1,274 @@
-# Printz V3 — Backend API
+# Printz V3 Backend — Architecture, API & Database Documentation
 
 Backend service for the **Printz Multi-Branch Payment, Job Management & Operations Dashboard**, built with **Node.js**, **Express.js**, and **MongoDB (Mongoose)** following **Clean Architecture (Domain-Driven Design principles)**.
 
 ---
 
-## 🏗️ Architecture & Folder Structure
+## 🏛️ Pure Database-Driven Architecture (Zero Seed / Zero Mock Policy)
+
+> [!IMPORTANT]
+> **Strict Database-Driven Policy:**
+> This project operates **100% on live MongoDB data**.
+> - **No Mock / Dummy Data:** No in-memory arrays or hardcoded mock objects are used in business flows.
+> - **No Seed Dependencies:** All data (Users, Roles, Branches, Inventory Items, Balances, Job Orders, Production Operations, SLAs) is queried, mutated, and persisted directly in the MongoDB database.
+> - **Immutable Double-Entry Ledger:** All inventory movements and sales use strict database-level atomic transactions ensuring stock balance consistency without synthetic adjustments.
+
+---
+
+## 🏗️ Layered Architecture & Directory Structure
+
+All 9 business modules are consistently organized across all 4 architectural layers:
 
 ```
 backend/
 ├── src/
-│   ├── application/                           # Application Business Logic
-│   │   ├── dto/                               # Data Transfer Objects (DTOs) & input serializers
-│   │   ├── services/                          # Domain application orchestrators & workflow engines
-│   │   │   ├── design/                        # Designer allocation, sample approvals & workload
-│   │   │   ├── job-order/                     # Job state transitions, history, timeline
-│   │   │   ├── production/                    # Routing, operations scheduling, queue execution
-│   │   │   └── sla/                           # SLA tracking, dynamic timer jobs, designer scoring
-│   │   └── use-cases/                         # Single-responsibility use cases
-│   │       ├── auth/                          # Authentication & token management
-│   │       ├── branches/                      # Branch management
-│   │       ├── general/                       # Categories, inventory movement, sales, date locks
-│   │       ├── jumbo-xerox/                   # Large format rates & daily entries
-│   │       ├── past-date-requests/            # Past-date unlock requests & approvals
-│   │       ├── payments/                      # Customer payments & receivables
-│   │       ├── printer-readings/              # Daily counter meter readings
-│   │       ├── printers/                      # Master printer inventory
-│   │       ├── reports/                       # Dashboard summaries & revenue metrics
-│   │       ├── stocks/                        # Stock inventory & daily consumption
-│   │       ├── total-amounts/                 # Daily business reconciliation
-│   │       └── users/                         # User & role administration
-│   ├── domain/                                # Core Domain Layer (Pure Enterprise Rules)
-│   │   ├── entities/                          # Domain Entities & Business Models
-│   │   └── repositories/                      # Abstract Repository Interfaces (Contracts)
-│   ├── infrastructure/                        # Infrastructure & External Adapters
-│   │   ├── config/                            # Environment config, Swagger / OpenAPI specs
-│   │   ├── database/mongoose/                 # Mongoose ODM schemas & concrete repositories
-│   │   │   ├── models/                        # Mongoose Schemas (User, Branch, JobOrder, SLA, etc.)
-│   │   │   └── repositories/                  # Concrete MongoDB Repository implementations
-│   │   └── email/                             # Email service (SMTP / Password Reset notifications)
-│   ├── presentation/                          # Presentation Layer (HTTP / Express)
-│   │   ├── controllers/                       # Express route controllers & response handling
-│   │   ├── middleware/                        # JWT authentication, RBAC authorization, error handlers
-│   │   ├── routes/                            # Modular Express route declarations
-│   │   └── validators/                        # Express-validator schema rules & sanitization
-│   ├── shared/                                # Cross-Cutting Shared Modules
-│   │   ├── constants/                         # System roles, job stages, status enums
-│   │   ├── errors/                            # Standardized AppError & ErrorHelper
-│   │   ├── events/                            # Decoupled EventEmitters & Event Listeners
-│   │   ├── response/                          # Standardized JSON ResponseHelper
-│   │   └── asyncHandler.js                    # Async route controller wrapper
-│   ├── app.js                                 # Express application setup, security, CORS & Swagger
-│   └── server.js                              # Application entrypoint & MongoDB bootstrapper
-├── .env                                       # Local environment variables (git-ignored)
-├── .env.example                               # Environment template with placeholder values
-├── .gitignore                                 # Git ignore definitions
-├── package.json                               # Dependencies and npm scripts
-└── README.md                                  # Project documentation
+│   ├── presentation/                     # LAYER 1: Presentation Layer (HTTP / REST APIs)
+│   │   ├── routes/                       # Express Route Modules
+│   │   │   ├── auth/                     # Module 01: Auth, Users, Roles, Permissions
+│   │   │   ├── common/                   # Module 02: Audit Logs, Approvals, Sequences, Attachments
+│   │   │   ├── design/                   # Module 07: Design Queue & Sample Proofs
+│   │   │   ├── inventory/                # Module 03: Items, Balances, Transactions, Purchase Receipts
+│   │   │   ├── job-order/                # Module 06: Custom Job Orders & Estimates
+│   │   │   ├── pos/                      # Module 04: POS Sale Receipts & Checkout
+│   │   │   ├── product-order/            # Module 05: Product Orders & Stock Transfers
+│   │   │   ├── production/               # Module 08: Production Orders, Machine Ops, QC, Delivery
+│   │   │   ├── sla/                      # Module 09: SLA Configurations, Rules & Ratings
+│   │   │   └── index.js                  # Centralized Route Aggregator (/api/v1/*)
+│   │   ├── controllers/                  # Route Request Controllers
+│   │   │   ├── auth/                     # Auth & User Controllers
+│   │   │   ├── common/                   # Common Service Controllers
+│   │   │   ├── design/                   # Design Queue & Sample Controllers
+│   │   │   ├── inventory/                # Inventory Controllers
+│   │   │   ├── job-order/                # Job Order Controllers
+│   │   │   ├── pos/                      # POS Checkout Controllers
+│   │   │   ├── product-order/            # Product Order Controllers
+│   │   │   ├── production/               # Production, QC & Delivery Controllers
+│   │   │   └── sla/                      # SLA & Designer Rating Controllers
+│   │   ├── validators/                   # Payload Validation Schemas (express-validator)
+│   │   │   ├── auth/ common/ design/ inventory/ job-order/ pos/ product-order/ production/ sla/
+│   │   └── middleware/                   # JWT Auth, RBAC Permission Guards, Error & 404 Handlers
+│   │
+│   ├── application/                      # LAYER 2: Application Layer (Business Workflows)
+│   │   ├── services/                     # Domain Services & Workflow Orchestrators
+│   │   │   ├── auth/ common/ design/ inventory/ job-order/ pos/ product-order/ production/ sla/
+│   │   ├── use-cases/                    # Modular CQRS / Use-Case Command Handlers
+│   │   └── dto/                          # Data Transfer Objects & Response Serializers
+│   │       ├── auth/ common/ design/ inventory/ job-order/ pos/ product-order/ production/ sla/
+│   │
+│   ├── domain/                           # LAYER 3: Domain Layer (Pure Business Rules)
+│   │   ├── entities/                     # Enterprise Domain Entity Classes
+│   │   │   ├── auth/ common/ design/ inventory/ job-order/ pos/ product-order/ production/ sla/
+│   │   └── repositories/                 # Abstract Repository Interface Contracts
+│   │
+│   ├── infrastructure/                   # LAYER 4: Infrastructure Layer (Data & Adapters)
+│   │   ├── database/mongoose/
+│   │   │   ├── models/                   # Mongoose Database Models & Compound Indexes
+│   │   │   │   ├── auth/ common/ design/ inventory/ job-order/ pos/ product-order/ production/ sla/
+│   │   │   │   └── index.js              # Models Barrel Export
+│   │   │   └── repositories/             # Concrete MongoDB Mongoose Repository Implementations
+│   │   ├── auth/                         # Bcrypt password hashing & JWT generation
+│   │   ├── config/                       # Database connection pool & Environment parser
+│   │   └── audit/                        # Immutable Audit Logger Dispatcher
+│   │
+│   ├── shared/                           # Cross-Cutting Concerns
+│   │   ├── constants/                    # System Roles, Job Stages, Status Enums
+│   │   ├── errors/                       # AppError & Error Types
+│   │   ├── response/                     # Standard Response Envelope Helper ({ success, data, meta })
+│   │   └── asyncHandler.js               # Async route error wrapper
+│   │
+│   ├── app.js                            # Express Server Setup, Helmet, CORS & Routing
+│   └── server.js                         # Server Bootstrapper & MongoDB Connection
+├── tests/                                # Test Verification Suites
+├── uploads/                              # File Storage Target Directory
+├── .env.example                          # Environment Variables Template
+├── package.json                          # Scripts & Dependencies
+└── README.md                             # Single Authoritative Documentation
 ```
 
 ---
 
-## 🚀 Getting Started
+## 📦 The 9 Core Modules Across All Layers
+
+### 1. 🔐 `auth` Module (Authentication, Users & RBAC)
+* **Presentation:** `routes/auth/`, `controllers/auth/`, `validators/auth/`
+* **Application:** `services/auth/`, `use-cases/auth/`, `dto/auth/`
+* **Domain:** `entities/auth/User.js`, `entities/auth/Role.js`, `Permission.js`
+* **Infrastructure:** `models/auth/User.js`, `models/auth/Role.js`, `models/auth/Permission.js`
+* **Scope:** JWT Login/Refresh tokens, bcrypt password hashing, 7 System Roles (`SUPER_ADMIN`, `ADMIN`, `BRANCH_MANAGER`, `CASHIER`, `DESIGNER`, `PRODUCTION_OPERATOR`, `QC_INSPECTOR`), fine-grained permissions, Employee Directory, Departments, Designations.
+
+### 2. ⚙️ `common` Module (Number Sequences, Audit & Approvals)
+* **Presentation:** `routes/common/` (`auditLog`, `approval`, `numberSequence`, `attachment`)
+* **Application:** `services/common/` (`NumberSequenceService`, `ApprovalService`, `AuditService`)
+* **Domain:** `entities/common/` (`AuditLog`, `NumberSequence`, `Approval`)
+* **Infrastructure:** `models/common/` (`AuditLog.js`, `Sequence.js`, `JobApproval.js`)
+* **Scope:** Concurrency-safe atomic sequence generation (`JOB-YYYYMMDD-XXXX`, `SR-XXXXX`, `PO-XXXXX`, `ST-XXXXX`), immutable security audit logs, multi-tier approvals, file attachments.
+
+### 3. 📦 `inventory` Module (Ledger, Balances & Transactions)
+* **Presentation:** `routes/inventory/` (`inventoryItem`, `inventoryBalance`, `inventoryTransaction`, `purchaseReceipt`)
+* **Application:** `services/inventory/` (`InventoryBalanceService`, `InventoryTransactionService`)
+* **Domain:** `entities/inventory/` (`InventoryItem`, `InventoryBalance`, `InventoryTransaction`)
+* **Infrastructure:** `models/inventory/` (`InventoryItem.js`, `InventoryBalance.js`, `InventoryTransaction.js`)
+* **Scope:** SKU catalog, multi-branch stock balances, double-entry immutable ledger tracking ($\sum \text{Ledger Transactions} \equiv \text{Current Balance}$), purchase receipts.
+
+### 4. 🛒 `pos` Module (Point of Sale & Checkout)
+* **Presentation:** `routes/pos/` (`saleReceipt.routes.js`)
+* **Application:** `services/pos/` (`SaleReceiptService`, `PosCheckoutService`)
+* **Domain:** `entities/pos/` (`SaleReceipt.js`, `ReceiptPayment.js`)
+* **Infrastructure:** `models/pos/` (`SaleReceipt.js`)
+* **Scope:** Over-the-counter sales, real-time GST tax calculations, atomic stock deduction, receipt issuance (`SR-XXXXX`), cash/card/UPI payment capture.
+
+### 5. 🚚 `product-order` Module (Branch Orders & Stock Transfers)
+* **Presentation:** `routes/product-order/` (`productOrderRoutes`, `stockTransferRoutes`)
+* **Application:** `services/product-order/` (`ProductOrderService`, `StockTransferService`)
+* **Domain:** `entities/product-order/` (`ProductOrder.js`, `StockTransfer.js`)
+* **Infrastructure:** `models/product-order/` (`ProductOrder.js`, `StockTransfer.js`)
+* **Scope:** Branch replenishment requisitions, supervisor approvals, two-step warehouse stock movement (`DISPATCHED` → `RECEIVED`), variance recording.
+
+### 6. 📑 `job-order` Module (Custom Print Orders & Workflows)
+* **Presentation:** `routes/job-order/` (`jobOrder.routes.js`, `estimate.routes.js`)
+* **Application:** `services/job-order/` (`JobOrderService`, `JobEstimateService`, `JobWorkflowService`)
+* **Domain:** `entities/job-order/` (`JobOrder.js`, `JobEstimate.js`, `JobWorkflowEvent.js`)
+* **Infrastructure:** `models/job-order/` (`JobOrder.js`, `JobWorkflowEvent.js`, `JobInvoice.js`)
+* **Scope:** Custom print jobs, quote estimation and client approval, bypass routing for print-ready artworks, stage history transitions, finalized GST invoices.
+
+### 7. 🎨 `design` Module (Round-Robin Allocation & Proofs)
+* **Presentation:** `routes/design/` (`design.routes.js`, `designSample.routes.js`)
+* **Application:** `services/design/` (`DesignAllocationService`, `DesignQueueService`)
+* **Domain:** `entities/design/` (`DesignSample.js`, `DesignAssignment.js`)
+* **Infrastructure:** `models/design/` (`RoundRobinPointer.js`, `DesignSample.js`)
+* **Scope:** Automated round-robin designer allocation, design queue, proof sample versioning (v1..vN), customer approval decisions (`APPROVED` / `REVISION_REQUIRED`).
+
+### 8. 🏭 `production` Module (Machine Ops, QC & Delivery)
+* **Presentation:** `routes/production/` (`productionOrders`, `productionOperations`, `qualityChecks`, `reprintRequests`, `deliveryOrders`)
+* **Application:** `services/production/` (`ProductionOrderService`, `OperationService`, `QCService`, `DeliveryService`)
+* **Domain:** `entities/production/` (`ProductionOrder.js`, `ProductionOperation.js`, `QualityCheck.js`)
+* **Infrastructure:** `models/production/` (`ProductionOrder.js`, `ProductionOperation.js`, `QualityCheck.js`, `DeliveryOrder.js`, `ReprintRequest.js`)
+* **Scope:** Production planning, sequential operation execution (`PRINT` → `FINISHING` → `PACKING`), operator machine logging, QC gate (`PASS` → `READY` / `ISSUE` → `REWORK`), reprint supervisor approvals, delivery dispatches.
+
+### 9. ⏱️ `sla` Module (SLA Engine & Designer Ratings)
+* **Presentation:** `routes/sla/` (`slaConfiguration`, `slaStatus`, `designerRating`, `performance`)
+* **Application:** `services/sla/` (`SlaEngineService`, `SlaSchedulerService`, `DesignerRatingService`)
+* **Domain:** `entities/sla/` (`SlaConfiguration.js`, `DesignerRating.js`)
+* **Infrastructure:** `models/sla/` (`SlaConfiguration.js`, `DesignerRating.js`)
+* **Scope:** SLA stage thresholds, automated breach detection background scheduler, customer feedback star ratings, designer productivity scorecards.
+
+---
+
+## 📡 Complete REST API Reference (`/api/v1/*`)
+
+| Module | Method | Endpoint | Description | Auth / Permission |
+| :--- | :---: | :--- | :--- | :--- |
+| **Auth** | `POST` | `/api/v1/auth/login` | User login & JWT issuance | Public |
+| | `POST` | `/api/v1/auth/refresh-token` | Renew expired access token | Public (Valid Refresh Token) |
+| | `GET` | `/api/v1/users` | List system users | `SUPER_ADMIN`, `ADMIN` |
+| | `GET` | `/api/v1/roles` | List system RBAC roles & permissions | Authenticated |
+| | `GET` | `/api/v1/employees` | List employee directory | `HR_EMPLOYEE_VIEW` |
+| **Common** | `GET` | `/api/v1/audit-logs` | Retrieve immutable audit records | `SUPER_ADMIN`, `ADMIN` |
+| | `GET` | `/api/v1/number-sequences` | List number sequences | `ADMIN` |
+| **Inventory** | `GET` | `/api/v1/inventory-items` | Get inventory item catalog | Authenticated |
+| | `POST` | `/api/v1/inventory-items` | Create new SKU item | `inventory.create` |
+| | `GET` | `/api/v1/inventory-balances` | Branch inventory balance levels | Authenticated |
+| | `POST` | `/api/v1/inventory-transactions/opening` | Post opening stock ledger entry | `inventory.manage` |
+| | `POST` | `/api/v1/purchase-receipts` | Inward purchase stock receipt | `inventory.purchase` |
+| **POS** | `POST` | `/api/v1/sale-receipts/checkout` | POS Cart Checkout & Stock Deduction | `pos.saleReceipt.create` |
+| | `GET` | `/api/v1/sale-receipts` | List branch POS sales | Authenticated |
+| **Product Order**| `POST` | `/api/v1/product-orders` | Create branch stock requisition | `productOrder.create` |
+| | `POST` | `/api/v1/product-orders/:id/approve` | Approve order & generate transfer | `productOrder.approve` |
+| | `POST` | `/api/v1/stock-transfers/:id/dispatch`| Warehouse stock dispatch | `inventory.transfer` |
+| | `POST` | `/api/v1/stock-transfers/:id/receive` | Branch stock receipt confirmation | `inventory.transfer` |
+| **Job Order** | `POST` | `/api/v1/job-orders` | Create custom job order | `jobOrder.create` |
+| | `POST` | `/api/v1/job-orders/:id/estimate/approve` | Approve estimate & route to queue | `jobOrder.estimate` |
+| | `POST` | `/api/v1/job-orders/:id/skip-design` | Direct bypass to production | `jobOrder.manage` |
+| | `POST` | `/api/v1/job-orders/:id/invoice` | Generate final GST sales invoice | `jobOrder.invoice` |
+| **Design** | `GET` | `/api/v1/design/queue` | View active design queue | `designer.view` |
+| | `POST` | `/api/v1/job-orders/:id/samples` | Upload artwork sample proof | `designer.upload` |
+| | `POST` | `/api/v1/job-orders/:id/samples/:id/decision` | Customer proof approval / revision | `jobOrder.edit` |
+| **Production** | `POST` | `/api/v1/job-orders/:id/production/plan` | Plan production operations | `production.create` |
+| | `POST` | `/api/v1/production-operations/:id/start` | Start machine operation | `production.execute` |
+| | `POST` | `/api/v1/production-operations/:id/complete`| Complete machine operation | `production.execute` |
+| | `POST` | `/api/v1/production-orders/:id/quality-checks` | QC Inspection (PASS / REWORK) | `production.qc` |
+| | `POST` | `/api/v1/delivery-orders/:id/deliver` | Mark job delivered to customer | `delivery.manage` |
+| **SLA** | `GET` | `/api/v1/sla-configurations` | Get stage SLA thresholds | Authenticated |
+| | `GET` | `/api/v1/job-orders/:id/sla` | Get job SLA status & stages | Authenticated |
+| | `POST` | `/api/v1/job-orders/:id/designer-ratings`| Submit customer designer rating | Authenticated |
+| **System** | `GET` | `/health` | Health & MongoDB connectivity status | Public |
+| | `GET` | `/api-docs` | Interactive Swagger OpenAPI Explorer | Public |
+
+---
+
+## 🚀 Setup & Execution Guide
 
 ### 1. Prerequisites
 - **Node.js**: `v18.0.0` or higher
-- **MongoDB**: MongoDB Atlas cluster or local MongoDB instance (`v6.0+`)
-- **npm** or **yarn** / **pnpm**
+- **MongoDB**: Active MongoDB instance running locally (`mongodb://localhost:27017`) or via MongoDB Atlas
 
-### 2. Installation
-```bash
-# Navigate to the backend directory
-cd backend
+### 2. Environment Configuration
+Create a `.env` file in the root `backend/` directory:
 
-# Install project dependencies
-npm install
-```
-
-### 3. Environment Configuration
-Create a `.env` file in the `backend/` directory by copying from `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-Configure your variables accordingly:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGO_URI=mongodb://127.0.0.1:27017/printzpayment
-JWT_ACCESS_SECRET=your_jwt_access_secret_key
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
+MONGO_URI=mongodb://localhost:27017/printzpayment
+JWT_ACCESS_SECRET=printz_enterprise_jwt_access_secret_super_secure_key_2026_prod
+JWT_ACCESS_EXPIRES_IN=100m
+JWT_REFRESH_SECRET=printz_enterprise_jwt_refresh_secret_super_secure_key_2026_prod
 JWT_REFRESH_EXPIRES_IN=7d
-CLIENT_URL=http://localhost:3000,http://localhost:5173
+CLIENT_URL=http://localhost:3000,http://localhost:3001,http://localhost:5173
 APP_URL=http://localhost:5173
-
-# Optional SMTP Configuration for Password Reset Emails
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_email_app_password
-SMTP_FROM="Printz Portal" <no-reply@printz.shop>
 ```
 
-### 4. Running the Server
+### 3. Starting the Server
 
-```bash
-# Development mode (with live reload via nodemon)
+```powershell
+# Install dependencies
+npm install
+
+# Run in development mode with nodemon hot-reload
 npm run dev
 
-# Production mode
+# Run in production mode
 npm start
 ```
 
-Once running:
-- **API Base URL**: `http://localhost:5000/api` (or `http://localhost:5000/api/v1`)
-- **Interactive Swagger Documentation**: `http://localhost:5000/api-docs`
-- **OpenAPI JSON Specification**: `http://localhost:5000/api-docs.json`
+### 4. Exploring the APIs
+- **Swagger Documentation:** `http://localhost:5000/api-docs`
+- **Health Check Endpoint:** `http://localhost:5000/health`
+- **Base API Endpoint:** `http://localhost:5000/api/v1`
 
 ---
 
-## 📡 Core API Modules & Endpoints
+## 🛡️ Global Standard Response Formats
 
-### 🔐 01. Authentication & Users (`/api/auth`, `/api/users`)
-- `POST /api/auth/login` — User authentication & JWT issuance.
-- `POST /api/auth/register` — Register a new staff / admin user.
-- `GET /api/auth/me` — Retrieve current authenticated user profile.
-- `POST /api/auth/refresh-token` — Rotate and refresh expired access token.
-- `GET /api/users` — Search and paginate system users.
-- `PUT /api/users/:id` — Update user permissions, roles, and branch assignments.
+### Success Response (`200 OK`, `201 Created`)
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "6ac925edd365a80fc2e908c4",
+    "jobNo": "JO-20261009-0008",
+    "stage": "PRODUCTION_PLANNING",
+    "grandTotal": 2450.00
+  },
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
 
-### 🏢 02. Branch Management (`/api/branches`)
-- `GET /api/branches` — List all active branches.
-- `POST /api/branches` — Create a new branch (Admin).
-- `GET /api/branches/:id` — Get detailed branch info.
-- `PUT /api/branches/:id` — Update branch settings.
-- `DELETE /api/branches/:id` — Deactivate or remove a branch.
-
-### 🖨️ 03. Printers & Meter Readings (`/api/printers`, `/api/printer-readings`)
-- `GET /api/printers` — List configured printers with branch filtering.
-- `POST /api/printers` — Register new printer asset.
-- `GET /api/printer-readings` — Daily counter meter readings (opening, closing, copies, total amount).
-- `POST /api/printer-readings` — Submit daily meter entries.
-
-### 📑 04. Jumbo Xerox & Large Format (`/api/jumbo-xerox`)
-- `GET /api/jumbo-xerox` — Master large-format rate cards and paper types.
-- `GET /api/jumbo-xerox/readings` — Daily large format reading logs.
-- `POST /api/jumbo-xerox/readings` — Submit daily large format readings.
-
-### 📦 05. Stocks & Inventory (`/api/stocks`, `/api/general`)
-- `GET /api/stocks` — Master inventory catalog items.
-- `POST /api/stocks` — Add new stock item.
-- `GET /api/stocks/readings` — Daily stock opening, incoming, sold, and closing quantities.
-- `POST /api/stocks/readings` — Record daily stock count.
-- `GET /api/general/categories` — Product and stock category lists.
-- `POST /api/general/inventory-movements` — Stock transfers and stock adjustment logs.
-
-### 📋 06. Job Orders Lifecycle (`/api/job-orders`)
-- `GET /api/job-orders` — Filter, paginate, and search customer job orders.
-- `POST /api/job-orders` — Create a new customer job order.
-- `GET /api/job-orders/:id` — Detailed job order specification, items, and design history.
-- `PATCH /api/job-orders/:id/status` — Transition job order status (`PENDING`, `DESIGN_QUEUE`, `IN_DESIGN`, `SAMPLE_APPROVAL`, `PRODUCTION_QUEUE`, `IN_PRODUCTION`, `READY_FOR_DELIVERY`, `DELIVERED`, `CANCELLED`).
-- `GET /api/job-orders/:id/timeline` — Complete audit trail and lifecycle event log.
-
-### 🎨 07. Design Workflow & Designer Allocation (`/api/design`)
-- `GET /api/design/designer/workload` — Active designer queue, current jobs, and load distribution.
-- `POST /api/design/assignments/allocate` — Intelligent/manual job assignment to designer.
-- `POST /api/design/assignments/:id/start` — Start designing active job.
-- `POST /api/design/assignments/:id/samples` — Upload & submit design proof sample for review.
-- `POST /api/design/samples/:id/review` — Customer / Manager sample approval or revision request.
-
-### ⚙️ 08. Production Workflow, QC & Delivery (`/api/production`, `/api/production-*`, `/api/delivery-orders`)
-- `POST /api/production-orders` / `POST /api/job-orders/:id/production/plan` — Create production order & operation routing.
-- `GET /api/production-queue` — Live machine-wise production queue and pending operations.
-- `POST /api/production-operations/:id/start` — Start production process on machine.
-- `POST /api/production-operations/:id/complete` — Complete production process.
-- `POST /api/quality-checks` — Record QC inspection (Pass / Fail / Partial).
-- `POST /api/reprint-requests` — Request reprint on damaged / defected items.
-- `POST /api/delivery-orders` — Generate dispatch / delivery challan and handover items.
-
-### ⏱️ 09. SLA & Designer Performance Tracking (`/api/sla`, `/api/sla-configurations`, `/api/designer-ratings`, `/api/designers`)
-- `GET /api/sla-configurations` — Master SLA duration rules by item type and priority.
-- `GET /api/sla/job-order/:jobOrderId` — Live SLA countdown, remaining time, and breach status.
-- `GET /api/sla/breaches` — List of active SLA breaches and escalation alerts.
-- `POST /api/designer-ratings` — Score designer turnaround speed, design quality, and customer satisfaction.
-- `GET /api/designers/performance` — Comprehensive designer KPIs (Turnaround Time, First-Time Pass Rate, SLA Compliance %, Rating Avg).
-
-### 💰 10. Financials, POS Sales & Reports (`/api/total-amounts`, `/api/payments`, `/api/general/sales`, `/api/reports`, `/api/past-date-requests`)
-- `GET /api/total-amounts` — Daily branch business reconciliation (Cash, Online, Expenses, Opening/Closing balance).
-- `POST /api/total-amounts` — Record daily business closure.
-- `GET /api/payments` — Payment transactions and credit receivables.
-- `POST /api/general/sales` — POS counter sales & instant billing.
-- `GET /api/reports/dashboard-summary` — Multi-branch revenue and operational dashboard metrics.
-- `GET /api/reports/monthly-revenue` — Monthly revenue breakdown.
-- `POST /api/general/finalized-dates` — Lock and seal finalized daily business dates.
-- `POST /api/past-date-requests` — Request unlock permissions to edit historical records.
+### Error Response (`400`, `401`, `403`, `404`, `422`, `429`, `500`)
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_STOCK",
+    "message": "Requested quantity exceeds available stock balance",
+    "details": []
+  }
+}
+```
 
 ---
-
-## 🛡️ Security, RBAC & Architecture Highlights
-
-- **Clean Architecture & DDD**: Strict separation of concerns across `domain`, `application`, `infrastructure`, and `presentation` layers.
-- **Database-Driven Design**: 100% connected to MongoDB via Mongoose repositories with zero hardcoded mock/seed dependencies.
-- **Role-Based Access Control (RBAC)**: Fine-grained middleware authorization for roles (`admin`, `manager`, `designer`, `operator`, `accountant`).
-- **Decoupled Event Architecture**: Node.js `EventEmitter` handles asynchronous side-effects (SLA timer starts, automated designer allocation, breach notifications).
-- **Automated Background Scheduler**: Built-in SLA timer evaluation and breach monitor running smoothly without blocking HTTP request threads.
-- **Security & Validation**: Protected with `Helmet`, sanitized input with `express-validator`, rate limiting, and configurable CORS whitelists.
+**Printz Payment Dashboard — Pure Database-Driven Enterprise Backend**

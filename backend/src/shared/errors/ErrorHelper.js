@@ -40,6 +40,10 @@ class ErrorHelper {
   static internal(message = "Internal server error", details = null) {
     return new AppError(message, 500, "INTERNAL_SERVER_ERROR", details);
   }
+
+  static locked(message = "Account is locked. Please try again later or contact an administrator.", details = null) {
+    return new AppError(message, 423, "LOCKED", details);
+  }
 }
 
 module.exports = ErrorHelper;

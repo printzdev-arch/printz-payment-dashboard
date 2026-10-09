@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const IUserRepository = require("../../../../domain/repositories/IUserRepository");
 const User = require("../models/User");
 const Branch = require("../models/Branch");
+const Role = require("../models/Role");
+const Employee = require("../models/Employee");
 
 class MongoUserRepository extends IUserRepository {
   _buildIdQuery(id) {
@@ -35,13 +37,68 @@ class MongoUserRepository extends IUserRepository {
 
   async _enrichUser(user) {
     if (!user) return null;
-    if (!user.branch && user.branchId) {
-      const branch = await this._resolveBranch(user.branchId);
+    const userObj = user._doc
+      ? { ...user._doc }
+      : (typeof user.toObject === "function" ? user.toObject({ transform: false }) : { ...user });
+
+    // Single source of truth: If user is linked to an Employee, derive role and branch dynamically
+    if (userObj.employeeId) {
+      const Employee = require("../models/Employee");
+      const employee = await Employee.findById(userObj.employeeId)
+        .populate("roleId", "code name grants")
+        .populate("branchId", "name code location")
+        .lean();
+
+      if (employee) {
+        userObj.employee = employee;
+
+        if (employee.branchId) {
+          let branchDoc = employee.branchId;
+          const bId = branchDoc._id || branchDoc;
+          userObj.branchId = bId;
+          userObj.branchIds = [bId];
+
+          if (!branchDoc.name && mongoose.Types.ObjectId.isValid(bId)) {
+            const Branch = require("../models/Branch");
+            branchDoc = (await Branch.findById(bId).lean()) || {};
+          }
+
+          if (branchDoc.name) {
+            userObj.branch = branchDoc.name;
+          }
+        }
+
+        if (employee.roleId) {
+          let roleDoc = employee.roleId;
+          const rId = roleDoc._id || roleDoc;
+          userObj.roleId = rId;
+          userObj.roleIds = [rId];
+
+          if (!roleDoc.code && mongoose.Types.ObjectId.isValid(rId)) {
+            const Role = require("../models/Role");
+            roleDoc = (await Role.findById(rId).lean()) || {};
+          }
+
+          if (roleDoc.code) {
+            userObj.roleCode = roleDoc.code;
+            userObj.role = roleDoc.code.toLowerCase();
+          }
+        }
+
+        if (employee.name) {
+          userObj.name = employee.name;
+        }
+        if (employee.mobile) {
+          userObj.phone = employee.mobile;
+        }
+      }
+    } else if (!userObj.branch && userObj.branchId) {
+      const branch = await this._resolveBranch(userObj.branchId);
       if (branch) {
-        user.branch = branch.name;
+        userObj.branch = branch.name;
       }
     }
-    return user;
+    return userObj;
   }
 
   async findById(id) {
@@ -66,6 +123,8 @@ class MongoUserRepository extends IUserRepository {
     const user = await User.findOne({
       $or: [
         { email: trimmed.toLowerCase() },
+        { username: trimmed },
+        { username: trimmed.toLowerCase() },
         { phone: trimmed },
         { name: new RegExp(`^${trimmed}$`, "i") },
       ],
@@ -97,7 +156,8 @@ class MongoUserRepository extends IUserRepository {
       }
     }
 
-    return User.find(query).select("-password").sort({ createdAt: -1 });
+    const users = await User.find(query).select("-password").sort({ createdAt: -1 });
+    return Promise.all(users.map((u) => this._enrichUser(u)));
   }
 
   async create(userData) {
@@ -119,7 +179,7 @@ class MongoUserRepository extends IUserRepository {
     }
     const user = new User(data);
     await user.save();
-    return user;
+    return this._enrichUser(user);
   }
 
   async update(id, updateData) {
@@ -147,7 +207,8 @@ class MongoUserRepository extends IUserRepository {
     }
 
     await user.save();
-    return User.findOne(this._buildIdQuery(id)).select("-password");
+    const updated = await User.findOne(this._buildIdQuery(id)).select("-password");
+    return this._enrichUser(updated);
   }
 
   async delete(id, hardDelete = true) {

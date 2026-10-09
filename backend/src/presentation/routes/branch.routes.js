@@ -10,7 +10,7 @@ router.use(authenticate);
 router.get("/", branchController.getAllBranches);
 router.get("/:id", branchController.getBranchById);
 
-router.post("/", authorizeRoles("admin"), branchController.createBranch);
+router.post("/", authorizeRoles("admin", "SUPER_ADMIN", "ADMIN"), branchController.createBranch);
 router.put("/:id", authorizeRoles("admin"), branchController.updateBranch);
 router.patch("/:id", authorizeRoles("admin"), branchController.updateBranch);
 router.delete("/:id", authorizeRoles("admin"), branchController.deleteBranch);

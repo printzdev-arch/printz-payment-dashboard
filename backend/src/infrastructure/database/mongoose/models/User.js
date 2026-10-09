@@ -12,6 +12,12 @@ const userSchema = new mongoose.Schema(
       required: [true, "Name is required"],
       trim: true,
     },
+    username: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -39,6 +45,22 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    employeeId: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+      index: true,
+    },
+    branchIds: [
+      {
+        type: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    roleIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Role",
+      },
+    ],
     profilePicUrl: {
       type: String,
       default: null,
@@ -49,8 +71,30 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "manager", "designer", "production", "operator", "staff"],
-      default: "manager",
+      trim: true,
+      default: "staff",
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "LOCKED", "DISABLED"],
+      default: "ACTIVE",
+      index: true,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lastFailedLoginAt: {
+      type: Date,
+      default: null,
+    },
+    lockoutEnd: {
+      type: Date,
+      default: null,
+    },
+    lastLoginAt: {
+      type: Date,
+      default: null,
     },
     permissions: {
       type: mongoose.Schema.Types.Mixed,
@@ -59,6 +103,7 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
     resetPasswordToken: {
       type: String,

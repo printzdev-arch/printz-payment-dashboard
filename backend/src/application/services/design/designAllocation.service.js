@@ -23,19 +23,55 @@ class DesignAllocationService {
    * Evaluate designer pool eligibility.
    */
   static async evaluate(jobId = null, branchId = null) {
-    const filter = { isActive: { $ne: false } };
-    if (branchId) {
-      filter.$or = [
-        { branchId: branchId },
-        { branchId: String(branchId) },
-        { role: "admin" },
-        { role: "designer" },
-      ];
+    const Employee = require("../../../infrastructure/database/mongoose/models/Employee");
+    const targetBranchId = branchId ? (branchId._id || branchId) : null;
+    let employeeFilter = {
+      isActive: true,
+      employmentStatus: "ACTIVE",
+    };
+    if (targetBranchId) {
+      employeeFilter.branchId = targetBranchId;
     }
+    let employeeCandidates = await Employee.find(employeeFilter).sort({ employeeCode: 1 }).lean();
 
-    let designers = await User.find(filter).sort({ name: 1 }).lean();
-    if (!designers || designers.length === 0) {
-      designers = await User.find({ isActive: { $ne: false } }).sort({ name: 1 }).lean();
+    let designers = [];
+    if (employeeCandidates && employeeCandidates.length > 0) {
+      // Map employees to candidate list
+      for (const emp of employeeCandidates) {
+        // Find corresponding user if any
+        const u = await User.findOne({ employeeId: emp._id }).lean();
+        designers.push({
+          _id: u?._id || emp._id,
+          employeeId: emp._id,
+          employeeCode: emp.employeeCode,
+          name: emp.name,
+          role: u?.role || "designer",
+          branchId: emp.branchId,
+          isDesigner: emp.isDesigner !== false
+        });
+      }
+    } else {
+      const filter = { isActive: { $ne: false } };
+      if (targetBranchId) {
+        filter.$or = [
+          { branchId: targetBranchId },
+          { branchId: String(targetBranchId) },
+          { role: "admin" },
+          { role: "designer" },
+        ];
+      }
+      const userList = await User.find(filter).sort({ name: 1 }).lean();
+      for (const u of userList) {
+        designers.push({
+          _id: u._id,
+          employeeId: u.employeeId || u._id,
+          employeeCode: u.email || String(u._id),
+          name: u.name,
+          role: u.role,
+          branchId: u.branchId,
+          isDesigner: true
+        });
+      }
     }
 
     const maxConcurrent = 5;
@@ -70,8 +106,9 @@ class DesignAllocationService {
       }
 
       candidates.push({
-        employeeId: d._id,
-        employeeCode: d.email || dId,
+        employeeId: d.employeeId || d._id,
+        userId: d._id,
+        employeeCode: d.employeeCode,
         name: d.name,
         eligible: !reason,
         reason,
@@ -97,7 +134,7 @@ class DesignAllocationService {
 
     for (let i = 1; i <= candidates.length; i++) {
       const c = candidates[(idx + i + candidates.length) % candidates.length];
-      if (c.eligible && !excludeSet.has(String(c.employeeId))) {
+      if (c && c.eligible && !excludeSet.has(String(c.employeeId))) {
         return c.employeeId;
       }
     }
@@ -106,10 +143,14 @@ class DesignAllocationService {
   }
 
   static async lastRoundRobin() {
-    return jobAssignmentRepository.findOne({
+    const JobAssignment = require("../../../infrastructure/database/mongoose/models/design/JobAssignment");
+    const assignments = await JobAssignment.find({
       assignmentType: "DESIGNER",
       assignmentMethod: "ROUND_ROBIN",
-    });
+    })
+      .sort({ createdAt: -1 })
+      .limit(1);
+    return assignments[0] || null;
   }
 
   /**
@@ -172,7 +213,14 @@ class DesignAllocationService {
       throw ErrorHelper.conflict("Job is not in DESIGN_QUEUE. Use reassign for already assigned jobs.");
     }
 
-    const employee = await User.findById(employeeId);
+    let employee = await User.findById(employeeId);
+    if (!employee) {
+      const Employee = require("../../../infrastructure/database/mongoose/models/Employee");
+      const empDoc = await Employee.findById(employeeId);
+      if (empDoc) {
+        employee = (await User.findOne({ employeeId: empDoc._id })) || { _id: empDoc._id };
+      }
+    }
     if (!employee) throw ErrorHelper.notFound(`Employee not found with ID: ${employeeId}`);
 
     const assignment = await this.createAssignment(job, employee._id, "MANUAL", user?._id);

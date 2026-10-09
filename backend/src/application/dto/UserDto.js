@@ -6,49 +6,31 @@ const ErrorHelper = require("../../shared/errors/ErrorHelper");
 
 class CreateUserDto {
   constructor({
-    name,
+    username,
     email,
     password,
-    role = "manager",
-    branch = "",
-    branchId = null,
-    location = "",
-    phone = "",
-    permissions = null,
-    profilePicUrl = null,
-    needsReview = false,
-    isActive = true,
+    employeeId,
+    sendInvite = false,
   } = {}) {
-    this.name = typeof name === "string" ? name.trim() : "";
+    this.username = typeof username === "string" ? username.trim().toLowerCase() : "";
     this.email = typeof email === "string" ? email.trim().toLowerCase() : "";
     this.password = typeof password === "string" ? password : "";
-    this.role = role || "manager";
-    this.branch = typeof branch === "string" ? branch.trim() : "";
-    this.branchId = branchId || null;
-    this.location = typeof location === "string" ? location.trim() : "";
-    this.phone = typeof phone === "string" ? phone.trim() : "";
-    this.permissions = permissions || null;
-    this.profilePicUrl = profilePicUrl || null;
-    this.needsReview = typeof needsReview === "boolean" ? needsReview : false;
-    this.isActive = typeof isActive === "boolean" ? isActive : true;
+    this.employeeId = employeeId || null;
+    this.sendInvite = Boolean(sendInvite);
   }
 
   validate() {
-    if (!this.name) {
-      throw ErrorHelper.badRequest("Name is required");
-    }
-    if (!this.email) {
-      throw ErrorHelper.badRequest("Email is required");
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.email)) {
-      throw ErrorHelper.badRequest("Invalid email address format");
+    if (!this.employeeId) {
+      throw ErrorHelper.badRequest("employeeId is required to create a user account");
     }
     if (!this.password || this.password.length < 6) {
-      throw ErrorHelper.badRequest("Password must be at least 6 characters long");
+      throw ErrorHelper.badRequest("Password is required and must be at least 6 characters long");
     }
-    if (this.role && !["admin", "manager"].includes(this.role)) {
-      throw ErrorHelper.badRequest("Role must be either 'admin' or 'manager'");
+    if (this.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.email)) {
+        throw ErrorHelper.badRequest("Invalid email address format");
+      }
     }
     return true;
   }
@@ -148,24 +130,34 @@ class UserResponseDto {
     const raw = typeof user.toObject === "function" ? user.toObject() : { ...user };
 
     delete raw.password;
+    delete raw.resetPasswordToken;
+    delete raw.resetPasswordExpires;
 
     const id = raw._id ? raw._id.toString() : (raw.id ? raw.id.toString() : "");
 
     return {
       _id: id,
-      id: id,
-      uid: id,
       name: raw.name || "",
       email: raw.email || "",
       phone: raw.phone || "",
       role: raw.role || "manager",
+      roleIds: raw.roleIds || [],
+      roles: raw.roles || undefined,
       branch: raw.branch || "",
-      branchId: raw.branchId ? raw.branchId.toString() : null,
+      branchId: raw.branchId ? (raw.branchId._id ? raw.branchId._id.toString() : raw.branchId.toString()) : null,
+      branchIds: raw.branchIds || [],
+      branches: raw.branches || undefined,
+      employeeId: raw.employeeId ? (raw.employeeId._id ? raw.employeeId._id.toString() : raw.employeeId.toString()) : null,
+      employee: raw.employee || undefined,
       location: raw.location || "",
       permissions: raw.permissions !== undefined ? raw.permissions : null,
+      effectiveScopes: raw.effectiveScopes || undefined,
+      status: raw.status || (raw.isActive ? "ACTIVE" : "DISABLED"),
       profilePicUrl: raw.profilePicUrl || null,
       needsReview: raw.needsReview !== undefined ? raw.needsReview : false,
       isActive: raw.isActive !== undefined ? raw.isActive : true,
+      failedLoginAttempts: raw.failedLoginAttempts || 0,
+      lastLoginAt: raw.lastLoginAt || null,
       createdAt: raw.createdAt || null,
       updatedAt: raw.updatedAt || null,
     };
