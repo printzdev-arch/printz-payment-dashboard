@@ -1,26 +1,6 @@
 /**
- * Product Order & Stock Transfer Status Constants
+ * Product Order & Stock Transfer Constants (Delegated to module constants)
  */
-const ORDER_STATUS = Object.freeze({
-  DRAFT: "DRAFT",
-  SUBMITTED: "SUBMITTED",
-  APPROVED: "APPROVED",
-  PARTIALLY_APPROVED: "PARTIALLY_APPROVED",
-  REJECTED: "REJECTED",
-  DISPATCHED: "DISPATCHED",
-  DELIVERED: "DELIVERED",
-  CANCELLED: "CANCELLED",
-});
+const productOrder = require("./product-order");
 
-const TRANSFER_STATUS = Object.freeze({
-  REQUESTED: "REQUESTED",
-  APPROVED: "APPROVED",
-  DISPATCHED: "DISPATCHED",
-  RECEIVED: "RECEIVED",
-  CANCELLED: "CANCELLED",
-});
-
-module.exports = {
-  ORDER_STATUS,
-  TRANSFER_STATUS,
-};
+module.exports = productOrder;

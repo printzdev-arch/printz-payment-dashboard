@@ -181,6 +181,10 @@ const jobOrderSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    idempotencyKey: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -190,6 +194,7 @@ const jobOrderSchema = new mongoose.Schema(
 
 jobOrderSchema.index({ branchId: 1, currentStage: 1 });
 jobOrderSchema.index({ branchId: 1, status: 1 });
+jobOrderSchema.index({ idempotencyKey: 1 }, { sparse: true });
 
 const JobOrder = mongoose.models.JobOrder || mongoose.model("JobOrder", jobOrderSchema, "jobOrders");
 

@@ -5,6 +5,7 @@
 
 const auth = require("./auth");
 const common = require("./common");
+const customer = require("./customer");
 const inventory = require("./inventory");
 const pos = require("./pos");
 const productOrder = require("./product-order");
@@ -18,9 +19,10 @@ const permissions = require("./permissions");
 const productOrderConstants = require("./productOrderConstants");
 
 module.exports = {
-  // 9 Modular Domains
+  // Modular Domains
   auth,
   common,
+  customer,
   inventory,
   pos,
   productOrder,
@@ -32,6 +34,7 @@ module.exports = {
   // Flattened accessors
   ...auth,
   ...common,
+  ...customer,
   ...inventory,
   ...pos,
   ...productOrder,

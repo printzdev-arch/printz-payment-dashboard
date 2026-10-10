@@ -26,6 +26,14 @@ const PERMISSIONS = Object.freeze({
     BALANCE_VIEW: "inventory.balance.view",
     ADJUST: "inventory.adjust",
     PURCHASE_CREATE: "inventory.purchase.create",
+    CUSTOMER_VIEW: "customer.view",
+    CUSTOMER_MANAGE: "customer.manage",
+  },
+  CUSTOMER: {
+    VIEW: "customer.view",
+    MANAGE: "customer.manage",
+    CREATE: "customer.create",
+    UPDATE: "customer.update",
   },
   POS: {
     SALE_RECEIPT_VIEW: "pos.saleReceipt.view",

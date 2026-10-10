@@ -23,8 +23,9 @@ const Notification = require("./Notification");
 const InventoryItem = require("./inventory/InventoryItem");
 const InventoryBalance = require("./inventory/InventoryBalance");
 const InventoryTransaction = require("./inventory/InventoryTransaction");
-const StockTransfer = require("./inventory/StockTransfer");
+const StockTransfer = require("./product-order/StockTransfer");
 const PurchaseReceipt = require("./inventory/PurchaseReceipt");
+const Customer = require("./customer/Customer");
 
 // POS
 const SaleReceipt = require("./pos/SaleReceipt");
@@ -42,7 +43,6 @@ const JobAssignment = require("./design/JobAssignment");
 const JobSample = require("./design/JobSample");
 const JobWorkflowEvent = require("./job-order/JobWorkflowEvent");
 const JobFile = require("./job-order/JobFile");
-const JobInvoice = require("./job-order/JobInvoice");
 
 // Production & QC
 const ProductionOrder = require("./production/ProductionOrder");
@@ -54,6 +54,7 @@ const DeliveryOrder = require("./production/DeliveryOrder");
 // SLA & Rating
 const SlaConfiguration = require("./sla/SlaConfiguration");
 const DesignerRating = require("./sla/DesignerRating");
+const DesignApprovalToken = require("./design/DesignApprovalToken");
 
 module.exports = {
   // Auth & Master
@@ -78,6 +79,7 @@ module.exports = {
   InventoryTransaction,
   StockTransfer,
   PurchaseReceipt,
+  Customer,
 
   // POS
   SaleReceipt,
@@ -95,7 +97,7 @@ module.exports = {
   JobSample,
   JobWorkflowEvent,
   JobFile,
-  JobInvoice,
+  DesignApprovalToken,
 
   // Production & QC
   ProductionOrder,

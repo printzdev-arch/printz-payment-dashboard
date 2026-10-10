@@ -1,7 +1,10 @@
+const crypto = require("crypto");
 const jobOrderRepository = require("../../../infrastructure/database/mongoose/repositories/job-order/MongoJobOrderRepository");
 const jobApprovalRepository = require("../../../infrastructure/database/mongoose/repositories/job-order/MongoJobApprovalRepository");
 const jobSampleRepository = require("../../../infrastructure/database/mongoose/repositories/design/MongoJobSampleRepository");
 const jobAssignmentRepository = require("../../../infrastructure/database/mongoose/repositories/design/MongoJobAssignmentRepository");
+const DesignApprovalToken = require("../../../infrastructure/database/mongoose/models/design/DesignApprovalToken");
+const WhatsAppService = require("../../../infrastructure/whatsapp/WhatsAppService");
 const JobWorkflowService = require("../job-order/jobWorkflow.service");
 const ProductionStateService = require("../production/productionState.service");
 const { emitJobEvent } = require("../../../shared/events/job-order/jobEvents.emitter");
@@ -116,6 +119,63 @@ class DesignSampleService {
       requestedBy: user._id,
     });
 
+    // ── Generate Cryptographic Approval Token ──
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    // Invalidate any older active tokens for this job order
+    await DesignApprovalToken.updateMany(
+      { jobOrderId: job._id, status: "ACTIVE" },
+      { $set: { status: "SUPERSEDED" } }
+    );
+
+    const baseUrl = WhatsAppService.approvalBaseUrl.replace(/\/+$/, "");
+    const approvalUrl = `${baseUrl}/design-approvals/${rawToken}`;
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7-day expiry
+
+    const tokenDoc = await DesignApprovalToken.create({
+      jobOrderId: job._id,
+      sampleId: sample._id,
+      versionNo: sample.versionNo,
+      tokenHash,
+      tokenPrefix: rawToken.slice(0, 8),
+      customerPhone: sample.customerPhone || job.customerPhone || "",
+      customerName: job.customerName || job.customerSnapshot?.name || "",
+      expiresAt,
+      status: "ACTIVE",
+      approvalUrl,
+      whatsappStatus: "PENDING",
+    });
+
+    // ── Dispatch via WhatsApp Notification Provider ──
+    const phoneToNotify = sample.customerPhone || job.customerPhone;
+    if (phoneToNotify && submitData.shareViaWhatsapp !== false) {
+      try {
+        const waRes = await WhatsAppService.sendDesignApprovalMessage({
+          to: phoneToNotify,
+          customerName: job.customerName || job.customerSnapshot?.name || "Customer",
+          jobNo: job.jobNo || String(job._id),
+          versionNo: sample.versionNo,
+          approvalUrl,
+          sampleComments: sample.comments,
+        });
+
+        tokenDoc.whatsappStatus = waRes.status || (waRes.success ? "SENT" : "FAILED");
+        tokenDoc.whatsappMessageId = waRes.messageId || null;
+        tokenDoc.whatsappSentAt = waRes.delivered || waRes.simulated ? new Date() : null;
+        tokenDoc.whatsappError = waRes.error || null;
+        await tokenDoc.save();
+      } catch (waErr) {
+        console.warn("[DesignSampleService] WhatsApp notification failed:", waErr.message);
+        tokenDoc.whatsappStatus = "FAILED";
+        tokenDoc.whatsappError = waErr.message;
+        await tokenDoc.save();
+      }
+    } else {
+      tokenDoc.whatsappStatus = "DISABLED";
+      await tokenDoc.save();
+    }
+
     await JobWorkflowService.transition(job._id, "SAMPLE_APPROVAL", {
       actorId: user._id,
       relatedSampleId: sample._id,
@@ -128,10 +188,24 @@ class DesignSampleService {
       versionNo: sample.versionNo,
       customerPhone: sample.customerPhone,
       shareViaWhatsapp: Boolean(submitData.shareViaWhatsapp),
+      approvalUrl,
+      whatsappStatus: tokenDoc.whatsappStatus,
     });
 
-    return sample;
+    // Attach transient approval link and token details for response
+    const resultObj = sample.toObject ? sample.toObject() : { ...sample };
+    resultObj.approvalToken = {
+      token: rawToken,
+      tokenPrefix: tokenDoc.tokenPrefix,
+      approvalUrl,
+      expiresAt,
+      whatsappStatus: tokenDoc.whatsappStatus,
+      whatsappError: tokenDoc.whatsappError,
+    };
+
+    return resultObj;
   }
+
 
   /**
    * List all samples for a job with approval records.

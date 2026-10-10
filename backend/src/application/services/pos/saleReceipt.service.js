@@ -8,6 +8,7 @@ const numberSequenceService = require("../common/numberSequence.service");
 const SaleReceiptHelper = require("../../../shared/utils/pos/SaleReceiptHelper");
 const AuditHelper = require("../../../shared/utils/common/AuditHelper");
 const ErrorHelper = require("../../../shared/errors/ErrorHelper");
+const customerRepository = require("../../../infrastructure/database/mongoose/repositories/customer/MongooseCustomerRepository");
 
 function toPlain(doc) {
   if (!doc) return null;
@@ -22,7 +23,8 @@ class SaleReceiptService {
     invItemRepo = inventoryItemRepository,
     invTxnRepo = inventoryTransactionRepository,
     invService = inventoryService,
-    seqService = numberSequenceService
+    seqService = numberSequenceService,
+    custRepo = customerRepository
   ) {
     this.receiptRepo = receiptRepo;
     this.itemRepo = itemRepo;
@@ -30,6 +32,46 @@ class SaleReceiptService {
     this.invTxnRepo = invTxnRepo;
     this.invService = invService;
     this.seqService = seqService;
+    this.custRepo = custRepo;
+  }
+
+  async _resolveCustomerAndSnapshot(customerId, clientSnapshot = {}, clientName = null, clientMobile = null) {
+    if (!customerId) {
+      return {
+        customerId: null,
+        customerSnapshot: {
+          name: clientSnapshot?.name || clientName || "Walk-in Customer",
+          mobile: clientSnapshot?.mobile || clientMobile || "",
+          email: clientSnapshot?.email || "",
+          gstin: clientSnapshot?.gstin || "",
+          address: clientSnapshot?.address || "",
+        },
+      };
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(String(customerId))) {
+      throw ErrorHelper.badRequest(`Invalid customer ID format: '${customerId}'`);
+    }
+
+    const customer = await this.custRepo.findById(customerId);
+    if (!customer) {
+      throw ErrorHelper.notFound(`Customer with ID '${customerId}' not found`);
+    }
+
+    if (customer.isActive === false) {
+      throw ErrorHelper.badRequest(`Customer '${customer.name}' is inactive and cannot be assigned to new receipts`);
+    }
+
+    return {
+      customerId: customer._id,
+      customerSnapshot: {
+        name: clientSnapshot?.name || clientName || customer.name || "Walk-in Customer",
+        mobile: clientSnapshot?.mobile || clientMobile || customer.mobile || "",
+        email: clientSnapshot?.email || customer.email || "",
+        gstin: clientSnapshot?.gstin || customer.gstin || "",
+        address: clientSnapshot?.address || customer.address || "",
+      },
+    };
   }
 
   _applyScopeConstraint(baseQuery = {}, authContext = {}) {
@@ -167,12 +209,15 @@ class SaleReceiptService {
    * Create DRAFT Sale Receipt.
    */
   async createDraft(data, authContext = {}) {
-    const { branchId, customerId, customerSnapshot, saleDate, items = [], remarks, paymentMode } = data;
+    const { branchId, customerId, customerSnapshot, customerName, customerMobile, saleDate, items = [], remarks, paymentMode } = data;
 
     if (!branchId) {
       throw ErrorHelper.badRequest("branchId is required");
     }
     this._checkBranchAuthorization(branchId, authContext);
+
+    const { customerId: resolvedCustId, customerSnapshot: resolvedSnapshot } =
+      await this._resolveCustomerAndSnapshot(customerId, customerSnapshot, customerName, customerMobile);
 
     const calculation = await this.calculate({ items }, authContext);
 
@@ -185,8 +230,8 @@ class SaleReceiptService {
     const receiptData = {
       receiptNo,
       branchId,
-      customerId: customerId || null,
-      customerSnapshot: customerSnapshot || {},
+      customerId: resolvedCustId,
+      customerSnapshot: resolvedSnapshot,
       saleDate: saleDate ? new Date(saleDate) : new Date(),
       subtotal: calculation.subtotal,
       discountAmount: calculation.discountAmount,
@@ -286,8 +331,20 @@ class SaleReceiptService {
     }
 
     const allowedUpdates = {};
-    if (updateData.customerId !== undefined) allowedUpdates.customerId = updateData.customerId;
-    if (updateData.customerSnapshot) allowedUpdates.customerSnapshot = updateData.customerSnapshot;
+    if (updateData.customerId !== undefined) {
+      if (updateData.customerId) {
+        const { customerId: resolvedCustId, customerSnapshot: resolvedSnapshot } =
+          await this._resolveCustomerAndSnapshot(updateData.customerId, updateData.customerSnapshot);
+        allowedUpdates.customerId = resolvedCustId;
+        if (updateData.customerSnapshot || !receipt.customerSnapshot?.name) {
+          allowedUpdates.customerSnapshot = resolvedSnapshot;
+        }
+      } else {
+        allowedUpdates.customerId = null;
+      }
+    } else if (updateData.customerSnapshot) {
+      allowedUpdates.customerSnapshot = updateData.customerSnapshot;
+    }
     if (updateData.saleDate) allowedUpdates.saleDate = new Date(updateData.saleDate);
     if (updateData.remarks !== undefined) allowedUpdates.remarks = updateData.remarks;
     if (updateData.paymentMode) allowedUpdates.paymentMode = updateData.paymentMode;
@@ -513,6 +570,8 @@ class SaleReceiptService {
       branchId,
       customerId = null,
       customerSnapshot = {},
+      customerName = null,
+      customerMobile = null,
       saleDate = new Date(),
       items = [],
       remarks = null,
@@ -526,6 +585,13 @@ class SaleReceiptService {
     }
     this._checkBranchAuthorization(branchId, authContext);
 
+    if (paymentMode === "CREDIT" && !customerId) {
+      throw ErrorHelper.badRequest("Customer is required for CREDIT checkout");
+    }
+
+    const { customerId: resolvedCustId, customerSnapshot: resolvedSnapshot } =
+      await this._resolveCustomerAndSnapshot(customerId, customerSnapshot, customerName, customerMobile);
+
     if (!Array.isArray(items) || items.length === 0) {
       throw ErrorHelper.badRequest("At least one item is required for checkout");
     }
@@ -535,9 +601,6 @@ class SaleReceiptService {
     const paid = amountPaid !== undefined ? Number(amountPaid) : calculation.grandTotal;
     let paymentStatus = "UNPAID";
     if (paymentMode === "CREDIT") {
-      if (!customerId) {
-        throw ErrorHelper.badRequest("Customer is required for CREDIT checkout");
-      }
       paymentStatus = "CREDIT";
     } else if (paid >= calculation.grandTotal) {
       paymentStatus = "PAID";
@@ -557,8 +620,8 @@ class SaleReceiptService {
       const receiptData = {
         receiptNo,
         branchId,
-        customerId,
-        customerSnapshot,
+        customerId: resolvedCustId,
+        customerSnapshot: resolvedSnapshot,
         saleDate: saleDate ? new Date(saleDate) : new Date(),
         subtotal: calculation.subtotal,
         discountAmount: calculation.discountAmount,

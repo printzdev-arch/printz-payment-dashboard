@@ -11,6 +11,9 @@ const ProductionStateService = require("../production/productionState.service");
 const { PRE_PRODUCTION_STATUSES, JOB_STAGES } = require("../../../shared/constants/job-order/jobStages");
 const { emitJobEvent } = require("../../../shared/events/job-order/jobEvents.emitter");
 const ErrorHelper = require("../../../shared/errors/ErrorHelper");
+const customerRepository = require("../../../infrastructure/database/mongoose/repositories/customer/MongooseCustomerRepository");
+const CustomerMatchingService = require("../customer/customerMatching.service");
+const mongoose = require("mongoose");
 
 class JobOrderService {
   /**
@@ -85,6 +88,13 @@ class JobOrderService {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
     this.validateHeader(dto);
 
+    if (dto.idempotencyKey) {
+      const existing = await jobOrderRepository.findByIdempotencyKey(dto.idempotencyKey);
+      if (existing) {
+        return existing;
+      }
+    }
+
     const items = Array.isArray(dto.items) && dto.items.length > 0
       ? dto.items
       : [{ itemName: dto.title || "Print Job Item", quantity: Number(dto.quantity) || 1, unitRate: 0 }];
@@ -96,20 +106,75 @@ class JobOrderService {
     const countJobs = await jobOrderRepository.countDocuments();
     const jobNo = `JO-${datePrefix}-${String(countJobs + 1).padStart(4, "0")}`;
 
+    let customerId = null;
+    let customerSnapshot = {
+      name: dto.customerName || dto.customerSnapshot?.name || "Walk-in Customer",
+      mobile: dto.customerPhone || dto.customerSnapshot?.mobile || "",
+      email: dto.customerEmail || dto.customerSnapshot?.email || "",
+      company: dto.customerCompany || dto.customerSnapshot?.company || "",
+      address: dto.customerAddress || dto.customerSnapshot?.address || "",
+      gstin: dto.customerGstin || dto.customerSnapshot?.gstin || "",
+    };
+
+    const orderBranchId = dto.branchId || user.branchId;
+
+    if (dto.customerId) {
+      if (!mongoose.Types.ObjectId.isValid(String(dto.customerId))) {
+        throw ErrorHelper.badRequest(`Invalid customer ID format: '${dto.customerId}'`);
+      }
+      const customer = await customerRepository.findById(dto.customerId);
+      if (!customer) {
+        throw ErrorHelper.notFound(`Customer with ID '${dto.customerId}' not found`);
+      }
+      if (customer.isActive === false) {
+        throw ErrorHelper.badRequest(`Customer '${customer.name}' is inactive and cannot be assigned to new job orders`);
+      }
+      customerId = customer._id;
+      customerSnapshot = {
+        name: dto.customerName || dto.customerSnapshot?.name || customer.name || "Walk-in Customer",
+        mobile: dto.customerPhone || dto.customerSnapshot?.mobile || customer.mobile || "",
+        email: dto.customerEmail || dto.customerSnapshot?.email || customer.email || "",
+        company: dto.customerCompany || dto.customerSnapshot?.company || customer.companyName || customer.company || "",
+        address: dto.customerAddress || dto.customerSnapshot?.address || customer.address || "",
+        gstin: dto.customerGstin || dto.customerSnapshot?.gstin || customer.gstin || "",
+      };
+
+      // Record branch visit if order is placed at this branch
+      if (orderBranchId) {
+        await customerRepository.addVisitedBranch(customerId, orderBranchId).catch(() => {});
+      }
+    } else if (dto.customerPhone) {
+      // Fallback matching: match existing customer by phone before creating a new one
+      const matchResult = await CustomerMatchingService.matchOrCreateCustomer(
+        {
+          name: dto.customerName || dto.customerSnapshot?.name || "Walk-in Customer",
+          mobile: dto.customerPhone,
+          phone: dto.customerPhone,
+          email: dto.customerEmail,
+          company: dto.customerCompany,
+          address: dto.customerAddress,
+          gstin: dto.customerGstin,
+        },
+        { branchId: orderBranchId }
+      );
+      customerId = matchResult.customer._id;
+      customerSnapshot = {
+        name: matchResult.customer.name,
+        mobile: matchResult.customer.mobile,
+        email: matchResult.customer.email || "",
+        company: matchResult.customer.companyName || matchResult.customer.company || "",
+        address: matchResult.customer.address || "",
+        gstin: matchResult.customer.gstin || "",
+      };
+    }
+
     const job = await jobOrderRepository.create({
       jobNo,
       branchId: dto.branchId || user.branchId,
-      customerId: dto.customerId || null,
-      customerSnapshot: {
-        name: dto.customerName || "Walk-in Customer",
-        mobile: dto.customerPhone || "",
-        email: dto.customerEmail || "",
-        company: dto.customerCompany || "",
-        address: dto.customerAddress || "",
-        gstin: dto.customerGstin || "",
-      },
-      customerName: dto.customerName || "Walk-in Customer",
-      customerPhone: dto.customerPhone || "",
+      customerId,
+      customerSnapshot,
+      customerName: customerSnapshot.name,
+      customerPhone: customerSnapshot.mobile,
       title: dto.title || items[0]?.itemName || "Print Job",
       orderDate: dto.orderDate ? new Date(dto.orderDate) : new Date(),
       dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
@@ -128,7 +193,9 @@ class JobOrderService {
       estimatedPrice: totals.grandTotal,
       totalAmount: totals.grandTotal,
       createdBy: user._id,
+      idempotencyKey: dto.idempotencyKey || null,
     });
+
 
     // Create item records
     const itemDocsToCreate = items.map((it, idx) => ({
@@ -217,6 +284,36 @@ class JobOrderService {
     if (dto.dueDate) set.dueDate = new Date(dto.dueDate);
     if (dto.completionDate) set.completionDate = new Date(dto.completionDate);
     if (dto.quantity) set.quantity = Number(dto.quantity);
+
+    if (dto.customerId !== undefined) {
+      if (dto.customerId) {
+        if (!mongoose.Types.ObjectId.isValid(String(dto.customerId))) {
+          throw ErrorHelper.badRequest(`Invalid customer ID format: '${dto.customerId}'`);
+        }
+        const customer = await customerRepository.findById(dto.customerId);
+        if (!customer) {
+          throw ErrorHelper.notFound(`Customer with ID '${dto.customerId}' not found`);
+        }
+        if (customer.isActive === false) {
+          throw ErrorHelper.badRequest(`Customer '${customer.name}' is inactive and cannot be assigned to job orders`);
+        }
+        set.customerId = customer._id;
+        if (!job.customerSnapshot || dto.customerSnapshot || dto.customerName) {
+          set.customerSnapshot = {
+            name: dto.customerName || dto.customerSnapshot?.name || customer.name || "Walk-in Customer",
+            mobile: dto.customerPhone || dto.customerSnapshot?.mobile || customer.mobile || "",
+            email: dto.customerEmail || dto.customerSnapshot?.email || customer.email || "",
+            company: dto.customerCompany || dto.customerSnapshot?.company || customer.companyName || customer.company || "",
+            address: dto.customerAddress || dto.customerSnapshot?.address || customer.address || "",
+            gstin: dto.customerGstin || dto.customerSnapshot?.gstin || customer.gstin || "",
+          };
+          set.customerName = set.customerSnapshot.name;
+          set.customerPhone = set.customerSnapshot.mobile;
+        }
+      } else {
+        set.customerId = null;
+      }
+    }
 
     const updated = await jobOrderRepository.update(job._id, set);
 

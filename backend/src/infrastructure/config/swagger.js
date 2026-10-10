@@ -13,6 +13,8 @@ const api06 = require("./swagger/api06_job_order");
 const api07 = require("./swagger/api07_design");
 const api08 = require("./swagger/api08_production");
 const api09 = require("./swagger/api09_sla");
+const apiCustomer = require("./swagger/api_customer");
+const apiPublic = require("./swagger/api_public");
 const legacy = require("./swagger/legacy");
 
 const modules = [
@@ -28,6 +30,8 @@ const modules = [
   api07,
   api08,
   api09,
+  apiCustomer,
+  apiPublic,
   legacy,
 ];
 
@@ -35,11 +39,14 @@ const modules = [
 function getCleanTag(path, rawTags = []) {
   const p = path.toLowerCase();
 
+  if (p.startsWith("/public")) return "Public & Customer Self-Service";
   if (p.startsWith("/approvals")) return "Approvals";
   if (p.startsWith("/attachments")) return "Attachments";
   if (p.startsWith("/audit-logs")) return "Audit Logs";
   if (p.startsWith("/auth")) return "Authentication";
   if (p.startsWith("/branches")) return "Branches";
+  if (p.startsWith("/customers")) return "Customers";
+
   if (p.startsWith("/departments")) return "Departments";
   if (p.startsWith("/designations")) return "Designations";
   if (p.startsWith("/employees")) return "Employees";

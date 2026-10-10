@@ -30,6 +30,7 @@ const inventoryItemRoutes = require("./inventory/inventoryItem.routes");
 const inventoryBalanceRoutes = require("./inventory/inventoryBalance.routes");
 const inventoryTransactionRoutes = require("./inventory/inventoryTransaction.routes");
 const purchaseReceiptRoutes = require("./inventory/purchaseReceipt.routes");
+const customerRoutes = require("./customer/customer.routes");
 
 // POS routes (Module 04)
 const saleReceiptRoutes = require("./pos/saleReceipt.routes");
@@ -52,8 +53,10 @@ const {
 // Job Order & Design workflow routes (Modules 06 & 07)
 const { jobOrderRoutes } = require("./job-order");
 const { designRoutes } = require("./design");
+const publicRoutes = require("./public/public.routes");
 
 // SLA & Performance routes (Module 09)
+
 const {
   slaConfigurationRoutes,
   slaRoutes,
@@ -90,6 +93,7 @@ router.use("/inventory-items", inventoryItemRoutes);
 router.use("/inventory-balances", inventoryBalanceRoutes);
 router.use("/inventory-transactions", inventoryTransactionRoutes);
 router.use("/purchase-receipts", purchaseReceiptRoutes);
+router.use("/customers", customerRoutes);
 
 // Mount Module 04: POS Sale Receipts
 router.use("/sale-receipts", saleReceiptRoutes);
@@ -110,9 +114,13 @@ router.use("/branches", branchRoutes);
 router.use("/reports", reportRoutes);
 router.use("/general", generalRoutes);
 
+// Mount Public Customer Endpoints (QR Job Requests & WhatsApp Design Approvals)
+router.use("/public", publicRoutes);
+
 // Mount Modules 06 & 07: Job Order & Design sub-routers
 router.use("/job-orders", jobOrderRoutes);
 router.use("/design", designRoutes);
+
 
 // Mount Module 09: SLA & Designer Performance sub-routers
 router.use("/sla-configurations", slaConfigurationRoutes);

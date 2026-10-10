@@ -68,9 +68,18 @@ class MongoJobOrderRepository extends IJobOrderRepository {
     return JobOrder.countDocuments(filter);
   }
 
+  async findByIdempotencyKey(idempotencyKey) {
+    if (!idempotencyKey) return null;
+    return JobOrder.findOne({ idempotencyKey })
+      .populate("branchId", "name code")
+      .populate("designerId", "name email role")
+      .populate("createdBy", "name email");
+  }
+
   async aggregate(pipeline) {
     return JobOrder.aggregate(pipeline);
   }
 }
+
 
 module.exports = new MongoJobOrderRepository();
