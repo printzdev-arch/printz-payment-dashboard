@@ -128,7 +128,7 @@ module.exports = {
                     success: { type: "boolean", example: true },
                     data: {
                       type: "array",
-                      items: { $ref: "#/components/schemas/Customer" },
+                      items: { $ref: "#/components/schemas/CustomerResponse" },
                     },
                     message: { type: "string", example: "Customer search completed" },
                   },

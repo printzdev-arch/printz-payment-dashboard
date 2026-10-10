@@ -46,8 +46,33 @@ class LogoutDto {
   }
 }
 
+class ForgotPasswordDto {
+  constructor({ email, userId } = {}) {
+    this.email = typeof email === "string" ? email.trim() : "";
+    this.userId = userId || null;
+  }
+
+  static fromRequest(req) {
+    return new ForgotPasswordDto(req.body || {});
+  }
+}
+
+class ResetPasswordDto {
+  constructor({ email, token, newPassword, password } = {}) {
+    this.email = typeof email === "string" ? email.trim() : "";
+    this.token = typeof token === "string" ? token.trim() : "";
+    this.newPassword = typeof (newPassword || password) === "string" ? newPassword || password : "";
+  }
+
+  static fromRequest(req) {
+    return new ResetPasswordDto(req.body || {});
+  }
+}
+
 module.exports = {
   LoginDto,
   RefreshTokenDto,
   LogoutDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 };

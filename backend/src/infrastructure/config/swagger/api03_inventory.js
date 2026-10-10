@@ -130,7 +130,8 @@ module.exports = {
     "/inventory-items": {
       get: {
         tags: ["Inventory Items"],
-        summary: "List inventory items with search and filters",
+        summary: "List Inventory Items",
+        operationId: "listInventoryItems",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "category", in: "query", schema: { type: "string" }, description: "Filter by category (e.g. PAPER, INK_TONER)" },
@@ -145,7 +146,8 @@ module.exports = {
       },
       post: {
         tags: ["Inventory Items"],
-        summary: "Create new inventory item",
+        summary: "Create Inventory Item",
+        operationId: "createInventoryItem",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -160,7 +162,8 @@ module.exports = {
     "/inventory-items/{id}": {
       get: {
         tags: ["Inventory Items"],
-        summary: "Get inventory item details with branch balances",
+        summary: "Get Inventory Item by ID",
+        operationId: "getInventoryItemById",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -170,7 +173,8 @@ module.exports = {
       },
       patch: {
         tags: ["Inventory Items"],
-        summary: "Update inventory item details (itemCode is immutable)",
+        summary: "Update Inventory Item",
+        operationId: "updateInventoryItem",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         requestBody: {
@@ -186,7 +190,8 @@ module.exports = {
     "/inventory-items/{id}/activate": {
       post: {
         tags: ["Inventory Items"],
-        summary: "Activate an inventory item",
+        summary: "Activate Inventory Item",
+        operationId: "activateInventoryItem",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -197,7 +202,8 @@ module.exports = {
     "/inventory-items/{id}/deactivate": {
       post: {
         tags: ["Inventory Items"],
-        summary: "Deactivate an inventory item",
+        summary: "Deactivate Inventory Item",
+        operationId: "deactivateInventoryItem",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -208,7 +214,8 @@ module.exports = {
     "/inventory-balances": {
       get: {
         tags: ["Inventory Balances"],
-        summary: "List multi-branch inventory balances with item details",
+        summary: "List Inventory Balances",
+        operationId: "listInventoryBalances",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "branchId", in: "query", schema: { $ref: "#/components/schemas/ObjectId" } },
@@ -226,7 +233,8 @@ module.exports = {
     "/inventory-balances/low-stock": {
       get: {
         tags: ["Inventory Balances"],
-        summary: "Get low stock and out-of-stock items requiring reordering",
+        summary: "Get Low Stock Alerts",
+        operationId: "getLowStockAlerts",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "branchId", in: "query", schema: { $ref: "#/components/schemas/ObjectId" }, description: "Optional branch filter" },
@@ -243,7 +251,8 @@ module.exports = {
     "/inventory-balances/search": {
       get: {
         tags: ["Inventory Balances"],
-        summary: "Search active inventory balances for POS sale receipt creation",
+        summary: "Search Inventory Balances",
+        operationId: "searchInventoryBalances",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "branchId", in: "query", schema: { $ref: "#/components/schemas/ObjectId" } },
@@ -259,7 +268,8 @@ module.exports = {
     "/inventory-balances/warehouse": {
       get: {
         tags: ["Inventory Balances"],
-        summary: "List inventory balances located at warehouse branches",
+        summary: "Get Warehouse Inventory Balances",
+        operationId: "getWarehouseInventoryBalances",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "branchId", in: "query", schema: { $ref: "#/components/schemas/ObjectId" } },
@@ -275,7 +285,8 @@ module.exports = {
     "/inventory-transactions": {
       get: {
         tags: ["Inventory Transactions"],
-        summary: "Query immutable inventory ledger history",
+        summary: "List Inventory Transactions",
+        operationId: "listInventoryTransactions",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "itemId", in: "query", schema: { $ref: "#/components/schemas/ObjectId" } },
@@ -298,7 +309,8 @@ module.exports = {
     "/inventory-transactions/{id}": {
       get: {
         tags: ["Inventory Transactions"],
-        summary: "Get single inventory transaction details",
+        summary: "Get Inventory Transaction by ID",
+        operationId: "getInventoryTransactionById",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -310,7 +322,8 @@ module.exports = {
     "/inventory-transactions/opening": {
       post: {
         tags: ["Inventory Transactions"],
-        summary: "Record initial opening stock (only allowed when no prior balance exists)",
+        summary: "Record Opening Stock",
+        operationId: "recordOpeningStock",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -325,7 +338,8 @@ module.exports = {
     "/inventory-transactions/adjustments": {
       post: {
         tags: ["Inventory Transactions"],
-        summary: "Record positive or negative stock adjustment (high volumes trigger approval)",
+        summary: "Record Stock Adjustment",
+        operationId: "recordStockAdjustment",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -340,7 +354,8 @@ module.exports = {
     "/inventory-transactions/issues": {
       post: {
         tags: ["Inventory Transactions"],
-        summary: "Record internal consumption issue (e.g. PAPER, INK_TONER)",
+        summary: "Record Stock Issue",
+        operationId: "recordStockIssue",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -355,7 +370,8 @@ module.exports = {
     "/purchase-receipts": {
       get: {
         tags: ["Purchase Receipts"],
-        summary: "List purchase receipts with status and date filters",
+        summary: "List Purchase Receipts",
+        operationId: "listPurchaseReceipts",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "branchId", in: "query", schema: { $ref: "#/components/schemas/ObjectId" } },
@@ -371,7 +387,8 @@ module.exports = {
       },
       post: {
         tags: ["Purchase Receipts"],
-        summary: "Create new purchase receipt in DRAFT status",
+        summary: "Create Purchase Receipt",
+        operationId: "createPurchaseReceipt",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -385,7 +402,8 @@ module.exports = {
     "/purchase-receipts/{id}": {
       get: {
         tags: ["Purchase Receipts"],
-        summary: "Get purchase receipt details by ID",
+        summary: "Get Purchase Receipt by ID",
+        operationId: "getPurchaseReceiptById",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -395,7 +413,8 @@ module.exports = {
       },
       patch: {
         tags: ["Purchase Receipts"],
-        summary: "Update purchase receipt (only permitted while in DRAFT status)",
+        summary: "Update Purchase Receipt",
+        operationId: "updatePurchaseReceipt",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         requestBody: {
@@ -411,7 +430,8 @@ module.exports = {
     "/purchase-receipts/{id}/post": {
       post: {
         tags: ["Purchase Receipts"],
-        summary: "Post purchase receipt (creates PURCHASE ledger transactions and increments balances)",
+        summary: "Post Purchase Receipt",
+        operationId: "postPurchaseReceipt",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -423,7 +443,8 @@ module.exports = {
     "/purchase-receipts/{id}/cancel": {
       post: {
         tags: ["Purchase Receipts"],
-        summary: "Cancel purchase receipt (reverses stock with compensating ADJUSTMENT transactions if posted)",
+        summary: "Cancel Purchase Receipt",
+        operationId: "cancelPurchaseReceipt",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {

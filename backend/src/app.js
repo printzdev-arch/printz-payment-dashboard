@@ -70,10 +70,6 @@ app.use(
   swaggerUi.setup(swaggerDocument, {
     customCss: `
       .swagger-ui .topbar { display: none; }
-      .swagger-ui .opblock-summary-description { display: none !important; }
-      .swagger-ui .opblock-tag small, .swagger-ui .opblock-tag-description { display: none !important; }
-      .swagger-ui .response-col_links { display: none !important; }
-      .swagger-ui .responses-table .response-col_description__inner { display: none !important; }
     `,
     customSiteTitle: "Printz Payment Dashboard - Swagger API Explorer",
     swaggerOptions: {

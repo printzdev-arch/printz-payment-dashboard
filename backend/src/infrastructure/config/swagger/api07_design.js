@@ -4,7 +4,7 @@
 
 module.exports = {
   tags: [
-    { name: "API 07 — Design Workflow & Proofing" },
+    { name: "Design & Proofing", description: "Design allocation, proofing samples, and approval workflow" },
   ],
   schemas: {
     JobAssignmentResponse: {
@@ -36,11 +36,36 @@ module.exports = {
         customerFeedback: { type: "string", example: "Please increase font size on back side" },
       },
     },
+    AssignDesignerRequest: {
+      type: "object",
+      required: ["designerId"],
+      properties: {
+        designerId: { $ref: "#/components/schemas/ObjectId", description: "Designer user ID" },
+        instructions: { type: "string", example: "Follow client branding guidelines" },
+      },
+    },
+    ReassignDesignerRequest: {
+      type: "object",
+      required: ["target"],
+      properties: {
+        target: { type: "string", example: "ROUND_ROBIN", description: "Designer user ID or 'ROUND_ROBIN'" },
+        reason: { type: "string", example: "Original designer on emergency leave" },
+      },
+    },
+    SampleDecisionRequest: {
+      type: "object",
+      required: ["decision"],
+      properties: {
+        decision: { type: "string", enum: ["APPROVED", "REVISION_REQUIRED"], example: "APPROVED" },
+        feedback: { type: "string", example: "Approved with no changes needed" },
+      },
+    },
   },
   paths: {
     "/design/queue": {
       get: {
-        tags: ["API 07 — Design Workflow & Proofing"],
+        tags: ["Design & Proofing"],
+        summary: "List Unassigned Jobs in Design Queue",
         description: "Returns unassigned and pending jobs in the design queue for the current branch.",
         operationId: "getDesignQueue",
         security: [{ bearerAuth: [] }],
@@ -50,9 +75,34 @@ module.exports = {
         },
       },
     },
+    "/design/queue/auto-assign": {
+      post: {
+        tags: ["Design & Proofing"],
+        summary: "Auto-Assign All Eligible Queue Jobs",
+        description: "Automatically allocates pending queue jobs to available designers using round-robin.",
+        operationId: "autoAssignDesignQueue",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: "Auto-assignment completed successfully", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/pool": {
+      get: {
+        tags: ["Design & Proofing"],
+        summary: "List Active Designers in Pool",
+        description: "Returns active designers available for assignment in the branch.",
+        operationId: "getDesignerPool",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: "List of designers in pool", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
     "/design/workload": {
       get: {
-        tags: ["API 07 — Design Workflow & Proofing"],
+        tags: ["Design & Proofing"],
+        summary: "Get Designer Workload Metrics",
         description: "Returns active job load per designer to assist supervisors with manual assignments.",
         operationId: "getDesignerWorkload",
         security: [{ bearerAuth: [] }],
@@ -61,39 +111,113 @@ module.exports = {
         },
       },
     },
-    "/job-orders/{id}/assignments/current/accept": {
+    "/design/my-jobs": {
+      get: {
+        tags: ["Design & Proofing"],
+        summary: "List Current Designer Assigned Jobs",
+        description: "Returns jobs currently assigned to the authenticated designer.",
+        operationId: "getMyDesignJobs",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: "Jobs assigned to designer", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/jobs/{id}/auto-allocate": {
       post: {
-        tags: ["API 07 — Design Workflow & Proofing"],
-        description: "Allocated designer acknowledges and accepts the assigned job order, locking the assignment (Scope: ASSIGNED).",
-        operationId: "acceptDesignerAssignment",
+        tags: ["Design & Proofing"],
+        summary: "Auto-Allocate Designer for Job",
+        description: "Runs round-robin algorithm to allocate the next available designer for the given job.",
+        operationId: "autoAllocateJobDesigner",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
+        responses: {
+          200: { description: "Job assigned to designer", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/jobs/{id}/assign": {
+      post: {
+        tags: ["Design & Proofing"],
+        summary: "Assign Designer Manually to Job",
+        description: "Manually assigns a specific designer to the job order.",
+        operationId: "assignDesignerToJob",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/AssignDesignerRequest" } } },
+        },
+        responses: {
+          200: { description: "Designer manually assigned", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/jobs/{id}/reassign": {
+      post: {
+        tags: ["Design & Proofing"],
+        summary: "Reassign Designer for Job",
+        description: "Reassigns job order to a different designer or back to queue round-robin.",
+        operationId: "reassignDesignerToJob",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ReassignDesignerRequest" } } },
+        },
+        responses: {
+          200: { description: "Designer reassigned", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/jobs/{id}/assignments": {
+      get: {
+        tags: ["Design & Proofing"],
+        summary: "Get Job Assignment History",
+        description: "Retrieves complete chronological history of designer assignments for this job.",
+        operationId: "getJobAssignmentHistory",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
+        responses: {
+          200: { description: "List of assignment history records", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/jobs/{id}/accept": {
+      post: {
+        tags: ["Design & Proofing"],
+        summary: "Accept Assigned Design Job",
+        description: "Allocated designer acknowledges and accepts the assigned job order.",
+        operationId: "acceptJobAssignment",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
           200: { description: "Assignment accepted", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
-          403: { description: "Forbidden - Not assigned to this designer", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiErrorResponse" } } } },
         },
       },
     },
-    "/job-orders/{id}/assignments/current/reject": {
+    "/design/jobs/{id}/reject": {
       post: {
-        tags: ["API 07 — Design Workflow & Proofing"],
-        description: "Releases job back into DESIGN_QUEUE for round-robin reallocation to next available designer.",
-        operationId: "rejectDesignerAssignment",
+        tags: ["Design & Proofing"],
+        summary: "Reject Assigned Design Job",
+        description: "Releases job back into queue for reallocation to next available designer.",
+        operationId: "rejectJobAssignment",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         requestBody: {
-          content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Over capacity today" } } } } },
+          content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Over capacity" } } } } },
         },
         responses: {
           200: { description: "Assignment rejected and returned to queue", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
         },
       },
     },
-    "/job-orders/{id}/design/start": {
+    "/design/jobs/{id}/start": {
       post: {
-        tags: ["API 07 — Design Workflow & Proofing"],
-        description: "Transitions job stage to DESIGN_IN_PROGRESS and starts the design turnaround SLA timer.",
-        operationId: "startDesign",
+        tags: ["Design & Proofing"],
+        summary: "Start Design Work on Job",
+        description: "Transitions job stage to DESIGN_IN_PROGRESS and starts SLA tracking timer.",
+        operationId: "startJobDesign",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         responses: {
@@ -101,50 +225,87 @@ module.exports = {
         },
       },
     },
-    "/job-orders/{id}/samples": {
-      get: {
-        tags: ["API 07 — Design Workflow & Proofing"],
-        operationId: "getJobSamples",
+    "/design/jobs/{id}/samples": {
+      post: {
+        tags: ["Design & Proofing"],
+        summary: "Upload Proof Sample for Job",
+        description: "Uploads design proof file or sample for customer review.",
+        operationId: "uploadJobSample",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
-        responses: {
-          200: {
-            description: "List of versioned samples",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    data: { type: "array", items: { $ref: "#/components/schemas/JobSampleResponse" } },
-                  },
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["fileUrl"],
+                properties: {
+                  fileUrl: { type: "string", example: "/uploads/proofs/card_v1.pdf" },
+                  thumbnailUrl: { type: "string", example: "/uploads/proofs/card_v1_thumb.jpg" },
+                  notes: { type: "string", example: "Proof v1 uploaded" },
                 },
               },
             },
           },
         },
+        responses: {
+          201: { description: "Proof sample uploaded successfully", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+      get: {
+        tags: ["Design & Proofing"],
+        summary: "List Proof Samples for Job",
+        description: "Retrieves all proof sample versions and decisions for the job.",
+        operationId: "listJobSamples",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
+        responses: {
+          200: { description: "List of proof samples", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
       },
     },
-    "/job-orders/{id}/samples/{sampleId}/submit": {
+    "/design/jobs/{id}/samples/{sampleId}": {
+      patch: {
+        tags: ["Design & Proofing"],
+        summary: "Update Proof Sample Notes",
+        description: "Updates notes or preview metadata on an existing sample record.",
+        operationId: "patchJobSample",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } },
+          { name: "sampleId", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } },
+        ],
+        requestBody: {
+          content: { "application/json": { schema: { type: "object", properties: { notes: { type: "string" } } } } },
+        },
+        responses: {
+          200: { description: "Sample updated", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+        },
+      },
+    },
+    "/design/jobs/{id}/samples/{sampleId}/submit": {
       post: {
-        tags: ["API 07 — Design Workflow & Proofing"],
-        description: "Uploads/submits proof sample version and advances job to SAMPLE_APPROVAL.",
-        operationId: "submitSample",
+        tags: ["Design & Proofing"],
+        summary: "Submit Sample for Customer Approval",
+        description: "Generates approval token and triggers notification to customer (via WhatsApp / SMS / Email).",
+        operationId: "submitJobSample",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } },
           { name: "sampleId", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } },
         ],
         responses: {
-          200: { description: "Sample submitted for client approval", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+          200: { description: "Sample submitted for approval", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
         },
       },
     },
-    "/job-orders/{id}/samples/{sampleId}/decision": {
+    "/design/jobs/{id}/samples/{sampleId}/decide": {
       post: {
-        tags: ["API 07 — Design Workflow & Proofing"],
-        description: "Records customer approval (moves to PRODUCTION_PLANNING) or revision request (moves to REVISION).",
-        operationId: "decideSample",
+        tags: ["Design & Proofing"],
+        summary: "Record Proof Sample Approval Decision",
+        description: "Staff records in-person or direct customer decision on the sample (APPROVED or REVISION_REQUIRED).",
+        operationId: "decideJobSample",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } },
@@ -152,21 +313,10 @@ module.exports = {
         ],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["decision"],
-                properties: {
-                  decision: { type: "string", enum: ["APPROVED", "REVISION_REQUIRED"], example: "APPROVED" },
-                  feedback: { type: "string", example: "Proof looks great, proceed to print." },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/SampleDecisionRequest" } } },
         },
         responses: {
-          200: { description: "Decision recorded and job stage transitioned", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
+          200: { description: "Sample decision recorded", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } },
         },
       },
     },
