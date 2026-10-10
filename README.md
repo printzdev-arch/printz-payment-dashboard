@@ -1,283 +1,265 @@
-# PrintZ Enterprise — Multi-Branch Print, Operations & Payment Platform
+# 🖨️ Printz Payment Dashboard — Backend REST API
 
-A comprehensive enterprise management system for multi-branch digital print centers, large-format production, commercial job estimates, and retail POS. Built with **Node.js**, **Express.js**, **MongoDB (Mongoose)** following **Clean Architecture (Domain-Driven Design)** on the backend, and **React 18**, **Vite**, and **TailwindCSS** on the frontend.
+A robust, enterprise-grade REST API backend for the **Printz Payment Dashboard**, architected following **Clean Architecture / DDD principles** and powered by **Node.js, Express.js, MongoDB Atlas (Mongoose), JWT Authentication, and Role-Based Access Control (RBAC)**.
 
----
-
-## 🌟 Key System Capabilities
-
-- **🏛️ 100% Database-Driven & Zero-Mock Policy**: Operates exclusively against live MongoDB data. No mock arrays or seed dependencies in operational paths. Real double-entry inventory ledger with atomic stock balance synchronization.
-- **👥 Centralized Customer Master Across All Branches**: Single global customer identity reused across all retail branches and warehouses. Cross-branch phone and name search integrated with POS and Job Cart workflows without duplicating profiles.
-- **📱 Customer QR Self-Service Job Requests**: Public, rate-limited mobile intake forms via physical store QR codes. Automatically initializes jobs in `ENQUIRY`/`DRAFT` stage, matches or registers centralized customers, and accepts reference artwork attachments.
-- **💬 WhatsApp Digital Proofing & Approval Lifecycle**: Automated dispatch of high-resolution digital proofs with cryptographically signed, single-use, expiring WhatsApp approval links. Customers approve or request revisions directly from mobile.
-- **⚡ Sequential Machine Operations & Shop-Floor Tracking**: Sequential workflow transitions (`PRINT` ➔ finishing operations ➔ `PACKING`) with machine queue claiming, operator assignments, defect logging, reprint authorizations, and delivery logistics.
-- **⏱️ Live Turnaround SLA & Designer Performance**: Turnaround targets configured per stage and job type. Real-time at-risk monitors, stage breach warnings, and customer satisfaction ratings.
-- **📖 Complete Swagger / OpenAPI 3.0.3 Specification**: All 288 canonical APIs documented with real request/response DTO schemas, parameter validations, and organized in strict alphabetical order across 36 tags.
+The backend is **100% database-driven**, utilizing MongoDB Atlas (`printzpayment`) as the live source of truth for daily sales reconciliations, meter readings, stock consumption, customer dues, expenses, and role-based permissions.
 
 ---
 
-## 📦 The 9 Core Business Modules
+## 🚀 Key Architectural Features
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 PRINTZ WORKFLOW ENGINE                                 │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-      │
-      ├── 01. 🔐 Auth & RBAC          (JWT, Session Lifecycle, Roles, Employees, Depts)
-      ├── 02. ⚙️ Approvals & Common   (Multi-tier Approval Chains, Audit Logs, Counters)
-      ├── 03. 📊 Inventory & Ledger    (Raw Materials, Double-Entry Transactions, GRN)
-      ├── 04. 🛒 Point of Sale (POS)  (Retail Cashier Checkout, Pricing Calculator)
-      ├── 05. 📦 Product Orders        (Warehouse Fulfillment, Inter-Branch Stock Transfers)
-      ├── 06. 📑 Job Orders & Estim.   (Custom Estimations, Stage State Machine, Invoices)
-      ├── 07. 🎨 Design & Proofing     (Round-Robin Auto-Allocation, WhatsApp Approvals)
-      ├── 08. 🏭 Production & Delivery (Sequential Machine Operations, QC, Reprints, Logistics)
-      └── 09. ⏱️ SLA & Performance     (Stage Deadlines, Breach Alarms, Designer Ratings)
-```
-
-### Module Breakdown
-
-| Module | Description | Key Endpoints |
-| :--- | :--- | :--- |
-| **01. Authentication & RBAC** | JWT authentication, refresh token rotation, password recovery, fine-grained permissions, employee directory, departments, and designations. | `/api/v1/auth/*`, `/api/v1/employees/*`, `/api/v1/roles/*`, `/api/v1/departments/*`, `/api/v1/designations/*` |
-| **02. Approvals, Audit & Sequences** | Configurable approval workflows, sequential document numbering (`JO-YYYYMMDD-XXXX`), immutable audit trails, and file attachment handling. | `/api/v1/approvals/*`, `/api/v1/audit-logs/*`, `/api/v1/number-sequences/*`, `/api/v1/attachments/*` |
-| **03. Inventory & Stock Ledger** | Substrate and raw materials catalog, multi-warehouse stock balances, immutable double-entry ledger transactions, and vendor purchase receipts (GRN). | `/api/v1/inventory-items/*`, `/api/v1/inventory-balances/*`, `/api/v1/inventory-transactions/*`, `/api/v1/purchase-receipts/*` |
-| **04. Retail Point of Sale (POS)** | Instant counter checkout, multi-item pricing calculator, tax computation, discount handling, receipt printing, and return processing. | `/api/v1/sale-receipts/*` |
-| **05. Product Orders & Transfers** | Finished goods product orders, managerial approval gates, and multi-step inter-branch/warehouse stock transfers (`DISPATCHED` ➔ `RECEIVED`). | `/api/v1/product-orders/*`, `/api/v1/stock-transfers/*` |
-| **06. Job Orders & Estimation** | Custom print job estimations, sheet optimization, multi-stage state machine (`ENQUIRY` ➔ `ESTIMATE` ➔ `DESIGN` ➔ `PRODUCTION` ➔ `COMPLETED`), and automated invoicing. | `/api/v1/job-orders/*` |
-| **07. Design Workflow & Proofing** | Unassigned job queue, round-robin designer auto-allocation, workload rebalancing, sample upload, and revision feedback tracking. | `/api/v1/design/*` |
-| **08. Production, QC & Logistics** | Sequential shop-floor machine operations (`PRINT` ➔ `LAM` ➔ `CUT` ➔ `PACK`), QC defect logging, reprint requests, and delivery order dispatch. | `/api/v1/production-orders/*`, `/api/v1/production-operations/*`, `/api/v1/quality-checks/*`, `/api/v1/reprint-requests/*`, `/api/v1/delivery-orders/*` |
-| **09. SLA & Performance Ratings** | Turnaround configuration per job type and priority, live stage breach alerts, customer ratings (1–5 scale), and designer performance analytics. | `/api/v1/sla-configurations/*`, `/api/v1/sla/*`, `/api/v1/designer-ratings/*`, `/api/v1/designers/*` |
-| **Centralized Customers** | Global customer profiles shared across all branch locations with multi-branch search, mobile normalization, and credit limit tracking. | `/api/v1/customers/*` |
-| **Public Customer Self-Service** | QR code job submission and WhatsApp digital sample proof review/decision (public endpoints with atomic single-use tokens). | `/api/v1/public/*` |
-| **Machinery & Daily Counters** | Digital production press registry, daily meter readings, wide-format Jumbo Xerox machines, customer ledger, and daily cashier register closure. | `/api/v1/printers/*`, `/api/v1/printer-readings/*`, `/api/v1/jumbo-xerox/*`, `/api/v1/payments/*`, `/api/v1/total-amounts/*` |
+- **Clean Architecture & Separation of Concerns**:
+  - `backend/src/domain/`: Enterprise business entities and repository interfaces (`IBranchRepository`, `IPrinterRepository`, etc.).
+  - `backend/src/application/`: Application business rules, Data Transfer Objects (`backend/src/application/dto/`), and use cases (`CreateBranch`, `GetBranchById`, `CreateExpense`, etc.).
+  - `backend/src/infrastructure/`: Frameworks, database connection, Mongoose schemas, and concrete repository implementations.
+  - `backend/src/presentation/`: Express routes, controllers, middleware, and request validators.
+  - `backend/src/shared/`: Cross-cutting concerns, helpers, error handlers, and response utilities.
+- **MongoDB Atlas Database**: Live connection to MongoDB Atlas (`printzpayment` database) with over 27,270 authentic operational records across 15 collections.
+- **Authentication & RBAC**: Secure password hashing with bcrypt, stateless JWT tokens (Access & Refresh tokens), and role-based route guards (`admin`, `manager`).
+- **Interactive Swagger / OpenAPI 3.0 Documentation**: Live API explorer with A–Z sorted tags and operations, available at `/api-docs`.
+- **Production Hardened**: Integrated Helmet HTTP security headers, CORS origin whitelisting, Express rate limiting, Morgan logger, and centralized async error handling.
 
 ---
 
-## 🏗️ Layered Architecture & Directory Structure
+## 🏢 Supported Branches
 
-The backend strictly adheres to Clean Architecture with 4 decoupled layers:
+The system manages daily operations, inventory, and revenue across core branches including:
 
-```
-printz-payment-dashboard-phase1_migration/
-├── backend/
-│   ├── src/
-│   │   ├── presentation/                 # LAYER 1: Presentation Layer
-│   │   │   ├── routes/                   # Express Routers (/api/v1/*)
-│   │   │   ├── controllers/              # HTTP Request Handlers
-│   │   │   ├── validators/               # Express-Validator Schemas
-│   │   │   └── middleware/               # Auth, RBAC, Scoping, Errors
-│   │   ├── application/                  # LAYER 2: Application Layer
-│   │   │   ├── services/                 # Domain Services & Orchestrators
-│   │   │   ├── use-cases/                # Command & Query Handlers
-│   │   │   └── dto/                      # Data Transfer Objects & Serializers
-│   │   ├── domain/                       # LAYER 3: Domain Layer
-│   │   │   ├── entities/                 # Enterprise Entity Classes
-│   │   │   └── repositories/             # Abstract Repository Interfaces
-│   │   ├── infrastructure/               # LAYER 4: Infrastructure Layer
-│   │   │   ├── database/mongoose/        # Mongoose Models & Compound Indexes
-│   │   │   ├── config/swagger/           # OpenAPI / Swagger Specifications
-│   │   │   └── notifications/            # WhatsApp & Email Dispatchers
-│   │   ├── shared/                       # Enums, AppErrors, Envelopes
-│   │   ├── app.js                        # Express App & Middleware Configuration
-│   │   └── server.js                     # Server Entry Point & Mongo Connection
-│   ├── tests/                            # Automated Node.js Test Suites
-│   ├── uploads/                          # Local Storage for Proofs & Artwork
-│   ├── package.json
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── components/                   # Admin, Manager, Cashier, Common UI
-│   │   ├── context/                      # AuthContext, NotificationContext
-│   │   ├── services/                     # Axios API Client & Services
-│   │   ├── App.jsx                       # Routing & Role-Based Layouts
-│   │   └── main.jsx
-│   ├── package.json
-│   └── vite.config.js
-└── README.md                             # Single Authoritative Documentation
+1. **Banaswadi** (`BR001`)
+2. **Kammanahalli** (`BR002`)
+3. **Agara Horamavu** (`BR003`)
+4. **Lingrajpuram** (`BR004`)
+5. **Thanisandra** (`BR005`)
+6. **Babusapalya** (`BR006`)
+7. **TC Palya** (`BR007`)
+8. **HBR Layout** (`BR008`)
+9. **Horamavu** (`BR009`)
+
+---
+
+## 🛠️ Environment Configuration
+
+Create or update the `.env` file in the `backend/` directory:
+
+```env
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.o5gbiuj.mongodb.net/printzpayment?retryWrites=true&w=majority
+JWT_ACCESS_SECRET=printz_default_access_secret_2026
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=printz_default_refresh_secret_2026
+JWT_REFRESH_EXPIRES_IN=7d
+CLIENT_URL=http://localhost:3000,http://localhost:5173
 ```
 
 ---
 
-## 📖 API Documentation & Swagger Explorer
+## 📦 Installation & Setup
 
-An interactive Swagger UI is available directly from the running backend:
-
-- **Swagger UI**: [`http://localhost:5000/api-docs`](http://localhost:5000/api-docs)
-- **OpenAPI 3.0.3 Spec (JSON)**: [`http://localhost:5000/api-docs.json`](http://localhost:5000/api-docs.json)
-
-### Alphabetical Tag & Operation Ordering
-
-All 36 tags display in strict alphabetical order:
-
-1. **Approvals**
-2. **Attachments**
-3. **Audit Logs**
-4. **Authentication**
-5. **Branches**
-6. **Categories**
-7. **Customers**
-8. **Delivery & Logistics**
-9. **Departments**
-10. **Design & Proofing**
-11. **Designations**
-12. **Employees**
-13. **Inventory Balances**
-14. **Inventory Items**
-15. **Inventory Transactions**
-16. **Job Orders**
-17. **Jumbo Xerox**
-18. **Number Sequences**
-19. **POS Sale Receipts**
-20. **Past Date Requests**
-21. **Payments to Collect**
-22. **Printer Readings**
-23. **Printers**
-24. **Product Orders**
-25. **Production & Operations**
-26. **Public & Customer Self-Service**
-27. **Purchase Receipts**
-28. **Quality Control & Reprint**
-29. **Reports & KPIs**
-30. **Revenue & Total Amounts**
-31. **Roles & Permissions**
-32. **SLA & Performance**
-33. **Sales**
-34. **Stock Transfers**
-35. **Stocks**
-36. **Users & RBAC**
-
-Inside each tag, operations are sorted alphabetically by their action name (e.g., `Activate Customer`, `Create Customer`, `Deactivate Customer`, `Get Customer by ID`, `List Customers`, `Search Customers`, `Update Customer`).
-
----
-
-## 🚀 Setup & Installation
-
-### Prerequisites
-
-- **Node.js**: Version 18.x, 20.x, or 24.x LTS
-- **MongoDB**: Version 6.0+ (Local instance on `mongodb://localhost:27017` or MongoDB Atlas)
-- **npm**: Version 9.x or later
-
-### 1. Backend Setup
-
+### 1. Install Dependencies
 ```bash
 cd backend
-
-# Copy environment variables template
-cp .env.example .env
-
-# Install backend dependencies
 npm install
+```
 
-# Start development server with hot-reload
+### 2. Start Development Server (with Auto-Reload)
+```bash
 npm run dev
+```
 
-# Or start in production mode
+### 3. Start Production Server
+```bash
 npm start
 ```
 
-Default backend server runs on `http://localhost:5000` (API base: `http://localhost:5000/api/v1`).
+---
 
-### 2. Frontend Setup
+## 📖 Interactive API Documentation
 
-```bash
-cd frontend
-
-# Install frontend dependencies
-npm install
-
-# Start Vite development server
-npm run dev
-```
-
-Default frontend web application runs on `http://localhost:5173`.
-
-### 3. Environment Variables (`backend/.env`)
-
-```ini
-PORT=5000
-NODE_ENV=development
-MONGO_URI=mongodb://localhost:27017/printzpayment
-
-# JWT Configuration
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRE=8h
-JWT_REFRESH_SECRET=your_super_secret_refresh_key_here
-JWT_REFRESH_EXPIRE=7d
-
-# Public Links & Client Configuration
-CLIENT_URL=http://localhost:5173
-PUBLIC_API_URL=http://localhost:5000/api/v1
-
-# WhatsApp Cloud API (Optional - Automatically falls back to resilient mock dispatch if not provided)
-WHATSAPP_API_TOKEN=your_whatsapp_bearer_token
-WHATSAPP_PHONE_NUMBER_ID=your_whatsapp_phone_number_id
-```
+Interactive Swagger documentation is hosted directly by the backend with built-in alphabetical sorting and live search filters:
+- **Swagger UI**: `http://localhost:5000/api-docs`
+- **Swagger JSON Spec**: `http://localhost:5000/api-docs.json`
+- **Health Check**: `http://localhost:5000/api/health`
 
 ---
 
-## 🏛️ Pure Database-Driven Operations (Zero Seed / Zero Mock Policy)
+## 🗄️ MongoDB Atlas Database Mapping
 
-The PrintZ backend operates **100% on live MongoDB database transactions**:
-- **No Mock or Seed Data**: No mock fixtures, in-memory dummy objects, or seed scripts are bundled or loaded.
-- **Strict Database Persistence**: All operational data (Users, Roles, Branches, Inventory Items, Job Orders, Operations, and SLAs) is queried, updated, and persisted directly in the live database.
-- **Double-Entry Stock Ledger**: All inventory adjustments and sales execute atomic database transactions ensuring stock balance consistency.
+The backend connects to the `printzpayment` database on MongoDB Atlas across the following collections:
 
----
-
-## 🔑 Authentic System Accounts & Roles
-
-| Role | Email | Password | Branch Scope | Permissions |
-| :--- | :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@printz.shop` | `Admin@123` | Global (All Branches) | Full System Access |
-| **Admin / Dev** | `printzdev@gmail.com` | `Admin@123` | Global (All Branches) | Full System Access |
-| **Branch Manager** | `lr@printz.shop` | `Manager@123` | Lingrajpuram | Store Manager |
-| **Branch Manager** | `tan@printz.shop` | `Manager@123` | Thanisandra | Store Manager |
-| **Branch Manager** | `hbr@printz.shop` | `Manager@123` | HBR Layout | Store Manager |
-| **Branch Manager** | `rm@printz.shop` | `Manager@123` | Ramamurthynagar | Store Manager |
-| **Branch Manager** | `printzzzko@gmail.com` | `Manager@123` | Kothanur | Store Manager |
-| **Branch Manager** | `ag@printz.shop` | `Manager@123` | Horamavu Agara | Store Manager |
-| **Branch Manager** | `ba@printz.shop` | `Manager@123` | Babusapalya | Store Manager |
-| **Branch Manager** | `ho@printz.shop` | `Manager@123` | Horamavu | Store Manager |
+| Domain Entity | Mongoose Model | MongoDB Atlas Collection | Purpose |
+| :--- | :--- | :--- | :--- |
+| [Branch](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/domain/entities/Branch.js) | [Branch.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/Branch.js) | `branches` | Branch profiles, addresses, active statuses |
+| `Category` | [Category.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/Category.js) | `categories` | Service and stock category classifications |
+| `FinalizedDate` | [FinalizedDate.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/FinalizedDate.js) | `finalizedDates` | End-of-day branch log lock statuses |
+| [InventoryMovement](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/domain/entities/InventoryMovement.js) | [InventoryMovement.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/InventoryMovement.js) | `inventoryMovements` | Stock transfers and material movement records |
+| `JumboXerox` | [JumboXerox.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/JumboXerox.js) | `jumboXeroxPricing` | Large format pricing tiers and configurations |
+| `JumboXeroxReading` | [JumboXeroxReading.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/JumboXeroxReading.js) | `jumboXeroxReadings` | Large format blueprint & poster daily logs |
+| [PastDateRequest](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/domain/entities/PastDateRequest.js) | [PastDateRequest.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/PastDateRequest.js) | `pastDateRequests` | Manager requests to edit past locked records |
+| `Payment` | [PaymentToBeCollected.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/PaymentToBeCollected.js) | `paymentToBeCollected` | Customer dues & outstanding collections ledger |
+| `Printer` | [Printer.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/Printer.js) | `printers` | Physical printer machines, models & rate cards |
+| `PrinterReading` | [PrinterReading.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/PrinterReading.js) | `printerReadings` | Daily meter readings and copy counter logs |
+| `StockItem` | [StockItem.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/StockItem.js) | `stocks` | Inventory master list (paper reams, toner, pouches) |
+| `StockReading` | [StockReading.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/StockReading.js) | `stockReadings` | Daily stock consumption (opening, received, damaged, closing) |
+| `TotalAmount` | [TotalAmountReading.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/TotalAmountReading.js) | `totalAmountReadings` | Daily cashier & settlement reconciliation (Cash/UPI/Dues) |
+| [User](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/domain/entities/User.js) | [User.js](file:///d:/Sathasivam/version_1/printz-payment-dashboard-main/backend/src/infrastructure/database/mongoose/models/User.js) | `users` | User accounts, credentials, roles & permissions |
 
 ---
 
-## 🔒 Standardized API Response Envelopes
+## 📚 API Endpoints Reference (Alphabetical A–Z)
 
-All HTTP API endpoints adhere to a uniform JSON response structure:
+### 🔐 1. Authentication
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Authenticate user & issue signed Access & Refresh tokens | Public |
+| `POST` | `/api/auth/logout` | Invalidate session & logout user | Authenticated |
+| `POST` | `/api/auth/refresh` | Exchange Refresh Token for fresh Access & Refresh tokens | Public |
+| `GET` | `/api/auth/me` | Fetch authenticated user profile & permissions | Authenticated |
 
-### Success Response Envelope:
+### 🏬 2. Branches
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/branches` | List all branches | Authenticated |
+| `GET` | `/api/branches/:id` | Get branch details by ID | Authenticated |
+| `POST` | `/api/branches` | Create a new branch (Enforces unique name & code) | Admin Only |
+| `PUT` | `/api/branches/:id` | Update branch name, code, address, branchType, weeklyOffDays | Admin Only |
+| `PATCH`| `/api/branches/:id` | Partially update branch fields | Admin Only |
+| `DELETE`| `/api/branches/:id` | Delete a branch by ID | Admin Only |
+
+### 🏷️ 3. Categories
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/general/categories` | List stock & service categories | Authenticated |
+| `POST` | `/api/general/categories` | Add a new category | Admin Only |
+| `GET` | `/api/general/finalized-dates` | Query locked / finalized date status | Authenticated |
+| `POST` | `/api/general/finalized-dates` | Finalize / lock end-of-day branch records | Authenticated |
+
+### 📑 4. Jumbo Xerox (Large Format Printing)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/jumbo-xerox/machines` | List large format printers & pricing rates | Authenticated |
+| `GET` | `/api/jumbo-xerox/machines/:id` | Get large format machine details by ID | Authenticated |
+| `POST` | `/api/jumbo-xerox/machines` | Register large format machine / pricing | Admin Only |
+| `PUT` | `/api/jumbo-xerox/machines/:id` | Update large format machine / pricing | Admin Only |
+| `DELETE`| `/api/jumbo-xerox/machines/:id` | Remove machine pricing | Admin Only |
+| `GET` | `/api/jumbo-xerox/readings` | Query daily Jumbo Xerox readings | Authenticated |
+| `POST` | `/api/jumbo-xerox/readings` | Save daily Jumbo Xerox reading | Authenticated |
+| `DELETE`| `/api/jumbo-xerox/readings/:id` | Delete Jumbo Xerox reading | Admin Only |
+
+### ⏳ 5. Past Date Requests
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/past-date-requests` | List unlock requests (filter by `status`, `requestedBranch`) | Authenticated |
+| `GET` | `/api/past-date-requests/:id` | Get past date request details | Authenticated |
+| `POST` | `/api/past-date-requests` | Manager submits request to unlock past date log | Authenticated |
+| `PUT` | `/api/past-date-requests/:id` | Admin approves or rejects past date request | Admin Only |
+| `DELETE`| `/api/past-date-requests/:id` | Delete request record | Admin Only |
+
+### 💳 6. Payments to Collect (Customer Ledger)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/payments` | Query outstanding payments ledger by branch / date | Authenticated |
+| `GET` | `/api/payments/:id` | Get payment record by ID | Authenticated |
+| `POST` | `/api/payments` | Record new pending balance or payment collection | Authenticated |
+| `PUT` | `/api/payments/:id` | Update collected amount or payment receipt | Authenticated |
+| `DELETE`| `/api/payments/:id` | Delete payment record | Admin Only |
+
+### 📊 7. Printer Readings
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/printer-readings` | Query meter readings by `branchName`, `date` | Authenticated |
+| `GET` | `/api/printer-readings/:id` | Fetch reading record by ID | Authenticated |
+| `POST` | `/api/printer-readings` | Save or upsert daily meter reading entry | Authenticated |
+| `PUT` | `/api/printer-readings/:id` | Update meter reading record | Authenticated |
+| `DELETE`| `/api/printer-readings/:id` | Delete reading entry | Admin Only |
+
+### 🖨️ 8. Printers
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/printers` | Get printers (filterable by `branchName`, `status`) | Authenticated |
+| `GET` | `/api/printers/:id` | Get printer configuration & rate card | Authenticated |
+| `POST` | `/api/printers` | Register a new printer / machine | Admin / Manager |
+| `PUT` | `/api/printers/:id` | Update rates, status, or configuration | Admin / Manager |
+| `DELETE`| `/api/printers/:id` | Remove a printer | Admin Only |
+
+### 📈 9. Reports & KPIs
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/reports/dashboard-summary` | Live multi-branch aggregated revenue, copies, and KPIs | Authenticated |
+| `GET` | `/api/reports/monthly-revenue` | Year-over-year / month-by-month revenue trend analysis | Authenticated |
+
+### 💰 10. Revenue & Total Amounts
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/total-amounts` | Query daily revenue entries (filter by `branchName`, `date`) | Authenticated |
+| `GET` | `/api/total-amounts/:id` | Get daily revenue entry by ID | Authenticated |
+| `POST` | `/api/total-amounts` | Save/Upsert daily cashier & payment reconciliation | Authenticated |
+| `PUT` | `/api/total-amounts/:id` | Update total amount entry | Authenticated |
+| `DELETE`| `/api/total-amounts/:id` | Delete total amount entry | Admin Only |
+
+### 📦 11. Stocks
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/stocks/items` | List stock inventory (filter by `branchName`, `category`) | Authenticated |
+| `POST` | `/api/stocks/items` | Add or update inventory item | Admin / Manager |
+| `DELETE`| `/api/stocks/items/:id` | Remove inventory item | Admin Only |
+| `GET` | `/api/stocks/readings` | Query daily stock opening/closing consumption logs | Authenticated |
+| `POST` | `/api/stocks/readings` | Save daily stock consumption log | Authenticated |
+| `DELETE`| `/api/stocks/readings/:id` | Delete stock reading | Admin Only |
+
+### 🩺 12. System
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/health` | Service health status check | Public |
+
+### 👥 13. Users & RBAC
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/users` | List users (filterable by `role`, `branch`, `isActive`) | Admin Only |
+| `GET` | `/api/users/:id` | Get user details by ID | Authenticated |
+| `POST` | `/api/users` | Create a new Admin or Branch Manager account | Admin Only |
+| `PUT` | `/api/users/:id` | Update user details, role, or granular permissions | Authenticated |
+| `DELETE`| `/api/users/:id` | Delete user account from database | Admin Only |
+
+---
+
+## 🔑 Authentic Accounts & Credentials
+
+| Role | Email | Password | Branch Scope |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `admin@printz.shop` | `Admin@123` | Global (All Branches) |
+| **Admin / Dev** | `printzdev@gmail.com` | `Admin@123` | Global (All Branches) |
+| **Admin** | `kmln@gmail.com` | `Admin@123` | Global (All Branches) |
+| **Branch Manager** | `lr@printz.shop` | `Manager@123` | Lingrajpuram |
+| **Branch Manager** | `tan@printz.shop` | `Manager@123` | Thanisandra |
+| **Branch Manager** | `hbr@printz.shop` | `Manager@123` | HBR Layout |
+| **Branch Manager** | `rm@printz.shop` | `Manager@123` | Ramamurthynagar |
+| **Branch Manager** | `printzzzko@gmail.com` | `Manager@123` | Kothanur |
+| **Branch Manager** | `ag@printz.shop` | `Manager@123` | Horamavu Agara |
+| **Branch Manager** | `bn@printz.shop` | `Manager@123` | Banaswadi |
+| **Branch Manager** | `ba@printz.shop` | `Manager@123` | Babusapalya |
+| **Branch Manager** | `ho@printz.shop` | `Manager@123` | Horamavu |
+
+---
+
+## 🔒 Standardized Response Format
+
+All API responses follow a uniform JSON structure:
+
+### Successful Response:
 ```json
 {
   "success": true,
-  "message": "Operation completed successfully",
-  "data": { ... },
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 142
-  }
+  "message": "Total amount readings retrieved successfully",
+  "data": [ ... ]
 }
 ```
 
-### Error Response Envelope:
+### Error Response:
 ```json
 {
   "success": false,
-  "message": "Validation error or business conflict",
-  "errors": [
-    {
-      "field": "mobile",
-      "message": "A valid 10-digit mobile number is required"
-    }
-  ]
+  "message": "Invalid email or password",
+  "errors": [ ... ]
 }
 ```
-
----
-
-## 📄 License & Maintainer
-
-- **Organization**: PrintZ Enterprise Multi-Branch Systems
-- **Platform Version**: 3.0.0
-- **License**: Proprietary — Internal Enterprise Distribution Only

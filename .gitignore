@@ -2,41 +2,48 @@
 node_modules/
 */node_modules/
 
-# Production & Build Artifacts
-dist/
-build/
-*/dist/
-*/build/
-
-# Environment configurations & secrets
+# Environment variables & secrets
 .env
 .env.*
 !.env.example
+!.env.template
 *.env
-*.env.local
 
-# Logs and runtime data
+# Build outputs
+build/
+dist/
+*/dist/
+*/build/
+
+# Logs
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
-pnpm-debug.log*
+yarn-error.log*
 
-# File Uploads & User Media (Preserve .gitkeep files)
-uploads/*
-!uploads/.gitkeep
-*/uploads/*
-!*/uploads/.gitkeep
-backend/uploads/*
-!backend/uploads/.gitkeep
-
-# OS and Editor files
-.DS_Store
-Thumbs.db
+# IDE & Editor files
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Credentials
+*.pem
+*.key
+*.crt
+*.cert
+serviceAccountKey*.json
+*-service-account.json
+credentials.json

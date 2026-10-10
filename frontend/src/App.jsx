@@ -50,6 +50,7 @@ import StockListManagerPage from "./components/manager/StockList.jsx";
 import PdfGenerator from "./components/manager/PdfGenerator.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./printz-v3/shared/styles/featuresV3.css";
 import AdminDailyReadingsRevenue from "./components/admin/AdminDailyReadingsRevenue.jsx";
 import AdminStockReadingsRevenue from "./components/admin/AdminStockReadingsRevenue.jsx";
 import PreviousBalanceList from "./components/admin/PreviousBalanceList.jsx";
@@ -59,6 +60,28 @@ import ExportData from "./components/admin/ExportData.jsx";
 import JumboXeroxCsvVerifier from "./components/admin/JumboXeroxCsvVerifier.jsx";
 import SalesOrder from "./components/manager/SalesOrder.jsx";
 import SalesInvoice from "./components/manager/SalesInvoice.jsx";
+
+// PrintZ V3 - Customer Foundation, Job Workflow & Commercial Quotation
+import {
+  CustomerEntryPage,
+  MobileCustomerRegisterPage,
+  CreateJobPage,
+  JobListPage,
+  JobDetailsPage,
+  EstimateListPage,
+  CreateEstimatePage,
+  EditEstimatePage,
+  EstimateDetailsPage,
+  CustomerEstimateReviewPage,
+  DesignQueuePage,
+  DesignerQueuePage,
+  DesignWorkspacePage,
+  CustomerProofReviewPage,
+  ManagerSampleApprovalPage,
+  ProductionMasterPage,
+  QualityControlMasterPage,
+  OperatorConsolePage
+} from "./printz-v3";
 
 import { AuthProvider, useAuth, AuthContext } from "./context/AuthContext.jsx";
 export { AuthProvider, useAuth, AuthContext };
@@ -90,7 +113,51 @@ const pageTitleMapping = {
   "/jumbo-xerox-csv-verifier": "Jumbo Xerox CSV Verifier",
   "/sales-order": "Sales Order",
   "/sales-invoice": "Sales Invoice",
+  "/v3/customers": "Customer Entry & Registration",
+  "/customers": "Customer Entry & Registration",
+  "/customer-register": "PrintZ Mobile Customer Registration",
+  "/v3/customer-register": "PrintZ Mobile Customer Registration",
+  "/v3/jobs": "Job Orders & Manufacturing Specs",
+  "/jobs": "Job Orders & Manufacturing Specs",
+  "/v3/jobs/new": "Create Print Job Order",
+  "/jobs/new": "Create Print Job Order",
+  "/v3/estimates": "Quotations & Cost Estimates",
+  "/estimates": "Quotations & Cost Estimates",
+  "/v3/estimates/new": "Create Commercial Quotation",
+  "/estimates/new": "Create Commercial Quotation",
+  "/v3/design": "Designer Allocation & Queue",
+  "/design": "Designer Allocation & Queue",
+  "/v3/design/my-queue": "My Design Queue",
+  "/design/my-queue": "My Design Queue",
+  "/v3/design/workspace": "Design Workspace",
+  "/design/workspace": "Design Workspace",
+  "/v3/design/sample-approval": "Sample Approval",
+  "/design/sample-approval": "Sample Approval",
+  "/v3/customer/proof": "Customer Design Approval",
+  "/customer/proof": "Customer Design Approval",
+  "/v3/proof-approval": "Customer Design Approval",
+  "/proof-approval": "Customer Design Approval",
+  "/v3/production": "Production Planning & Workflow",
+  "/production": "Production Planning & Workflow",
+  "/v3/production/planning": "Production Planning & Release",
+  "/production/planning": "Production Planning & Release",
+  "/v3/production/orders": "Production Orders",
+  "/production/orders": "Production Orders",
+  "/v3/production/queue": "Live Production Queue & Station Routing",
+  "/production/queue": "Live Production Queue & Station Routing",
+  "/v3/production/operations": "Production Operation Execution",
+  "/production/operations": "Production Operation Execution",
+  "/v3/quality-control": "Quality Control & Rework / Reprint",
+  "/quality-control": "Quality Control & Rework / Reprint",
+  "/v3/quality-control/queue": "Quality Control Queue",
+  "/quality-control/queue": "Quality Control Queue",
+  "/v3/quality-control/reprints": "Reprint & Rework Authorizations",
+  "/quality-control/reprints": "Reprint & Rework Authorizations",
+  "/v3/operator-console": "Machine Operator Live Console",
+  "/operator-console": "Machine Operator Live Console",
 };
+
+
 
 const ProfileRouteWrapper = () => {
   const { role } = useAuth();
@@ -106,6 +173,14 @@ const ProfileRouteWrapper = () => {
       <ProfilePage />
     </AdminLayout>
   );
+};
+
+const LayoutWrapper = ({ children }) => {
+  const { role } = useAuth();
+  if (role === "admin") {
+    return <AdminLayout>{children}</AdminLayout>;
+  }
+  return <ManagerLayout>{children}</ManagerLayout>;
 };
 
 // This component contains your actual app content and routing logic
@@ -630,7 +705,683 @@ const AppContent = () => {
             />
           }
         />
+
+        {/* PrintZ V3 - Customer Foundation Routes */}
+        <Route
+          path="/v3/customers"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <CustomerEntryPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/customers"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <CustomerEntryPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* PrintZ V3 - Job Orders & Requirement Capture Routes */}
+        <Route
+          path="/v3/jobs"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <JobListPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/jobs"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <JobListPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/jobs/new"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <CreateJobPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/jobs/new"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <CreateJobPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/jobs/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <JobDetailsPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/jobs/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <JobDetailsPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* PrintZ V3 - Estimate & Quotation Routes (Step 3) */}
+        <Route
+          path="/v3/estimates"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <EstimateListPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/estimates"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <EstimateListPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/estimates/new"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <CreateEstimatePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/estimates/new"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <CreateEstimatePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/estimates/:id/edit"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <EditEstimatePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/estimates/:id/edit"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <EditEstimatePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/estimates/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <EstimateDetailsPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/estimates/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <EstimateDetailsPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* PrintZ V3 - Design Workflow & Workspace Routes (Step 5) */}
+        <Route
+          path="/v3/design"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/design"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/design/my-queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/design/my-queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/design/workspace/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignWorkspacePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/design/workspace/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignWorkspacePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* PrintZ V3 - Step 6: Sample Proof Approval & Decision Recording */}
+        <Route
+          path="/v3/design/sample-approval/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <ManagerSampleApprovalPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/design/sample-approval/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <ManagerSampleApprovalPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/jobs/:jobId/sample-approval/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <ManagerSampleApprovalPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* Public Mobile QR Customer Registration Routes */}
+        <Route path="/customer-register" element={<MobileCustomerRegisterPage />} />
+        <Route path="/v3/customer-register" element={<MobileCustomerRegisterPage />} />
+
+        {/* Public / Customer Portal Estimate Review Routes (Step 4) */}
+        <Route path="/v3/customer/estimate/:id" element={<CustomerEstimateReviewPage />} />
+        <Route path="/customer/estimate/:id" element={<CustomerEstimateReviewPage />} />
+        <Route path="/v3/customer/estimates/:id" element={<CustomerEstimateReviewPage />} />
+        <Route path="/customer/estimates/:id" element={<CustomerEstimateReviewPage />} />
+
+        {/* Public / Customer Portal Design Proof Approval Routes (Step 6) */}
+        <Route path="/design-approvals/:token" element={<CustomerProofReviewPage />} />
+        <Route path="/public/design-approvals/:token" element={<CustomerProofReviewPage />} />
+        <Route path="/v3/customer/proof/:id" element={<CustomerProofReviewPage />} />
+        <Route path="/customer/proof/:id" element={<CustomerProofReviewPage />} />
+        <Route path="/v3/proof-approval/:id" element={<CustomerProofReviewPage />} />
+        <Route path="/proof-approval/:id" element={<CustomerProofReviewPage />} />
+
+        {/* PrintZ V3 - Step 8: Production Planning & Production Orders */}
+        <Route
+          path="/v3/production"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/production/planning"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/planning"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/production/planning/:jobItemId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/planning/:jobItemId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/production/orders"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/orders"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/production/orders/:orderId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/orders/:orderId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* Step 9: Production Queue & Operation Execution */}
+        <Route
+          path="/v3/production/queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/production/operations/:operationId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/operations/:operationId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* Step 10: Quality Control & Rework / Reprint */}
+        <Route
+          path="/v3/quality-control"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/quality-control"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/quality-control/queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/quality-control/queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/quality-control/reprints"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/quality-control/reprints"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/v3/quality-control/:productionOrderId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/quality-control/:productionOrderId"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QualityControlMasterPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* Feature 4: Sequential Operation Machine Timers (Module 08) */}
+        <Route
+          path="/v3/operator-console"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "operator", "press_operator", "production_manager", "staff"]}
+              component={() => (
+                <LayoutWrapper>
+                  <OperatorConsolePage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/operator-console"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "operator", "press_operator", "production_manager", "staff"]}
+              component={() => (
+                <LayoutWrapper>
+                  <OperatorConsolePage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
       </Routes>
+
+
     </>
   );
 };

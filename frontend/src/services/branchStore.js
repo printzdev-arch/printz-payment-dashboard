@@ -1,5 +1,5 @@
-// Simple in-memory cache for branches to avoid repeated REST API reads
 import api from "./api";
+import { normalizeBranch } from "../utils/dataAdapter";
 
 let branchesCache = null; // string[] | null
 let fetchPromise = null; // Promise<string[]> | null
@@ -16,11 +16,12 @@ export const getBranchesCached = async () => {
   fetchPromise = (async () => {
     try {
       const response = await api.get("/branches");
-      const branches = response.data?.data || [];
+      const rawBranches = response.data?.data || [];
+      const normalizedBranches = rawBranches.map(normalizeBranch).filter(Boolean);
       const names = [
         ...new Set(
-          branches
-            .map((b) => (b.name || b.branchName ? String(b.name || b.branchName) : null))
+          normalizedBranches
+            .map((b) => b.name)
             .filter(Boolean)
         ),
       ];
@@ -62,13 +63,13 @@ export const resolveBranchId = async (branchIdentifier) => {
 
   try {
     const response = await api.get("/branches");
-    const branches = response.data?.data || [];
+    const branches = (response.data?.data || []).map(normalizeBranch).filter(Boolean);
     const target = trimmed.toLowerCase();
     const found = branches.find(
       (b) =>
         (b.name && b.name.trim().toLowerCase() === target) ||
-        (b.branchName && b.branchName.trim().toLowerCase() === target) ||
-        (b.code && b.code.trim().toLowerCase() === target)
+        (b.code && b.code.trim().toLowerCase() === target) ||
+        (b.branchCode && b.branchCode.trim().toLowerCase() === target)
     );
     if (found) {
       return (found._id || found.id || "").toString();

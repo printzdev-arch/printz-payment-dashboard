@@ -1,0 +1,335 @@
+/**
+ * PrintZ V3 - Estimate & Quotation Styles (Step 3)
+ * Enterprise-grade quotation layout with 12-col grid, line item table, live financial panel & print styling.
+ */
+
+.v3-estimate-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Header & Breadcrumb */
+.v3-estimate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.v3-estimate-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.v3-estimate-header-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.v3-estimate-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 10px;
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+
+.v3-version-tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Readonly Summary Info Grid */
+.v3-info-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .v3-info-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.v3-summary-kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #f1f5f9;
+}
+
+.v3-summary-kv-row:last-child {
+  border-bottom: none;
+}
+
+.v3-summary-k {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.v3-summary-v {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* 12-Column Main Layout */
+.v3-estimate-layout-grid {
+  display: grid;
+  grid-template-columns: 8fr 4fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .v3-estimate-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Line Items Table Container */
+.v3-lines-table-wrapper {
+  overflow-x: auto;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.v3-lines-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.v3-lines-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.v3-lines-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.v3-lines-table tr:last-child td {
+  border-bottom: none;
+}
+
+.v3-lines-table tr:hover td {
+  background-color: #fafbfc;
+}
+
+/* Table Input Styling */
+.v3-table-input {
+  width: 100%;
+  height: 34px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.v3-table-input:focus {
+  border-color: #047857;
+  box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.1);
+}
+
+.v3-table-select {
+  width: 100%;
+  height: 34px;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background-color: #ffffff;
+  color: #334155;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.v3-table-select:focus {
+  border-color: #047857;
+}
+
+/* Financial Summary Sidebar Panel */
+.v3-sticky-summary-panel {
+  position: sticky;
+  top: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.v3-summary-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.v3-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.v3-calc-row strong {
+  color: #0f172a;
+}
+
+.v3-calc-divider {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 10px 0;
+}
+
+.v3-grand-total-box {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.v3-grand-total-label {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #065f46;
+}
+
+.v3-grand-total-value {
+  font-size: 22px;
+  font-weight: 900;
+  color: #047857;
+}
+
+/* Category Badges */
+.v3-cat-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Modal Overlay */
+.v3-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.v3-modal-card {
+  background: #ffffff;
+  border-radius: 14px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.v3-modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.v3-modal-body {
+  padding: 22px;
+}
+
+.v3-modal-footer {
+  padding: 16px 22px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Print Sheet Styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .v3-printable-quotation, .v3-printable-quotation * {
+    visibility: visible;
+  }
+  .v3-printable-quotation {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: #ffffff;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

@@ -14,6 +14,8 @@ import {
   Layers,
   LogOut,
   User,
+  Users,
+  UserPlus,
   Menu,
   Clock,
   Calendar,
@@ -22,8 +24,17 @@ import {
   ChevronRight,
   DollarSign,
   Search,
+  Briefcase,
+  Calculator,
+  Palette,
+  ShieldCheck,
+  ArrowLeftRight,
+  Timer,
+  Gauge,
+  FileSearch
 } from "lucide-react";
 import PrintZSidebarIllustration from "../illustrations/PrintZSidebarIllustration";
+
 
 /**
  * 3D Isometric Faceted Cube Logo matching PrintZ design references
@@ -90,6 +101,26 @@ const PrintZLogoIcon = () => (
 );
 
 const getManagerPageTitle = (pathname) => {
+  if (pathname.includes("/operator-console")) return "Operator Machine Console (V3)";
+  if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers (V3)";
+  if (pathname.includes("/sla-dashboard") || pathname.includes("/sla")) return "SLA Monitoring & Designer Scorecard (V3)";
+  if (pathname.includes("/audit-logs")) return "Enterprise Audit Log Explorer (V3)";
+  if (pathname.includes("/quality-control/reprints")) return "Reprint & Rework Authorizations (V3)";
+  if (pathname.includes("/quality-control/queue")) return "Quality Control Queue (V3)";
+  if (pathname.includes("/quality-control")) return "Quality Control & Rework / Reprint (V3)";
+  if (pathname.includes("/production/queue")) return "Production Queue & Execution (V3)";
+  if (pathname.includes("/production/operations")) return "Operation Execution (V3)";
+  if (pathname.includes("/production/planning")) return "Production Planning (V3)";
+  if (pathname.includes("/production/orders")) return "Production Orders (V3)";
+  if (pathname.includes("/production")) return "Production Workflow & Queue (V3)";
+  if (pathname.includes("/design/my-queue")) return "My Design Queue (V3)";
+  if (pathname.includes("/design/workspace")) return "Design Workspace (V3)";
+  if (pathname.includes("/design")) return "Designer Allocation & Queue (V3)";
+  if (pathname.includes("/estimates/new")) return "Create Commercial Quotation (V3)";
+  if (pathname.includes("/estimates")) return "Quotations & Cost Estimates (V3)";
+  if (pathname.includes("/jobs/new")) return "Create Print Job Order (V3)";
+  if (pathname.includes("/jobs")) return "Job Orders & Requirement Capture (V3)";
+  if (pathname.includes("/customers") || pathname.includes("/v3/customers")) return "Customer Entry & Registration (V3)";
   if (pathname === "/manager-dashboard" || pathname === "/") return "Manager Dashboard";
   if (pathname.includes("/printer-readings-manager")) return "Account Sheet Generation";
   if (pathname.includes("/pdf-generator")) return "Generate PDF Report";
@@ -201,18 +232,18 @@ const ManagerLayout = ({ children }) => {
         setUserName(currentUser.name);
         try {
           localStorage.setItem("userName", currentUser.name);
-        } catch (e) {}
+        } catch (e) { }
       }
       if (currentUser.branch) {
         setBranchName(currentUser.branch);
         try {
           localStorage.setItem("userBranchName", currentUser.branch);
-        } catch (e) {}
+        } catch (e) { }
       }
       try {
         if (pic) localStorage.setItem("profilePicUrl", pic);
         else localStorage.removeItem("profilePicUrl");
-      } catch (e) {}
+      } catch (e) { }
     }
   }, [currentUser]);
 
@@ -298,9 +329,8 @@ const ManagerLayout = ({ children }) => {
           <li className="sidebar-nav-item">
             <NavLink
               to="/manager-dashboard"
-              className={`sidebar-link ${
-                isActiveRoute("/manager-dashboard") ? "active-link" : ""
-              }`}
+              className={`sidebar-link ${isActiveRoute("/manager-dashboard") ? "active-link" : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <LayoutDashboard size={18} className="sidebar-link-icon" />
@@ -316,9 +346,8 @@ const ManagerLayout = ({ children }) => {
           <li className="sidebar-nav-item">
             <NavLink
               to="/printer-readings-manager"
-              className={`sidebar-link ${
-                isActiveRoute("/printer-readings-manager") ? "active-link" : ""
-              }`}
+              className={`sidebar-link ${isActiveRoute("/printer-readings-manager") ? "active-link" : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <FileText size={18} className="sidebar-link-icon" />
@@ -334,9 +363,8 @@ const ManagerLayout = ({ children }) => {
           <li className="sidebar-nav-item">
             <NavLink
               to="/pdf-generator"
-              className={`sidebar-link ${
-                isActiveRoute("/pdf-generator") ? "active-link" : ""
-              }`}
+              className={`sidebar-link ${isActiveRoute("/pdf-generator") ? "active-link" : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <FileDown size={18} className="sidebar-link-icon" />
@@ -347,7 +375,147 @@ const ManagerLayout = ({ children }) => {
               )}
             </NavLink>
           </li>
+
+          {/* PrintZ V3 - Customer Entry (Positioned Below Previous Modules) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/customers"
+              className={`sidebar-link ${isActiveRoute("/v3/customers") || isActiveRoute("/customers") ? "active-link" : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Users size={18} className="sidebar-link-icon" />
+                <span>Customer Entry (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/customers") || isActiveRoute("/customers")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* PrintZ V3 - Job Orders (Positioned Below Customer Entry) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/jobs"
+              className={`sidebar-link ${isActiveRoute("/v3/jobs") || isActiveRoute("/jobs") || isActiveRoute("/v3/jobs/new") ? "active-link" : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Briefcase size={18} className="sidebar-link-icon" />
+                <span>Job Orders (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/jobs") || isActiveRoute("/jobs") || isActiveRoute("/v3/jobs/new")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* PrintZ V3 - Estimates & Quotations (Positioned Below Job Orders) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/estimates"
+              className={`sidebar-link ${isActiveRoute("/v3/estimates") || isActiveRoute("/estimates") || isActiveRoute("/v3/estimates/new") ? "active-link" : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Calculator size={18} className="sidebar-link-icon" />
+                <span>Estimates & Quotes (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/estimates") || isActiveRoute("/estimates") || isActiveRoute("/v3/estimates/new")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* PrintZ V3 - Design Workflow (Positioned Below Estimates) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/design"
+              className={`sidebar-link ${isActiveRoute("/v3/design") || isActiveRoute("/design") ? "active-link" : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Palette size={18} className="sidebar-link-icon" />
+                <span>Design Workflow (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/design") || isActiveRoute("/design")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* PrintZ V3 - Production Planning & Orders (Positioned Below Design) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/production/planning"
+              className={`sidebar-link ${isActiveRoute("/v3/production") ||
+                  isActiveRoute("/production") ||
+                  isActiveRoute("/v3/production/planning") ||
+                  isActiveRoute("/production/planning") ||
+                  isActiveRoute("/v3/production/orders") ||
+                  isActiveRoute("/production/orders")
+                  ? "active-link"
+                  : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Layers size={18} className="sidebar-link-icon" />
+                <span>Production (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/production") ||
+                isActiveRoute("/production") ||
+                isActiveRoute("/v3/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/v3/production/orders") ||
+                isActiveRoute("/production/orders")) && (
+                  <ChevronRight size={15} className="sidebar-active-arrow" />
+                )}
+            </NavLink>
+          </li>
+
+          {/* PrintZ V3 - Step 10: Quality Control & Rework / Reprint */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/quality-control"
+              className={`sidebar-link ${isActiveRoute("/v3/quality-control") ||
+                  isActiveRoute("/quality-control")
+                  ? "active-link"
+                  : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <ShieldCheck size={18} className="sidebar-link-icon" />
+                <span>Quality Control (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/quality-control") ||
+                isActiveRoute("/quality-control")) && (
+                  <ChevronRight size={15} className="sidebar-active-arrow" />
+                )}
+            </NavLink>
+          </li>
+
+          {/* PrintZ V3 - Machine Operator Console & Timers */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/operator-console"
+              className={`sidebar-link ${isActiveRoute("/v3/operator-console") ||
+                  isActiveRoute("/operator-console")
+                  ? "active-link"
+                  : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Timer size={18} className="sidebar-link-icon" />
+                <span>Operator Timers (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/operator-console") ||
+                isActiveRoute("/operator-console")) && (
+                  <ChevronRight size={15} className="sidebar-active-arrow" />
+                )}
+            </NavLink>
+          </li>
         </ul>
+
 
         {/* Bottom Section: PrintZ Sidebar Illustration, Divider & Logout */}
         <div className="sidebar-bottom-section">
@@ -443,9 +611,8 @@ const ManagerLayout = ({ children }) => {
                 <ChevronDown
                   size={16}
                   strokeWidth={2}
-                  className={`user-chevron ${
-                    isProfileDropdownOpen ? "rotated" : ""
-                  }`}
+                  className={`user-chevron ${isProfileDropdownOpen ? "rotated" : ""
+                    }`}
                 />
               </div>
 

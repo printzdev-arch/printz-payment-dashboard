@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import api, { TOKEN_KEY, USER_KEY } from "../services/api";
+import { normalizeUser as adapterNormalizeUser, hasPermission as checkPermission } from "../utils/dataAdapter";
 
 export const AuthContext = createContext();
 
@@ -10,37 +11,15 @@ export const useAuth = () => {
 
 const normalizeUser = (user) => {
   if (!user) return null;
-
-  let userPermissions = user.permissions || {};
-
-  // For Admin accounts, grant full capability access unless explicitly restricted
-  if (user.role === "admin") {
-    userPermissions = {
-      isDashboardCapability: true,
-      isPrinterCapability: true,
-      isStockCapability: true,
-      isRevenueCapability: true,
-      isAddAdmin: true,
-      isAddManager: true,
-      isExtraCapability: true,
-      all: true,
-      ...userPermissions,
-    };
-  }
-
-  const normalized = {
-    ...user,
-    id: user.id || user._id,
-    uid: user.id || user._id || "",
-    role: user.role || "manager",
-    permissions: userPermissions,
-  };
+  const normalized = adapterNormalizeUser(user);
 
   // Sync auxiliary localStorage items for layout components
   try {
     if (normalized.name) localStorage.setItem("userName", normalized.name);
     if (normalized.role) localStorage.setItem("userRole", normalized.role);
-    if (normalized.branch) localStorage.setItem("userBranchName", normalized.branch);
+    if (normalized.branchName || normalized.branch) {
+      localStorage.setItem("userBranchName", normalized.branchName || normalized.branch);
+    }
     if (normalized.profilePicUrl) localStorage.setItem("profilePicUrl", normalized.profilePicUrl);
   } catch (e) {
     // Ignore storage sync errors
@@ -98,10 +77,17 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await api.post("/auth/login", { email, password });
     if (response.data && response.data.success) {
-      const { token, user } = response.data.data;
+      const data = response.data.data || {};
+      const token = data.accessToken || data.token;
+      const user = data.user || data;
       const normalizedUser = normalizeUser(user);
 
-      localStorage.setItem(TOKEN_KEY, token);
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+      }
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
       localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
 
       setCurrentUser(normalizedUser);
@@ -139,6 +125,7 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     role,
     permissions,
+    hasPermission: (key) => checkPermission(currentUser, key),
     login,
     logout,
     resetPassword,

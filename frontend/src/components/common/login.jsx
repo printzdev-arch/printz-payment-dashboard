@@ -45,9 +45,21 @@ const Login = () => {
 
   useEffect(() => {
     if (role && currentUser) {
-      if (role === "admin") navigate("/admin-dashboard");
-      else if (role === "manager") navigate("/manager-dashboard");
-      else navigate("/login");
+      if (role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (role === "manager") {
+        navigate("/manager-dashboard");
+      } else if (role === "designer") {
+        navigate("/design/my-queue");
+      } else if (role === "operator") {
+        navigate("/v3/production/queue");
+      } else if (role === "qc_inspector") {
+        navigate("/v3/quality-control/queue");
+      } else if (role === "staff" || role === "cashier") {
+        navigate("/sales-pos");
+      } else {
+        navigate("/manager-dashboard");
+      }
     }
   }, [role, navigate, currentUser]);
 
@@ -123,6 +135,7 @@ const Login = () => {
                 id="emailOrPhone"
                 ref={emailRef}
                 placeholder="Enter email or phone number"
+                defaultValue="bn@printz.shop"
                 required
                 disabled={loading}
                 autoComplete="username"
@@ -172,6 +185,7 @@ const Login = () => {
                 id="password"
                 ref={passwordRef}
                 placeholder="Enter your password"
+                defaultValue="Manager@123"
                 required
                 disabled={loading}
                 autoComplete="current-password"
@@ -256,6 +270,77 @@ const Login = () => {
               "Sign In"
             )}
           </button>
+
+          {/* Quick Demo Login Presets */}
+          <div style={{ marginTop: "18px", paddingTop: "14px", borderTop: "1px dashed #e2e8f0" }}>
+            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", margin: "0 0 8px 0", textAlign: "center" }}>
+              ⚡ Quick 1-Click Login:
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  if (emailRef.current) emailRef.current.value = "bn@printz.shop";
+                  if (passwordRef.current) passwordRef.current.value = "Manager@123";
+                  setLoading(true);
+                  try {
+                    await login("bn@printz.shop", "Manager@123");
+                  } catch (error) {
+                    const errorMsg =
+                      error?.response?.data?.message ||
+                      error?.message ||
+                      "Failed to log in. Please check credentials.";
+                    showError(`Failed to log in: ${errorMsg}`);
+                    setLoading(false);
+                  }
+                }}
+                style={{
+                  padding: "8px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  backgroundColor: "#ecfdf5",
+                  color: "#047857",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                👤 Manager Login (Banaswadi)
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  if (emailRef.current) emailRef.current.value = "admin@printz.shop";
+                  if (passwordRef.current) passwordRef.current.value = "Admin@123";
+                  setLoading(true);
+                  try {
+                    await login("admin@printz.shop", "Admin@123");
+                  } catch (error) {
+                    const errorMsg =
+                      error?.response?.data?.message ||
+                      error?.message ||
+                      "Failed to log in. Please check credentials.";
+                    showError(`Failed to log in: ${errorMsg}`);
+                    setLoading(false);
+                  }
+                }}
+                style={{
+                  padding: "8px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  backgroundColor: "#eff6ff",
+                  color: "#1d4ed8",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                👑 Admin Login
+              </button>
+            </div>
+          </div>
         </form>
 
         {/* Footer */}

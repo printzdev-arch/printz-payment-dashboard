@@ -20,6 +20,12 @@ import {
   Menu,
   Clock,
   Calendar,
+  ShoppingCart,
+  Layers,
+  ArrowLeftRight,
+  Timer,
+  Gauge,
+  FileSearch,
 } from "lucide-react";
 import PrintZSidebarIllustration from "../illustrations/PrintZSidebarIllustration";
 
@@ -88,6 +94,7 @@ const PrintZLogoIcon = () => (
 );
 
 const getPageTitle = (pathname) => {
+  if (pathname.includes("/operator-console")) return "Operator Machine Console (V3)";
   if (pathname === "/admin-dashboard" || pathname === "/") return "Dashboard";
   if (pathname === "/add-admin") return "Administrator Management";
   if (pathname === "/add-branch") return "Branch Management";
@@ -336,6 +343,82 @@ const AdminLayout = ({ children }) => {
               </NavLink>
             </li>
           )}
+
+          {/* Sales & POS (Direct Counter Billing) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/sales-pos"
+              className={`sidebar-link ${
+                isActiveRoute("/v3/sales-pos") ||
+                isActiveRoute("/sales-pos") ||
+                isActiveRoute("/v3/sales-pos/new") ||
+                isActiveRoute("/sales-pos/new") ||
+                isActiveRoute("/v3/sales-pos/history") ||
+                isActiveRoute("/sales-pos/history") ||
+                isActiveRoute("/v3/sales-pos/invoices") ||
+                isActiveRoute("/sales-pos/invoices") ||
+                isActiveRoute("/v3/sales-pos/payments") ||
+                isActiveRoute("/sales-pos/payments") ||
+                isActiveRoute("/v3/sales-pos/receipts") ||
+                isActiveRoute("/sales-pos/receipts") ||
+                isActiveRoute("/v3/sales-pos/returns") ||
+                isActiveRoute("/sales-pos/returns")
+                  ? "active-link"
+                  : ""
+              }`}
+            >
+              <div className="sidebar-link-content">
+                <ShoppingCart size={18} className="sidebar-link-icon" />
+                <span>Sales & POS (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/sales-pos") ||
+                isActiveRoute("/sales-pos") ||
+                isActiveRoute("/v3/sales-pos/new") ||
+                isActiveRoute("/sales-pos/new") ||
+                isActiveRoute("/v3/sales-pos/history") ||
+                isActiveRoute("/sales-pos/history") ||
+                isActiveRoute("/v3/sales-pos/invoices") ||
+                isActiveRoute("/sales-pos/invoices") ||
+                isActiveRoute("/v3/sales-pos/payments") ||
+                isActiveRoute("/sales-pos/payments") ||
+                isActiveRoute("/v3/sales-pos/receipts") ||
+                isActiveRoute("/sales-pos/receipts") ||
+                isActiveRoute("/v3/sales-pos/returns") ||
+                isActiveRoute("/sales-pos/returns")) && (
+                <ChevronRight size={16} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* Production (Planning & Orders) */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/v3/production/planning"
+              className={`sidebar-link ${
+                isActiveRoute("/v3/production") ||
+                isActiveRoute("/production") ||
+                isActiveRoute("/v3/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/v3/production/orders") ||
+                isActiveRoute("/production/orders")
+                  ? "active-link"
+                  : ""
+              }`}
+            >
+              <div className="sidebar-link-content">
+                <Layers size={18} className="sidebar-link-icon" />
+                <span>Production (V3)</span>
+              </div>
+              {(isActiveRoute("/v3/production") ||
+                isActiveRoute("/production") ||
+                isActiveRoute("/v3/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/v3/production/orders") ||
+                isActiveRoute("/production/orders")) && (
+                <ChevronRight size={16} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
 
           {/* Admins */}
           {isAddAdmin && (
@@ -654,6 +737,60 @@ const AdminLayout = ({ children }) => {
               )}
             </li>
           )}
+
+          {/* SLA Monitoring & Designer Scorecard */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/sla-dashboard"
+              className={`sidebar-link ${
+                isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla") ? "active-link" : ""
+              }`}
+            >
+              <div className="sidebar-link-content">
+                <Gauge size={18} className="sidebar-link-icon" />
+                <span>SLA & Scorecards (V3)</span>
+              </div>
+              {(isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* Enterprise Audit Log Explorer */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/audit-logs"
+              className={`sidebar-link ${
+                isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs") ? "active-link" : ""
+              }`}
+            >
+              <div className="sidebar-link-content">
+                <FileSearch size={18} className="sidebar-link-icon" />
+                <span>Audit Logs (V3)</span>
+              </div>
+              {(isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* Sequential Machine Operator Timers */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/operator-console"
+              className={`sidebar-link ${
+                isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console") ? "active-link" : ""
+              }`}
+            >
+              <div className="sidebar-link-content">
+                <Timer size={18} className="sidebar-link-icon" />
+                <span>Operator Timers (V3)</span>
+              </div>
+              {(isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
         </ul>
 
         {/* Bottom Section: PrintZ Sidebar Illustration, Divider & Logout */}
