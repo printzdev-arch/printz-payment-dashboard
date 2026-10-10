@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   Calculator,
   Palette
 } from "lucide-react";
+import api from "../../../../services/api";
 import Badge from "../../../shared/components/Badge";
 import { FINISHING_OPTIONS } from "../constants/jobConstants";
 import "../../customer/styles/customerV3.css";
@@ -29,6 +30,24 @@ export default function JobDetailsView({
   className = ""
 }) {
   const navigate = useNavigate();
+  const [customerData, setCustomerData] = useState(null);
+
+  useEffect(() => {
+    if (!job) return;
+    const custId = typeof job.customerId === "object" ? job.customerId?._id : job.customerId;
+    const hasCode = job.customerCode && job.customerCode !== "—";
+    const hasPhone = (job.customerMobile && job.customerMobile !== "—") || job.customerPhone || job.customerSnapshot?.mobile;
+    if ((!hasCode || !hasPhone) && custId) {
+      api.get(`/customers/${custId}`)
+        .then((res) => {
+          const c = res.data?.data || res.data?.customer || res.data;
+          if (c) setCustomerData(c);
+        })
+        .catch((err) => {
+          console.warn("Could not fetch customer for JobDetailsView:", err);
+        });
+    }
+  }, [job?.customerId, job?.customerCode, job?.customerMobile]);
 
   if (!job) {
     return (
@@ -46,6 +65,37 @@ export default function JobDetailsView({
     );
   }
 
+  const customerName =
+    job.customerName ||
+    job.customerSnapshot?.name ||
+    customerData?.name ||
+    (typeof job.customerId === "object" ? job.customerId?.name : null) ||
+    "Customer";
+
+  const customerCode =
+    (job.customerCode && job.customerCode !== "—" ? job.customerCode : null) ||
+    customerData?.customerCode ||
+    job.customerSnapshot?.customerCode ||
+    (typeof job.customerId === "object" ? job.customerId?.customerCode : null) ||
+    "—";
+
+  const customerMobile =
+    (job.customerMobile && job.customerMobile !== "—" ? job.customerMobile : null) ||
+    customerData?.mobile ||
+    customerData?.phone ||
+    job.customerPhone ||
+    job.customerSnapshot?.mobile ||
+    (typeof job.customerId === "object" ? (job.customerId?.mobile || job.customerId?.phone) : null) ||
+    "—";
+
+  const customerCompany =
+    job.customerCompany ||
+    customerData?.companyName ||
+    customerData?.company ||
+    job.customerSnapshot?.company ||
+    (typeof job.customerId === "object" ? (job.customerId?.companyName || job.customerId?.company) : null) ||
+    "";
+
   const getFinishingLabel = (fin) => {
     if (!fin) return "";
     if (typeof fin === "object") {
@@ -58,12 +108,34 @@ export default function JobDetailsView({
   const totalUnits = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
   const hasEstimate = !!(job.estimateId || job.estimateNo);
 
+  const isEstimationApproved =
+    job.estimationStatus === "APPROVED" ||
+    job.status === "ESTIMATION_APPROVED" ||
+    job.status === "READY_FOR_DESIGN" ||
+    [
+      "DESIGN",
+      "DESIGN_QUEUE",
+      "DESIGN_ASSIGNED",
+      "DESIGN_IN_PROGRESS",
+      "PROOFING",
+      "SAMPLE_APPROVAL",
+      "PRODUCTION_PLANNING",
+      "PLANNED",
+      "PRINTING",
+      "FINISHING",
+      "PACKING",
+      "QC",
+      "READY",
+      "DELIVERY",
+      "COMPLETED"
+    ].includes(String(job.currentStage || job.stage || "").toUpperCase());
+
   // Workflow Pipeline Steps
   const workflowSteps = [
     { id: "CUSTOMER", label: "Customer Registration", status: "completed" },
     { id: "REQUIREMENTS", label: "Requirements Captured", status: "completed" },
-    { id: "ESTIMATE", label: "Estimation & Pricing", status: hasEstimate ? "completed" : "current" },
-    { id: "DESIGN", label: "Artwork & Proof", status: "pending" },
+    { id: "ESTIMATE", label: "Estimation & Pricing", status: isEstimationApproved ? "completed" : "current" },
+    { id: "DESIGN", label: "Artwork & Proof", status: isEstimationApproved ? "current" : "pending" },
     { id: "PRODUCTION", label: "Print Production", status: "pending" },
     { id: "QC_DELIVERY", label: "QC & Dispatch", status: "pending" }
   ];
@@ -130,20 +202,22 @@ export default function JobDetailsView({
           <button
             type="button"
             onClick={handleEstimateAction}
-            className="v3-btn-secondary"
+            className={isEstimationApproved ? "v3-btn-secondary" : "v3-btn-primary"}
             style={{ fontSize: "12px" }}
           >
             <Calculator size={14} /> {hasEstimate ? `View Quotation (${job.estimateNo})` : "Create Commercial Estimate"}
           </button>
 
-          <button
-            type="button"
-            onClick={() => navigate("/design")}
-            className="v3-btn-primary"
-            style={{ fontSize: "12px", backgroundColor: "#0284c7", borderColor: "#0284c7", display: "inline-flex", alignItems: "center", gap: "6px" }}
-          >
-            <Palette size={14} /> Design Workflow & Assignment →
-          </button>
+          {isEstimationApproved && (
+            <button
+              type="button"
+              onClick={() => navigate("/v3/design/queue")}
+              className="v3-btn-primary"
+              style={{ fontSize: "12px", backgroundColor: "#0284c7", borderColor: "#0284c7", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <Palette size={14} /> Design Workflow & Assignment →
+            </button>
+          )}
         </div>
       </div>
 
@@ -190,25 +264,25 @@ export default function JobDetailsView({
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
                 <span style={{ color: "#64748b" }}>Customer Name:</span>
-                <strong style={{ color: "#0f172a" }}>{job.customerName || "Customer"}</strong>
+                <strong style={{ color: "#0f172a" }}>{customerName}</strong>
               </div>
 
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
                 <span style={{ color: "#64748b" }}>Customer Code:</span>
                 <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#047857" }}>
-                  {job.customerCode || "—"}
+                  {customerCode}
                 </span>
               </div>
 
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
                 <span style={{ color: "#64748b" }}>Mobile Number:</span>
-                <strong>{job.customerMobile || "—"}</strong>
+                <strong>{customerMobile}</strong>
               </div>
 
-              {job.customerCompany && (
+              {customerCompany && (
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
                   <span style={{ color: "#64748b" }}>Company:</span>
-                  <strong>{job.customerCompany}</strong>
+                  <strong>{customerCompany}</strong>
                 </div>
               )}
             </div>

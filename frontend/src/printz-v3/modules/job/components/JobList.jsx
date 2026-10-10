@@ -234,8 +234,11 @@ export default function JobList({
                           {job.customerName || job.customer?.name || "Customer"}
                         </strong>
                         <div style={{ fontSize: "11px", color: "#64748b" }}>
-                          <span style={{ fontFamily: "monospace" }}>{job.customerCode || job.customer?.customerCode || "—"}</span>
-                          {" • "}{job.customerMobile || job.customer?.mobile || "—"}
+                          <span style={{ fontFamily: "monospace" }}>
+                            {job.customerCode || job.customerSnapshot?.customerCode || job.customer?.customerCode || "—"}
+                          </span>
+                          {" • "}
+                          {job.customerMobile || job.customerPhone || job.customerSnapshot?.mobile || job.customer?.mobile || job.customer?.phone || "—"}
                         </div>
                       </td>
 

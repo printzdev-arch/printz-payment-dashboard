@@ -13,12 +13,25 @@ export const getJobs = async (filterParams = {}) => {
   try {
     const response = await api.get("/job-orders", { params: filterParams });
     const data = response.data;
-    console.log(data);
 
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    if (data && Array.isArray(data.jobs)) return data.jobs;
-    return [];
+    let rawList = [];
+    if (Array.isArray(data)) rawList = data;
+    else if (data && Array.isArray(data.data)) rawList = data.data;
+    else if (data && Array.isArray(data.jobs)) rawList = data.jobs;
+
+    return rawList.map((j) => {
+      const snap = j.customerSnapshot || {};
+      const cust = typeof j.customerId === "object" ? j.customerId : (j.customer || {});
+      const mobile = j.customerMobile || j.customerPhone || snap.mobile || cust.mobile || cust.phone || "";
+      const code = j.customerCode || snap.customerCode || cust.customerCode || "";
+      return {
+        ...j,
+        customerMobile: mobile || "—",
+        customerPhone: mobile || j.customerPhone || "",
+        customerCode: code || "—",
+        customerName: j.customerName || snap.name || cust.name || "Customer"
+      };
+    });
   } catch (error) {
     console.error("Failed to fetch jobs:", error);
     throw error;
@@ -27,13 +40,49 @@ export const getJobs = async (filterParams = {}) => {
 
 /**
  * Fetch a single Job Order with full item specifications by ID or Job Number
+ * Automatically resolves customerCode and customerMobile from customer master if needed
  * @param {string} jobId
  * @returns {Promise<Object>}
  */
 export const getJobById = async (jobId) => {
   try {
     const response = await api.get(`/job-orders/${jobId}`);
-    return response.data?.data || response.data?.job || response.data;
+    const j = response.data?.data || response.data?.job || response.data;
+    if (!j) return null;
+
+    const snap = j.customerSnapshot || {};
+    const custObj = typeof j.customerId === "object" ? j.customerId : (j.customer || {});
+
+    let customerCode = j.customerCode || snap.customerCode || custObj.customerCode;
+    let customerMobile = j.customerMobile || j.customerPhone || snap.mobile || custObj.mobile || custObj.phone;
+    let customerName = j.customerName || snap.name || custObj.name;
+    let customerCompany = j.customerCompany || snap.company || custObj.companyName || custObj.company;
+
+    // If customerCode or customerMobile is missing, fetch customer details if customerId is present
+    const custId = typeof j.customerId === "object" ? j.customerId?._id : j.customerId;
+    if ((!customerCode || !customerMobile) && custId) {
+      try {
+        const custRes = await api.get(`/customers/${custId}`);
+        const custData = custRes.data?.data || custRes.data?.customer || custRes.data;
+        if (custData) {
+          if (!customerCode && custData.customerCode) customerCode = custData.customerCode;
+          if (!customerMobile && (custData.mobile || custData.phone)) customerMobile = custData.mobile || custData.phone;
+          if (!customerName && custData.name) customerName = custData.name;
+          if (!customerCompany && (custData.companyName || custData.company)) customerCompany = custData.companyName || custData.company;
+        }
+      } catch (cErr) {
+        console.warn("Could not fetch customer by ID for job details:", cErr);
+      }
+    }
+
+    return {
+      ...j,
+      customerCode: customerCode || "—",
+      customerMobile: customerMobile || "—",
+      customerPhone: customerMobile || j.customerPhone || "",
+      customerName: customerName || "Customer",
+      customerCompany: customerCompany || ""
+    };
   } catch (error) {
     console.error(`Failed to fetch job ${jobId}:`, error);
     throw error;
