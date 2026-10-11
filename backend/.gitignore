@@ -1,5 +1,5 @@
 # ===================================================
-# Node.js Dependencies & Package Managers
+# Dependencies & Package Managers
 # ===================================================
 node_modules/
 jspm_packages/
@@ -14,8 +14,18 @@ jspm_packages/
 !.yarn/versions
 
 # ===================================================
+# Nested Duplicates & Local Working Folders
+# ===================================================
+/backend/
+backend/
+backend/backend/
+New folder/
+New\ folder/
+
+# ===================================================
 # Environment Variables & Secrets
 # ===================================================
+*.local
 .env
 .env.*
 .env.local
@@ -24,7 +34,7 @@ jspm_packages/
 .env.production.local
 .env.staging.local
 
-# Preserve example/template environment configs
+# Preserve example and template configs
 !.env.example
 !.env.template
 !.env.sample
@@ -115,6 +125,7 @@ temp/
 .eslintcache
 .npm/
 .parcel-cache/
+.turbo/
 
 # ===================================================
 # IDE, Editor & Tool Specific Files
@@ -132,6 +143,7 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+*.swp
 *~
 
 # ===================================================

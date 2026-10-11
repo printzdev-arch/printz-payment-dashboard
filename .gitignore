@@ -2,6 +2,11 @@
 node_modules/
 */node_modules/
 
+# Nested duplicate folders & local working directories
+backend/backend/
+New folder/
+
+
 # Environment variables & secrets
 .env
 .env.*
