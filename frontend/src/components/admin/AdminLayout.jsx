@@ -94,7 +94,7 @@ const PrintZLogoIcon = () => (
 );
 
 const getPageTitle = (pathname) => {
-  if (pathname.includes("/operator-console")) return "Operator Machine Console (V3)";
+  if (pathname.includes("/operator-console")) return "Operator Machine Console";
   if (pathname === "/admin-dashboard" || pathname === "/") return "Dashboard";
   if (pathname === "/add-admin") return "Administrator Management";
   if (pathname === "/add-branch") return "Branch Management";
@@ -369,7 +369,7 @@ const AdminLayout = ({ children }) => {
             >
               <div className="sidebar-link-content">
                 <ShoppingCart size={18} className="sidebar-link-icon" />
-                <span>Sales & POS (V3)</span>
+                <span>Sales & POS</span>
               </div>
               {(isActiveRoute("/v3/sales-pos") ||
                 isActiveRoute("/sales-pos") ||
@@ -407,7 +407,7 @@ const AdminLayout = ({ children }) => {
             >
               <div className="sidebar-link-content">
                 <Layers size={18} className="sidebar-link-icon" />
-                <span>Production (V3)</span>
+                <span>Production</span>
               </div>
               {(isActiveRoute("/v3/production") ||
                 isActiveRoute("/production") ||
@@ -748,7 +748,7 @@ const AdminLayout = ({ children }) => {
             >
               <div className="sidebar-link-content">
                 <Gauge size={18} className="sidebar-link-icon" />
-                <span>SLA & Scorecards (V3)</span>
+                <span>SLA & Scorecards</span>
               </div>
               {(isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
@@ -766,7 +766,7 @@ const AdminLayout = ({ children }) => {
             >
               <div className="sidebar-link-content">
                 <FileSearch size={18} className="sidebar-link-icon" />
-                <span>Audit Logs (V3)</span>
+                <span>Audit Logs</span>
               </div>
               {(isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
@@ -784,7 +784,7 @@ const AdminLayout = ({ children }) => {
             >
               <div className="sidebar-link-content">
                 <Timer size={18} className="sidebar-link-icon" />
-                <span>Operator Timers (V3)</span>
+                <span>Operator Timers</span>
               </div>
               {(isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />

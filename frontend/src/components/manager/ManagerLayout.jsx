@@ -31,7 +31,9 @@ import {
   ArrowLeftRight,
   Timer,
   Gauge,
-  FileSearch
+  FileSearch,
+  Truck,
+  Receipt
 } from "lucide-react";
 import PrintZSidebarIllustration from "../illustrations/PrintZSidebarIllustration";
 
@@ -101,26 +103,17 @@ const PrintZLogoIcon = () => (
 );
 
 const getManagerPageTitle = (pathname) => {
-  if (pathname.includes("/operator-console")) return "Operator Machine Console (V3)";
-  if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers (V3)";
-  if (pathname.includes("/sla-dashboard") || pathname.includes("/sla")) return "SLA Monitoring & Designer Scorecard (V3)";
-  if (pathname.includes("/audit-logs")) return "Enterprise Audit Log Explorer (V3)";
-  if (pathname.includes("/quality-control/reprints")) return "Reprint & Rework Authorizations (V3)";
-  if (pathname.includes("/quality-control/queue")) return "Quality Control Queue (V3)";
-  if (pathname.includes("/quality-control")) return "Quality Control & Rework / Reprint (V3)";
-  if (pathname.includes("/production/queue")) return "Production Queue & Execution (V3)";
-  if (pathname.includes("/production/operations")) return "Operation Execution (V3)";
-  if (pathname.includes("/production/planning")) return "Production Planning (V3)";
-  if (pathname.includes("/production/orders")) return "Production Orders (V3)";
-  if (pathname.includes("/production")) return "Production Workflow & Queue (V3)";
-  if (pathname.includes("/design/my-queue")) return "My Design Queue (V3)";
-  if (pathname.includes("/design/workspace")) return "Design Workspace (V3)";
-  if (pathname.includes("/design")) return "Designer Allocation & Queue (V3)";
-  if (pathname.includes("/estimates/new")) return "Create Commercial Quotation (V3)";
-  if (pathname.includes("/estimates")) return "Quotations & Cost Estimates (V3)";
-  if (pathname.includes("/jobs/new")) return "Create Print Job Order (V3)";
-  if (pathname.includes("/jobs")) return "Job Orders & Requirement Capture (V3)";
-  if (pathname.includes("/customers") || pathname.includes("/v3/customers")) return "Customer Entry & Registration (V3)";
+  if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers";
+  if (pathname.includes("/sla-dashboard") || pathname.includes("/sla")) return "SLA Monitoring & Designer Scorecard";
+  if (pathname.includes("/audit-logs")) return "Enterprise Audit Log Explorer";
+  if (pathname.includes("/delivery")) return "Delivery Management";
+  if (pathname.includes("/settlement")) return "Settlement & Invoicing";
+  if (pathname.includes("/qc") || pathname.includes("/quality-control")) return "Quality Control & Rework";
+  if (pathname.includes("/production")) return "Production Operations";
+  if (pathname.includes("/design")) return "Design Workflow";
+  if (pathname.includes("/estimates")) return "Quotations & Cost Estimates";
+  if (pathname.includes("/jobs")) return "Job Orders";
+  if (pathname.includes("/customers")) return "Customer Master";
   if (pathname === "/manager-dashboard" || pathname === "/") return "Manager Dashboard";
   if (pathname.includes("/printer-readings-manager")) return "Account Sheet Generation";
   if (pathname.includes("/pdf-generator")) return "Generate PDF Report";
@@ -376,140 +369,157 @@ const ManagerLayout = ({ children }) => {
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Customer Entry (Positioned Below Previous Modules) */}
+          {/* JobFlow - Customer Master */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/customers"
-              className={`sidebar-link ${isActiveRoute("/v3/customers") || isActiveRoute("/customers") ? "active-link" : ""
+              to="/customers"
+              className={`sidebar-link ${isActiveRoute("/customers") || isActiveRoute("/jobflow/customers") || isActiveRoute("/v3/customers") ? "active-link" : ""
                 }`}
             >
               <div className="sidebar-link-content">
                 <Users size={18} className="sidebar-link-icon" />
-                <span>Customer Entry (V3)</span>
+                <span>Customers</span>
               </div>
-              {(isActiveRoute("/v3/customers") || isActiveRoute("/customers")) && (
+              {(isActiveRoute("/customers") || isActiveRoute("/jobflow/customers") || isActiveRoute("/v3/customers")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
               )}
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Job Orders (Positioned Below Customer Entry) */}
+          {/* JobFlow - Job Orders */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/jobs"
-              className={`sidebar-link ${isActiveRoute("/v3/jobs") || isActiveRoute("/jobs") || isActiveRoute("/v3/jobs/new") ? "active-link" : ""
+              to="/jobs"
+              className={`sidebar-link ${isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs") ? "active-link" : ""
                 }`}
             >
               <div className="sidebar-link-content">
                 <Briefcase size={18} className="sidebar-link-icon" />
-                <span>Job Orders (V3)</span>
+                <span>Job Orders</span>
               </div>
-              {(isActiveRoute("/v3/jobs") || isActiveRoute("/jobs") || isActiveRoute("/v3/jobs/new")) && (
+              {(isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
               )}
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Estimates & Quotations (Positioned Below Job Orders) */}
+          {/* JobFlow - Estimates & Quotations */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/estimates"
-              className={`sidebar-link ${isActiveRoute("/v3/estimates") || isActiveRoute("/estimates") || isActiveRoute("/v3/estimates/new") ? "active-link" : ""
+              to="/estimates"
+              className={`sidebar-link ${isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates") ? "active-link" : ""
                 }`}
             >
               <div className="sidebar-link-content">
                 <Calculator size={18} className="sidebar-link-icon" />
-                <span>Estimates & Quotes (V3)</span>
+                <span>Estimates & Quotes</span>
               </div>
-              {(isActiveRoute("/v3/estimates") || isActiveRoute("/estimates") || isActiveRoute("/v3/estimates/new")) && (
+              {(isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
               )}
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Design Workflow (Positioned Below Estimates) */}
+          {/* JobFlow - Design Workflow */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/design"
-              className={`sidebar-link ${isActiveRoute("/v3/design") || isActiveRoute("/design") ? "active-link" : ""
+              to="/design"
+              className={`sidebar-link ${isActiveRoute("/design") || isActiveRoute("/jobflow/design") || isActiveRoute("/v3/design") ? "active-link" : ""
                 }`}
             >
               <div className="sidebar-link-content">
                 <Palette size={18} className="sidebar-link-icon" />
-                <span>Design Workflow (V3)</span>
+                <span>Design Workflow</span>
               </div>
-              {(isActiveRoute("/v3/design") || isActiveRoute("/design")) && (
+              {(isActiveRoute("/design") || isActiveRoute("/jobflow/design") || isActiveRoute("/v3/design")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
               )}
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Production Planning & Orders (Positioned Below Design) */}
+          {/* JobFlow - Production Operations */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/production/planning"
-              className={`sidebar-link ${isActiveRoute("/v3/production") ||
-                  isActiveRoute("/production") ||
-                  isActiveRoute("/v3/production/planning") ||
-                  isActiveRoute("/production/planning") ||
-                  isActiveRoute("/v3/production/orders") ||
-                  isActiveRoute("/production/orders")
+              to="/production"
+              className={`sidebar-link ${isActiveRoute("/production") ||
+                  isActiveRoute("/jobflow/production") ||
+                  isActiveRoute("/v3/production")
                   ? "active-link"
                   : ""
                 }`}
             >
               <div className="sidebar-link-content">
                 <Layers size={18} className="sidebar-link-icon" />
-                <span>Production (V3)</span>
+                <span>Production</span>
               </div>
-              {(isActiveRoute("/v3/production") ||
-                isActiveRoute("/production") ||
-                isActiveRoute("/v3/production/planning") ||
-                isActiveRoute("/production/planning") ||
-                isActiveRoute("/v3/production/orders") ||
-                isActiveRoute("/production/orders")) && (
+              {(isActiveRoute("/production") ||
+                isActiveRoute("/jobflow/production") ||
+                isActiveRoute("/v3/production")) && (
                   <ChevronRight size={15} className="sidebar-active-arrow" />
                 )}
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Step 10: Quality Control & Rework / Reprint */}
+          {/* JobFlow - Quality Control */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/quality-control"
-              className={`sidebar-link ${isActiveRoute("/v3/quality-control") ||
-                  isActiveRoute("/quality-control")
+              to="/quality-control"
+              className={`sidebar-link ${isActiveRoute("/quality-control") ||
+                  isActiveRoute("/jobflow/qc") ||
+                  isActiveRoute("/v3/quality-control")
                   ? "active-link"
                   : ""
                 }`}
             >
               <div className="sidebar-link-content">
                 <ShieldCheck size={18} className="sidebar-link-icon" />
-                <span>Quality Control (V3)</span>
+                <span>Quality Control</span>
               </div>
-              {(isActiveRoute("/v3/quality-control") ||
-                isActiveRoute("/quality-control")) && (
+              {(isActiveRoute("/quality-control") ||
+                isActiveRoute("/jobflow/qc") ||
+                isActiveRoute("/v3/quality-control")) && (
                   <ChevronRight size={15} className="sidebar-active-arrow" />
                 )}
             </NavLink>
           </li>
 
-          {/* PrintZ V3 - Machine Operator Console & Timers */}
+          {/* JobFlow - Delivery Management */}
           <li className="sidebar-nav-item">
             <NavLink
-              to="/v3/operator-console"
-              className={`sidebar-link ${isActiveRoute("/v3/operator-console") ||
-                  isActiveRoute("/operator-console")
+              to="/delivery"
+              className={`sidebar-link ${isActiveRoute("/delivery") ||
+                  isActiveRoute("/jobflow/delivery")
                   ? "active-link"
                   : ""
                 }`}
             >
               <div className="sidebar-link-content">
-                <Timer size={18} className="sidebar-link-icon" />
-                <span>Operator Timers (V3)</span>
+                <Truck size={18} className="sidebar-link-icon" />
+                <span>Delivery</span>
               </div>
-              {(isActiveRoute("/v3/operator-console") ||
-                isActiveRoute("/operator-console")) && (
+              {(isActiveRoute("/delivery") ||
+                isActiveRoute("/jobflow/delivery")) && (
+                  <ChevronRight size={15} className="sidebar-active-arrow" />
+                )}
+            </NavLink>
+          </li>
+
+          {/* JobFlow - Settlement */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/settlement"
+              className={`sidebar-link ${isActiveRoute("/settlement") ||
+                  isActiveRoute("/jobflow/settlement")
+                  ? "active-link"
+                  : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Receipt size={18} className="sidebar-link-icon" />
+                <span>Settlement</span>
+              </div>
+              {(isActiveRoute("/settlement") ||
+                isActiveRoute("/jobflow/settlement")) && (
                   <ChevronRight size={15} className="sidebar-active-arrow" />
                 )}
             </NavLink>

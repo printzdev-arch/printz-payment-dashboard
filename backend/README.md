@@ -83,10 +83,11 @@ The server will start on `http://localhost:5000`.
 
 | Module | Endpoints | Frontend Client |
 | :--- | :--- | :--- |
-| **Customer Master** | `/api/v1/customers`, `/api/v1/public/customers` | `frontend/src/printz-v3/modules/customer` |
-| **Job Orders** | `/api/v1/job-orders` | `frontend/src/printz-v3/modules/job` |
-| **Estimates** | `/api/v1/job-orders/:id/estimate` | `frontend/src/printz-v3/modules/estimate` |
-| **Design Allocation** | `/api/v1/job-assignments`, `/api/v1/designers` | `frontend/src/printz-v3/modules/design` |
-| **Production Orders** | `/api/v1/production-orders`, `/api/v1/production-operations` | `frontend/src/printz-v3/modules/production` |
-| **Quality Control** | `/api/v1/quality-checks`, `/api/v1/reprint-requests` | `frontend/src/printz-v3/modules/quality` |
-| **Printers & Machines** | `/api/v1/printers` | `frontend/src/printz-v3/modules/production` |
+| **Customer Master** | `/api/v1/customers`, `/api/v1/public/customers` | `frontend/src/jobflow/pages/CustomersPage` |
+| **Job Orders** | `/api/v1/job-orders` | `frontend/src/jobflow/pages/JobOrdersPage` |
+| **Estimates** | `/api/v1/job-orders/:id/estimate` | `frontend/src/jobflow/pages/EstimationPage` |
+| **Design Allocation** | `/api/v1/job-assignments`, `/api/v1/designers` | `frontend/src/jobflow/pages/DesignWorkflowPage` |
+| **Production Orders** | `/api/v1/production-orders`, `/api/v1/production-operations` | `frontend/src/jobflow/pages/ProductionPage` |
+| **Quality Control** | `/api/v1/quality-checks`, `/api/v1/reprint-requests` | `frontend/src/jobflow/pages/QualityControlPage` |
+| **Delivery & Settlement** | `/api/v1/delivery-orders`, `/api/v1/settlements` | `frontend/src/jobflow/pages/DeliveryPage` |
+
