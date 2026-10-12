@@ -36,9 +36,7 @@ class DesignAllocationService {
 
     let designers = [];
     if (employeeCandidates && employeeCandidates.length > 0) {
-      // Map employees to candidate list
       for (const emp of employeeCandidates) {
-        // Find corresponding user if any
         const u = await User.findOne({ employeeId: emp._id }).lean();
         designers.push({
           _id: u?._id || emp._id,
@@ -47,32 +45,42 @@ class DesignAllocationService {
           name: emp.name,
           role: u?.role || "designer",
           branchId: emp.branchId,
-          isDesigner: emp.isDesigner !== false
-        });
-      }
-    } else {
-      const filter = { isActive: { $ne: false } };
-      if (targetBranchId) {
-        filter.$or = [
-          { branchId: targetBranchId },
-          { branchId: String(targetBranchId) },
-          { role: "admin" },
-          { role: "designer" },
-        ];
-      }
-      const userList = await User.find(filter).sort({ name: 1 }).lean();
-      for (const u of userList) {
-        designers.push({
-          _id: u._id,
-          employeeId: u.employeeId || u._id,
-          employeeCode: u.email || String(u._id),
-          name: u.name,
-          role: u.role,
-          branchId: u.branchId,
-          isDesigner: true
+          isDesigner: emp.isDesigner !== false,
         });
       }
     }
+
+    // Also include active users with role: 'designer'
+    const userFilter = { role: "designer", isActive: { $ne: false } };
+    if (targetBranchId) {
+      userFilter.$or = [
+        { branchId: targetBranchId },
+        { branchId: String(targetBranchId) },
+      ];
+    }
+    const userDesigners = await User.find(userFilter).sort({ name: 1 }).lean();
+    for (const u of userDesigners) {
+      designers.push({
+        _id: u._id,
+        employeeId: u.employeeId || u._id,
+        employeeCode: u.email || String(u._id),
+        name: u.name || u.username,
+        role: u.role,
+        branchId: u.branchId,
+        isDesigner: true,
+      });
+    }
+
+    // Deduplicate designers strictly by name
+    const seenNames = new Set();
+    const uniqueDesigners = [];
+    for (const d of designers) {
+      const nameKey = (d.name || "").trim().toLowerCase();
+      if (!nameKey || seenNames.has(nameKey)) continue;
+      seenNames.add(nameKey);
+      uniqueDesigners.push(d);
+    }
+    designers = uniqueDesigners;
 
     const maxConcurrent = 5;
 
@@ -332,8 +340,26 @@ class DesignAllocationService {
     return jobAssignmentRepository.find({ jobOrderId: jobId });
   }
 
-  static async queue() {
-    return jobOrderRepository.find({ currentStage: "DESIGN_QUEUE" });
+  static async queue(filters = {}) {
+    const designStages = [
+      "DESIGN_QUEUE",
+      "DESIGN_ASSIGNED",
+      "DESIGN_IN_PROGRESS",
+      "SAMPLE_APPROVAL",
+      "REVISION",
+      "CUSTOMER_PROOF",
+    ];
+    const query = { currentStage: { $in: designStages } };
+    if (filters && filters.stage && filters.stage !== "all") {
+      query.currentStage = filters.stage;
+    }
+    if (filters && filters.branchId) {
+      query.branchId = filters.branchId;
+    }
+    const list = await jobOrderRepository.find(query);
+    return (list || []).sort(
+      (a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+    );
   }
 
   static async pool(branchId = null) {

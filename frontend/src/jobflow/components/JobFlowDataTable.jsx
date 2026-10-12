@@ -298,6 +298,7 @@ export const JobFlowDataTable = ({
                       userSelect: "none",
                       textAlign: col.align || "left",
                       width: col.width || undefined,
+                      minWidth: col.minWidth || undefined,
                       whiteSpace: "nowrap",
                     }}
                     onClick={() => canSort && handleSort(col.key, col.sortable)}
@@ -392,6 +393,7 @@ export const JobFlowDataTable = ({
                           style={{
                             textAlign: col.align || "left",
                             width: col.width || undefined,
+                            minWidth: col.minWidth || undefined,
                           }}
                         >
                           {col.render ? col.render(value, row, rIdx) : (value ?? "-")}

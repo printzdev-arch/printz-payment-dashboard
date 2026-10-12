@@ -205,7 +205,7 @@ export const JobOrdersPage = () => {
             key: "dueDate",
             label: "Due Date",
             sortable: true,
-            render: (val) => (val ? new Date(val).toLocaleDateString() : "15 Apr 2024"),
+            render: (val) => (val ? new Date(val).toLocaleDateString() : "-"),
           },
           {
             key: "stage",

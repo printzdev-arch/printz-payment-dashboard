@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw } from "lucide-react";
+import { X, RefreshCw, AlertCircle } from "lucide-react";
 import jobFlowApi from "../api/jobFlowApi";
 import { toast } from "react-toastify";
+
+const DEFAULT_MANAGER_BRANCH_NAME = "Banaswadii";
+const DEFAULT_MANAGER_BRANCH_ID = "489571a9af51836599708543";
 
 const getActiveBranchInfo = () => {
   try {
@@ -14,12 +17,67 @@ const getActiveBranchInfo = () => {
       (userObj.branchName && userObj.branchName.trim()) ||
       (printzUser.branch && printzUser.branch.trim()) ||
       (printzUser.branchName && printzUser.branchName.trim()) ||
-      "";
-    const branchId = userObj.branchId || (userObj.branchIds && userObj.branchIds[0]) || null;
-    return { branchName, branchId };
+      DEFAULT_MANAGER_BRANCH_NAME;
+    const branchId =
+      userObj.branchId ||
+      (userObj.branchIds && userObj.branchIds[0]) ||
+      printzUser.branchId ||
+      DEFAULT_MANAGER_BRANCH_ID;
+    return { branchName: branchName || DEFAULT_MANAGER_BRANCH_NAME, branchId: branchId || DEFAULT_MANAGER_BRANCH_ID };
   } catch (e) {
-    return { branchName: "", branchId: null };
+    return { branchName: DEFAULT_MANAGER_BRANCH_NAME, branchId: DEFAULT_MANAGER_BRANCH_ID };
   }
+};
+
+const findManagerBranch = (bList, activeBranch) => {
+  if (!bList || !bList.length) return null;
+
+  // 1. Strict ID match
+  if (activeBranch.branchId) {
+    const idMatch = bList.find((b) => String(b._id || b.id) === String(activeBranch.branchId));
+    if (idMatch) return idMatch;
+  }
+
+  // 2. Exact name match (case-insensitive)
+  if (activeBranch.branchName) {
+    const cleanActive = activeBranch.branchName.trim().toLowerCase();
+    const exactNameMatch = bList.find(
+      (b) => (b.name || b.branchName || "").trim().toLowerCase() === cleanActive
+    );
+    if (exactNameMatch) return exactNameMatch;
+
+    // 3. b.name contains active branch (e.g. "PRINTZ SHOP BANASWADI" contains "banaswadi")
+    const containsMatch = bList.find(
+      (b) => (b.name || b.branchName || "").trim().toLowerCase().includes(cleanActive)
+    );
+    if (containsMatch) return containsMatch;
+
+    // 4. active branch contains b.name ONLY IF b.name is at least 3 characters (avoids single letter "B")
+    const reverseSubMatch = bList.find((b) => {
+      const bn = (b.name || b.branchName || "").trim().toLowerCase();
+      return bn.length >= 3 && cleanActive.includes(bn);
+    });
+    if (reverseSubMatch) return reverseSubMatch;
+  }
+
+  // 5. Look specifically for Banaswadi (manager default)
+  const banaswadiMatch = bList.find((b) =>
+    (b.name || b.branchName || "").toLowerCase().includes("banaswadi")
+  );
+  if (banaswadiMatch) return banaswadiMatch;
+
+  return bList[0];
+};
+
+const normalizePhoneDigits = (phone) => {
+  if (!phone) return "";
+  let digits = String(phone).replace(/[^\d]/g, "");
+  if (digits.startsWith("91") && digits.length === 12) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith("0") && digits.length === 11) {
+    digits = digits.slice(1);
+  }
+  return digits;
 };
 
 export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
@@ -38,15 +96,104 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
     country: "Malaysia",
     companyName: "",
     gstin: "",
-    defaultBranch: activeBranch.branchName || "Banaswadii",
+    defaultBranch: activeBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
     remarks: "",
   });
 
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [existingCustomers, setExistingCustomers] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({
+    name: null,
+    phone: null,
+    email: null,
+  });
+
+  // Duplicate check for Name
+  const checkDuplicateName = (nameVal, custList = existingCustomers) => {
+    const trimmed = (nameVal || "").trim().toLowerCase();
+    if (!trimmed) {
+      setFieldErrors((prev) => ({ ...prev, name: null }));
+      return null;
+    }
+    const currentCustId = customer?._id || customer?.id;
+    const match = custList.find((c) => {
+      if (currentCustId && String(c._id || c.id) === String(currentCustId)) return false;
+      return (c.name || "").trim().toLowerCase() === trimmed;
+    });
+
+    if (match) {
+      const msg = `Customer with name '${nameVal.trim()}' already exists. Please give a different name.`;
+      setFieldErrors((prev) => ({ ...prev, name: msg }));
+      toast.warning(msg, { toastId: `dup-name-${trimmed}` });
+      return match;
+    } else {
+      setFieldErrors((prev) => ({ ...prev, name: null }));
+      return null;
+    }
+  };
+
+  // Duplicate check for Phone Number
+  const checkDuplicatePhone = (phoneVal, custList = existingCustomers) => {
+    const raw = (phoneVal || "").trim();
+    if (!raw) {
+      setFieldErrors((prev) => ({ ...prev, phone: null }));
+      return null;
+    }
+    const currentCustId = customer?._id || customer?.id;
+    const digits = normalizePhoneDigits(raw);
+
+    const match = custList.find((c) => {
+      if (currentCustId && String(c._id || c.id) === String(currentCustId)) return false;
+      const cMobile = (c.mobile || c.phone || "").trim();
+      if (!cMobile) return false;
+      if (cMobile.toLowerCase() === raw.toLowerCase()) return true;
+      const cDigits = normalizePhoneDigits(cMobile);
+      if (digits && cDigits && digits.length >= 7 && cDigits.length >= 7) {
+        return digits === cDigits || digits.endsWith(cDigits) || cDigits.endsWith(digits);
+      }
+      return false;
+    });
+
+    if (match) {
+      const msg = `Customer with phone number '${raw}' already exists. Please give a different phone number.`;
+      setFieldErrors((prev) => ({ ...prev, phone: msg }));
+      toast.warning(msg, { toastId: `dup-phone-${digits || raw}` });
+      return match;
+    } else {
+      setFieldErrors((prev) => ({ ...prev, phone: null }));
+      return null;
+    }
+  };
+
+  // Duplicate check for Email ID
+  const checkDuplicateEmail = (emailVal, custList = existingCustomers) => {
+    const trimmed = (emailVal || "").trim().toLowerCase();
+    if (!trimmed) {
+      setFieldErrors((prev) => ({ ...prev, email: null }));
+      return null;
+    }
+    const currentCustId = customer?._id || customer?.id;
+    const match = custList.find((c) => {
+      if (currentCustId && String(c._id || c.id) === String(currentCustId)) return false;
+      return (c.email || "").trim().toLowerCase() === trimmed;
+    });
+
+    if (match) {
+      const msg = `Customer with email '${emailVal.trim()}' already exists. Please give a different email.`;
+      setFieldErrors((prev) => ({ ...prev, email: msg }));
+      toast.warning(msg, { toastId: `dup-email-${trimmed}` });
+      return match;
+    } else {
+      setFieldErrors((prev) => ({ ...prev, email: null }));
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
+      setFieldErrors({ name: null, phone: null, email: null });
+
       if (customer) {
         setFormData({
           customerType: customer.customerType || (customer.type === "company" ? "Company" : "Individual"),
@@ -62,36 +209,33 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
           country: customer.address?.country || customer.country || "Malaysia",
           companyName: customer.companyName || (customer.type === "company" ? customer.name : ""),
           gstin: customer.gstin || customer.taxNo || "",
-          defaultBranch: customer.defaultBranch || customer.branchId?.name || customer.branchName || activeBranch.branchName || "Banaswadii",
+          defaultBranch: customer.defaultBranch || customer.branchId?.name || customer.branchName || activeBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
           remarks: customer.remarks || "",
         });
       } else {
         generateCustomerCode();
       }
 
-      // Fetch branches dynamically
+      // Fetch customer list for instant duplicate checks
+      jobFlowApi.getCustomers({ limit: 100 })
+        .then((res) => {
+          const list = res?.data || (Array.isArray(res) ? res : []);
+          setExistingCustomers(list);
+        })
+        .catch(() => {});
+
+      // Fetch branches dynamically and default to manager's branch
       jobFlowApi.getBranches()
         .then((res) => {
           const bList = res?.data || res?.items || (Array.isArray(res) ? res : []);
           if (Array.isArray(bList) && bList.length > 0) {
             setBranches(bList);
             if (!customer) {
-              const matched = bList.find((b) =>
-                (activeBranch.branchId && (b._id === activeBranch.branchId || b.id === activeBranch.branchId)) ||
-                (activeBranch.branchName &&
-                  ((b.name && b.name.toLowerCase().includes(activeBranch.branchName.toLowerCase())) ||
-                   (activeBranch.branchName.toLowerCase().includes((b.name || "").toLowerCase())) ||
-                   (b.branchName && b.branchName.toLowerCase().includes(activeBranch.branchName.toLowerCase()))))
-              );
-              if (matched) {
+              const mgrBranch = findManagerBranch(bList, activeBranch);
+              if (mgrBranch) {
                 setFormData((prev) => ({
                   ...prev,
-                  defaultBranch: matched.name || matched.branchName,
-                }));
-              } else if (bList.length > 0) {
-                setFormData((prev) => ({
-                  ...prev,
-                  defaultBranch: bList[0].name || bList[0].branchName,
+                  defaultBranch: mgrBranch.name || mgrBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
                 }));
               }
             }
@@ -111,6 +255,9 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: null }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -122,6 +269,29 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
     if (!formData.phone.trim()) {
       toast.error("Phone number is required");
       return;
+    }
+
+    // 1. Check duplicate Name
+    const dupName = checkDuplicateName(formData.name);
+    if (dupName) {
+      toast.error(`Customer with name '${formData.name.trim()}' already exists. Please give a different name.`);
+      return;
+    }
+
+    // 2. Check duplicate Phone Number
+    const dupPhone = checkDuplicatePhone(formData.phone);
+    if (dupPhone) {
+      toast.error(`Customer with phone number '${formData.phone.trim()}' already exists. Please give a different phone number.`);
+      return;
+    }
+
+    // 3. Check duplicate Email
+    if (formData.email && formData.email.trim()) {
+      const dupEmail = checkDuplicateEmail(formData.email);
+      if (dupEmail) {
+        toast.error(`Customer with email '${formData.email.trim()}' already exists. Please give a different email.`);
+        return;
+      }
     }
 
     setLoading(true);
@@ -146,20 +316,15 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
           (b.branchName && b.branchName.toLowerCase() === (formData.defaultBranch || "").toLowerCase())
       );
 
-      if (!matchedBranch && activeInfo.branchName) {
-        matchedBranch = branches.find(
-          (b) =>
-            (b.name && b.name.toLowerCase().includes(activeInfo.branchName.toLowerCase())) ||
-            (activeInfo.branchName.toLowerCase().includes((b.name || "").toLowerCase()))
-        );
+      if (!matchedBranch) {
+        matchedBranch = findManagerBranch(branches, activeInfo);
       }
 
       let branchId =
         matchedBranch?._id ||
         matchedBranch?.id ||
         activeInfo.branchId ||
-        (/^[0-9a-fA-F]{24}$/.test(formData.defaultBranch) ? formData.defaultBranch : undefined) ||
-        (branches[0]?._id || branches[0]?.id);
+        DEFAULT_MANAGER_BRANCH_ID;
 
       const payload = {
         name: formData.name.trim(),
@@ -180,12 +345,12 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
       let savedResult;
       if (customer?._id || customer?.id) {
         savedResult = await jobFlowApi.updateCustomer(customer._id || customer.id, payload);
-        toast.success("Customer profile updated successfully in database");
+        toast.success("Customer profile updated successfully");
       } else {
         savedResult = await jobFlowApi.createCustomer(payload);
         const newCust = savedResult?.data || savedResult;
         toast.success(
-          `Customer ${newCust?.name || payload.name} (${newCust?.customerCode || payload.customerCode || ""}) registered successfully in database`
+          `Customer ${newCust?.name || payload.name} (${newCust?.customerCode || payload.customerCode || ""}) registered successfully`
         );
       }
 
@@ -193,7 +358,16 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
       if (onSaved) onSaved(savedCust, !customer);
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to save customer");
+      const errMsg = err.response?.data?.message || "Failed to save customer";
+      toast.error(errMsg);
+      // Map backend duplicate error message directly to the corresponding field error banner
+      if (errMsg.toLowerCase().includes("name")) {
+        setFieldErrors((prev) => ({ ...prev, name: errMsg }));
+      } else if (errMsg.toLowerCase().includes("phone") || errMsg.toLowerCase().includes("mobile")) {
+        setFieldErrors((prev) => ({ ...prev, phone: errMsg }));
+      } else if (errMsg.toLowerCase().includes("email")) {
+        setFieldErrors((prev) => ({ ...prev, email: errMsg }));
+      }
     } finally {
       setLoading(false);
     }
@@ -258,10 +432,32 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={() => checkDuplicateName(formData.name)}
                     placeholder="e.g. John Tan"
                     className="jf-input"
+                    style={{ borderColor: fieldErrors.name ? "#ef4444" : undefined }}
                     required
                   />
+                  {fieldErrors.name && (
+                    <div
+                      style={{
+                        marginTop: "0.4rem",
+                        padding: "0.45rem 0.65rem",
+                        borderRadius: "6px",
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        fontSize: "0.8rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                      <span>{fieldErrors.name}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
@@ -292,10 +488,32 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    onBlur={() => checkDuplicatePhone(formData.phone)}
                     placeholder="012-345 6789"
                     className="jf-input"
+                    style={{ borderColor: fieldErrors.phone ? "#ef4444" : undefined }}
                     required
                   />
+                  {fieldErrors.phone && (
+                    <div
+                      style={{
+                        marginTop: "0.4rem",
+                        padding: "0.45rem 0.65rem",
+                        borderRadius: "6px",
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        fontSize: "0.8rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                      <span>{fieldErrors.phone}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="jf-form-group">
@@ -305,9 +523,31 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={() => checkDuplicateEmail(formData.email)}
                     placeholder="john.tan@email.com"
                     className="jf-input"
+                    style={{ borderColor: fieldErrors.email ? "#ef4444" : undefined }}
                   />
+                  {fieldErrors.email && (
+                    <div
+                      style={{
+                        marginTop: "0.4rem",
+                        padding: "0.45rem 0.65rem",
+                        borderRadius: "6px",
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        fontSize: "0.8rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                      <span>{fieldErrors.email}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -432,8 +672,8 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                       className="jf-select"
                     >
                       {branches.length === 0 && (
-                        <option value={formData.defaultBranch || "Banaswadii"}>
-                          {formData.defaultBranch || "Banaswadii"}
+                        <option value={formData.defaultBranch || DEFAULT_MANAGER_BRANCH_NAME}>
+                          {formData.defaultBranch || DEFAULT_MANAGER_BRANCH_NAME}
                         </option>
                       )}
                       {branches.map((b) => (

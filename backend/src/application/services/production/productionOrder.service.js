@@ -9,6 +9,28 @@ class ProductionOrderService {
    * Find production orders with filters and pagination
    */
   static async findAll(query = {}) {
+    // Auto-heal: Ensure any job in PRODUCTION_PLANNING has an UNASSIGNED production order
+    try {
+      const mongoose = require("mongoose");
+      const JobOrder = mongoose.model("JobOrder");
+      const ProductionPlanningService = require("./productionPlanning.service");
+      const planningJobs = await JobOrder.find({
+        currentStage: "PRODUCTION_PLANNING",
+      }).select("_id").lean();
+
+      for (const j of planningJobs) {
+        const hasPO = await productionOrderRepository.findOne({
+          jobOrderId: j._id,
+          status: { $ne: "CANCELLED" },
+        });
+        if (!hasPO) {
+          await ProductionPlanningService.createUnassignedOrder(j._id);
+        }
+      }
+    } catch (e) {
+      // non-blocking
+    }
+
     const { items, total, page, limit } = await productionOrderRepository.findAll(query);
 
     // Attach current active operation info for each order
@@ -24,10 +46,25 @@ class ProductionOrderService {
       operationsByOrder[parentIdStr].push(op);
     });
 
-    const enrichedItems = items.map((item) => ({
-      ...item,
-      operations: operationsByOrder[item._id.toString()] || [],
-    }));
+    const enrichedItems = items.map((item) => {
+      const machineName = item.machine || (item.machineId ? `${item.machineId.printerName || item.machineId.model || ""}`.trim() : null);
+      const employees = Array.isArray(item.assignedEmployees) && item.assignedEmployees.length > 0
+        ? item.assignedEmployees
+        : (Array.isArray(item.assignedEmployeeIds) && item.assignedEmployeeIds.length > 0
+          ? item.assignedEmployeeIds.map((u) => u.name || u.email || "Operator").filter(Boolean)
+          : []);
+
+      return {
+        ...item,
+        jobOrderNo: item.jobOrderId?.jobNo || item.jobOrderNo || null,
+        customerName: item.jobOrderId?.customerName || item.jobOrderId?.customerSnapshot?.name || item.customerName || null,
+        branch: item.branchId?.name || item.branch || "Main HQ Branch",
+        branchName: item.branchId?.name || item.branchName || "Main HQ Branch",
+        machine: machineName,
+        assignedEmployees: employees,
+        operations: operationsByOrder[item._id.toString()] || [],
+      };
+    });
 
     return { items: enrichedItems, total, page, limit };
   }
@@ -63,12 +100,28 @@ class ProductionOrderService {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
 
-    const allowedFields = ["plannedStart", "machineId", "assignedEmployeeIds", "priority", "notes"];
+    const allowedFields = ["plannedStart", "machineId", "assignedEmployeeIds", "priority", "notes", "status", "actualQty", "actualStart", "actualEnd"];
     allowedFields.forEach((field) => {
       if (updateData[field] !== undefined) {
         order[field] = updateData[field];
       }
     });
+
+    if (updateData.status === "QC") {
+      order.status = "QC";
+      if (!order.actualEnd) order.actualEnd = new Date();
+      if (!order.actualQty) order.actualQty = updateData.actualQty || order.plannedQty;
+      try {
+        const JobWorkflowService = require("../job-order/jobWorkflow.service");
+        await JobWorkflowService.transition(order.jobOrderId, "QC", {
+          actorId: user?._id,
+          notes: "All production operations completed, transferred to Quality Control",
+          user,
+        });
+      } catch (err) {
+        // non-blocking
+      }
+    }
 
     await productionOrderRepository.save(order);
 

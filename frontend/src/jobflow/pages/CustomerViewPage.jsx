@@ -66,14 +66,34 @@ export const CustomerViewPage = () => {
 
       // 2. Fetch Job Orders strictly belonging to this Customer ID
       let jobsList = [];
+      const custDbId = custData._id || id;
       try {
-        const jobsRes = await jobFlowApi.getJobOrders({ customerId: id, limit: 100 });
+        const jobsRes = await jobFlowApi.getJobOrders({ customerId: custDbId, limit: 100 });
         if (jobsRes?.data?.items && Array.isArray(jobsRes.data.items)) {
           jobsList = jobsRes.data.items;
         } else if (Array.isArray(jobsRes?.data)) {
           jobsList = jobsRes.data;
         } else if (Array.isArray(jobsRes)) {
           jobsList = jobsRes;
+        }
+
+        // Resilient fallback: if zero jobs found by ID, also check by customer name/mobile
+        if (jobsList.length === 0 && (custData.name || custData.mobile || custData.phone)) {
+          const fallbackRes = await jobFlowApi.getJobOrders({ search: custData.name, limit: 100 });
+          const candidateJobs = fallbackRes?.data?.items || fallbackRes?.data || fallbackRes || [];
+          if (Array.isArray(candidateJobs)) {
+            jobsList = candidateJobs.filter((j) => {
+              const jCustId = String(j.customerId?._id || j.customerId || "");
+              const matchId = jCustId && (jCustId === String(custDbId) || jCustId === String(id));
+              const matchPhone = (custData.mobile && (j.customerPhone === custData.mobile || j.customerSnapshot?.mobile === custData.mobile)) ||
+                                 (custData.phone && (j.customerPhone === custData.phone || j.customerSnapshot?.mobile === custData.phone));
+              const matchName = custData.name && (
+                (j.customerName && j.customerName.toLowerCase() === custData.name.toLowerCase()) ||
+                (j.customerSnapshot?.name && j.customerSnapshot.name.toLowerCase() === custData.name.toLowerCase())
+              );
+              return matchId || matchPhone || matchName;
+            });
+          }
         }
       } catch (e) {
         console.error("Failed to fetch customer job orders:", e);
@@ -405,16 +425,6 @@ export const CustomerViewPage = () => {
               label: "Amount (RM)",
               sortable: true,
               render: (val, row) => `RM ${(Number(val || row.estimatedCost) || 0).toFixed(2)}`,
-            },
-            {
-              key: "advancePaid",
-              label: "Advance (RM)",
-              sortable: true,
-              render: (val) => (
-                <span style={{ color: "#15803d", fontWeight: 600 }}>
-                  RM {(Number(val) || 0).toFixed(2)}
-                </span>
-              ),
             },
             {
               key: "currentStage",

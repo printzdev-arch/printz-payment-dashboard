@@ -141,15 +141,17 @@ class CustomerMatchingService {
         }
       }
 
-      // Safely fill in any missing contact/company details if previously empty
+      // Update customer details with newly submitted values
       const updates = {};
-      if (!existing.email && normalizedEmail) updates.email = normalizedEmail;
-      if ((!existing.company || !existing.companyName) && rawCompany) {
+      if (rawName && rawName.trim()) updates.name = rawName.trim();
+      if (normalizedEmail) updates.email = normalizedEmail;
+      if (rawCompany) {
         updates.company = rawCompany;
         updates.companyName = rawCompany;
       }
-      if (!existing.address && rawAddress) updates.address = rawAddress;
-      if (!existing.gstin && rawGstin) updates.gstin = rawGstin;
+      if (rawAddress) updates.address = rawAddress;
+      if (rawGstin) updates.gstin = rawGstin;
+      if (customerData.customerType) updates.customerType = customerData.customerType;
 
       if (Object.keys(updates).length > 0) {
         const updated = await Customer.findByIdAndUpdate(
@@ -160,7 +162,7 @@ class CustomerMatchingService {
         if (updated) existing = updated;
       }
 
-      return { customer: existing, isNew: false };
+      return { customer: existing, isNew: false, isMatched: true };
     }
 
     // 2. Validate mandatory fields for new customer creation

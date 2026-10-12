@@ -66,6 +66,10 @@ class MongoProductionOperationRepository extends IProductionOperationRepository 
   async countDocuments(filter = {}) {
     return ProductionOperation.countDocuments(filter);
   }
+
+  async deleteMany(filter = {}) {
+    return ProductionOperation.deleteMany(filter);
+  }
 }
 
 module.exports = new MongoProductionOperationRepository();

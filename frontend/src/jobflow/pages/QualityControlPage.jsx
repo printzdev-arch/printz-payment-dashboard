@@ -25,10 +25,234 @@ import JobFlowDataTable from "../components/JobFlowDataTable";
 import jobFlowApi from "../api/jobFlowApi";
 import { toast } from "react-toastify";
 
-export const QualityControlPage = () => {
+/**
+ * Dynamically generate multi-point QC inspection criteria
+ * mapped directly to the actual Job Order requirements, substrate, dimensions,
+ * batch quantity, customer requirements, and operations sequence from Production View Data
+ * (e.g. Printing, Lamination, Cutting, Packing, Binding, Folding, Creasing, Perforation, Numbering).
+ */
+export const generateQcCriteria = (job) => {
+  if (!job) return [];
+
+  const raw = job.raw || {};
+  const jobDetails = job.jobDetails || (raw.jobOrderId && typeof raw.jobOrderId === "object" ? raw.jobOrderId : {}) || {};
+  const specs = jobDetails.specs || raw.specs || (Array.isArray(jobDetails.items) && jobDetails.items[0]) || (Array.isArray(raw.items) && raw.items[0]) || {};
+
+  const dimensions = (job.dimensions && job.dimensions !== "Standard")
+    ? job.dimensions
+    : (specs.size || specs.paperSize || (specs.width && specs.height ? `${specs.width}x${specs.height}` : "") || "Specified Dimensions");
+
+  const materialStock = (job.materialStock && job.materialStock !== "Standard Stock")
+    ? job.materialStock
+    : (specs.paperType || specs.material || (specs.paperGsm ? `${specs.paperGsm} GSM Stock` : "") || "Specified substrate");
+
+  const batchQty = Number(job.batchQty || raw.actualQty || raw.plannedQty || specs.quantity || jobDetails.quantity || 50);
+  const formattedQty = batchQty.toLocaleString();
+
+  const productType = job.productType || jobDetails.title || raw.title || "Print Job";
+  const customerReq = (job.customerRequirements || jobDetails.customerRequirements || raw.customerRequirements || jobDetails.notes || raw.notes || "").trim();
+
+  // Operations list directly from production order execution sequence
+  let ops = (Array.isArray(job.operations) && job.operations.length > 0)
+    ? job.operations
+    : (Array.isArray(raw.operations) && raw.operations.length > 0)
+      ? raw.operations
+      : (Array.isArray(jobDetails.operations) && jobDetails.operations.length > 0)
+        ? jobDetails.operations
+        : [];
+
+  // Fallback: If ops array is empty, check items[0].finishing
+  if (ops.length === 0 && Array.isArray(specs.finishing) && specs.finishing.length > 0) {
+    ops = [
+      { sequenceNo: 1, operationName: "Printing" },
+      ...specs.finishing.map((f, i) => ({
+        sequenceNo: i + 2,
+        operationName: f.name || f.code || f,
+      })),
+    ];
+  }
+
+  const criteria = [];
+  let criteriaIndex = 1;
+  const processedKeys = new Set();
+
+  if (ops.length > 0) {
+    // Generate tailored criteria matching the specific operations of this job
+    ops.forEach((op) => {
+      const opName = (op.operationName || op.operation || op.operationCode || "").trim();
+      const opLower = opName.toLowerCase();
+      const isRework = op.isRework || opLower.includes("rework") || opLower.includes("re-run");
+
+      if (isRework) {
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: `Rework Rectification: ${opName.replace(/^Rework:\s*/i, "")}`,
+          desc: `Verify 100% resolution of defect on all ${(op.completedQty || batchQty).toLocaleString()} pcs before clearing inspection`,
+          status: "PASS",
+        });
+        return;
+      }
+
+      if (opLower.includes("print") && !processedKeys.has("print")) {
+        processedKeys.add("print");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Color Calibration & Delta E",
+          desc: `Verify brand colors against approved digital proof for ${productType} (Delta E < 2.0)`,
+          status: "PASS",
+        });
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Registration & Alignment",
+          desc: `Front-to-back print register within ±0.5mm on ${materialStock}`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("lam") || opLower.includes("coat") || opLower.includes("varnish")) && !processedKeys.has("lam")) {
+        processedKeys.add("lam");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: `Surface ${opName} & Coating`,
+          desc: `Smooth adhesion without air bubbles, heat wrinkling, silvering or peeling`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("cut") || opLower.includes("trim") || opLower.includes("guillotine")) && !processedKeys.has("cut")) {
+        processedKeys.add("cut");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Cutting Accuracy & Bleed Margin",
+          desc: `Trim flush to ${dimensions} with zero white edge margin and sharp precision`,
+          status: "PASS",
+        });
+      } else if (opLower.includes("pack") && !processedKeys.has("pack")) {
+        processedKeys.add("pack");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Packaging & Bundling Verification",
+          desc: `Verify secure bundle packaging, moisture wrap, carton labeling and pack counts`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("bind") || opLower.includes("stitch") || opLower.includes("spiral")) && !processedKeys.has("bind")) {
+        processedKeys.add("bind");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Binding & Collation Verification",
+          desc: `Verify sequential page collation and secure spine binding / stitching integrity`,
+          status: "PASS",
+        });
+      } else if (opLower.includes("fold") && !processedKeys.has("fold")) {
+        processedKeys.add("fold");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Folding Precision & Alignment",
+          desc: `Clean symmetrical folds along fold lines without paper cracking or toner fracture`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("creas") || opLower.includes("score")) && !processedKeys.has("creas")) {
+        processedKeys.add("creas");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Creasing & Score Line Depth",
+          desc: `Clean uniform score line depth without cracking or fiber distortion along score lines`,
+          status: "PASS",
+        });
+      } else if (opLower.includes("perforat") && !processedKeys.has("perforat")) {
+        processedKeys.add("perforat");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Perforation Integrity & Tear Line",
+          desc: `Verify even micro-perforations with easy separation without premature tearing`,
+          status: "PASS",
+        });
+      } else if (opLower.includes("number") && !processedKeys.has("number")) {
+        processedKeys.add("number");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Sequential Numbering & Legibility",
+          desc: `Verify sequential numbering sequence range and high-contrast legible impression`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("foil") || opLower.includes("stamp")) && !processedKeys.has("foil")) {
+        processedKeys.add("foil");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Foil Stamping Adhesion & Crispness",
+          desc: `Verify sharp metallic foil transfer with zero flaking or pinholes`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("die") || opLower.includes("punch")) && !processedKeys.has("die")) {
+        processedKeys.add("die");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Die Cutting Precision",
+          desc: `Verify shape registration and clean cut lines matching die layout`,
+          status: "PASS",
+        });
+      } else if ((opLower.includes("uv") || opLower.includes("spot")) && !processedKeys.has("uv")) {
+        processedKeys.add("uv");
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: "Spot UV Gloss & Registration",
+          desc: `Verify exact register on designated graphic areas with complete UV cure`,
+          status: "PASS",
+        });
+      } else if (!processedKeys.has(opLower) && opName.length > 0) {
+        processedKeys.add(opLower);
+        criteria.push({
+          id: `c${criteriaIndex++}`,
+          name: `${opName} Verification`,
+          desc: `Verify operation specifications and finishing quality standards for ${opName}`,
+          status: "PASS",
+        });
+      }
+    });
+  } else {
+    // If no operations list exists, provide base print & trim checks
+    criteria.push({
+      id: `c${criteriaIndex++}`,
+      name: "Color Calibration & Delta E",
+      desc: `Verify brand colors against approved digital proof for ${productType} (Delta E < 2.0)`,
+      status: "PASS",
+    });
+    criteria.push({
+      id: `c${criteriaIndex++}`,
+      name: "Registration & Alignment",
+      desc: `Front-to-back print register within ±0.5mm on ${materialStock}`,
+      status: "PASS",
+    });
+    criteria.push({
+      id: `c${criteriaIndex++}`,
+      name: "Cutting Accuracy & Bleed Margin",
+      desc: `Trim flush to ${dimensions} with zero white edge margin and sharp precision`,
+      status: "PASS",
+    });
+  }
+
+  // Customer Specific Requirements Compliance
+  if (customerReq && customerReq.length > 0) {
+    criteria.push({
+      id: `c${criteriaIndex++}`,
+      name: "Customer Specific Requirements Compliance",
+      desc: `Verify exact compliance with customer instruction: "${customerReq}"`,
+      status: "PASS",
+    });
+  }
+
+  // Quantity Count Verification
+  criteria.push({
+    id: `c${criteriaIndex++}`,
+    name: "Quantity Count Verification",
+    desc: `Physical bundle count matches ${formattedQty} finished ${productType || "units"}`,
+    status: "PASS",
+  });
+
+  return criteria;
+};
+
+export const QualityControlPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedJobId = searchParams.get("jobId");
+  const preselectedOrderId = searchParams.get("orderId");
 
   // 4 tabs matching Image 7: 15A, 15B, 16A, 16B
   const [activeTab, setActiveTab] = useState("15A");
@@ -38,117 +262,320 @@ export const QualityControlPage = () => {
   const [qcQueue, setQcQueue] = useState([]);
   const [selectedQcJob, setSelectedQcJob] = useState(null);
 
+  // 15B: QC Inspection Checklist State (dynamically updated per job order requirements)
+  const [inspectionCriteria, setInspectionCriteria] = useState([]);
+
   useEffect(() => {
-    // Load live QC jobs from backend
-    jobFlowApi
-      .getJobOrders({ currentStage: "QC,REWORK,REPRINT", limit: 50 })
-      .then((res) => {
-        const items = res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
-        if (Array.isArray(items) && items.length > 0) {
-          const mapped = items.map((job) => ({
-            _id: job._id || job.id,
-            orderNumber: `PO-${(job.jobNo || job._id || "").replace("JO-", "")}`,
-            jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
-            customerName:
-              job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-            productType: job.title || job.productType || "Custom Print Order",
-            dimensions: job.specs?.size || "Standard",
-            materialStock: job.specs?.paperType || "Standard Stock",
-            batchQty: job.specs?.quantity || job.quantity || 500,
-            machine: "Digital Press 01",
-            operator: "Production Team",
-            completedTime: job.updatedAt ? new Date(job.updatedAt).toLocaleTimeString() : "Just now",
-            status: "PENDING_QC",
-            raw: job,
-          }));
-          setQcQueue(mapped);
-          if (preselectedJobId) {
-            const match = mapped.find(
-              (q) => (q._id || q.id) === preselectedJobId || q.jobNo === preselectedJobId
-            );
-            if (match) {
-              setSelectedQcJob(match);
-              setActiveTab("15B");
-            } else {
-              jobFlowApi
-                .getJobOrderById(preselectedJobId)
-                .then((singleRes) => {
-                  const job = singleRes?.data || singleRes;
-                  if (job && job._id) {
-                    const formattedQc = {
-                      _id: job._id || job.id,
-                      orderNumber: `PO-${(job.jobNo || job._id || "").replace("JO-", "")}`,
-                      jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
-                      customerName:
-                        job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-                      productType: job.title || job.productType || "Custom Print Order",
-                      dimensions: job.specs?.size || "Standard",
-                      materialStock: job.specs?.paperType || "Standard Stock",
-                      batchQty: job.specs?.quantity || job.quantity || 500,
-                      machine: "Digital Press 01",
-                      operator: "Production Team",
-                      completedTime: "Just now",
-                      status: "PENDING_QC",
-                      raw: job,
-                    };
-                    setQcQueue((prev) => [formattedQc, ...prev]);
-                    setSelectedQcJob(formattedQc);
-                    setActiveTab("15B");
-                  }
-                })
-                .catch(() => {});
-            }
-          } else if (mapped.length > 0) {
-            setSelectedQcJob(mapped[0]);
-          }
-        } else if (preselectedJobId) {
-          jobFlowApi
-            .getJobOrderById(preselectedJobId)
-            .then((singleRes) => {
-              const job = singleRes?.data || singleRes;
-              if (job && job._id) {
-                const formattedQc = {
+    // Load live QC jobs from backend (both pending ProductionOrders and JobOrders in QC stage)
+    Promise.allSettled([
+      jobFlowApi.getPendingQualityChecks(),
+      jobFlowApi.getJobOrders({ currentStage: "QC,REWORK,REPRINT", limit: 50 }),
+      jobFlowApi.getProductionOrders({ limit: 100 }),
+      jobFlowApi.getReprintRequests({ status: "REQUESTED,PENDING_APPROVAL", limit: 20 }),
+    ]).then(([pendingPoRes, jobOrdersRes, poRes, reprintRes]) => {
+      const merged = [];
+      const seenJobNos = new Set();
+
+      // Build index of all production orders by PO ID and Job Order ID
+      const allPos = poRes.status === "fulfilled" && poRes.value
+        ? (poRes.value.data?.items || poRes.value.data || (Array.isArray(poRes.value) ? poRes.value : []))
+        : [];
+      const poByJobRef = new Map();
+      allPos.forEach((p) => {
+        const pId = String(p._id || p.id || "");
+        if (pId) poByJobRef.set(pId, p);
+        const jId = String(p.jobOrderId?._id || p.jobOrderId || "");
+        if (jId) poByJobRef.set(jId, p);
+        if (p.jobOrderNo) poByJobRef.set(p.jobOrderNo, p);
+        if (p.jobNo) poByJobRef.set(p.jobNo, p);
+        if (p.productionNo) poByJobRef.set(p.productionNo, p);
+      });
+
+      // Helper to extract clean job parameters
+      const formatJobItem = (po, jobObj) => {
+        const poId = String(po?._id || po?.id || "");
+        const jobNo = jobObj?.jobNo || po?.jobNo || po?.jobOrderId?.jobNo || `JO-${poId.slice(-6)}`;
+        const specs = jobObj?.specs || po?.specs || jobObj?.items?.[0] || po?.items?.[0] || (Array.isArray(po?.jobOrderId?.items) ? po.jobOrderId.items[0] : {}) || {};
+        const dimensions = specs.size || specs.paperSize || jobObj?.dimensions || po?.dimensions || (specs.width && specs.height ? `${specs.width}x${specs.height}` : "Standard");
+        const materialStock = specs.paperType || specs.material || jobObj?.paper || po?.materialStock || (specs.paperGsm ? `${specs.paperGsm} GSM Stock` : "Standard Stock");
+        const customerRequirements = jobObj?.customerRequirements || jobObj?.notes || jobObj?.remarks || po?.notes || po?.jobOrderId?.customerRequirements || "";
+        
+        // Retrieve full operations sequence from PO or job
+        let operations = Array.isArray(po?.operations) && po.operations.length > 0
+          ? po.operations
+          : (Array.isArray(jobObj?.operations) && jobObj.operations.length > 0 ? jobObj.operations : []);
+
+        // If PO didn't have operations directly, try lookup in allPos
+        if (operations.length === 0 && (poByJobRef.get(poId)?.operations?.length || poByJobRef.get(jobNo)?.operations?.length)) {
+          operations = poByJobRef.get(poId)?.operations || poByJobRef.get(jobNo)?.operations || [];
+        }
+
+        // Fallback: If operations still empty, map from job item finishing
+        if (operations.length === 0 && Array.isArray(specs.finishing) && specs.finishing.length > 0) {
+          operations = [
+            { sequenceNo: 1, operationName: "Printing", machine: po?.machine || "Floor Station", status: "COMPLETED" },
+            ...specs.finishing.map((f, i) => ({
+              sequenceNo: i + 2,
+              operationName: f.name || f.code || f,
+              machine: "Floor Station",
+              status: "COMPLETED",
+            })),
+          ];
+        }
+
+        const batchQty = po?.actualQty || po?.plannedQty || specs.quantity || jobObj?.quantity || 500;
+
+        return {
+          _id: poId || jobObj?._id || jobObj?.id,
+          productionOrderId: poId,
+          jobOrderId: jobObj?._id || po?.jobOrderId?._id || po?.jobOrderId,
+          orderNumber: po?.productionNo || `PO-${poId.slice(-6)}`,
+          jobNo,
+          customerName: jobObj?.customerName || po?.customerName || po?.jobOrderId?.customerName || "Customer",
+          productType: jobObj?.title || po?.title || po?.jobOrderId?.title || "Custom Print Order",
+          dimensions,
+          materialStock,
+          customerRequirements,
+          operations,
+          batchQty,
+          machine: po?.machine || po?.machineId?.printerName || "Floor Station",
+          operator: po?.assignedEmployees?.[0] || po?.assignedEmployeeIds?.[0]?.name || "Production Team",
+          completedTime: (po?.updatedAt || jobObj?.updatedAt) ? new Date(po?.updatedAt || jobObj?.updatedAt).toLocaleTimeString() : "Just now",
+          status: "PENDING_QC",
+          raw: { ...(po || {}), jobOrderId: jobObj || po?.jobOrderId },
+        };
+      };
+
+      // 1. Pending Production Orders (direct PO entities)
+      if (pendingPoRes.status === "fulfilled" && pendingPoRes.value) {
+        const poItems = pendingPoRes.value.data || pendingPoRes.value.items || (Array.isArray(pendingPoRes.value) ? pendingPoRes.value : []);
+        if (Array.isArray(poItems)) {
+          poItems.forEach((po) => {
+            const jobObj = po.jobOrderId && typeof po.jobOrderId === "object" ? po.jobOrderId : null;
+            const jobNo = jobObj?.jobNo || po.jobNo || `JO-${(po._id || "").slice(-6)}`;
+            seenJobNos.add(jobNo);
+            seenJobNos.add(String(po.jobOrderId?._id || po.jobOrderId || ""));
+            seenJobNos.add(String(po._id || po.id));
+
+            merged.push(formatJobItem(po, jobObj));
+          });
+        }
+      }
+
+      // 2. Production Orders from general list with status QC or COMPLETED
+      allPos.forEach((po) => {
+        const poId = String(po._id || po.id || "");
+        const jobObj = po.jobOrderId && typeof po.jobOrderId === "object" ? po.jobOrderId : null;
+        const jobNo = jobObj?.jobNo || po.jobNo || `JO-${poId.slice(-6)}`;
+        if (!seenJobNos.has(poId) && !seenJobNos.has(jobNo) && (po.status === "QC" || po.status === "COMPLETED")) {
+          seenJobNos.add(poId);
+          seenJobNos.add(jobNo);
+          merged.push(formatJobItem(po, jobObj));
+        }
+      });
+
+      // 3. Job Orders in QC stage (if not already represented by a PO)
+      if (jobOrdersRes.status === "fulfilled" && jobOrdersRes.value) {
+        const jobItems = jobOrdersRes.value.data?.items || jobOrdersRes.value.data || (Array.isArray(jobOrdersRes.value) ? jobOrdersRes.value : []);
+        if (Array.isArray(jobItems)) {
+          jobItems.forEach((job) => {
+            const jNo = job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`;
+            const jId = String(job._id || job.id || "");
+            if (!seenJobNos.has(jNo) && !seenJobNos.has(jId)) {
+              seenJobNos.add(jNo);
+              seenJobNos.add(jId);
+
+              const matchedPo = poByJobRef.get(jId) || poByJobRef.get(jNo) || null;
+              if (matchedPo) {
+                merged.push(formatJobItem(matchedPo, job));
+              } else {
+                const specs = job.specs || job.items?.[0] || {};
+                let operations = Array.isArray(job.operations) && job.operations.length > 0 ? job.operations : [];
+                if (operations.length === 0 && Array.isArray(specs.finishing) && specs.finishing.length > 0) {
+                  operations = [
+                    { sequenceNo: 1, operationName: "Printing", machine: "Floor Station", status: "COMPLETED" },
+                    ...specs.finishing.map((f, i) => ({
+                      sequenceNo: i + 2,
+                      operationName: f.name || f.code || f,
+                      machine: "Floor Station",
+                      status: "COMPLETED",
+                    })),
+                  ];
+                }
+                merged.push({
                   _id: job._id || job.id,
-                  orderNumber: `PO-${(job.jobNo || job._id || "").replace("JO-", "")}`,
-                  jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
-                  customerName:
-                    job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
+                  jobOrderId: job._id || job.id,
+                  orderNumber: `PO-${jNo.replace("JO-", "")}`,
+                  jobNo: jNo,
+                  customerName: job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
                   productType: job.title || job.productType || "Custom Print Order",
-                  dimensions: job.specs?.size || "Standard",
-                  materialStock: job.specs?.paperType || "Standard Stock",
-                  batchQty: job.specs?.quantity || job.quantity || 500,
+                  dimensions: specs.size || specs.paperSize || job.dimensions || "Standard",
+                  materialStock: specs.paperType || specs.material || job.paper || "Standard Stock",
+                  customerRequirements: job.customerRequirements || job.notes || job.remarks || "",
+                  operations,
+                  batchQty: specs.quantity || job.quantity || 500,
                   machine: "Digital Press 01",
                   operator: "Production Team",
-                  completedTime: "Just now",
+                  completedTime: job.updatedAt ? new Date(job.updatedAt).toLocaleTimeString() : "Just now",
                   status: "PENDING_QC",
                   raw: job,
-                };
-                setQcQueue([formattedQc]);
-                setSelectedQcJob(formattedQc);
-                setActiveTab("15B");
+                });
               }
-            })
-            .catch(() => {});
-        } else {
-          setQcQueue([]);
-          setSelectedQcJob(null);
+            }
+          });
         }
-      })
-      .catch((err) => {
-        console.warn("Failed fetching live QC jobs:", err);
-        setQcQueue([]);
-        setSelectedQcJob(null);
-      });
-  }, [preselectedJobId]);
+      }
 
-  // 15B: QC Inspection Checklist State
-  const [inspectionCriteria, setInspectionCriteria] = useState([
-    { id: "c1", name: "Color Calibration & Delta E", desc: "Verify brand colors against approved digital proof", status: "PASS" },
-    { id: "c2", name: "Registration & Alignment", desc: "Front-to-back print register within ±0.5mm", status: "PASS" },
-    { id: "c3", name: "Cutting Accuracy & Bleed Margin", desc: "Trim flush to 90x54mm with zero white edge margin", status: "PASS" },
-    { id: "c4", name: "Surface Lamination & Coating", desc: "Smooth matte adhesion without air bubbles or peeling", status: "PASS" },
-    { id: "c5", name: "Quantity Count Verification", desc: "Physical bundle count matches 1,000 finished cards", status: "PASS" },
-  ]);
+      // Sort by most recently updated first so newest jobs appear at top
+      merged.sort((a, b) => {
+        const dateA = a.raw?.updatedAt || a.raw?.createdAt || 0;
+        const dateB = b.raw?.updatedAt || b.raw?.createdAt || 0;
+        return new Date(dateB) - new Date(dateA);
+      });
+
+      setQcQueue(merged);
+
+      // When navigated from Production (Move to QC), orderId/jobId is provided - auto-select and show inspection form
+      const targetLookup = preselectedOrderId || preselectedJobId;
+      if (targetLookup) {
+        const match = merged.find(
+          (q) =>
+            (preselectedOrderId && (String(q.productionOrderId) === preselectedOrderId || String(q._id) === preselectedOrderId)) ||
+            (preselectedJobId && (String(q._id) === preselectedJobId || q.jobNo === preselectedJobId || String(q.jobOrderId) === preselectedJobId))
+        );
+        if (match) {
+          setSelectedQcJob(match);
+          // When coming from Production with a specific job, go straight to inspection form (15B)
+          setActiveTab("15B");
+        } else if (merged.length > 0) {
+          // No exact match found - show the queue so user can pick
+          setSelectedQcJob(merged[0]);
+        }
+      } else if (merged.length > 0) {
+        setSelectedQcJob(merged[0]);
+      }
+
+      // Update reprint requests from live backend data
+      if (reprintRes?.status === "fulfilled" && reprintRes.value) {
+        const reprintItems = reprintRes.value.data?.items || reprintRes.value.data || (Array.isArray(reprintRes.value) ? reprintRes.value : []);
+        if (Array.isArray(reprintItems) && reprintItems.length > 0) {
+          const mappedReprints = reprintItems.map((r) => ({
+            _id: r._id || r.id,
+            reprintNo: r.reprintNo || `REP-${String(r._id).slice(-6)}`,
+            jobNo: r.jobOrderId?.jobNo || r.jobNo || "JO-UNKNOWN",
+            customerName: r.jobOrderId?.customerName || r.customerName || "Customer",
+            product: r.jobOrderId?.title || r.product || "Print Job",
+            quantity: r.quantity || 0,
+            scrapCost: r.estimatedCost || r.scrapCost || 0,
+            reason: r.reason || r.notes || "No reason provided",
+            machine: r.productionOrderId?.machineId?.printerName || r.machine || "Unknown Machine",
+            requestedBy: r.requestedBy?.name || r.requestedByName || "Inspector",
+            requestedAt: r.createdAt ? new Date(r.createdAt).toLocaleString() : "Unknown",
+            status: r.status === "REQUESTED" ? "PENDING_APPROVAL" : (r.status || "PENDING_APPROVAL"),
+          }));
+          setReprintRequests(mappedReprints);
+        }
+      }
+    }).catch((err) => {
+      console.warn("Failed fetching live QC items:", err);
+      setQcQueue([]);
+      setSelectedQcJob(null);
+    });
+  }, [preselectedJobId, preselectedOrderId]);
+
+  // Synchronize dynamic QC criteria whenever selectedQcJob changes,
+  // and asynchronously fetch full operations sequence & job specs if needed
+  useEffect(() => {
+    if (!selectedQcJob) {
+      setInspectionCriteria([]);
+      return;
+    }
+
+    // Immediately build criteria from currently available job properties
+    setInspectionCriteria(generateQcCriteria(selectedQcJob));
+    setAffectedQty(selectedQcJob.batchQty || 50);
+
+    const currentOps = selectedQcJob.operations || selectedQcJob.raw?.operations || [];
+    if (currentOps.length > 0) {
+      const defaultRework = currentOps.find((o) => (o.operationName || o.operation || "").toLowerCase().includes("lam")) || currentOps[0];
+      if (defaultRework) {
+        setReworkTargetOp(defaultRework.operationName || defaultRework.operation || "Printing");
+      }
+    }
+
+    let isMounted = true;
+    const poId = selectedQcJob.productionOrderId || selectedQcJob._id;
+    const jId = selectedQcJob.jobOrderId?._id || selectedQcJob.jobOrderId;
+
+    const fetches = [];
+    if (!selectedQcJob.operations || selectedQcJob.operations.length === 0) {
+      if (poId) {
+        fetches.push(jobFlowApi.getProductionOrderById(poId).catch(() => null));
+      } else if (jId) {
+        fetches.push(jobFlowApi.getProductionOrders({ jobOrderId: jId }).then(r => (r?.data?.items || r?.data || (Array.isArray(r) ? r : []))?.[0]).catch(() => null));
+      } else {
+        fetches.push(Promise.resolve(null));
+      }
+    } else {
+      fetches.push(Promise.resolve(null));
+    }
+
+    if (jId && (!selectedQcJob.customerRequirements || selectedQcJob.dimensions === "Standard")) {
+      fetches.push(jobFlowApi.getJobOrderById(jId).catch(() => null));
+    } else {
+      fetches.push(Promise.resolve(null));
+    }
+
+    Promise.all(fetches).then(([poRes, joRes]) => {
+      if (!isMounted) return;
+      const fullPo = poRes?.data || poRes;
+      const fullJo = joRes?.data || joRes;
+
+      if (fullPo || fullJo) {
+        setSelectedQcJob((prev) => {
+          if (!prev || (prev._id !== selectedQcJob._id && prev.jobNo !== selectedQcJob.jobNo)) return prev;
+
+          let updatedOps = fullPo?.operations?.length ? fullPo.operations : prev.operations;
+          const joSpecs = fullJo?.specs || (fullPo?.jobOrderId && typeof fullPo.jobOrderId === "object" ? fullPo.jobOrderId.specs : null) || (Array.isArray(fullJo?.items) ? fullJo.items[0] : null);
+          const joReqs = fullJo?.customerRequirements || (fullPo?.jobOrderId && typeof fullPo.jobOrderId === "object" ? fullPo.jobOrderId.customerRequirements : null) || prev.customerRequirements;
+          const updatedDims = joSpecs?.size || joSpecs?.paperSize || prev.dimensions;
+          const updatedStock = joSpecs?.paperType || joSpecs?.material || prev.materialStock;
+
+          if ((!updatedOps || updatedOps.length === 0) && Array.isArray(joSpecs?.finishing) && joSpecs.finishing.length > 0) {
+            updatedOps = [
+              { sequenceNo: 1, operationName: "Printing", machine: "Floor Station", status: "COMPLETED" },
+              ...joSpecs.finishing.map((f, i) => ({
+                sequenceNo: i + 2,
+                operationName: f.name || f.code || f,
+                machine: "Floor Station",
+                status: "COMPLETED",
+              })),
+            ];
+          }
+
+          const updatedJob = {
+            ...prev,
+            dimensions: updatedDims || prev.dimensions,
+            materialStock: updatedStock || prev.materialStock,
+            customerRequirements: joReqs || prev.customerRequirements,
+            operations: updatedOps || prev.operations,
+            raw: {
+              ...(prev.raw || {}),
+              ...(fullPo || {}),
+              jobOrderId: fullJo || prev.raw?.jobOrderId,
+            },
+          };
+
+          setInspectionCriteria(generateQcCriteria(updatedJob));
+          return updatedJob;
+        });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedQcJob?._id, selectedQcJob?.jobNo, selectedQcJob?.productionOrderId]);
 
   // Defect / Verdict form
   const [qcVerdict, setQcVerdict] = useState("PASS"); // "PASS", "DEFECT"
@@ -215,42 +642,55 @@ export const QualityControlPage = () => {
     try {
       if (qcVerdict === "PASS") {
         await jobFlowApi.performQualityCheck(targetId, {
+          result: "PASS",
           passed: true,
+          quantityChecked: Number(selectedQcJob?.batchQty) || 500,
+          acceptedQty: Number(selectedQcJob?.batchQty) || 500,
+          rejectedQty: 0,
           notes: "All criteria passed inspection. Approved for packaging and dispatch.",
+          comments: "All criteria passed inspection. Approved for packaging and dispatch.",
         });
         toast.success(`Job ${selectedQcJob?.jobNo || ""} PASSED Quality Control! Moved to Ready for Delivery queue.`);
         setQcQueue((prev) =>
           prev.map((q) => ((q._id || q.id) === targetId ? { ...q, status: "PASSED" } : q))
         );
-        setActiveTab("15A");
-        navigate(`/jobflow/delivery${targetId ? `?jobId=${targetId}` : ""}`);
+        const actualJobId = selectedQcJob?.jobOrderId?._id || selectedQcJob?.jobOrderId || targetId;
+        navigate(`/jobflow/delivery?jobId=${actualJobId}`);
       } else {
         if (routingDecision === "TARGETED_REWORK") {
+          await jobFlowApi.performQualityCheck(targetId, {
+            result: "ISSUE",
+            passed: false,
+            quantityChecked: Number(selectedQcJob?.batchQty) || 500,
+            acceptedQty: Math.max(0, (Number(selectedQcJob?.batchQty) || 500) - Number(affectedQty || 1)),
+            rejectedQty: Number(affectedQty) || 1,
+            issueDetails: defectNotes || "Defect recorded during inspection",
+            correctiveAction: "REWORK",
+            reworkOperationCode: reworkTargetOp || "PRINT",
+            comments: defectNotes || "Rework required",
+          });
           toast.warning(`Defect recorded on ${selectedQcJob?.jobNo || ""}. Routing to Targeted Operation Rework.`);
           setActiveTab("16A");
         } else {
           // Full reprint
-          await jobFlowApi.requestReprint({
-            jobOrderId: targetId,
-            jobNo: selectedQcJob?.jobNo,
-            reason: defectNotes,
-            quantity: affectedQty,
+          await jobFlowApi.performQualityCheck(targetId, {
+            result: "ISSUE",
+            passed: false,
+            quantityChecked: Number(selectedQcJob?.batchQty) || 500,
+            acceptedQty: Math.max(0, (Number(selectedQcJob?.batchQty) || 500) - Number(affectedQty || 1)),
+            rejectedQty: Number(affectedQty) || 1,
+            issueDetails: defectNotes || "Severe defect requiring full reprint",
+            correctiveAction: "REPRINT",
+            restartFromOperationCode: "PRINT",
+            reprintQuantity: Number(affectedQty) || 1,
+            comments: defectNotes || "Full reprint requested",
           });
           toast.error(`Full reprint requested for ${selectedQcJob?.jobNo || ""}. Escalated to Manager Approval.`);
           setActiveTab("16B");
         }
       }
-    } catch {
-      if (qcVerdict === "PASS") {
-        toast.success(`Job ${selectedQcJob?.jobNo || ""} PASSED Quality Control! Moved to Ready for Delivery queue.`);
-        setQcQueue((prev) =>
-          prev.map((q) => ((q._id || q.id) === targetId ? { ...q, status: "PASSED" } : q))
-        );
-        setActiveTab("15A");
-        navigate(`/jobflow/delivery${targetId ? `?jobId=${targetId}` : ""}`);
-      } else {
-        setActiveTab(routingDecision === "TARGETED_REWORK" ? "16A" : "16B");
-      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to record quality check.");
     } finally {
       setLoading(false);
     }
@@ -309,43 +749,42 @@ export const QualityControlPage = () => {
     }
   };
 
-  return (
-    <JobFlowLayout
-      title="Quality Control & Defect Routing"
-      subtitle="Defect identification, multi-point QC inspection, targeted operation rework & Manager reprint authorizations"
-      actions={
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "15A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("15A")}
-          >
-            15A: QC Queue & Overview
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "15B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("15B")}
-          >
-            15B: QC Inspection Form
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "16A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("16A")}
-          >
-            16A: Targeted Operation Rework
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "16B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("16B")}
-          >
-            16B: Full Reprint Approvals ({reprintRequests.filter((r) => r.status === "PENDING_APPROVAL").length})
-          </button>
-        </div>
-      }
-    >
+  const renderSubNav = () => (
+    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: embedded ? "1.25rem" : 0 }}>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "15A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("15A")}
+      >
+        QC Queue & Overview
+      </button>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "15B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("15B")}
+      >
+        QC Inspection Form
+      </button>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "16A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("16A")}
+      >
+        Targeted Operation Rework
+      </button>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "16B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("16B")}
+      >
+        Full Reprint Approvals ({reprintRequests.filter((r) => r.status === "PENDING_APPROVAL").length})
+      </button>
+    </div>
+  );
+
+  const mainQcContent = (
+    <div>
+      {embedded && renderSubNav()}
       {/* ──────────────── SCREEN 15A: QUALITY CONTROL - INSPECTION & DEFECT ROUTING ──────────────── */}
       {activeTab === "15A" && (
         <div>
@@ -356,7 +795,7 @@ export const QualityControlPage = () => {
                 <Clock size={22} />
               </div>
               <div>
-                <div className="jf-stat-val">6</div>
+                <div className="jf-stat-val">{qcQueue.filter(q => q.status !== "PASSED").length || 0}</div>
                 <div className="jf-stat-label">Pending Inspection</div>
               </div>
             </div>
@@ -376,7 +815,7 @@ export const QualityControlPage = () => {
                 <CheckCircle size={22} />
               </div>
               <div>
-                <div className="jf-stat-val">28</div>
+                <div className="jf-stat-val">{qcQueue.filter(q => q.status === "PASSED").length || 0}</div>
                 <div className="jf-stat-label">Passed Today</div>
               </div>
             </div>
@@ -386,7 +825,7 @@ export const QualityControlPage = () => {
                 <RotateCcw size={22} />
               </div>
               <div>
-                <div className="jf-stat-val">2</div>
+                <div className="jf-stat-val">{reprintRequests.filter(r => r.status === "PENDING_APPROVAL").length || 0}</div>
                 <div className="jf-stat-label">Active Rework Batches</div>
               </div>
             </div>
@@ -398,6 +837,7 @@ export const QualityControlPage = () => {
               {
                 key: "jobNo",
                 label: "Order & Job #",
+                minWidth: "180px",
                 sortable: true,
                 render: (val, item) => (
                   <div>
@@ -488,22 +928,57 @@ export const QualityControlPage = () => {
       )}
 
       {/* ──────────────── SCREEN 15B: QUALITY CONTROL - INSPECTION FORM ──────────────── */}
-      {activeTab === "15B" && (
+      {activeTab === "15B" && selectedQcJob && (
         <div>
           {/* Header Bar */}
           <div className="jf-card" style={{ borderLeft: "4px solid var(--jf-primary)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#0f172a" }}>
-                  QC Inspection: {selectedQcJob.jobNo}
-                </h3>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Customer: <strong>{selectedQcJob.customerName}</strong> • Product: {selectedQcJob.productType} ({selectedQcJob.dimensions})
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#0f172a" }}>
+                    QC Inspection: {selectedQcJob.jobNo}
+                  </h3>
+                  {selectedQcJob.orderNumber && (
+                    <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>({selectedQcJob.orderNumber})</span>
+                  )}
+                </div>
+                <div style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: "0.25rem" }}>
+                  Customer: <strong>{selectedQcJob.customerName}</strong> • Product: {selectedQcJob.productType} ({selectedQcJob.dimensions || "Standard"}) • Material: {selectedQcJob.materialStock || "Standard"}
+                </div>
+                {selectedQcJob.customerRequirements && (
+                  <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "0.35rem", background: "#f8fafc", padding: "0.25rem 0.6rem", borderRadius: "4px", border: "1px solid #e2e8f0", display: "inline-block" }}>
+                    📌 <strong>Job Order Requirements:</strong> {selectedQcJob.customerRequirements}
+                  </div>
+                )}
+                {/* Completed Operations sequence badges */}
+                {Array.isArray(selectedQcJob.operations) && selectedQcJob.operations.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.5rem", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Work Center Operations:</span>
+                    {selectedQcJob.operations.map((op, i) => {
+                      const isRework = (op.operationName || "").toLowerCase().includes("rework");
+                      return (
+                        <span
+                          key={op._id || i}
+                          style={{
+                            fontSize: "0.6875rem",
+                            padding: "0.15rem 0.5rem",
+                            borderRadius: "9999px",
+                            background: isRework ? "#fef3c7" : "#f0fdf4",
+                            color: isRework ? "#b45309" : "#166534",
+                            border: `1px solid ${isRework ? "#fde68a" : "#bbf7d0"}`,
+                            fontWeight: 600,
+                          }}
+                        >
+                          #{op.sequenceNo || i + 1} {op.operationName || op.operation} ({op.completedQty || op.outputQty || selectedQcJob.batchQty} pcs)
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                 <span style={{ fontSize: "0.875rem", color: "#64748b" }}>
-                  Batch Size: <strong style={{ color: "#15803d" }}>{selectedQcJob.batchQty.toLocaleString()} pcs</strong>
+                  Batch Size: <strong style={{ color: "#15803d" }}>{(selectedQcJob.batchQty || 0).toLocaleString()} pcs</strong>
                 </span>
                 <span className="jf-badge jf-badge-blue">In Inspection</span>
               </div>
@@ -514,7 +989,12 @@ export const QualityControlPage = () => {
             {/* Left: Criteria Checklist */}
             <div className="jf-card" style={{ padding: 0 }}>
               <div className="jf-card-header" style={{ padding: "1.25rem 1.25rem 0.5rem 1.25rem" }}>
-                <h3 className="jf-card-title">Multi-Point Quality Verification Criteria</h3>
+                <div>
+                  <h3 className="jf-card-title">Multi-Point Quality Verification Criteria</h3>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.25rem" }}>
+                    Job order requirements & work center operations checklist for {selectedQcJob.jobNo}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -624,7 +1104,7 @@ export const QualityControlPage = () => {
                     <p style={{ margin: "0 0 0.5rem 0", fontWeight: 700 }}>
                       ✓ High-Quality Batch Verified
                     </p>
-                    All 1,000 finished cards adhere to ISO 12647-2 color fidelity standards, dimensions are exact, and laminate finish is smooth.
+                    All {(selectedQcJob.batchQty || 0).toLocaleString()} finished {selectedQcJob.productType || "units"} adhere to ISO 12647-2 color fidelity standards, dimensions are exact ({selectedQcJob.dimensions || "Standard"}), and job order specifications verified.
                   </div>
 
                   <button
@@ -747,10 +1227,21 @@ export const QualityControlPage = () => {
                   value={reworkTargetOp}
                   onChange={(e) => setReworkTargetOp(e.target.value)}
                 >
-                  <option value="Matt Lamination">Matt Lamination</option>
-                  <option value="Die-Cutting & Trim">Die-Cutting & Trim</option>
-                  <option value="Spot UV Varnish">Spot UV Varnish</option>
-                  <option value="Digital Press 01">Digital Press 01</option>
+                  {Array.isArray(selectedQcJob?.operations) && selectedQcJob.operations.length > 0 ? (
+                    selectedQcJob.operations.map((op, idx) => (
+                      <option key={op._id || idx} value={op.operationName || op.operation}>
+                        #{op.sequenceNo || idx + 1} {op.operationName || op.operation} ({op.machine || "Workstation"})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Printing">Printing</option>
+                      <option value="Matt Lamination">Matt Lamination</option>
+                      <option value="Die-Cutting & Trim">Die-Cutting & Trim</option>
+                      <option value="Spot UV Varnish">Spot UV Varnish</option>
+                      <option value="Packing">Packing</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -925,7 +1416,7 @@ export const QualityControlPage = () => {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "#64748b" }}>Requested By:</span>
-                <span>{selectedReprint.requestedBy}</span>
+                <span>{typeof selectedReprint.requestedBy === "object" ? (selectedReprint.requestedBy?.name || selectedReprint.requestedBy?.email || "Inspector") : (selectedReprint.requestedBy || "Inspector")}</span>
               </div>
             </div>
 
@@ -970,6 +1461,20 @@ export const QualityControlPage = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+
+  if (embedded) {
+    return mainQcContent;
+  }
+
+  return (
+    <JobFlowLayout
+      title="Quality Control & Defect Routing"
+      subtitle="Defect identification, multi-point QC inspection, targeted operation rework & Manager reprint authorizations"
+      actions={renderSubNav()}
+    >
+      {mainQcContent}
     </JobFlowLayout>
   );
 };

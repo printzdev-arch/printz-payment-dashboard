@@ -52,12 +52,12 @@ export const JobFlowLayout = ({ children, title, subtitle, actions }) => {
       <div className="jf-nav-tabs">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const active = isTabActive(tab);
           return (
             <NavLink
               key={tab.path}
               to={tab.path}
-              className={`jf-nav-tab ${active ? "active" : ""}`}
+              end={Boolean(tab.exact)}
+              className={({ isActive }) => `jf-nav-tab ${isActive ? "active" : ""}`}
             >
               <Icon size={16} />
               <span>{tab.label}</span>

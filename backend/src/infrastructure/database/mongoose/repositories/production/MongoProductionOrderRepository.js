@@ -1,5 +1,9 @@
 const IProductionOrderRepository = require("../../../../../domain/repositories/production/IProductionOrderRepository");
 const ProductionOrder = require("../../models/ProductionOrder");
+require("../../models/Printer");
+require("../../models/Branch");
+require("../../models/User");
+require("../../models/job-order/JobOrder");
 
 class MongoProductionOrderRepository extends IProductionOrderRepository {
   async findAll(query = {}) {
@@ -25,7 +29,7 @@ class MongoProductionOrderRepository extends IProductionOrderRepository {
 
     const [items, total] = await Promise.all([
       ProductionOrder.find(filter)
-        .populate("jobOrderId", "jobNo title customerName dueDate priority stage")
+        .populate("jobOrderId", "jobNo title customerName customerSnapshot dueDate priority stage currentStage")
         .populate("branchId", "name code")
         .populate("machineId", "printerName model")
         .populate("assignedEmployeeIds", "name email role")

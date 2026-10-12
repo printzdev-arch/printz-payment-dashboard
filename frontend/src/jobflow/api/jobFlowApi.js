@@ -24,8 +24,8 @@ export const jobFlowApi = {
         params.isActive !== undefined
           ? params.isActive
           : params.status && params.status !== "all"
-          ? params.status === "Active" || params.status === "active"
-          : undefined,
+            ? params.status === "Active" || params.status === "active"
+            : undefined,
       branchId:
         params.branchId ||
         (params.branch && params.branch !== "all" && /^[0-9a-fA-F]{24}$/.test(params.branch)
@@ -58,7 +58,7 @@ export const jobFlowApi = {
       try {
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
         payload.branchId = storedUser.branchId || (storedUser.branchIds && storedUser.branchIds[0]);
-      } catch (e) {}
+      } catch (e) { }
     }
     if (!payload.branchId) {
       try {
@@ -66,22 +66,29 @@ export const jobFlowApi = {
         const branchRes = await api.get("/branches");
         const bList = branchRes.data?.data || branchRes.data?.items || branchRes.data || [];
         if (userBranch) {
-          const match = bList.find((b) =>
-            (b.name || b.branchName || "").toLowerCase().includes(userBranch.toLowerCase()) ||
-            userBranch.toLowerCase().includes((b.name || b.branchName || "").toLowerCase())
-          );
+          const cleanUser = userBranch.trim().toLowerCase();
+          const match = bList.find((b) => {
+            const bn = (b.name || b.branchName || "").trim().toLowerCase();
+            if (!bn) return false;
+            if (bn === cleanUser) return true;
+            if (bn.includes(cleanUser)) return true;
+            return bn.length >= 3 && cleanUser.includes(bn);
+          }) || bList.find((b) => (b.name || b.branchName || "").toLowerCase().includes("banaswadi"));
           if (match) payload.branchId = match._id || match.id;
         }
-        if (!payload.branchId && bList.length > 0) {
-          payload.branchId = bList[0]._id || bList[0].id;
+        if (!payload.branchId) {
+          const banaswadi = bList.find((b) => (b.name || b.branchName || "").toLowerCase().includes("banaswadi"));
+          if (banaswadi) payload.branchId = banaswadi._id || banaswadi.id;
+          else if (bList.length > 0) payload.branchId = bList[0]._id || bList[0].id;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     // If still missing or not a 24-char hex ObjectId, delete so backend user.branchId applies
     if (!payload.branchId || !/^[0-9a-fA-F]{24}$/.test(String(payload.branchId))) {
       delete payload.branchId;
     }
     const res = await api.post("/customers", payload);
+    console.log(res.data, 'res.data');
     return res.data;
   },
 
@@ -119,7 +126,7 @@ export const jobFlowApi = {
       try {
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
         payload.branchId = storedUser.branchId || (storedUser.branchIds && storedUser.branchIds[0]);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!payload.branchId || !/^[0-9a-fA-F]{24}$/.test(payload.branchId)) {
@@ -129,7 +136,7 @@ export const jobFlowApi = {
         if (bList.length > 0) {
           payload.branchId = bList[0]._id || bList[0].id;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Never pass fake IDs that break MongoDB branch relationships; if undefined, let backend assign user.branchId
@@ -512,15 +519,8 @@ export const jobFlowApi = {
 
   // ──────────────── PRODUCTION PLANNING & OPERATIONS ────────────────
   planProductionOrder: async (jobId, planData) => {
-    try {
-      const res = await api.post(`/job-orders/${jobId}/production/plan`, planData);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 404 || err.response?.status === 400 || err.response?.status === 409) {
-        return { success: true, message: "Production planned successfully", data: planData };
-      }
-      throw err;
-    }
+    const res = await api.post(`/job-orders/${jobId}/production/plan`, planData);
+    return res.data;
   },
 
   getProductionOrders: async (params = {}) => {
@@ -533,8 +533,43 @@ export const jobFlowApi = {
     return res.data;
   },
 
+  updateProductionOrder: async (id, data) => {
+    const res = await api.patch(`/production-orders/${id}`, data);
+    return res.data;
+  },
+
   getOperationQueue: async (params = {}) => {
     const res = await api.get("/production-operations/queue", { params });
+    return res.data;
+  },
+
+  holdProductionOrder: async (id, reason = "") => {
+    const res = await api.post(`/production-orders/${id}/hold`, { reason });
+    return res.data;
+  },
+
+  resumeProductionOrder: async (id, reason = "") => {
+    const res = await api.post(`/production-orders/${id}/resume`, { reason });
+    return res.data;
+  },
+
+  cancelProductionOrder: async (id, reason = "") => {
+    const res = await api.post(`/production-orders/${id}/cancel`, { reason });
+    return res.data;
+  },
+
+  updateProductionOperations: async (id, operations) => {
+    const res = await api.put(`/production-orders/${id}/operations`, { operations });
+    return res.data;
+  },
+
+  getOperationQueueCounts: async (branchId) => {
+    const res = await api.get("/production-operations/queue/counts", { params: { branchId } });
+    return res.data;
+  },
+
+  assignOperation: async (operationId, data = {}) => {
+    const res = await api.post(`/production-operations/${operationId}/assign`, data);
     return res.data;
   },
 
@@ -563,8 +598,8 @@ export const jobFlowApi = {
     return res.data;
   },
 
-  skipOperation: async (operationId) => {
-    const res = await api.post(`/production-operations/${operationId}/skip`);
+  skipOperation: async (operationId, reason = "") => {
+    const res = await api.post(`/production-operations/${operationId}/skip`, { reason });
     return res.data;
   },
 
@@ -601,8 +636,38 @@ export const jobFlowApi = {
     }
   },
 
+  getQualityCheckById: async (id) => {
+    const res = await api.get(`/quality-checks/${id}`);
+    return res.data;
+  },
+
+  getQualityCheckReport: async (id) => {
+    const res = await api.get(`/quality-checks/${id}/report`);
+    return res.data;
+  },
+
+  reworkProductionStep: async (productionOrderId, reworkData = {}) => {
+    const payload = {
+      result: "ISSUE",
+      correctiveAction: "REWORK",
+      reworkOperationCode: reworkData.operationName || "PRINT",
+      quantityChecked: Number(reworkData.quantity) || 1,
+      acceptedQty: 0,
+      rejectedQty: Number(reworkData.quantity) || 1,
+      issueDetails: reworkData.instructions || "Targeted rework requested from QC",
+      comments: reworkData.instructions || "Targeted rework dispatched",
+    };
+    const res = await api.post(`/production-orders/${productionOrderId}/quality-checks`, payload);
+    return res.data;
+  },
+
   getReprintRequests: async (params = {}) => {
     const res = await api.get("/reprint-requests", { params });
+    return res.data;
+  },
+
+  createReprintRequest: async (jobId, data) => {
+    const res = await api.post(`/job-orders/${jobId}/reprint-requests`, data);
     return res.data;
   },
 
@@ -624,6 +689,11 @@ export const jobFlowApi = {
 
   getDeliveryOrderById: async (id) => {
     const res = await api.get(`/delivery-orders/${id}`);
+    return res.data;
+  },
+
+  createDeliveryOrder: async (data) => {
+    const res = await api.post("/delivery-orders", data);
     return res.data;
   },
 

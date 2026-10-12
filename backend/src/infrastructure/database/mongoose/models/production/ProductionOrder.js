@@ -28,14 +28,15 @@ const productionOrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PLANNED", "IN_PROGRESS", "ON_HOLD", "QC", "COMPLETED", "CANCELLED"],
-      default: "PLANNED",
+      enum: ["UNASSIGNED", "PLANNED", "IN_PROGRESS", "ON_HOLD", "QC", "COMPLETED", "CANCELLED"],
+      default: "UNASSIGNED",
       index: true,
     },
     priority: {
       type: String,
-      enum: ["LOW", "NORMAL", "HIGH", "URGENT"],
+      enum: ["LOW", "NORMAL", "HIGH", "URGENT", "Low", "Normal", "High", "Urgent", "Rush", "RUSH"],
       default: "NORMAL",
+      uppercase: true,
       index: true,
     },
     plannedQty: {
@@ -58,6 +59,15 @@ const productionOrderSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    machine: {
+      type: String,
+      default: null,
+    },
+    assignedEmployees: [
+      {
+        type: String,
+      },
+    ],
     machineId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Printer",

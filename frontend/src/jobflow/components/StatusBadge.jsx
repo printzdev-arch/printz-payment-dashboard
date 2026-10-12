@@ -10,7 +10,7 @@ export const StatusBadge = ({ status }) => {
 
   if (["ACTIVE", "APPROVED", "PASS", "COMPLETED", "DELIVERED", "VERIFIED", "PAID"].includes(s)) {
     colorClass = "jf-badge-green";
-  } else if (["PENDING", "WAITING", "READY", "PACKED", "NEW", "HOLD", "DRAFT"].includes(s)) {
+  } else if (["PENDING", "WAITING", "READY", "PACKED", "NEW", "HOLD", "DRAFT", "UNASSIGNED"].includes(s)) {
     colorClass = "jf-badge-amber";
   } else if (["IN_PROGRESS", "IN_PRODUCTION", "PLANNED", "ASSIGNED", "OUT_FOR_DELIVERY", "ACCEPTED"].includes(s)) {
     colorClass = "jf-badge-blue";

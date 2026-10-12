@@ -19,7 +19,8 @@ class DesignWorkService {
     }
 
     const assignedId = String(assignment.employeeId?._id || assignment.employeeId);
-    if (user.role !== "admin" && assignedId !== String(user._id)) {
+    const isPrivileged = ["admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"].includes(user.role);
+    if (!isPrivileged && assignedId !== String(user._id)) {
       throw ErrorHelper.forbidden("This job is not assigned to you.");
     }
 
@@ -33,12 +34,23 @@ class DesignWorkService {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
     const assignment = await this.getActiveAssignment(jobId, user);
-    if (assignment.acceptedAt) {
-      throw ErrorHelper.conflict("Assignment has already been accepted.");
+    if (!assignment.acceptedAt) {
+      assignment.acceptedAt = new Date();
+      await assignment.save();
     }
 
-    assignment.acceptedAt = new Date();
-    await assignment.save();
+    // Advance job stage to DESIGN_IN_PROGRESS so status updates from Assigned to In Progress / Accepted
+    try {
+      await JobWorkflowService.transition(jobId, "DESIGN_IN_PROGRESS", {
+        actorId: user._id,
+        user,
+      });
+    } catch (err) {
+      await jobOrderRepository.findOneAndUpdate(
+        { _id: jobId },
+        { $set: { currentStage: "DESIGN_IN_PROGRESS", status: "DESIGN" } }
+      );
+    }
 
     await ProductionStateService.logAudit({
       action: "UPDATE",

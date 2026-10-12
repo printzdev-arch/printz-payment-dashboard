@@ -2,7 +2,7 @@ const qualityCheckRepository = require("../../../infrastructure/database/mongoos
 const productionOrderRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoProductionOrderRepository");
 const deliveryOrderRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoDeliveryOrderRepository");
 const jobOrderRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoJobOrderRepository");
-const productionStateRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoProductionStateRepository");
+const productionOperationRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoProductionOperationRepository");
 const ReworkService = require("./rework.service");
 const ReprintService = require("./reprint.service");
 const ProductionStateService = require("./productionState.service");
@@ -13,7 +13,22 @@ class QualityCheckService {
    * Get production orders pending QC inspection
    */
   static async getPending(branchId = null) {
-    return qualityCheckRepository.findPending(branchId);
+    const orders = await qualityCheckRepository.findPending(branchId);
+    if (!orders || orders.length === 0) return [];
+    
+    const orderIds = orders.map((o) => o._id);
+    const operations = await productionOperationRepository.findByProductionOrders(orderIds);
+    const operationsByOrder = {};
+    operations.forEach((op) => {
+      const parentIdStr = op.productionOrderId ? op.productionOrderId.toString() : "";
+      if (!operationsByOrder[parentIdStr]) operationsByOrder[parentIdStr] = [];
+      operationsByOrder[parentIdStr].push(op);
+    });
+
+    return orders.map((o) => ({
+      ...o,
+      operations: operationsByOrder[o._id.toString()] || [],
+    }));
   }
 
   /**

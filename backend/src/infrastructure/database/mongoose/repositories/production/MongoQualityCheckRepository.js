@@ -8,7 +8,7 @@ class MongoQualityCheckRepository extends IQualityCheckRepository {
     if (branchId) filter.branchId = branchId;
 
     return ProductionOrder.find(filter)
-      .populate("jobOrderId", "jobNo title customerName dueDate priority items")
+      .populate("jobOrderId")
       .populate("branchId", "name code")
       .populate("machineId", "printerName brand model")
       .populate("assignedEmployeeIds", "name email role")

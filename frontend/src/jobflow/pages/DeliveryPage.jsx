@@ -26,7 +26,7 @@ import jobFlowApi from "../api/jobFlowApi";
 import { toast } from "react-toastify";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-export const DeliveryPage = () => {
+export const DeliveryPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedJobId = searchParams.get("jobId");
@@ -40,13 +40,15 @@ export const DeliveryPage = () => {
   const [selectedJob, setSelectedJob] = useState(null);
 
   useEffect(() => {
-    // Load live Delivery jobs from backend
+    // Load live Delivery jobs from backend (Ready for Delivery queue - Screen 17A)
     jobFlowApi
       .getJobOrders({ currentStage: "READY,DELIVERY", limit: 50 })
       .then((res) => {
         const items = res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
         if (Array.isArray(items) && items.length > 0) {
-          const mapped = items.map((job) => ({
+          // Sort by most recently updated first
+          const sorted = [...items].sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+          const mapped = sorted.map((job) => ({
             _id: job._id || job.id,
             jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
             customerName:
@@ -64,14 +66,18 @@ export const DeliveryPage = () => {
             raw: job,
           }));
           setReadyJobs(mapped);
+
+          // If navigated from QC with a jobId, highlight the job in 17A queue (don't auto-switch to 17B)
           if (preselectedJobId) {
             const match = mapped.find(
               (j) => (j._id || j.id) === preselectedJobId || j.jobNo === preselectedJobId
             );
             if (match) {
+              // Highlight the matching job but stay on the 17A queue tab so user can see it
               setSelectedJob(match);
-              setActiveTab("17B");
+              // Stay on 17A - the user will click "Assign Delivery" themselves
             } else {
+              // Try to fetch the job directly and add it to the top of the queue
               jobFlowApi
                 .getJobOrderById(preselectedJobId)
                 .then((singleRes) => {
@@ -82,29 +88,29 @@ export const DeliveryPage = () => {
                       jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
                       customerName:
                         job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-                      customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "012-345 6789",
-                      address: job.customerSnapshot?.address || "Main Branch Delivery Counter",
+                      customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "N/A",
+                      address: job.customerSnapshot?.address || "Counter Pickup",
                       itemsDesc: `${job.title || job.productType || "Print Order"} - ${job.quantity || 500} pcs`,
                       totalAmount: Number(job.grandTotal || job.totalAmount || 350.0),
                       advancePaid: Number(job.advancePaid || 0),
                       balanceDue: Number((job.grandTotal || job.totalAmount || 350.0) - (job.advancePaid || 0)),
-                      dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Pending",
+                      dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Today",
                       deliveryType: "In-House Fleet",
                       priority: job.priority || "Normal",
                       status: "READY_FOR_DELIVERY",
                       raw: job,
                     };
-                    setReadyJobs((prev) => [formattedJob, ...prev]);
+                    setReadyJobs((prev) => [formattedJob, ...prev.filter(j => j._id !== formattedJob._id)]);
                     setSelectedJob(formattedJob);
-                    setActiveTab("17B");
                   }
                 })
                 .catch(() => {});
             }
-          } else if (mapped.length > 0) {
+          } else {
             setSelectedJob(mapped[0]);
           }
         } else if (preselectedJobId) {
+          // No jobs in READY stage yet - fetch this specific job to show it
           jobFlowApi
             .getJobOrderById(preselectedJobId)
             .then((singleRes) => {
@@ -115,13 +121,13 @@ export const DeliveryPage = () => {
                   jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
                   customerName:
                     job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-                  customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "012-345 6789",
-                  address: job.customerSnapshot?.address || "Main Branch Delivery Counter",
+                  customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "N/A",
+                  address: job.customerSnapshot?.address || "Counter Pickup",
                   itemsDesc: `${job.title || job.productType || "Print Order"} - ${job.quantity || 500} pcs`,
                   totalAmount: Number(job.grandTotal || job.totalAmount || 350.0),
                   advancePaid: Number(job.advancePaid || 0),
                   balanceDue: Number((job.grandTotal || job.totalAmount || 350.0) - (job.advancePaid || 0)),
-                  dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Pending",
+                  dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Today",
                   deliveryType: "In-House Fleet",
                   priority: job.priority || "Normal",
                   status: "READY_FOR_DELIVERY",
@@ -129,7 +135,6 @@ export const DeliveryPage = () => {
                 };
                 setReadyJobs([formattedJob]);
                 setSelectedJob(formattedJob);
-                setActiveTab("17B");
               }
             })
             .catch(() => {});
@@ -143,6 +148,39 @@ export const DeliveryPage = () => {
         setReadyJobs([]);
         setSelectedJob(null);
       });
+
+    // Load live Delivery Orders (Screen 18A: Active Deliveries & Transit Tracking)
+    // Only show actively dispatched/in-transit orders (not READY - those are in the 17A queue above)
+    jobFlowApi
+      .getDeliveryOrders({ limit: 100 })
+      .then((res) => {
+        const items = res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
+        if (Array.isArray(items)) {
+          // Sort by most recently created first
+          const sorted = [...items].sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+          // Show only actively dispatched delivery orders (exclude READY status - those belong to 17A queue)
+          const activeMapped = sorted
+            .filter((d) => d.status && d.status !== "READY")
+            .map((d) => {
+              const jObj = d.jobOrderId && typeof d.jobOrderId === "object" ? d.jobOrderId : null;
+              return {
+                _id: d._id || d.id,
+                deliveryNo: d.deliveryNo || `DO-${String(d._id).slice(-6)}`,
+                jobNo: jObj?.jobNo || d.jobNo || "JO-CURRENT",
+                customerName: jObj?.customerName || d.customerName || "Customer",
+                deliveryAddress: d.deliveryAddress || jObj?.customerSnapshot?.address || "Counter Pickup / Main Store",
+                method: d.deliveryMethod === "IN_HOUSE" ? `${d.driverName || "Fleet Driver"} (${d.vehicleNumber || "Van"})` : (d.deliveryMethod || "In-House Fleet"),
+                dispatchTime: d.dispatchedAt ? new Date(d.dispatchedAt).toLocaleTimeString() : (d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "Scheduled"),
+                estArrival: d.estArrival || (d.status === "DELIVERED" ? "Completed" : "Within 2 Hours"),
+                balanceDue: Number(d.balanceDue || 0),
+                status: d.status || "DISPATCHED",
+                raw: d,
+              };
+            });
+          setActiveDeliveries(activeMapped);
+        }
+      })
+      .catch((err) => console.warn("Failed fetching live delivery orders:", err));
   }, [preselectedJobId]);
 
   // 17B: Delivery Order Form State
@@ -266,43 +304,42 @@ export const DeliveryPage = () => {
     }
   };
 
-  return (
-    <JobFlowLayout
-      title="Manager Delivery Management & Dispatch Tracking"
-      subtitle="Ready for dispatch queue, vehicle/driver allocation, digital delivery orders, live transit tracking & handover settlement"
-      actions={
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "17A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("17A")}
-          >
-            17A: Ready for Delivery ({readyJobs.length})
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "17B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("17B")}
-          >
-            17B: Assign Delivery (Create DO)
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "18A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("18A")}
-          >
-            18A: Delivery Tracking ({activeDeliveries.length})
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "18B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("18B")}
-          >
-            18B: Handover & Settlement
-          </button>
-        </div>
-      }
-    >
+  const renderSubNav = () => (
+    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: embedded ? "1.25rem" : 0 }}>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "17A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("17A")}
+      >
+        Ready for Delivery ({readyJobs.length})
+      </button>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "17B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("17B")}
+      >
+        Assign Delivery (Create DO)
+      </button>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "18A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("18A")}
+      >
+        Delivery Tracking ({activeDeliveries.length})
+      </button>
+      <button
+        type="button"
+        className={`jf-btn ${activeTab === "18B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+        onClick={() => setActiveTab("18B")}
+      >
+        Handover & Settlement
+      </button>
+    </div>
+  );
+
+  const mainDeliveryContent = (
+    <div>
+      {embedded && renderSubNav()}
       {/* ──────────────── SCREEN 17A: READY FOR DELIVERY QUEUE ──────────────── */}
       {activeTab === "17A" && (
         <div>
@@ -313,7 +350,7 @@ export const DeliveryPage = () => {
                 <Package size={22} />
               </div>
               <div>
-                <div className="jf-stat-val">12</div>
+                <div className="jf-stat-val">{readyJobs.length}</div>
                 <div className="jf-stat-label">Ready for Dispatch</div>
               </div>
             </div>
@@ -323,7 +360,7 @@ export const DeliveryPage = () => {
                 <Truck size={22} />
               </div>
               <div>
-                <div className="jf-stat-val">8</div>
+                <div className="jf-stat-val">{activeDeliveries.filter(d => d.status === "OUT_FOR_DELIVERY" || d.status === "DISPATCHED").length}</div>
                 <div className="jf-stat-label">Out for Delivery</div>
               </div>
             </div>
@@ -343,13 +380,37 @@ export const DeliveryPage = () => {
                 <CheckCircle size={22} />
               </div>
               <div>
-                <div className="jf-stat-val">24</div>
+                <div className="jf-stat-val">{activeDeliveries.filter(d => d.status === "DELIVERED").length}</div>
                 <div className="jf-stat-label">Delivered Today</div>
               </div>
             </div>
           </div>
 
           {/* Ready Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}
+          {/* QC Redirect Banner - shows when arriving from QC page with a specific job */}
+          {preselectedJobId && selectedJob && (
+            <div style={{
+              background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+              border: "1px solid #86efac",
+              borderRadius: "10px",
+              padding: "0.875rem 1.25rem",
+              marginBottom: "1.25rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+            }}>
+              <CheckCircle size={20} style={{ color: "#16a34a", flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 700, color: "#166534", fontSize: "0.9375rem" }}>
+                  ✅ {selectedJob.jobNo} — Passed QC! Ready for Delivery Assignment
+                </div>
+                <div style={{ fontSize: "0.8125rem", color: "#15803d", marginTop: "2px" }}>
+                  Job has been cleared by Quality Control and is now in the delivery queue below. Click <strong>Assign Delivery</strong> to create the delivery order.
+                </div>
+              </div>
+            </div>
+          )}
+
           <JobFlowDataTable
             columns={[
               {
@@ -357,7 +418,16 @@ export const DeliveryPage = () => {
                 label: "Job ID",
                 sortable: true,
                 width: "130px",
-                render: (val) => <strong>{val}</strong>,
+                render: (val, job) => (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <strong style={{ color: selectedJob?._id === job._id ? "#16a34a" : undefined }}>{val}</strong>
+                    {selectedJob?._id === job._id && preselectedJobId && (
+                      <span style={{ fontSize: "0.65rem", background: "#dcfce7", color: "#166534", border: "1px solid #86efac", borderRadius: "9999px", padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        QC Cleared ✓
+                      </span>
+                    )}
+                  </div>
+                ),
               },
               {
                 key: "customerName",
@@ -445,6 +515,7 @@ export const DeliveryPage = () => {
           />
         </div>
       )}
+
 
       {/* ──────────────── SCREEN 17B: ASSIGN DELIVERY - CREATE DELIVERY ORDER ──────────────── */}
       {activeTab === "17B" && (
@@ -944,6 +1015,20 @@ export const DeliveryPage = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+
+  if (embedded) {
+    return mainDeliveryContent;
+  }
+
+  return (
+    <JobFlowLayout
+      title="Manager Delivery Management & Dispatch Tracking"
+      subtitle="Ready for dispatch queue, vehicle/driver allocation, digital delivery orders, live transit tracking & handover settlement"
+      actions={renderSubNav()}
+    >
+      {mainDeliveryContent}
     </JobFlowLayout>
   );
 };

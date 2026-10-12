@@ -12,33 +12,33 @@ export const AssignDesignerModal = ({ isOpen, onClose, job, onAssigned }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setExpectedDate(new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0]);
-      jobFlowApi.getDesignerPool()
+      const branchId = job?.branchId || job?.branch || undefined;
+      jobFlowApi.getDesignerPool({ branchId })
         .then((res) => {
-          if (res?.data && Array.isArray(res.data)) {
-            setDesigners(res.data);
-            if (res.data.length > 0) {
-              setDesignerId(res.data[0]._id || res.data[0].id);
-            }
+          let list = res?.data || res?.designers || (Array.isArray(res) ? res : []);
+          if (Array.isArray(list) && list.length > 0) {
+            // User requirement: Keep only one designer (Priya Raman)
+            const priya = list.find((d) => (d.name || "").toLowerCase().includes("priya")) || list[0] || {
+              _id: "6ac74652f1faee851df1867e",
+              employeeId: "6ac74652f1faee851df1867e",
+              name: "Priya Raman",
+              code: "EMP-00002",
+              activeJobs: 1,
+            };
+            const pId = String(priya.employeeId || priya._id || priya.userId || priya.id || "6ac74652f1faee851df1867e");
+            setDesigners([{ ...priya, _id: pId, employeeId: pId }]);
+            setDesignerId(pId);
           } else {
-            // Default list if empty
-            setDesigners([
-              { _id: "des-01", name: "Karthik", code: "DES-01", activeJobs: 2 },
-              { _id: "des-02", name: "Priya", code: "DES-02", activeJobs: 1 },
-              { _id: "des-03", name: "Logan", code: "DES-03", activeJobs: 3 },
-            ]);
-            setDesignerId("des-01");
+            setDesigners([{ _id: "6ac74652f1faee851df1867e", employeeId: "6ac74652f1faee851df1867e", name: "Priya Raman", code: "EMP-00002", activeJobs: 1 }]);
+            setDesignerId("6ac74652f1faee851df1867e");
           }
         })
         .catch(() => {
-          setDesigners([
-            { _id: "des-01", name: "Karthik", code: "DES-01", activeJobs: 2 },
-            { _id: "des-02", name: "Priya", code: "DES-02", activeJobs: 1 },
-          ]);
-          setDesignerId("des-01");
+          setDesigners([{ _id: "6ac74652f1faee851df1867e", employeeId: "6ac74652f1faee851df1867e", name: "Priya Raman", code: "EMP-00002", activeJobs: 1 }]);
+          setDesignerId("6ac74652f1faee851df1867e");
         });
     }
-  }, [isOpen]);
+  }, [isOpen, job]);
 
   if (!isOpen || !job) return null;
 

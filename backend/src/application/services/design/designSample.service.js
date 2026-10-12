@@ -285,6 +285,14 @@ class DesignSampleService {
         user,
       });
 
+      // Auto-create Production Order so it immediately appears in Production floor & orders list
+      try {
+        const ProductionPlanningService = require("../production/productionPlanning.service");
+        await ProductionPlanningService.createUnassignedOrder(job._id, user);
+      } catch (planErr) {
+        // Non-blocking if already planned
+      }
+
       await ProductionStateService.logAudit({
         action: "SAMPLE_APPROVAL",
         resource: "JobSample",

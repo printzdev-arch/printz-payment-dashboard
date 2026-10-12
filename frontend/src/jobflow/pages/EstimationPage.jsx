@@ -25,8 +25,9 @@ export const EstimationPage = () => {
   const preselectedJobId = searchParams.get("jobId");
 
   const [activeTab, setActiveTab] = useState("queue"); // "create", "preview", "queue"
+  const [statusFilter, setStatusFilter] = useState("all"); // "all", "pending", "approved"
   const [loading, setLoading] = useState(false);
-  const [pendingEstimates, setPendingEstimates] = useState([]);
+  const [estimates, setEstimates] = useState([]);
   const [selectedEstimate, setSelectedEstimate] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
@@ -51,13 +52,13 @@ export const EstimationPage = () => {
   });
 
   useEffect(() => {
-    fetchPendingEstimates();
+    fetchEstimates();
   }, []);
 
-  const fetchPendingEstimates = async () => {
+  const fetchEstimates = async () => {
     setLoading(true);
     try {
-      const res = await jobFlowApi.getJobOrders({ currentStage: "ESTIMATE_APPROVAL,ENQUIRY,ESTIMATION" });
+      const res = await jobFlowApi.getJobOrders({ limit: 100 });
       let list = [];
       if (res?.data?.items && Array.isArray(res.data.items)) {
         list = res.data.items;
@@ -67,37 +68,60 @@ export const EstimationPage = () => {
         list = res;
       }
 
-      // Filter: only show jobs that are genuinely pending estimate approval
-      list = list.filter((job) => {
-        if (job.estimationStatus === "APPROVED") return false;
-        if (
-          job.currentStage &&
-          job.currentStage !== "ESTIMATE_APPROVAL" &&
-          job.currentStage !== "ESTIMATION" &&
-          job.currentStage !== "ENQUIRY"
-        ) {
-          return false;
-        }
-        return true;
-      });
+      // Sort newest jobs first
+      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
       const mappedList = list.map((job) => {
         const qty = Number(job.specs?.quantity || job.quantity || 500);
-        const totalAmt = Number(job.grandTotal || job.totalAmount || job.estimatedCost || 250);
+        const totalAmt = Number(job.grandTotal || job.totalAmount || job.estimatedPrice || job.estimatedCost || 250);
         const subtotalAmt = Number(job.subtotal || Math.round((totalAmt / 1.08) * 100) / 100 || 250);
         const taxAmt = Number(job.taxAmount || Math.round((subtotalAmt * 0.08) * 100) / 100 || 20);
-        const grandAmt = subtotalAmt + taxAmt;
+        const grandAmt = totalAmt > 0 ? totalAmt : (subtotalAmt + taxAmt);
         const unitRate = Math.round((subtotalAmt / qty) * 100) / 100;
+
+        const isApproved = job.estimationStatus === "APPROVED" || [
+          "DESIGN_QUEUE",
+          "DESIGN_ASSIGNED",
+          "DESIGN_IN_PROGRESS",
+          "SAMPLE_APPROVAL",
+          "REVISION",
+          "PRODUCTION_PLANNING",
+          "PRINTING",
+          "FINISHING",
+          "PACKING",
+          "QC",
+          "REWORK",
+          "REPRINT",
+          "READY",
+          "DELIVERY",
+          "COMPLETED",
+          "DELIVERED",
+        ].includes(String(job.currentStage || "").toUpperCase());
+
+        let displayStatus = "Pending";
+        if (isApproved) {
+          displayStatus = "Approved";
+        } else if (job.estimationStatus === "REJECTED") {
+          displayStatus = "Rejected";
+        } else if (job.currentStage === "ESTIMATE_APPROVAL") {
+          displayStatus = "Pending";
+        } else if (job.currentStage === "ESTIMATION") {
+          displayStatus = "Estimation";
+        }
+
         return {
           _id: job._id || job.id,
           estimateNo: `EST-${job.jobNo || job.orderNumber || (job._id || "").slice(-6)}`,
           jobNo: job.jobNo || job.orderNumber || "JO-NEW",
-          customerName: job.customerName || job.customerSnapshot?.name || "Client",
-          branchName: job.branchName || "Main Branch",
-          submittedBy: "Front Desk",
+          customerName: job.customerName || job.customerSnapshot?.name || job.customerId?.name || "Client",
+          phone: job.customerPhone || job.customerSnapshot?.mobile || job.customerId?.mobile || "-",
+          branchName: job.branchName || job.branchId?.name || "Main Branch",
+          submittedBy: job.createdBy?.name || "Front Desk",
           submittedOn: job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "Today",
           amount: grandAmt,
-          status: job.currentStage === "ESTIMATE_APPROVAL" ? "Pending" : (job.currentStage || "Pending"),
+          isApproved,
+          status: displayStatus,
+          currentStage: job.currentStage,
           items: (job.items && job.items.length > 0)
             ? job.items.map((it) => ({
                 name: it.itemName || it.name || job.title || "Print Job Order",
@@ -106,7 +130,7 @@ export const EstimationPage = () => {
                 qty: it.quantity || it.qty || qty,
                 unit: it.unit || "PCS",
                 rate: Number(it.unitRate || it.unitPrice || unitRate),
-                amount: Number(it.amount || it.totalPrice || subtotalAmt),
+                amount: Number(it.amount || it.totalPrice || (Number(it.quantity || qty) * Number(it.unitRate || unitRate)) || subtotalAmt),
               }))
             : [
                 {
@@ -126,102 +150,19 @@ export const EstimationPage = () => {
         };
       });
 
-      setPendingEstimates(mappedList);
+      setEstimates(mappedList);
     } catch (err) {
-      console.error("Failed to fetch pending estimates:", err);
-      setPendingEstimates([]);
+      console.error("Failed to fetch estimates:", err);
+      setEstimates([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-shift to review modal when redirected with ?jobId=...
+  // Clear any active job storage on mount so page remains normal without auto-popups
   useEffect(() => {
-    const targetJobId = preselectedJobId || localStorage.getItem("printz_active_job_id");
-    if (!targetJobId) return;
-
-    setActiveTab("queue");
-
-    // Check if job exists in pendingEstimates
-    const found = pendingEstimates.find(
-      (e) => (e._id || e.id) === targetJobId || e.jobNo === targetJobId
-    );
-
-    if (found) {
-      setSelectedEstimate(found);
-      setIsReviewModalOpen(true);
-      return;
-    }
-
-    // Otherwise load the job from API or check if already approved
-    jobFlowApi.getJobOrderById(targetJobId)
-      .then((res) => {
-        const job = res?.data || res;
-        if (job) {
-          // If job has already been approved or moved past ESTIMATE_APPROVAL, do NOT ask to approve again!
-          if (
-            job.estimationStatus === "APPROVED" ||
-            (job.currentStage &&
-              job.currentStage !== "ESTIMATE_APPROVAL" &&
-              job.currentStage !== "ESTIMATION" &&
-              job.currentStage !== "ENQUIRY")
-          ) {
-            localStorage.removeItem("printz_active_job_id");
-            if (preselectedJobId) {
-              toast.info(`Job ${job.jobNo || targetJobId} estimate is already approved. Moving to Design Workflow...`);
-              navigate(`/jobflow/design?jobId=${job._id || targetJobId}`);
-            }
-            return;
-          }
-
-          const qty = Number(job.specs?.quantity || job.quantity || 500);
-          const totalAmt = Number(job.grandTotal || job.totalAmount || job.estimatedCost || 250);
-          const subtotalAmt = Number(job.subtotal || Math.round((totalAmt / 1.08) * 100) / 100 || 250);
-          const taxAmt = Number(job.taxAmount || Math.round((subtotalAmt * 0.08) * 100) / 100 || 20);
-          const grandAmt = subtotalAmt + taxAmt;
-          const unitRate = Math.round((subtotalAmt / qty) * 100) / 100;
-          const estData = {
-            _id: job._id || job.id || preselectedJobId,
-            jobNo: job.jobNo || job.orderNumber || "JO-NEW",
-            estimateNo: `EST-${job.jobNo || job.orderNumber || (job._id || "").slice(-6)}`,
-            customerName: job.customerName || job.customerId?.name || job.customerSnapshot?.name || "Client",
-            phone: job.customerId?.phone || job.customerPhone || job.customerSnapshot?.mobile || "-",
-            branchName: job.branchName || "Main Branch",
-            jobType: job.jobType || "Print & Design",
-            items: (job.items && job.items.length > 0)
-              ? job.items.map((it) => ({
-                  name: it.itemName || it.name || job.title || "Print Job Order",
-                  itemName: it.itemName || it.name || job.title || "Print Job Order",
-                  spec: it.description || it.spec || job.specs?.paperType || "Standard Print Specifications",
-                  qty: it.quantity || it.qty || qty,
-                  unit: it.unit || "PCS",
-                  rate: Number(it.unitRate || it.unitPrice || unitRate),
-                  amount: Number(it.amount || it.totalPrice || subtotalAmt),
-                }))
-              : [
-                  {
-                    name: job.title || "Print Job Order",
-                    itemName: job.title || "Print Job Order",
-                    spec: job.specs?.paperType || "Standard Print Specifications",
-                    qty: qty,
-                    unit: "PCS",
-                    rate: unitRate,
-                    amount: subtotalAmt,
-                  },
-                ],
-            subtotal: subtotalAmt,
-            tax: taxAmt,
-            total: grandAmt,
-            status: "Pending",
-            staffRemarks: job.notes || "New job created. Awaiting manager approval.",
-            raw: job,
-          };
-          setSelectedEstimate(estData);
-          setIsReviewModalOpen(true);
-        }
-      })
-      .catch(() => {});
-  }, [preselectedJobId, pendingEstimates]);
+    localStorage.removeItem("printz_active_job_id");
+  }, []);
 
   // Calculations
   const subtotal = estimateForm.items.reduce((acc, it) => acc + (it.amount || (it.qty * it.rate)), 0);
@@ -266,7 +207,7 @@ export const EstimationPage = () => {
       await jobFlowApi.submitEstimate(preselectedJobId || "dummy-job-id", payload);
       toast.success("Estimate submitted for Manager Approval!");
       setActiveTab("queue");
-      fetchPendingEstimates();
+      fetchEstimates();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit estimate");
       setActiveTab("queue");
@@ -279,8 +220,7 @@ export const EstimationPage = () => {
     try {
       localStorage.removeItem("printz_active_job_id");
       await jobFlowApi.approveEstimate(id, { remarks });
-      setPendingEstimates((prev) => prev.filter((e) => (e._id || e.id) !== id));
-      fetchPendingEstimates();
+      fetchEstimates();
     } catch (err) {
       localStorage.removeItem("printz_active_job_id");
       throw err;
@@ -290,11 +230,20 @@ export const EstimationPage = () => {
   const handleRejectEstimate = async (id, remarks) => {
     try {
       await jobFlowApi.rejectEstimate(id, { reason: remarks });
-      fetchPendingEstimates();
+      fetchEstimates();
     } catch (err) {
       throw err;
     }
   };
+
+  const filteredEstimates = estimates.filter((est) => {
+    if (statusFilter === "pending") return !est.isApproved;
+    if (statusFilter === "approved") return est.isApproved;
+    return true;
+  });
+
+  const pendingCount = estimates.filter((e) => !e.isApproved).length;
+  const approvedCount = estimates.filter((e) => e.isApproved).length;
 
   return (
     <JobFlowLayout
@@ -304,10 +253,23 @@ export const EstimationPage = () => {
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
             type="button"
-            className={`jf-btn ${activeTab === "queue" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => setActiveTab("queue")}
+            className={`jf-btn ${activeTab === "queue" && statusFilter === "all" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+            onClick={() => {
+              setActiveTab("queue");
+              setStatusFilter("all");
+            }}
           >
-            Manager Approval Queue ({pendingEstimates.length})
+            All Estimates ({estimates.length})
+          </button>
+          <button
+            type="button"
+            className={`jf-btn ${activeTab === "queue" && statusFilter === "pending" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+            onClick={() => {
+              setActiveTab("queue");
+              setStatusFilter("pending");
+            }}
+          >
+            Pending Approval ({pendingCount})
           </button>
           <button
             type="button"
@@ -322,13 +284,43 @@ export const EstimationPage = () => {
       {/* ──────────────── TAB 1: MANAGER APPROVAL QUEUE (Image 3 Screen 3) ──────────────── */}
       {activeTab === "queue" && (
         <div>
-          <div style={{ marginBottom: "1rem" }}>
-            <h3 className="jf-card-title" style={{ fontSize: "1.125rem", margin: 0 }}>
-              Pending Estimates (Manager Approval Only)
-            </h3>
-            <p className="jf-header-subtitle" style={{ margin: "0.25rem 0 0 0" }}>
-              Review and approve estimates submitted by staff. Manager approval unlocks design and production.
-            </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
+            <div>
+              <h3 className="jf-card-title" style={{ fontSize: "1.125rem", margin: 0 }}>
+                {statusFilter === "pending"
+                  ? "Pending Estimates (Manager Approval Only)"
+                  : statusFilter === "approved"
+                  ? "Approved Estimates"
+                  : "All Quotations & Cost Estimates"}
+              </h3>
+              <p className="jf-header-subtitle" style={{ margin: "0.25rem 0 0 0" }}>
+                Review and manage estimates for all created job orders (approved and pending approval).
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className={`jf-btn ${statusFilter === "all" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+                onClick={() => setStatusFilter("all")}
+              >
+                All Estimates ({estimates.length})
+              </button>
+              <button
+                type="button"
+                className={`jf-btn ${statusFilter === "pending" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+                onClick={() => setStatusFilter("pending")}
+              >
+                Pending Approval ({pendingCount})
+              </button>
+              <button
+                type="button"
+                className={`jf-btn ${statusFilter === "approved" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+                onClick={() => setStatusFilter("approved")}
+              >
+                Approved ({approvedCount})
+              </button>
+            </div>
           </div>
 
           <JobFlowDataTable
@@ -350,7 +342,14 @@ export const EstimationPage = () => {
                 key: "customerName",
                 label: "Customer",
                 sortable: true,
-                render: (val) => val || "-",
+                render: (val, row) => (
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{val || row.customerSnapshot?.name || "Client"}</div>
+                    {row.phone && row.phone !== "-" && (
+                      <span style={{ fontSize: "0.75rem", color: "#64748b" }}>{row.phone}</span>
+                    )}
+                  </div>
+                ),
               },
               {
                 key: "branchName",
@@ -362,25 +361,25 @@ export const EstimationPage = () => {
                 key: "submittedBy",
                 label: "Submitted By",
                 sortable: true,
-                render: (val) => val || "John Tan",
+                render: (val) => val || "Staff",
               },
               {
                 key: "submittedOn",
                 label: "Submitted On",
                 sortable: true,
-                render: (val) => val || "12 Apr 2024",
+                render: (val) => val || "-",
               },
               {
                 key: "amount",
                 label: "Amount (RM)",
                 sortable: true,
-                render: (val) => <strong>RM {(val || 210.60).toFixed(2)}</strong>,
+                render: (val) => <strong>RM {(Number(val) || 0).toFixed(2)}</strong>,
               },
               {
                 key: "status",
                 label: "Status",
                 sortable: true,
-                render: (val) => <StatusBadge status={val || "Pending"} />,
+                render: (val, row) => <StatusBadge status={row.isApproved ? "Approved" : (val || "Pending")} />,
               },
               {
                 key: "action",
@@ -390,24 +389,32 @@ export const EstimationPage = () => {
                 render: (_, est) => (
                   <button
                     type="button"
-                    className="jf-btn jf-btn-primary jf-btn-sm"
+                    className={`jf-btn ${est.isApproved ? "jf-btn-secondary" : "jf-btn-primary"} jf-btn-sm`}
                     onClick={() => {
                       setSelectedEstimate(est);
                       setIsReviewModalOpen(true);
                     }}
                   >
-                    <CheckCircle size={14} /> Review
+                    {est.isApproved ? (
+                      <>
+                        <Eye size={14} /> Review
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={14} /> Review
+                      </>
+                    )}
                   </button>
                 ),
               },
             ]}
-            data={pendingEstimates}
+            data={filteredEstimates}
             loading={loading}
             searchable={true}
             searchPlaceholder="Search estimates by job, customer or estimate #..."
             initialPageSize={10}
             pageSizeOptions={[5, 10, 25, 50]}
-            emptyMessage="No pending estimates requiring approval."
+            emptyMessage={statusFilter === "pending" ? "No pending estimates requiring approval." : "No estimates found."}
           />
         </div>
       )}

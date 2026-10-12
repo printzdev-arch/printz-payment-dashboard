@@ -39,12 +39,57 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
 
   const jobNo = job.jobNo || job.orderNumber || "N/A";
   const customerName = job.customerName || job.customerId?.name || job.customerSnapshot?.name || "Customer";
+  const customerPhone = job.customerPhone || job.customerSnapshot?.mobile || job.customerId?.mobile || "-";
   const jobTitle = job.title || job.jobTitle || "Print Job";
   const quantity = job.quantity || job.specs?.quantity || 1;
   const stage = (job.stage || job.currentStage || "SUBMITTED").toUpperCase();
-  const status = job.status || job.currentStage || "PENDING";
+  const status = (job.status || job.currentStage || "PENDING").toUpperCase();
   const dueDate = job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "-";
-  const createdAt = job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "-";
+  const createdAtFormatted = job.createdAt ? new Date(job.createdAt).toLocaleString() : "-";
+
+  // Calculate actual numeric progression rank (1..7) strictly based on current stage and status
+  const getStageRank = (stg, sts) => {
+    const s = String(stg || "").toUpperCase().trim();
+    const st = String(sts || "").toUpperCase().trim();
+
+    if (["COMPLETED", "SETTLED", "CLOSED"].includes(s) || ["COMPLETED", "SETTLED", "CLOSED"].includes(st)) {
+      return 7;
+    }
+    if (["DELIVERED", "DELIVERY", "DISPATCH", "DISPATCHED", "READY", "OUT_FOR_DELIVERY"].includes(s) || ["DELIVERED", "READY"].includes(st)) {
+      return 6;
+    }
+    if (["QC", "QUALITY_CHECK", "REWORK", "REPRINT"].includes(s) || st === "QC") {
+      return 5;
+    }
+    if (["PRODUCTION_PLANNING", "PRINTING", "FINISHING", "PACKING", "PRODUCTION", "IN_PRODUCTION"].includes(s) || ["PRODUCTION", "PACKING"].includes(st)) {
+      return 4;
+    }
+    if (["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "REVISION", "DESIGN", "PROOF_PENDING", "PROOF_APPROVED"].includes(s) || ["DESIGN", "APPROVAL"].includes(st)) {
+      return 3;
+    }
+    if (["ESTIMATION", "ESTIMATE_APPROVAL", "PENDING_ESTIMATE", "ESTIMATE_APPROVED", "PENDING_APPROVAL"].includes(s) || st === "ESTIMATION") {
+      return 2;
+    }
+    return 1;
+  };
+
+  const currentRank = getStageRank(stage, status);
+
+  const getStepStatus = (stepRank) => {
+    if (stepRank < currentRank) return "COMPLETED";
+    if (stepRank === currentRank) {
+      if (currentRank === 7 && (stage === "COMPLETED" || status === "COMPLETED" || status === "SETTLED")) {
+        return "COMPLETED";
+      }
+      return "IN_PROGRESS";
+    }
+    return "PENDING";
+  };
+
+  const totalAmount = Number(job.totalAmount || job.grandTotal || job.estimatedPrice || job.estimatedCost || 0);
+  const advancePaid = Number(job.advancePaid || 0);
+  const balanceRemaining = Math.max(0, totalAmount - advancePaid);
+  const designerName = job.designerName || job.designerId?.name || job.currentAssignment?.employeeId?.name || job.designer || "Design Team";
 
   // Detailed lifecycle process step definitions
   const processSteps = [
@@ -55,18 +100,19 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       icon: FileText,
       stageMatch: "INTAKE",
       status: "COMPLETED",
-      timestamp: `${createdAt}, 09:30 AM`,
-      handler: "Front Desk Staff (John Tan)",
+      timestamp: createdAtFormatted,
+      handler: job.createdBy?.name || "Front Desk / Sales Rep",
       details: [
         { label: "Job Title", value: jobTitle },
         { label: "Customer", value: customerName },
+        { label: "Phone", value: customerPhone },
         { label: "Quantity", value: `${quantity.toLocaleString()} pcs` },
-        { label: "Paper / Material", value: job.specs?.paperType || "Art Card 260gsm" },
-        { label: "Dimensions / Size", value: job.specs?.size || "90 x 54 mm" },
-        { label: "Finishing Required", value: (job.finishingServices || ["Matte Lamination (Both Sides)", "Round Corner Die-Cut"]).join(", ") },
-        { label: "Delivery Method", value: job.deliveryMethod || "Store Pickup - Main Branch" },
+        { label: "Paper / Material", value: job.specs?.paperType || job.items?.[0]?.paperType || "Standard Stock" },
+        { label: "Dimensions / Size", value: job.specs?.size || "Standard" },
+        { label: "Finishing Required", value: (job.finishingServices || ["Standard Trimming"]).join(", ") },
+        { label: "Delivery Method", value: job.deliveryMethod || "Store Pickup" },
       ],
-      notes: "Customer supplied brand logo via QR request portal. High resolution vector requested.",
+      notes: job.customerRequirements || job.remarks || "Job order created and registered in system.",
       link: null,
     },
     {
@@ -75,18 +121,18 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       title: "2. Cost Estimation & Commercial Approval",
       icon: Calculator,
       stageMatch: "ESTIMATION",
-      status: ["ESTIMATION"].includes(stage) ? "IN_PROGRESS" : "COMPLETED",
-      timestamp: "10 Apr 2024, 11:15 AM",
-      handler: "Branch Manager (Admin)",
+      status: getStepStatus(2),
+      timestamp: currentRank >= 2 ? (job.assignedAt ? new Date(job.assignedAt).toLocaleString() : createdAtFormatted) : "Pending Estimation",
+      handler: currentRank >= 2 ? (job.estimatedBy?.name || "Branch Manager / Estimator") : "Pending Estimator",
       details: [
-        { label: "Material Unit Cost", value: "RM 0.35 / pc" },
-        { label: "Total Estimated Quote", value: `RM ${(Number(job.estimatedCost || job.totalAmount || 210.60)).toFixed(2)}` },
-        { label: "Manager Approval", value: "Approved by Branch Manager" },
-        { label: "Advance Payment Paid", value: `RM ${(Number(job.advancePaid || 100.00)).toFixed(2)} (Receipt #REC-8841)` },
-        { label: "Payment Method", value: "Cash / Online Transfer" },
-        { label: "Outstanding Balance", value: `RM ${(Number((job.estimatedCost || 210.60) - (job.advancePaid || 100.00))).toFixed(2)}` },
+        { label: "Material Unit Cost", value: job.items?.[0]?.unitRate ? `RM ${Number(job.items[0].unitRate).toFixed(2)} / pc` : "-" },
+        { label: "Total Estimated Quote", value: totalAmount > 0 ? `RM ${totalAmount.toFixed(2)}` : "Pending Quote" },
+        { label: "Manager Approval", value: (job.estimationStatus === "APPROVED" || currentRank > 2) ? "Approved" : (currentRank === 2 ? "Pending Approval" : "Pending Estimation") },
+        { label: "Advance Payment Paid", value: `RM ${advancePaid.toFixed(2)}` },
+        { label: "Payment Method", value: job.paymentMethod || "Cash / Online Transfer" },
+        { label: "Outstanding Balance", value: `RM ${balanceRemaining.toFixed(2)}` },
       ],
-      notes: "50% advance deposit collected. Estimate approved for immediate artwork release.",
+      notes: currentRank > 2 ? "Cost estimate verified and approved for artwork release." : (currentRank === 2 ? "Estimation review currently in progress." : "Awaiting commercial quote calculation."),
       link: `/jobflow/estimates?jobId=${job._id || job.id}`,
       linkLabel: "Open Estimation Review",
     },
@@ -96,18 +142,34 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       title: "3. Design Work & Customer Proof Approval",
       icon: Palette,
       stageMatch: "DESIGN",
-      status: stage === "ESTIMATION" ? "PENDING" : stage === "DESIGN" ? "IN_PROGRESS" : "COMPLETED",
-      timestamp: "11 Apr 2024, 03:45 PM",
-      handler: "Designer (Karthik DES-01)",
+      status: getStepStatus(3),
+      timestamp: currentRank >= 3 ? (job.assignedAt ? new Date(job.assignedAt).toLocaleString() : createdAtFormatted) : "Pending Assignment",
+      handler: currentRank >= 3 ? designerName : "Design Team (Unassigned)",
       details: [
-        { label: "Assigned Designer", value: job.designer || "Karthik (Senior Designer)" },
-        { label: "Design Status", value: "Proof Approved by Customer" },
-        { label: "Proof Version", value: "V2 - Final Color Adjusted" },
+        { label: "Assigned Designer", value: currentRank >= 3 ? designerName : "Queued for Assignment" },
+        {
+          label: "Design Status",
+          value: currentRank > 3
+            ? "Proof Approved by Customer"
+            : (stage === "DESIGN_ASSIGNED"
+              ? "Assigned - Waiting Designer Acceptance"
+              : stage === "DESIGN_IN_PROGRESS"
+              ? "In Progress by Designer"
+              : stage === "SAMPLE_APPROVAL"
+              ? "Customer Proof Pending"
+              : "Design Queue"),
+        },
+        { label: "Proof Version", value: job.latestSample?.versionNo ? `V${job.latestSample.versionNo}` : (currentRank > 3 ? "V1 (Approved)" : "Pending Proof") },
         { label: "Color Space", value: "CMYK (300 DPI Press-Ready)" },
-        { label: "Approval Channel", value: "Customer Self-Service Approval via WhatsApp" },
-        { label: "Customer Approval Time", value: "11 Apr 2024, 03:45 PM" },
+        { label: "Due Date", value: dueDate },
       ],
-      notes: "Customer approved Proof V2 without further alterations. Print-ready PDF exported to hot folder.",
+      notes: currentRank > 3
+        ? "Customer approved design proof without alterations."
+        : (stage === "DESIGN_ASSIGNED"
+          ? "Job order assigned to designer. Awaiting designer acceptance."
+          : (currentRank === 3
+            ? "Designer preparing artwork proof for client review."
+            : "Artwork workflow pending estimation clearance.")),
       link: `/jobflow/design?jobId=${job._id || job.id}`,
       linkLabel: "Open Design Canvas & Proofs",
     },
@@ -117,18 +179,16 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       title: "4. Dynamic Production & Machine Operations",
       icon: Layers,
       stageMatch: "PRODUCTION",
-      status: ["ESTIMATION", "DESIGN"].includes(stage) ? "PENDING" : stage === "PRODUCTION" ? "IN_PROGRESS" : "COMPLETED",
-      timestamp: "12 Apr 2024, 10:30 AM",
-      handler: "Machine Operator (Ravi M.)",
+      status: getStepStatus(4),
+      timestamp: currentRank >= 4 ? (job.productionStartedAt ? new Date(job.productionStartedAt).toLocaleString() : "In Production") : "Pending Production",
+      handler: currentRank >= 4 ? (job.operatorName || "Production Floor Operator") : "Machine Operator (Unassigned)",
       details: [
         { label: "Production Order ID", value: `PO-${jobNo.replace("JO-", "")}` },
-        { label: "Assigned Machine", value: "Konica Minolta AccurioPress C6085" },
-        { label: "Routing Stations", value: "Prepress → Digital Printing → Thermal Lamination → Die-Cutting" },
-        { label: "Sheet Imposition", value: "24-up on SRA3 (320 x 450 mm)" },
-        { label: "Paper Stock Deducted", value: "22 sheets Art Card 260gsm (Batch #INV-AC26)" },
-        { label: "Operation Status", value: stage === "PRODUCTION" ? "Live on Machine" : "Completed 500 pcs" },
+        { label: "Assigned Machine", value: currentRank >= 4 ? (job.assignedMachine || "Digital Press Line") : "Pending Machine Allocation" },
+        { label: "Routing Stations", value: "Prepress → Printing → Post-Press Finishing" },
+        { label: "Operation Status", value: currentRank > 4 ? `Completed (${quantity.toLocaleString()} pcs)` : (currentRank === 4 ? "Live on Machine Floor" : "Queued (Waiting for Design Approval)") },
       ],
-      notes: "Double-sided full color digital print completed. Matte lamination bonded and cure time elapsed.",
+      notes: currentRank > 4 ? "Manufacturing and finishing operations completed." : (currentRank === 4 ? "Print job currently running on floor." : "Production operations will begin once design proof is approved."),
       link: `/jobflow/production?jobId=${job._id || job.id}`,
       linkLabel: "View Live Production Queue",
     },
@@ -138,18 +198,16 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       title: "5. Quality Control & Parameter Inspection",
       icon: ShieldCheck,
       stageMatch: "QC",
-      status: ["ESTIMATION", "DESIGN", "PRODUCTION"].includes(stage) ? "PENDING" : stage === "QC" ? "IN_PROGRESS" : "COMPLETED",
-      timestamp: "12 Apr 2024, 11:15 AM",
-      handler: "QC Inspector (Manoj K.)",
+      status: getStepStatus(5),
+      timestamp: currentRank >= 5 ? (job.qcPassedAt ? new Date(job.qcPassedAt).toLocaleString() : "Under Inspection") : "Pending QC",
+      handler: currentRank >= 5 ? (job.qcInspector || "QC Inspector") : "Quality Inspection Desk",
       details: [
-        { label: "Inspection Status", value: "100% Passed (PASS)" },
-        { label: "Color Accuracy Check", value: "Within Delta-E < 2.0 tolerance" },
-        { label: "Cutting & Bleed Alignment", value: "Accurate (0mm shift on trim)" },
-        { label: "Surface Lamination Check", value: "Zero bubbles / Zero peel defect" },
-        { label: "Inspected Quantity", value: "500 pcs packed in 5 boxes of 100" },
-        { label: "Reprint Required?", value: "None (0% Waste / Rework)" },
+        { label: "Inspection Status", value: currentRank > 5 ? "100% Passed (PASS)" : (currentRank === 5 ? "Inspection In Progress" : "Awaiting Production Release") },
+        { label: "Color Accuracy Check", value: currentRank > 5 ? "Verified within standard tolerance" : "Pending Check" },
+        { label: "Cutting & Bleed Alignment", value: currentRank > 5 ? "Aligned to trim specifications" : "Pending Check" },
+        { label: "Inspected Quantity", value: currentRank >= 5 ? `${quantity.toLocaleString()} pcs` : "0 pcs" },
       ],
-      notes: "Batch passed all strict ISO quality control tolerances. Signed off for immediate dispatch packaging.",
+      notes: currentRank > 5 ? "All quality parameters verified and batch passed inspection." : (currentRank === 5 ? "Quality inspection underway." : "Batch will undergo quality checks after production finishes."),
       link: `/jobflow/qc?jobId=${job._id || job.id}`,
       linkLabel: "View QC Batch Record",
     },
@@ -159,18 +217,17 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       title: "6. Dispatch Handover & Customer Delivery",
       icon: Truck,
       stageMatch: "DELIVERY",
-      status: ["ESTIMATION", "DESIGN", "PRODUCTION", "QC"].includes(stage) ? "PENDING" : stage === "DELIVERY" ? "IN_PROGRESS" : "COMPLETED",
-      timestamp: "12 Apr 2024, 02:15 PM",
-      handler: "Courier / Dispatch Staff (Ramesh)",
+      status: getStepStatus(6),
+      timestamp: currentRank >= 6 ? (job.dispatchedAt || job.deliveredAt ? new Date(job.dispatchedAt || job.deliveredAt).toLocaleString() : "In Dispatch") : "Pending Dispatch",
+      handler: currentRank >= 6 ? (job.courierName || "Courier / Dispatch Staff") : "Dispatch Desk (Unassigned)",
       details: [
-        { label: "Delivery Order #", value: `DO-202610-${jobNo.slice(-4)}` },
-        { label: "Fulfillment Type", value: "Store Pickup / Branch Handover" },
-        { label: "Packaging Type", value: "Shrink Wrapped & Branded Box" },
+        { label: "Delivery Order #", value: `DO-${jobNo.slice(-4)}` },
+        { label: "Fulfillment Type", value: job.deliveryMethod || "Store Pickup / Branch Handover" },
+        { label: "Packaging Type", value: "Shrink Wrapped / Standard Box" },
         { label: "Receiver Name", value: customerName },
-        { label: "Proof of Handover", value: "Digital Signature & Pickup OTP Verified" },
-        { label: "Handover Timestamp", value: "12 Apr 2024, 02:15 PM" },
+        { label: "Handover Status", value: currentRank > 6 ? "Delivered to Customer" : (currentRank === 6 ? "Ready for Handover / In Transit" : "Pending Packaging & Release") },
       ],
-      notes: "Customer verified goods at front desk and accepted parcel without remarks.",
+      notes: currentRank > 6 ? "Order successfully dispatched and received." : (currentRank === 6 ? "Goods staged for customer collection / courier." : "Dispatch staged after successful QC approval."),
       link: `/jobflow/delivery?jobId=${job._id || job.id}`,
       linkLabel: "View Delivery Tracking",
     },
@@ -180,18 +237,17 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
       title: "7. Commercial Settlement, Invoice & Rating",
       icon: Receipt,
       stageMatch: "COMPLETED",
-      status: ["DELIVERED", "COMPLETED", "SETTLED"].includes(status.toUpperCase()) || stage === "COMPLETED" ? "COMPLETED" : "PENDING",
-      timestamp: "12 Apr 2024, 02:30 PM",
+      status: getStepStatus(7),
+      timestamp: currentRank >= 7 ? (job.settledAt ? new Date(job.settledAt).toLocaleString() : "Settled") : "Pending Settlement",
       handler: "Cashier & System Auto-Audit",
       details: [
-        { label: "Tax Invoice #", value: `INV-202610-${jobNo.slice(-4)}` },
-        { label: "Total Invoiced Amount", value: `RM ${(Number(job.estimatedCost || job.totalAmount || 210.60)).toFixed(2)}` },
-        { label: "Advance Paid", value: `RM ${(Number(job.advancePaid || 100.00)).toFixed(2)}` },
-        { label: "Final Balance Collected", value: `RM ${(Number((job.estimatedCost || 210.60) - (job.advancePaid || 100.00))).toFixed(2)}` },
-        { label: "Commercial Status", value: "Fully Reconciled & Closed" },
-        { label: "Turnaround SLA Rating", value: "★★★★★ 5.0 (Delivered 3 hours ahead of SLA)" },
+        { label: "Tax Invoice #", value: `INV-${jobNo.slice(-4)}` },
+        { label: "Total Invoiced Amount", value: `RM ${totalAmount.toFixed(2)}` },
+        { label: "Advance Paid", value: `RM ${advancePaid.toFixed(2)}` },
+        { label: "Final Balance Collected", value: `RM ${balanceRemaining.toFixed(2)}` },
+        { label: "Commercial Status", value: currentRank >= 7 ? "Fully Reconciled & Closed" : (job.paymentStatus === "PAID" ? "Paid in Full" : "Pending Final Balance") },
       ],
-      notes: "Commercial tax invoice issued. Customer left 5-star positive review on print clarity.",
+      notes: currentRank >= 7 ? "Order completed, invoiced and settled." : "Commercial account reconciliation will finalize after delivery.",
       link: `/jobflow/settlement?jobId=${job._id || job.id}`,
       linkLabel: "View Settlement Ledger",
     },

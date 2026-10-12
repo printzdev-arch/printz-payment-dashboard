@@ -55,7 +55,11 @@ const getCustomerById = asyncHandler(async (req, res) => {
 const createCustomer = asyncHandler(async (req, res) => {
   const authContext = extractAuthContext(req);
   const customer = await customerService.createCustomer(req.body, authContext);
-  return ResponseHelper.success(res, customer, "Customer created successfully", 201);
+  const isExisting = customer.isNew === false;
+  const message = isExisting
+    ? `Existing customer profile updated successfully (matched by mobile number)`
+    : "Customer created successfully";
+  return ResponseHelper.success(res, customer, message, isExisting ? 200 : 201);
 });
 
 const updateCustomer = asyncHandler(async (req, res) => {

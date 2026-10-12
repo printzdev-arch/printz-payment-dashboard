@@ -17,6 +17,12 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, onRe
   const branch = estimate.branchName || estimate.branchId?.name || "Main Branch";
   const jobType = estimate.jobType || "Print";
   const rawJob = estimate.raw || estimate;
+  const isApproved = Boolean(
+    estimate.isApproved ||
+    estimate.status === "Approved" ||
+    rawJob.estimationStatus === "APPROVED" ||
+    ["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "REVISION", "PRODUCTION_PLANNING", "PRODUCTION", "QC", "DELIVERY", "COMPLETED"].includes(String(rawJob.currentStage || "").toUpperCase())
+  );
   const rawItems = (Array.isArray(estimate.items) && estimate.items.length > 0)
     ? estimate.items
     : (Array.isArray(rawJob.items) && rawJob.items.length > 0)
@@ -61,9 +67,9 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, onRe
     try {
       localStorage.removeItem("printz_active_job_id");
       await onApprove(estimate._id || estimate.id, managerRemarks);
-      toast.success("Estimate approved successfully! Shifting to Design Workflow...");
+      toast.success("Estimate approved! Job sent to Manager Design Queue for assignment.");
       onClose();
-      navigate(`/jobflow/design?jobId=${estimate._id || estimate.id || ""}`);
+      navigate(`/jobflow/design?view=queue&jobId=${estimate._id || estimate.id || ""}`);
     } catch (err) {
       if (
         err.response?.status === 409 ||
@@ -71,9 +77,9 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, onRe
         err.message?.includes("No pending estimate approval")
       ) {
         localStorage.removeItem("printz_active_job_id");
-        toast.info("Estimate has already been approved. Shifting to Design Workflow...");
+        toast.info("Estimate already approved. Opening Manager Design Queue...");
         onClose();
-        navigate(`/jobflow/design?jobId=${estimate._id || estimate.id || ""}`);
+        navigate(`/jobflow/design?view=queue&jobId=${estimate._id || estimate.id || ""}`);
       } else {
         toast.error(err.response?.data?.message || "Failed to approve estimate");
       }
@@ -103,11 +109,22 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, onRe
     <div className="jf-modal-overlay">
       <div className="jf-modal jf-modal-lg">
         <div className="jf-modal-header">
-          <div>
-            <h2 className="jf-modal-title">Review Estimate: {estimateNo}</h2>
-            <p className="jf-header-subtitle" style={{ margin: 0 }}>
-              Job Ref: {jobNo} • Customer: {customerName}
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <h2 className="jf-modal-title" style={{ margin: 0 }}>Review Estimate: {estimateNo}</h2>
+                {isApproved ? (
+                  <span className="jf-badge jf-badge-green">
+                    <CheckCircle size={12} /> Approved
+                  </span>
+                ) : (
+                  <span className="jf-badge jf-badge-amber">Pending Approval</span>
+                )}
+              </div>
+              <p className="jf-header-subtitle" style={{ margin: "0.2rem 0 0 0" }}>
+                Job Ref: {jobNo} • Customer: {customerName}
+              </p>
+            </div>
           </div>
           <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose}>
             <X size={18} />
@@ -206,24 +223,39 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, onRe
 
         <div className="jf-modal-footer">
           <button type="button" className="jf-btn jf-btn-secondary" onClick={onClose} disabled={loading}>
-            Back
+            {isApproved ? "Close" : "Back"}
           </button>
-          <button
-            type="button"
-            className="jf-btn jf-btn-danger-outline"
-            onClick={handleReturnRevision}
-            disabled={loading}
-          >
-            <RotateCcw size={16} /> Return for Revision
-          </button>
-          <button
-            type="button"
-            className="jf-btn jf-btn-primary"
-            onClick={handleApprove}
-            disabled={loading}
-          >
-            <CheckCircle size={16} /> Approve Estimate
-          </button>
+          {!isApproved ? (
+            <>
+              <button
+                type="button"
+                className="jf-btn jf-btn-danger-outline"
+                onClick={handleReturnRevision}
+                disabled={loading}
+              >
+                <RotateCcw size={16} /> Return for Revision
+              </button>
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary"
+                onClick={handleApprove}
+                disabled={loading}
+              >
+                <CheckCircle size={16} /> Approve Estimate
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="jf-btn jf-btn-primary"
+              onClick={() => {
+                onClose();
+                navigate(`/jobflow/design?view=queue&jobId=${estimate._id || estimate.id || ""}`);
+              }}
+            >
+              Go to Design Queue →
+            </button>
+          )}
         </div>
       </div>
     </div>

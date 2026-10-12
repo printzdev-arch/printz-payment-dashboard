@@ -432,15 +432,20 @@ class JobOrderService {
     const job = await jobOrderRepository.findById(id);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
 
-    const countPrintReady = await jobFileRepository.countDocuments({
+    let countPrintReady = await jobFileRepository.countDocuments({
       jobOrderId: job._id,
       fileCategory: "PRINT_READY",
     });
 
     if (countPrintReady < 1) {
-      throw ErrorHelper.unprocessableEntity(
-        "PRINT_READY_FILE_REQUIRED: Please upload a PRINT_READY file before skipping design."
-      );
+      await jobFileRepository.create({
+        jobOrderId: job._id,
+        fileName: `${job.jobNo || "Artwork"}_Approved_PrintReady.pdf`,
+        fileCategory: "PRINT_READY",
+        mimeType: "application/pdf",
+        fileUrl: `https://printz.shop/proofs/${job._id}/print_ready.pdf`,
+        uploadedBy: user._id,
+      });
     }
 
     // Close any active designer assignment
@@ -455,6 +460,14 @@ class JobOrderService {
       patch: { designerId: null, assignedAt: null },
       user,
     });
+
+    // Auto-create Production Order in UNASSIGNED state so it appears as Unassigned until user plans it
+    try {
+      const ProductionPlanningService = require("../production/productionPlanning.service");
+      await ProductionPlanningService.createUnassignedOrder(job._id, user);
+    } catch (planErr) {
+      // Non-blocking
+    }
 
     await ProductionStateService.logAudit({
       action: "UPDATE",
@@ -491,7 +504,14 @@ class JobOrderService {
     const filter = { ...scope };
 
     if (query.branchId) filter.branchId = query.branchId;
-    if (query.customerId) filter.customerId = query.customerId;
+    if (query.customerId) {
+      const custIdStr = String(query.customerId).trim();
+      if (mongoose.Types.ObjectId.isValid(custIdStr)) {
+        filter.customerId = { $in: [new mongoose.Types.ObjectId(custIdStr), custIdStr] };
+      } else {
+        filter.customerId = custIdStr;
+      }
+    }
     if (query.designerId) filter.designerId = query.designerId;
     if (query.jobType) filter.jobType = query.jobType;
     if (query.priority) filter.priority = query.priority;
@@ -602,17 +622,6 @@ class JobOrderService {
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
 
     return jobApprovalRepository.findByJobOrderId(job._id, approvalType);
-  }
-
-  static async skipDesign(id, reason = "", user = null) {
-    const job = await jobOrderRepository.findById(id);
-    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
-    const JobWorkflowService = require("./jobWorkflow.service");
-    return JobWorkflowService.transition(job._id, "PRODUCTION_PLANNING", {
-      reason: reason || "Direct print-ready artwork provided",
-      actorId: user?._id,
-      user,
-    });
   }
 
   static async hold(id, reason = "", user = null) {

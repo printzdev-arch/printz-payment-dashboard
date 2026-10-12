@@ -95,6 +95,16 @@ class JobWorkflowService {
       resumed: Boolean(ctx.resumed),
     });
 
+    // If transitioned to PRODUCTION_PLANNING, auto-ensure an UNASSIGNED production order exists
+    if (toStage === "PRODUCTION_PLANNING") {
+      try {
+        const ProductionPlanningService = require("../production/productionPlanning.service");
+        await ProductionPlanningService.createUnassignedOrder(job._id, ctx.user || (ctx.actorId ? { _id: ctx.actorId } : null));
+      } catch (poErr) {
+        // non-blocking
+      }
+    }
+
     return updated;
   }
 
