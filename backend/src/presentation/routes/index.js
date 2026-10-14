@@ -51,6 +51,12 @@ const {
   deliveryOrdersRoutes,
 } = require("./production");
 
+// Delivery module routes (Module 08 - Extended Delivery & Handover)
+const {
+  router: deliveryModuleRouter,
+  deliveryProofsRoutes,
+} = require("./delivery");
+
 // Job Order & Design workflow routes (Modules 06 & 07)
 const { jobOrderRoutes } = require("./job-order");
 const { designRoutes } = require("./design");
@@ -137,6 +143,8 @@ router.use("/production-queue", productionQueueRoutes);
 router.use("/quality-checks", qualityChecksRoutes);
 router.use("/reprint-requests", reprintRequestsRoutes);
 router.use("/delivery-orders", deliveryOrdersRoutes);
+router.use("/delivery-proofs", deliveryProofsRoutes);
+router.use("/delivery", deliveryModuleRouter);
 router.use("/production", productionModuleRouter);
 
 // Job Order Production & Reprint endpoints (POST /job-orders/:id/production/plan & POST /job-orders/:id/reprint-requests)

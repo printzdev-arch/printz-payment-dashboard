@@ -1,3 +1,3 @@
-const DeliveryOrder = require("./production/DeliveryOrder");
+const DeliveryOrder = require("./delivery/DeliveryOrder");
 
 module.exports = DeliveryOrder;
