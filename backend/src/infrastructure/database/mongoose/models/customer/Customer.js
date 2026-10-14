@@ -52,8 +52,14 @@ const customerSchema = new mongoose.Schema(
     },
     customerType: {
       type: String,
-      enum: ["WALK_IN", "B2B", "REGULAR"],
+      enum: ["WALK_IN", "QR", "B2B", "REGULAR", "walk in", "qr", "WALK-IN"],
       default: "WALK_IN",
+      index: true,
+    },
+    customerSource: {
+      type: String,
+      enum: ["INDIVIDUAL", "COMPANY", "individual", "company"],
+      default: "INDIVIDUAL",
       index: true,
     },
     creditLimit: {
@@ -101,6 +107,9 @@ customerSchema.pre("save", function () {
     this.companyName = this.company;
   } else if (this.companyName && !this.company) {
     this.company = this.companyName;
+  }
+  if (!this.customerSource) {
+    this.customerSource = (this.company || this.companyName) ? "COMPANY" : "INDIVIDUAL";
   }
   if (!this.phone && this.mobile) {
     this.phone = this.mobile;

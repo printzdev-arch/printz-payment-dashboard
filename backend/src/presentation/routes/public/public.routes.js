@@ -62,6 +62,12 @@ const optionalUpload = (req, res, next) => {
   next();
 };
 
+// ──────────────── Customer Duplicate Check ────────────────
+router.get(
+  "/check-customer",
+  publicJobRequestController.checkCustomer
+);
+
 // ──────────────── REQUIREMENT 1: Customer QR Job Request ────────────────
 router.post(
   "/job-requests",

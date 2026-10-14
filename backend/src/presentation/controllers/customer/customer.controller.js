@@ -29,8 +29,8 @@ function extractAuthContext(req) {
 }
 
 const getCustomers = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 20, customerType, isActive, branchId, q } = req.query;
-  const filters = { customerType, isActive, branchId, q };
+  const { page = 1, limit = 20, customerType, customerSource, isActive, branchId, q } = req.query;
+  const filters = { customerType, customerSource, isActive, branchId, q };
   const pagination = { page: Number(page), limit: Number(limit) };
   const authContext = extractAuthContext(req);
 

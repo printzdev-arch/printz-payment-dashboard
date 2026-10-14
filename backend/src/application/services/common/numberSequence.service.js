@@ -2,6 +2,7 @@ const numberSequenceRepository = require("../../../infrastructure/database/mongo
 const ErrorHelper = require("../../../shared/errors/ErrorHelper");
 
 const PREFIX_MAP = Object.freeze({
+  CUSTOMER: "CUST",
   EMPLOYEE: "EMP",
   JOB_ORDER: "JO",
   ESTIMATE: "EST",

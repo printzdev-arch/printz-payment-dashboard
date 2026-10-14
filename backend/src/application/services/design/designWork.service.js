@@ -129,17 +129,30 @@ class DesignWorkService {
   }
 
   /**
-   * List jobs assigned to current designer.
+   * List jobs assigned to current designer or target designer (or all designers if privileged/requested).
    */
-  static async myJobs(user, state = null) {
+  static async myJobs(user, state = null, targetDesignerId = null) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
+    const mongoose = require("mongoose");
     const match = {
-      employeeId: user._id,
       assignmentType: "DESIGNER",
       status: "ACTIVE",
       currentAssignment: true,
     };
+
+    if (targetDesignerId && targetDesignerId !== "all") {
+      match.employeeId = mongoose.Types.ObjectId.isValid(targetDesignerId)
+        ? new mongoose.Types.ObjectId(targetDesignerId)
+        : targetDesignerId;
+    } else if (!targetDesignerId) {
+      const isPrivileged = [
+        "admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"
+      ].includes(user.role);
+      if (!isPrivileged) {
+        match.employeeId = user._id;
+      }
+    }
 
     if (state === "PENDING") match.acceptedAt = null;
     if (state === "ACCEPTED") match.acceptedAt = { $ne: null };
@@ -148,6 +161,8 @@ class DesignWorkService {
       { $match: match },
       { $lookup: { from: "jobOrders", localField: "jobOrderId", foreignField: "_id", as: "job" } },
       { $unwind: "$job" },
+      { $lookup: { from: "users", localField: "employeeId", foreignField: "_id", as: "designerUser" } },
+      { $unwind: { path: "$designerUser", preserveNullAndEmptyArrays: true } },
       { $sort: { "job.dueDate": 1, assignedAt: 1 } },
     ]);
   }

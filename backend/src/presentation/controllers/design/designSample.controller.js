@@ -59,10 +59,20 @@ const decide = asyncHandler(async (req, res) => {
   return ResponseHelper.ok(res, "Sample approval decision recorded successfully", sample);
 });
 
+const approveDesign = asyncHandler(async (req, res) => {
+  const result = await DesignSampleService.approveDesign(
+    req.params.id,
+    req.body,
+    req.user
+  );
+  return ResponseHelper.ok(res, "Customer approved artwork! Proceeding to Production", result);
+});
+
 module.exports = {
   uploadSample,
   patchSample,
   submitSample,
   listSamples,
   decide,
+  approveDesign,
 };

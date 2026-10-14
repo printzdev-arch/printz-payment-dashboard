@@ -424,15 +424,54 @@ const ManagerLayout = ({ children }) => {
           <li className="sidebar-nav-item">
             <NavLink
               to="/design"
-              className={`sidebar-link ${isActiveRoute("/design") || isActiveRoute("/jobflow/design") || isActiveRoute("/v3/design") ? "active-link" : ""
-                }`}
+              className={`sidebar-link ${
+                isActiveRoute("/design") ||
+                isActiveRoute("/jobflow/design") ||
+                isActiveRoute("/v3/design") ||
+                isActiveRoute("/design/workbench") ||
+                isActiveRoute("/design/workspace") ||
+                location.pathname.startsWith("/design") ||
+                location.pathname.startsWith("/jobflow/design")
+                  ? "active-link"
+                  : ""
+              }`}
+              style={({ isActive }) =>
+                isActive ||
+                location.pathname.startsWith("/design") ||
+                location.pathname.startsWith("/jobflow/design")
+                  ? {
+                      backgroundColor: "rgba(22, 163, 74, 0.15)",
+                      borderLeft: "3px solid #16a34a",
+                      color: "#ffffff",
+                    }
+                  : {}
+              }
             >
               <div className="sidebar-link-content">
-                <Palette size={18} className="sidebar-link-icon" />
-                <span>Design Workflow</span>
+                <Palette
+                  size={18}
+                  className="sidebar-link-icon"
+                  style={
+                    location.pathname.startsWith("/design") ||
+                    location.pathname.startsWith("/jobflow/design")
+                      ? { color: "#16a34a" }
+                      : {}
+                  }
+                />
+                <span>Design</span>
               </div>
-              {(isActiveRoute("/design") || isActiveRoute("/jobflow/design") || isActiveRoute("/v3/design")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
+              {(isActiveRoute("/design") ||
+                isActiveRoute("/jobflow/design") ||
+                isActiveRoute("/v3/design") ||
+                isActiveRoute("/design/workbench") ||
+                isActiveRoute("/design/workspace") ||
+                location.pathname.startsWith("/design") ||
+                location.pathname.startsWith("/jobflow/design")) && (
+                <ChevronRight
+                  size={15}
+                  className="sidebar-active-arrow"
+                  style={{ color: "#16a34a" }}
+                />
               )}
             </NavLink>
           </li>
@@ -441,12 +480,17 @@ const ManagerLayout = ({ children }) => {
           <li className="sidebar-nav-item">
             <NavLink
               to="/production"
-              className={`sidebar-link ${isActiveRoute("/production") ||
-                  isActiveRoute("/jobflow/production") ||
-                  isActiveRoute("/v3/production")
+              className={`sidebar-link ${
+                isActiveRoute("/production") ||
+                isActiveRoute("/jobflow/production") ||
+                isActiveRoute("/jobflow/production-planning") ||
+                isActiveRoute("/jobflow/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/production-planning") ||
+                isActiveRoute("/v3/production")
                   ? "active-link"
                   : ""
-                }`}
+              }`}
             >
               <div className="sidebar-link-content">
                 <Layers size={18} className="sidebar-link-icon" />
@@ -454,9 +498,13 @@ const ManagerLayout = ({ children }) => {
               </div>
               {(isActiveRoute("/production") ||
                 isActiveRoute("/jobflow/production") ||
+                isActiveRoute("/jobflow/production-planning") ||
+                isActiveRoute("/jobflow/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/production-planning") ||
                 isActiveRoute("/v3/production")) && (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
             </NavLink>
           </li>
 

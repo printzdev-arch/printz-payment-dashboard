@@ -1,5 +1,7 @@
 const IJobOrderRepository = require("../../../../../domain/repositories/job-order/IJobOrderRepository");
 const JobOrder = require("../../models/job-order/JobOrder");
+require("../../models/Branch");
+require("../../models/User");
 
 class MongoJobOrderRepository extends IJobOrderRepository {
   async findAll(query = {}) {
@@ -11,6 +13,16 @@ class MongoJobOrderRepository extends IJobOrderRepository {
     delete filter.page;
     delete filter.limit;
     delete filter.sort;
+
+    if (typeof filter.currentStage === "string" && filter.currentStage.includes(",")) {
+      filter.currentStage = { $in: filter.currentStage.split(",").map((s) => s.trim()) };
+    }
+    if (typeof filter.status === "string" && filter.status.includes(",")) {
+      filter.status = { $in: filter.status.split(",").map((s) => s.trim()) };
+    }
+    if (typeof filter.stage === "string" && filter.stage.includes(",")) {
+      filter.stage = { $in: filter.stage.split(",").map((s) => s.trim()) };
+    }
 
     const [items, total] = await Promise.all([
       JobOrder.find(filter)

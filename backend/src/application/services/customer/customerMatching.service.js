@@ -53,7 +53,7 @@ class CustomerMatchingService {
    * Note: Name alone is NEVER used as a match identifier to prevent
    * merging different customers with similar/identical names.
    */
-  static async findExistingCustomer({ customerId, customerCode, mobile, phone, email } = {}) {
+  static async findExistingCustomer({ customerId, customerCode, mobile, phone, email, gstin } = {}) {
     // 1. Check direct ObjectId match
     if (customerId && mongoose.Types.ObjectId.isValid(String(customerId))) {
       const byId = await Customer.findById(customerId).lean();
@@ -90,6 +90,13 @@ class CustomerMatchingService {
       if (byEmail) return byEmail;
     }
 
+    // 5. Check GSTIN match (exact uppercase)
+    if (gstin && typeof gstin === "string" && gstin.trim()) {
+      const cleanGstin = gstin.trim().toUpperCase();
+      const byGstin = await Customer.findOne({ gstin: cleanGstin }).lean();
+      if (byGstin) return byGstin;
+    }
+
     return null;
   }
 
@@ -119,6 +126,7 @@ class CustomerMatchingService {
       mobile: normalizedMobile,
       phone: rawMobile,
       email: normalizedEmail,
+      gstin: rawGstin,
     });
 
     if (existing) {
@@ -152,6 +160,7 @@ class CustomerMatchingService {
       if (rawAddress) updates.address = rawAddress;
       if (rawGstin) updates.gstin = rawGstin;
       if (customerData.customerType) updates.customerType = customerData.customerType;
+      if (customerData.customerSource) updates.customerSource = customerData.customerSource;
 
       if (Object.keys(updates).length > 0) {
         const updated = await Customer.findByIdAndUpdate(
@@ -198,7 +207,8 @@ class CustomerMatchingService {
       companyName: rawCompany,
       address: rawAddress,
       gstin: rawGstin,
-      customerType: customerData.customerType || "WALK_IN",
+      customerType: customerData.customerType || (context.source === "QR_CODE" ? "QR" : "WALK_IN"),
+      customerSource: customerData.customerSource || (rawCompany ? "COMPANY" : "INDIVIDUAL"),
       branchId: branchId || null,
       primaryBranchId: branchId || null,
       visitedBranches: initialVisited,

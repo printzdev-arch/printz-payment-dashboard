@@ -5,6 +5,7 @@ const jobOrderRepository = require("../../../infrastructure/database/mongoose/re
 const jobFileRepository = require("../../../infrastructure/database/mongoose/repositories/job-order/MongoJobFileRepository");
 const JobOrderService = require("../job-order/jobOrder.service");
 const Customer = require("../../../infrastructure/database/mongoose/models/customer/Customer");
+const CustomerRequest = require("../../../infrastructure/database/mongoose/models/customer/CustomerRequest");
 const CustomerMatchingService = require("../customer/customerMatching.service");
 const numberSequenceService = require("../common/numberSequence.service");
 const ErrorHelper = require("../../../shared/errors/ErrorHelper");
@@ -12,15 +13,40 @@ const { emitJobEvent } = require("../../../shared/events/job-order/jobEvents.emi
 
 class PublicJobRequestService {
   /**
-   * Validate and resolve branch by public code
+   * Validate and resolve branch by public code or ID
    */
-  static async resolveBranch(branchCode) {
+  static async resolveBranch(branchCode, branchId) {
+    if (branchId && mongoose.Types.ObjectId.isValid(branchId)) {
+      const bById = await branchRepository.findById(branchId);
+      if (bById) return bById;
+    }
+
     if (!branchCode || typeof branchCode !== "string") {
       throw ErrorHelper.badRequest("Branch code is required to identify the authorized branch.");
     }
 
-    const cleanCode = branchCode.trim().toUpperCase();
-    const branch = await branchRepository.findByCode(cleanCode);
+    const cleanCode = branchCode.trim();
+    let branch = await branchRepository.findByCode(cleanCode);
+
+    if (!branch && mongoose.Types.ObjectId.isValid(cleanCode)) {
+      branch = await branchRepository.findById(cleanCode);
+    }
+    if (!branch) {
+      branch = await branchRepository.findByName(cleanCode);
+    }
+
+    if (!branch) {
+      // Robust fallback: search all branches by code or partial name
+      try {
+        const BranchModel = require("../../../infrastructure/database/mongoose/models/Branch");
+        branch = await BranchModel.findOne({
+          $or: [
+            { code: new RegExp(`^${cleanCode}$`, "i") },
+            { name: new RegExp(cleanCode, "i") },
+          ],
+        });
+      } catch (_) {}
+    }
 
     if (!branch) {
       throw ErrorHelper.notFound(`No authorized branch found with code '${cleanCode}'.`);
@@ -53,8 +79,10 @@ class PublicJobRequestService {
         companyName: customerData.customerCompany,
         address: customerData.customerAddress,
         gstin: customerData.customerGstin,
+        customerType: customerData.customerType || "QR",
+        customerSource: customerData.customerSource || (customerData.customerCompany ? "COMPANY" : "INDIVIDUAL"),
       },
-      { branchId: branch._id }
+      { branchId: branch._id, source: "QR_CODE" }
     );
 
     return matchResult.customer;
@@ -65,7 +93,33 @@ class PublicJobRequestService {
    */
   static async createJobRequest(dto, uploadedFiles = []) {
     // 1. Resolve and validate branch strictly via branch code
-    const branch = await this.resolveBranch(dto.branchCode);
+    const branch = await this.resolveBranch(dto.branchCode, dto.branchId);
+
+    // If this is a registration request, do NOT allow if name, phone, or email already exists
+    if (dto.onlyCustomerRegistration) {
+      const rawMobile = String(dto.customerPhone || "").trim();
+      const rawEmail = String(dto.customerEmail || "").trim().toLowerCase();
+      const rawName = String(dto.customerName || "").trim();
+
+      let existingCustomer = await CustomerMatchingService.findExistingCustomer({
+        mobile: rawMobile,
+        phone: rawMobile,
+        email: rawEmail,
+        gstin: dto.customerGstin,
+      });
+
+      if (!existingCustomer && rawName && rawName.length >= 2) {
+        existingCustomer = await Customer.findOne({
+          name: new RegExp(`^${CustomerMatchingService.escapeRegex(rawName)}$`, "i"),
+        }).lean();
+      }
+
+      if (existingCustomer) {
+        throw ErrorHelper.badRequest(
+          `Customer already exists with code ${existingCustomer.customerCode || "in records"} (${existingCustomer.name}). Registration is not allowed for existing customers.`
+        );
+      }
+    }
 
     // 2. Resolve or create customer safely
     const customer = await this.resolveCustomer(dto, branch);
@@ -81,6 +135,61 @@ class PublicJobRequestService {
           message: "A job order with this idempotency key has already been received.",
         };
       }
+    }
+
+    // If only customer registration (or no print request items), stage in customerRequests as PENDING without creating a JobOrder
+    if (dto.onlyCustomerRegistration) {
+      let requestNo = "REQ-0001";
+      try {
+        const reqCount = await CustomerRequest.countDocuments({ branchId: branch._id });
+        requestNo = `REQ-${branch.code || "BR"}-${String(reqCount + 1).padStart(4, "0")}`;
+        await CustomerRequest.create({
+          requestNo,
+          branchId: branch._id,
+          customerId: customer._id,
+          customerName: customer.name,
+          customerPhone: customer.mobile,
+          customerEmail: customer.email || dto.customerEmail || null,
+          customerCompany: customer.company || dto.customerCompany || "",
+          customerAddress: customer.address || dto.customerAddress || "",
+          customerGstin: customer.gstin || dto.customerGstin || "",
+          title: `Customer Registration - ${customer.name}`,
+          source: "QR_CODE",
+          status: "PENDING",
+          dueDate: null,
+          customerRequirements: "",
+          remarks: dto.remarks || "Customer registered via Branch QR self-service",
+          items: [],
+          attachments: [],
+          convertedJobOrderId: null,
+          idempotencyKey: dto.idempotencyKey || null,
+        });
+      } catch (err) {
+        console.warn("Could not stage enquiry in CustomerRequest:", err.message);
+      }
+
+      return {
+        isDuplicate: false,
+        isRegistrationOnly: true,
+        requestNo,
+        branchId: branch._id,
+        customerId: customer._id,
+        customerCode: customer.customerCode,
+        branch: {
+          id: branch._id,
+          code: branch.code,
+          name: branch.name,
+        },
+        customer: {
+          id: customer._id,
+          customerCode: customer.customerCode,
+          name: customer.name,
+          mobile: customer.mobile,
+          email: customer.email,
+          company: customer.company,
+        },
+        message: `Customer profile ${customer.customerCode || customer.name} registered successfully. Enquiry staged with status PENDING.`,
+      };
     }
 
     // 4. Construct Item with Printing Specs
@@ -168,6 +277,35 @@ class PublicJobRequestService {
           uploadedAt: new Date(),
         });
       }
+    }
+
+    // Stage customer enquiry in customerRequests collection
+    try {
+      const reqCount = await CustomerRequest.countDocuments({ branchId: branch._id });
+      const requestNo = `REQ-${branch.code || "BR"}-${String(reqCount + 1).padStart(4, "0")}`;
+      await CustomerRequest.create({
+        requestNo,
+        branchId: branch._id,
+        customerId: customer._id,
+        customerName: customer.name,
+        customerPhone: customer.mobile,
+        customerEmail: customer.email || dto.customerEmail || null,
+        customerCompany: customer.company || dto.customerCompany || "",
+        customerAddress: customer.address || dto.customerAddress || "",
+        customerGstin: customer.gstin || dto.customerGstin || "",
+        title: dto.title || "Print Job Request",
+        source: "QR_CODE",
+        status: "CONVERTED_TO_JOB",
+        dueDate: dto.dueDate || null,
+        customerRequirements: dto.customerRequirements || "",
+        remarks: dto.remarks || "",
+        items: [lineItem],
+        attachments: attachmentsToSave,
+        convertedJobOrderId: createdJob._id,
+        idempotencyKey: dto.idempotencyKey || null,
+      });
+    } catch (stagingErr) {
+      console.warn("Could not stage enquiry into CustomerRequest:", stagingErr.message);
     }
 
     emitJobEvent("job.request.submitted", {

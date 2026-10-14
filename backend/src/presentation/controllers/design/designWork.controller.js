@@ -22,7 +22,7 @@ const start = asyncHandler(async (req, res) => {
 });
 
 const getMyJobs = asyncHandler(async (req, res) => {
-  const jobs = await DesignWorkService.myJobs(req.user, req.query.state);
+  const jobs = await DesignWorkService.myJobs(req.user, req.query.state, req.query.designerId);
   return ResponseHelper.ok(res, "Designer assignments retrieved successfully", jobs);
 });
 

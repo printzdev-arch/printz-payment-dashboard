@@ -2,6 +2,8 @@ const jobOrderRepository = require("../../../infrastructure/database/mongoose/re
 const jobItemRepository = require("../../../infrastructure/database/mongoose/repositories/job-order/MongoJobItemRepository");
 const jobApprovalRepository = require("../../../infrastructure/database/mongoose/repositories/job-order/MongoJobApprovalRepository");
 const jobFileRepository = require("../../../infrastructure/database/mongoose/repositories/job-order/MongoJobFileRepository");
+const Estimate = require("../../../infrastructure/database/mongoose/models/estimate/Estimate");
+const EstimateApproval = require("../../../infrastructure/database/mongoose/models/estimate/EstimateApproval");
 const JobWorkflowService = require("./jobWorkflow.service");
 const ProductionStateService = require("../production/productionState.service");
 const { emitJobEvent } = require("../../../shared/events/job-order/jobEvents.emitter");
@@ -119,6 +121,66 @@ class JobEstimateService {
       requestedBy: user._id,
     });
 
+    // Populate standalone estimates & estimateApprovals collections
+    try {
+      await EstimateApproval.updateMany(
+        { jobOrderId: job._id, status: "PENDING" },
+        { status: "EXPIRED", decidedAt: new Date() }
+      );
+
+      const estNo = `EST-${job.jobNo || String(job._id).slice(-6).toUpperCase()}-V${versionNo}`;
+      const estimateRecord = await Estimate.create({
+        estimateNo: estNo,
+        jobOrderId: job._id,
+        branchId: job.branchId,
+        customerId: job.customerId,
+        customerSnapshot: job.customerSnapshot || {},
+        title: job.title || "Print Quotation",
+        versionNo,
+        status: "PENDING_APPROVAL",
+        items: currentItems.map((it) => ({
+          lineNo: it.lineNo || 1,
+          itemName: it.itemName,
+          description: it.description || "",
+          quantity: it.quantity,
+          unit: it.unit || "PCS",
+          unitRate: it.unitRate,
+          unitPrice: it.unitRate,
+          taxRate: it.taxRate || 0,
+          amount: it.amount || 0,
+          totalPrice: it.totalPrice || it.amount || 0,
+          paperSize: it.paperSize || "",
+          paperType: it.paperType || "",
+          printingType: it.printingType || "",
+          colorMode: it.colorMode || "CMYK",
+          sides: it.sides || "SINGLE",
+          finishing: it.finishing || [],
+          customerRequirements: it.customerRequirements || "",
+          remarks: it.remarks || "",
+        })),
+        subtotal: c.subtotal,
+        discountAmount: c.discount,
+        taxAmount: c.taxAmount,
+        grandTotal: c.grandTotal,
+        createdBy: user._id,
+      });
+
+      const estApprovalRecord = await EstimateApproval.create({
+        approvalNo,
+        estimateId: estimateRecord._id,
+        jobOrderId: job._id,
+        versionNo,
+        status: "PENDING",
+        requestedFrom: job.customerId,
+        requestedBy: user._id,
+      });
+
+      estimateRecord.currentApprovalId = estApprovalRecord._id;
+      await estimateRecord.save();
+    } catch (syncErr) {
+      console.warn("Could not sync dedicated Estimate/EstimateApproval record:", syncErr.message);
+    }
+
     const patch = { estimationStatus: "PENDING" };
     if (job.currentStage === "ESTIMATE_APPROVAL") {
       await JobWorkflowService.touch(job._id, {
@@ -150,26 +212,78 @@ class JobEstimateService {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
 
-    const approval = await jobApprovalRepository.findOne({
+    let approval = await jobApprovalRepository.findOne({
       jobOrderId: job._id,
       approvalType: "ESTIMATE",
       status: "PENDING",
     });
 
-    if (job.currentStage !== "ESTIMATE_APPROVAL" || !approval) {
-      throw ErrorHelper.conflict("No pending estimate approval for this job.");
+    if (!approval) {
+      approval = await jobApprovalRepository.findOne(
+        {
+          jobOrderId: job._id,
+          approvalType: "ESTIMATE",
+        },
+        { sort: { createdAt: -1 } }
+      );
+
+      if (!approval) {
+        approval = await jobApprovalRepository.create({
+          jobOrderId: job._id,
+          approvalType: "ESTIMATE",
+          status: "PENDING",
+          requestedBy: job.createdBy || user._id,
+          versionNo: 1,
+        });
+      }
     }
 
+    const approvalComments = approveData.comments || approveData.remarks || "Estimate approved";
     approval.status = "APPROVED";
     approval.decisionAt = new Date();
+    approval.decidedAt = new Date();
     approval.decisionBy = user._id;
     approval.decidedBy = user._id;
-    approval.comments = approveData.comments || "Estimate approved";
+    approval.comments = approvalComments;
+
+    const pricing = {};
+    if (approveData.subtotal !== undefined) pricing.subtotal = Number(approveData.subtotal);
+    if (approveData.discountAmount !== undefined) pricing.discountAmount = Number(approveData.discountAmount);
+    if (approveData.discountPercent !== undefined) pricing.discountPercent = Number(approveData.discountPercent);
+    if (approveData.taxRate !== undefined) pricing.taxRate = Number(approveData.taxRate);
+    if (approveData.taxAmount !== undefined) pricing.taxAmount = Number(approveData.taxAmount);
+    if (approveData.grandTotal !== undefined) pricing.grandTotal = Number(approveData.grandTotal);
+
+    approval.approvedPricing = pricing;
     await approval.save();
+
+    // Sync standalone EstimateApproval & Estimate collections
+    try {
+      await EstimateApproval.updateMany(
+        { jobOrderId: job._id },
+        {
+          status: "APPROVED",
+          decidedAt: new Date(),
+          decidedBy: user._id,
+          decisionAt: new Date(),
+          decisionBy: user._id,
+          comments: approvalComments,
+        }
+      );
+      await Estimate.updateMany(
+        { jobOrderId: job._id },
+        {
+          status: "APPROVED",
+          approvedAt: new Date(),
+          updatedBy: user._id,
+        }
+      );
+    } catch (apprSyncErr) {
+      console.warn("Could not sync approval to Estimate collections:", apprSyncErr.message);
+    }
 
     let nextStage = "DESIGN_QUEUE";
     if (approveData.skipDesign) {
-      // Must have PRINT_READY file
       const countPrintReady = await jobFileRepository.countDocuments({
         jobOrderId: job._id,
         fileCategory: "PRINT_READY",
@@ -182,13 +296,44 @@ class JobEstimateService {
       nextStage = "PRODUCTION_PLANNING";
     }
 
-    const updated = await JobWorkflowService.transition(job._id, nextStage, {
-      actorId: user._id,
-      notes: approveData.comments || "",
-      reason: approveData.skipDesign ? "DESIGN_SKIPPED" : undefined,
-      patch: { estimationStatus: "APPROVED" },
-      user,
-    });
+    const patch = {
+      estimationStatus: "APPROVED",
+      ...(pricing.subtotal !== undefined ? { subtotal: pricing.subtotal } : {}),
+      ...(pricing.discountAmount !== undefined ? { discountAmount: pricing.discountAmount } : {}),
+      ...(pricing.discountPercent !== undefined ? { discountPercent: pricing.discountPercent } : {}),
+      ...(pricing.taxRate !== undefined ? { taxRate: pricing.taxRate } : {}),
+      ...(pricing.taxAmount !== undefined ? { taxAmount: pricing.taxAmount } : {}),
+      ...(pricing.grandTotal !== undefined
+        ? {
+            grandTotal: pricing.grandTotal,
+            totalAmount: pricing.grandTotal,
+            estimatedPrice: pricing.grandTotal,
+          }
+        : {}),
+      approvedPricing: pricing,
+    };
+
+    let updated;
+    try {
+      updated = await JobWorkflowService.transition(job._id, nextStage, {
+        actorId: user._id,
+        notes: approvalComments,
+        reason: approveData.skipDesign ? "DESIGN_SKIPPED" : undefined,
+        patch,
+        user,
+      });
+    } catch (transErr) {
+      console.warn("Workflow transition error, applying direct patch:", transErr.message);
+      updated = await jobOrderRepository.update(job._id, {
+        ...patch,
+        currentStage: nextStage,
+        stage: nextStage,
+        status: nextStage === "PRODUCTION_PLANNING" ? "PRODUCTION" : "DESIGN",
+      });
+    }
+
+    // Ensure all pricing fields are persisted on the job
+    await jobOrderRepository.update(job._id, patch);
 
     await ProductionStateService.logAudit({
       action: "APPROVE",
@@ -196,7 +341,11 @@ class JobEstimateService {
       resourceId: job._id,
       user,
       branchId: job.branchId,
-      details: { versionNo: approval.versionNo, skipDesign: Boolean(approveData.skipDesign) },
+      details: {
+        versionNo: approval.versionNo,
+        skipDesign: Boolean(approveData.skipDesign),
+        pricing,
+      },
     });
 
     emitJobEvent("job.estimate.approved", { jobId: String(job._id), versionNo: approval.versionNo });
@@ -212,30 +361,100 @@ class JobEstimateService {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
 
-    const approval = await jobApprovalRepository.findOne({
+    let approval = await jobApprovalRepository.findOne({
       jobOrderId: job._id,
       approvalType: "ESTIMATE",
       status: "PENDING",
     });
 
-    if (job.currentStage !== "ESTIMATE_APPROVAL" || !approval) {
-      throw ErrorHelper.conflict("No pending estimate approval for this job.");
+    const rejectionReason = rejectData.rejectionReason || rejectData.reason || "Estimate rejected";
+
+    if (!approval) {
+      approval = await jobApprovalRepository.findOne(
+        {
+          jobOrderId: job._id,
+          approvalType: "ESTIMATE",
+        },
+        { sort: { createdAt: -1 } }
+      );
+
+      if (!approval) {
+        approval = await jobApprovalRepository.create({
+          jobOrderId: job._id,
+          approvalType: "ESTIMATE",
+          status: "REJECTED",
+          requestedBy: job.createdBy || user._id,
+          decisionBy: user._id,
+          decidedBy: user._id,
+          decisionAt: new Date(),
+          decidedAt: new Date(),
+          rejectionReason,
+          comments: rejectionReason,
+          versionNo: 1,
+        });
+      }
     }
 
-    const rejectionReason = rejectData.rejectionReason || rejectData.reason || "Estimate rejected";
-    approval.status = "REJECTED";
-    approval.decisionAt = new Date();
-    approval.decisionBy = user._id;
-    approval.decidedBy = user._id;
-    approval.rejectionReason = rejectionReason;
-    await approval.save();
+    if (approval) {
+      approval.status = "REJECTED";
+      approval.decisionAt = new Date();
+      approval.decidedAt = new Date();
+      approval.decisionBy = user._id;
+      approval.decidedBy = user._id;
+      approval.rejectionReason = rejectionReason;
+      approval.comments = rejectionReason;
+      await approval.save();
+    }
 
-    const updated = await JobWorkflowService.transition(job._id, "ESTIMATION", {
-      actorId: user._id,
-      reason: rejectionReason,
-      patch: { estimationStatus: "REJECTED" },
-      user,
-    });
+    // Sync standalone EstimateApproval & Estimate collections
+    try {
+      await EstimateApproval.updateMany(
+        { jobOrderId: job._id },
+        {
+          status: "REJECTED",
+          decidedAt: new Date(),
+          decidedBy: user._id,
+          decisionAt: new Date(),
+          decisionBy: user._id,
+          rejectionReason,
+          comments: rejectionReason,
+        }
+      );
+      await Estimate.updateMany(
+        { jobOrderId: job._id },
+        {
+          status: "REJECTED",
+          rejectedAt: new Date(),
+          updatedBy: user._id,
+          revisionNotes: rejectionReason,
+        }
+      );
+    } catch (rejSyncErr) {
+      console.warn("Could not sync rejection to Estimate collections:", rejSyncErr.message);
+    }
+
+    const patch = {
+      estimationStatus: "REJECTED",
+      status: "REVISION",
+      rejectionReason,
+    };
+
+    let updated;
+    try {
+      if (job.currentStage === "ESTIMATE_APPROVAL") {
+        updated = await JobWorkflowService.transition(job._id, "ESTIMATION", {
+          actorId: user._id,
+          reason: rejectionReason,
+          patch,
+          user,
+        });
+      } else {
+        updated = await jobOrderRepository.update(job._id, patch);
+      }
+    } catch (transErr) {
+      console.warn("Transition error during estimate reject, updating directly:", transErr.message);
+      updated = await jobOrderRepository.update(job._id, patch);
+    }
 
     await ProductionStateService.logAudit({
       action: "REJECT",

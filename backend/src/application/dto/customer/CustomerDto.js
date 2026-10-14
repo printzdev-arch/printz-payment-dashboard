@@ -14,6 +14,7 @@ class CreateCustomerDto {
     this.gstin = typeof data.gstin === "string" ? data.gstin.trim().toUpperCase() : null;
     this.address = typeof data.address === "string" ? data.address.trim() : null;
     this.customerType = typeof data.customerType === "string" ? data.customerType.trim().toUpperCase() : "WALK_IN";
+    this.customerSource = typeof data.customerSource === "string" ? data.customerSource.trim().toUpperCase() : (this.company ? "COMPANY" : "INDIVIDUAL");
     this.creditLimit = Number(data.creditLimit) || 0;
     this.branchId = data.branchId || null;
     this.visitedBranches = Array.isArray(data.visitedBranches) ? data.visitedBranches : (this.branchId ? [this.branchId] : []);
@@ -39,6 +40,7 @@ class UpdateCustomerDto {
     if (data.gstin !== undefined) this.gstin = typeof data.gstin === "string" ? data.gstin.trim().toUpperCase() : data.gstin;
     if (data.address !== undefined) this.address = typeof data.address === "string" ? data.address.trim() : data.address;
     if (data.customerType !== undefined) this.customerType = typeof data.customerType === "string" ? data.customerType.trim().toUpperCase() : data.customerType;
+    if (data.customerSource !== undefined) this.customerSource = typeof data.customerSource === "string" ? data.customerSource.trim().toUpperCase() : data.customerSource;
     if (data.creditLimit !== undefined) this.creditLimit = Number(data.creditLimit);
     if (data.branchId !== undefined) this.branchId = data.branchId;
     if (data.visitedBranches !== undefined) this.visitedBranches = data.visitedBranches;

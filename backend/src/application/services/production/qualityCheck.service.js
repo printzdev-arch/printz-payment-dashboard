@@ -15,7 +15,7 @@ class QualityCheckService {
   static async getPending(branchId = null) {
     const orders = await qualityCheckRepository.findPending(branchId);
     if (!orders || orders.length === 0) return [];
-    
+
     const orderIds = orders.map((o) => o._id);
     const operations = await productionOperationRepository.findByProductionOrders(orderIds);
     const operationsByOrder = {};

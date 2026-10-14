@@ -18,8 +18,12 @@ const createCustomerValidator = [
     .withMessage("Invalid email address"),
   body("customerType")
     .optional()
-    .isIn(["WALK_IN", "B2B", "REGULAR"])
-    .withMessage("customerType must be one of: WALK_IN, B2B, REGULAR"),
+    .isIn(["WALK_IN", "QR", "B2B", "REGULAR", "walk in", "qr", "WALK-IN"])
+    .withMessage("customerType must be one of: WALK_IN, QR, B2B, REGULAR"),
+  body("customerSource")
+    .optional()
+    .isIn(["INDIVIDUAL", "COMPANY", "individual", "company"])
+    .withMessage("customerSource must be one of: INDIVIDUAL, COMPANY"),
   validate,
 ];
 
@@ -33,8 +37,12 @@ const updateCustomerValidator = [
     .withMessage("Invalid email address"),
   body("customerType")
     .optional()
-    .isIn(["WALK_IN", "B2B", "REGULAR"])
-    .withMessage("customerType must be one of: WALK_IN, B2B, REGULAR"),
+    .isIn(["WALK_IN", "QR", "B2B", "REGULAR", "walk in", "qr", "WALK-IN"])
+    .withMessage("customerType must be one of: WALK_IN, QR, B2B, REGULAR"),
+  body("customerSource")
+    .optional()
+    .isIn(["INDIVIDUAL", "COMPANY", "individual", "company"])
+    .withMessage("customerSource must be one of: INDIVIDUAL, COMPANY"),
   validate,
 ];
 

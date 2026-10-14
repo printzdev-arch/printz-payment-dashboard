@@ -31,6 +31,7 @@ const inventoryBalanceRoutes = require("./inventory/inventoryBalance.routes");
 const inventoryTransactionRoutes = require("./inventory/inventoryTransaction.routes");
 const purchaseReceiptRoutes = require("./inventory/purchaseReceipt.routes");
 const customerRoutes = require("./customer/customer.routes");
+const customerRequestRoutes = require("./customer/customerRequest.routes");
 
 // POS routes (Module 04)
 const saleReceiptRoutes = require("./pos/saleReceipt.routes");
@@ -94,6 +95,7 @@ router.use("/inventory-balances", inventoryBalanceRoutes);
 router.use("/inventory-transactions", inventoryTransactionRoutes);
 router.use("/purchase-receipts", purchaseReceiptRoutes);
 router.use("/customers", customerRoutes);
+router.use("/customer-requests", customerRequestRoutes);
 
 // Mount Module 04: POS Sale Receipts
 router.use("/sale-receipts", saleReceiptRoutes);

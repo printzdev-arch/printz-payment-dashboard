@@ -52,3 +52,4 @@ coverage/
 serviceAccountKey*.json
 *-service-account.json
 credentials.json
+*.zip

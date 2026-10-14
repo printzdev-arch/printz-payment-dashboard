@@ -342,6 +342,128 @@ class DesignSampleService {
 
     return sample;
   }
+
+  /**
+   * Directly approve artwork proof and send Job Order to Production Planning.
+   */
+  static async approveDesign(jobId, data = {}, user = null) {
+    const job = await jobOrderRepository.findById(jobId);
+    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+
+    const now = new Date();
+
+    // 1. If any sample exists, approve it
+    let samples = await jobSampleRepository.findByJobOrderId(job._id);
+    let latestSample = samples && samples.length > 0 ? samples[samples.length - 1] : null;
+    if (latestSample) {
+      latestSample.status = "APPROVED";
+      latestSample.approvedAt = now;
+      if (user?._id) latestSample.approvedBy = user._id;
+      if (data.customerFeedback) latestSample.customerFeedback = data.customerFeedback;
+      await latestSample.save();
+    } else {
+      // Create a default approved sample record so production has the approved artwork reference
+      latestSample = await jobSampleRepository.create({
+        jobOrderId: job._id,
+        versionNo: 1,
+        revisionNo: 0,
+        fileUrl: data.fileUrl || "/uploads/approved_artwork.pdf",
+        comments: data.notes || "Customer approved artwork proof",
+        status: "APPROVED",
+        approvedAt: now,
+        approvedBy: user?._id || null,
+        customerFeedback: data.customerFeedback || "Approved via WhatsApp / Design Workflow",
+      });
+    }
+
+    // 2. Mark any pending approvals as APPROVED
+    await jobApprovalRepository.updateMany(
+      { jobOrderId: job._id, status: "PENDING" },
+      {
+        $set: {
+          status: "APPROVED",
+          decisionAt: now,
+          decisionBy: user?._id || null,
+          decidedBy: user?._id || null,
+          comments: data.customerFeedback || "Approved",
+        },
+      }
+    );
+
+    // 3. Close current active designer assignment as COMPLETED
+    await jobAssignmentRepository.updateMany(
+      { jobOrderId: job._id, assignmentType: "DESIGNER", currentAssignment: true },
+      { status: "COMPLETED", releasedAt: now, currentAssignment: false }
+    );
+
+    // 4. Transition Job Order to PRODUCTION_PLANNING if not already there
+    if (job.currentStage !== "PRODUCTION_PLANNING") {
+      try {
+        await JobWorkflowService.transition(job._id, "PRODUCTION_PLANNING", {
+          actorId: user?._id,
+          relatedSampleId: latestSample?._id,
+          notes: data.notes || "Customer approved artwork; sent to Production",
+          user,
+        });
+      } catch (transErr) {
+        await jobOrderRepository.findOneAndUpdate(
+          { _id: job._id },
+          {
+            $set: {
+              currentStage: "PRODUCTION_PLANNING",
+              stage: "PRODUCTION_PLANNING",
+              status: "PRODUCTION",
+            },
+          }
+        );
+      }
+    }
+
+    // 5. Ensure Production Order exists on the production floor
+    let createdOrders = [];
+    try {
+      const ProductionPlanningService = require("../production/productionPlanning.service");
+      createdOrders = await ProductionPlanningService.createUnassignedOrder(job._id, user);
+      if (data.planNow && createdOrders && createdOrders.length > 0) {
+        createdOrders = await ProductionPlanningService.planProduction(job._id, {}, user);
+      }
+    } catch (poErr) {
+      console.warn("Could not auto-create production order:", poErr);
+    }
+
+    await ProductionStateService.logAudit({
+      action: "SAMPLE_APPROVAL",
+      resource: "JobSample",
+      resourceId: latestSample?._id || job._id,
+      user,
+      branchId: job.branchId,
+      details: { decision: "APPROVED", comments: data.customerFeedback || "Artwork approved by customer" },
+    });
+
+    emitJobEvent("sample.approved", {
+      jobId: String(job._id),
+      sampleId: latestSample ? String(latestSample._id) : null,
+      fileId: String(latestSample?.fileId || latestSample?.fileUrl || ""),
+      customerComments: data.customerFeedback || null,
+    });
+
+    emitJobEvent("job.stage.changed", {
+      jobId: String(job._id),
+      fromStage: job.currentStage,
+      toStage: "PRODUCTION_PLANNING",
+      status: "PRODUCTION",
+      branchId: String(job.branchId),
+    });
+
+    return {
+      success: true,
+      message: "Customer approved artwork! Proceeding to Production.",
+      jobId: String(job._id),
+      stage: "PRODUCTION_PLANNING",
+      status: "PRODUCTION",
+      productionOrders: createdOrders,
+    };
+  }
 }
 
 module.exports = DesignSampleService;

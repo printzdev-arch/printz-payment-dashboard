@@ -7,6 +7,12 @@ const DesignAllocationService = require("../../../application/services/design/de
  */
 const autoAllocate = asyncHandler(async (req, res) => {
   const result = await DesignAllocationService.autoAllocate(req.params.id);
+  if (!result || !result.assigned) {
+    return ResponseHelper.conflict(
+      res,
+      `Could not allocate designer: ${result?.reason || "No eligible designer available"}`
+    );
+  }
   return ResponseHelper.ok(res, "Designer auto-allocation processed", result);
 });
 
@@ -57,6 +63,26 @@ const getWorkload = asyncHandler(async (req, res) => {
   return ResponseHelper.ok(res, "Designer workload retrieved successfully", workload);
 });
 
+const getRecentAssignments = asyncHandler(async (req, res) => {
+  const assignments = await DesignAllocationService.recentAssignments(req.query.limit || 10);
+  return ResponseHelper.ok(res, "Recent designer assignments retrieved successfully", assignments);
+});
+
+const addDesigner = asyncHandler(async (req, res) => {
+  const designer = await DesignAllocationService.addDesigner(req.body);
+  return ResponseHelper.created(res, "Designer added to pool successfully", designer);
+});
+
+const updateDesigner = asyncHandler(async (req, res) => {
+  const designer = await DesignAllocationService.updateDesigner(req.params.id, req.body);
+  return ResponseHelper.ok(res, "Designer updated successfully", designer);
+});
+
+const updateGlobalMaxLoad = asyncHandler(async (req, res) => {
+  const result = await DesignAllocationService.updateGlobalMaxLoad(req.body.maxLoad);
+  return ResponseHelper.ok(res, "Global max load limit updated successfully", result);
+});
+
 module.exports = {
   autoAllocate,
   autoAssignQueue,
@@ -66,4 +92,8 @@ module.exports = {
   getDesignQueue,
   getDesignerPool,
   getWorkload,
+  getRecentAssignments,
+  addDesigner,
+  updateDesigner,
+  updateGlobalMaxLoad,
 };

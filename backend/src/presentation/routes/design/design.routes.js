@@ -34,10 +34,34 @@ router.get(
   designAllocationController.getDesignerPool
 );
 
+router.post(
+  "/pool/designer",
+  authorizePermission("design", "update"),
+  designAllocationController.addDesigner
+);
+
+router.patch(
+  "/pool/designer/:id",
+  authorizePermission("design", "update"),
+  designAllocationController.updateDesigner
+);
+
+router.patch(
+  "/settings/max-load",
+  authorizePermission("design", "update"),
+  designAllocationController.updateGlobalMaxLoad
+);
+
 router.get(
   "/workload",
   authorizePermission("design", "read"),
   designAllocationController.getWorkload
+);
+
+router.get(
+  "/recent-assignments",
+  authorizePermission("design", "read"),
+  designAllocationController.getRecentAssignments
 );
 
 // ──────────────── Designer Personal Workspace ────────────────
@@ -124,6 +148,18 @@ router.post(
   sampleDecisionValidator,
   authorizePermission("design", "update"),
   designSampleController.decide
+);
+
+router.post(
+  "/jobs/:id/approve",
+  authorizePermission("design", "update"),
+  designSampleController.approveDesign
+);
+
+router.post(
+  "/jobs/:id/approve-proof",
+  authorizePermission("design", "update"),
+  designSampleController.approveDesign
 );
 
 module.exports = router;

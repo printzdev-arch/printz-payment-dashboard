@@ -147,6 +147,10 @@ const jobOrderSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    designerName: {
+      type: String,
+      default: "",
+    },
     assignedAt: {
       type: Date,
       default: null,
@@ -175,6 +179,18 @@ const jobOrderSchema = new mongoose.Schema(
     totalAmount: {
       type: Number,
       default: 0,
+    },
+    discountPercent: {
+      type: Number,
+      default: 0,
+    },
+    taxRate: {
+      type: Number,
+      default: 8,
+    },
+    approvedPricing: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

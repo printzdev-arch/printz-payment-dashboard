@@ -13,6 +13,7 @@ class Customer {
     gstin = null,
     address = null,
     customerType = "WALK_IN",
+    customerSource = "INDIVIDUAL",
     creditLimit = 0,
     outstandingBalance = 0,
     isActive = true,
@@ -28,7 +29,8 @@ class Customer {
     this.email = email ? String(email).trim().toLowerCase() : null;
     this.gstin = gstin ? String(gstin).trim().toUpperCase() : null;
     this.address = address ? String(address).trim() : null;
-    this.customerType = customerType ? String(customerType).trim().toUpperCase() : "WALK_IN"; // WALK_IN, B2B, REGULAR
+    this.customerType = customerType ? String(customerType).trim().toUpperCase() : "WALK_IN"; // WALK_IN, QR
+    this.customerSource = customerSource ? String(customerSource).trim().toUpperCase() : "INDIVIDUAL"; // INDIVIDUAL, COMPANY
     this.creditLimit = Number(creditLimit) || 0;
     this.outstandingBalance = Number(outstandingBalance) || 0;
     this.isActive = isActive !== undefined ? Boolean(isActive) : true;

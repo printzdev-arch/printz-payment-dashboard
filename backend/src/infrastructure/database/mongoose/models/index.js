@@ -26,6 +26,11 @@ const InventoryTransaction = require("./inventory/InventoryTransaction");
 const StockTransfer = require("./product-order/StockTransfer");
 const PurchaseReceipt = require("./inventory/PurchaseReceipt");
 const Customer = require("./customer/Customer");
+const CustomerRequest = require("./customer/CustomerRequest");
+
+// Estimates & Approvals
+const Estimate = require("./estimate/Estimate");
+const EstimateApproval = require("./estimate/EstimateApproval");
 
 // POS
 const SaleReceipt = require("./pos/SaleReceipt");
@@ -73,13 +78,18 @@ module.exports = {
   NumberSequence,
   Notification,
 
-  // Inventory
+  // Inventory & Customers
   InventoryItem,
   InventoryBalance,
   InventoryTransaction,
   StockTransfer,
   PurchaseReceipt,
   Customer,
+  CustomerRequest,
+
+  // Estimates & Approvals
+  Estimate,
+  EstimateApproval,
 
   // POS
   SaleReceipt,

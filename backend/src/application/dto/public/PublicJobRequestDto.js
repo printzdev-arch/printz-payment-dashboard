@@ -19,6 +19,9 @@ class PublicJobRequestDto {
     this.customerCompany = (data.customerCompany || data.company || "").trim() || "";
     this.customerAddress = (data.customerAddress || data.address || "").trim() || "";
     this.customerGstin = (data.customerGstin || data.gstin || "").trim().toUpperCase() || null;
+    this.branchId = data.branchId || null;
+    this.onlyCustomerRegistration = Boolean(data.onlyCustomerRegistration || !data.productService);
+    this.productService = data.productService || "";
 
     // ── Job Details ──
     this.title = (data.title || data.jobName || data.jobType || "Print Job Request").trim();

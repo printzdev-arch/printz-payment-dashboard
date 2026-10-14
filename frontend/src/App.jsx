@@ -50,7 +50,7 @@ import StockListManagerPage from "./components/manager/StockList.jsx";
 import PdfGenerator from "./components/manager/PdfGenerator.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "./jobflow/styles/jobFlow.css";
+import "./features/job-flow/shared/styles/job-flow.css";
 import AdminDailyReadingsRevenue from "./components/admin/AdminDailyReadingsRevenue.jsx";
 import AdminStockReadingsRevenue from "./components/admin/AdminStockReadingsRevenue.jsx";
 import PreviousBalanceList from "./components/admin/PreviousBalanceList.jsx";
@@ -75,7 +75,7 @@ import {
   DeliveryPage,
   SettlementPage,
   BranchQrCustomerForm,
-} from "./jobflow";
+} from "./features/job-flow";
 
 import { AuthProvider, useAuth, AuthContext } from "./context/AuthContext.jsx";
 export { AuthProvider, useAuth, AuthContext };
@@ -776,6 +776,19 @@ const AppContent = () => {
           }
         />
         <Route
+          path="/jobflow/jobs/:id"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <JobOrdersPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
           path="/jobs"
           element={
             <PrivateRoute
@@ -974,6 +987,19 @@ const AppContent = () => {
             />
           }
         />
+        <Route
+          path="/design/workbench"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignWorkflowPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
 
         {/* 6. Production Operations & Stations */}
         <Route
@@ -1017,6 +1043,45 @@ const AppContent = () => {
         />
         <Route
           path="/production/planning"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/jobflow/production-planning"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/jobflow/production/planning"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production-planning"
           element={
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}

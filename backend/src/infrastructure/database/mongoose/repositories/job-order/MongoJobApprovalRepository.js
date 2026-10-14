@@ -15,8 +15,10 @@ class MongoJobApprovalRepository extends IJobApprovalRepository {
     return JobApproval.findById(id);
   }
 
-  async findOne(filter) {
-    return JobApproval.findOne(filter);
+  async findOne(filter, options = {}) {
+    let q = JobApproval.findOne(filter);
+    if (options.sort) q = q.sort(options.sort);
+    return q;
   }
 
   async create(data) {

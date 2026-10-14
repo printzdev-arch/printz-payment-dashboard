@@ -105,6 +105,10 @@ const userSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    maxLoad: {
+      type: Number,
+      default: 5,
+    },
     resetPasswordToken: {
       type: String,
       default: null,
@@ -145,6 +149,28 @@ userSchema.pre("save", async function (next) {
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return passwordService.comparePassword(candidatePassword, this.password);
+};
+
+// Automatically handle string vs ObjectId queries when _id is defined as Mixed
+const normalizeIdFilter = function () {
+  const filter = this.getFilter();
+  if (filter && filter._id && typeof filter._id === "string" && mongoose.Types.ObjectId.isValid(filter._id)) {
+    filter.$or = [{ _id: filter._id }, { _id: new mongoose.Types.ObjectId(filter._id) }];
+    delete filter._id;
+  }
+};
+
+userSchema.pre(/^find/, normalizeIdFilter);
+userSchema.pre("findOneAndUpdate", normalizeIdFilter);
+userSchema.pre("updateOne", normalizeIdFilter);
+
+userSchema.statics.findByIdFlexible = function (id) {
+  if (!id) return Promise.resolve(null);
+  const conditions = [{ _id: id }];
+  if (typeof id === "string" && mongoose.Types.ObjectId.isValid(id)) {
+    conditions.push({ _id: new mongoose.Types.ObjectId(id) });
+  }
+  return this.findOne({ $or: conditions });
 };
 
 const User = mongoose.model("User", userSchema, "users");

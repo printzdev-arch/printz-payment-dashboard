@@ -26,11 +26,13 @@ class MongoJobAssignmentRepository extends IJobAssignmentRepository {
   }
 
   async update(id, updateData) {
-    return JobAssignment.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    const update = updateData && (updateData.$set || updateData.$inc || updateData.$unset) ? updateData : { $set: updateData };
+    return JobAssignment.findByIdAndUpdate(id, update, { new: true });
   }
 
   async updateMany(filter, updateData) {
-    return JobAssignment.updateMany(filter, { $set: updateData });
+    const update = updateData && (updateData.$set || updateData.$inc || updateData.$unset) ? updateData : { $set: updateData };
+    return JobAssignment.updateMany(filter, update);
   }
 
   async countDocuments(filter = {}) {

@@ -29,6 +29,7 @@
   padding: 8px 24px 28px 24px;
   background-color: var(--printz-bg-page);
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13.5px;
   color: var(--printz-text-dark);
   box-sizing: border-box;
 }

@@ -18,7 +18,13 @@ function normalizeDigits(phone) {
 
 class MongooseCustomerRepository extends ICustomerRepository {
   async findById(id) {
-    return Customer.findById(id).lean();
+    if (!id) return null;
+    const strId = String(id).trim();
+    if (/^[0-9a-fA-F]{24}$/.test(strId)) {
+      const found = await Customer.findById(strId).lean();
+      if (found) return found;
+    }
+    return Customer.findOne({ customerCode: strId.toUpperCase() }).lean();
   }
 
   async findByCode(customerCode) {
@@ -56,8 +62,26 @@ class MongooseCustomerRepository extends ICustomerRepository {
   async findAll(filters = {}, pagination = { page: 1, limit: 20 }) {
     const conditions = [];
 
-    if (filters.customerType) {
-      conditions.push({ customerType: filters.customerType });
+    if (filters.customerType && filters.customerType !== "all" && filters.customerType !== "ALL") {
+      const typeStr = String(filters.customerType).trim().toUpperCase();
+      if (typeStr === "WALK_IN" || typeStr === "WALKIN") {
+        conditions.push({
+          $or: [
+            { customerType: { $in: ["WALK_IN", "walk in", "WALK-IN", "REGULAR", "B2B"] } },
+            { customerType: { $exists: false } },
+            { customerType: null },
+          ],
+        });
+      } else if (typeStr === "QR") {
+        conditions.push({ customerType: { $in: ["QR", "qr", "QR_CODE"] } });
+      } else {
+        conditions.push({ customerType: filters.customerType });
+      }
+    }
+
+    if (filters.customerSource && filters.customerSource !== "all") {
+      const srcStr = String(filters.customerSource).trim().toUpperCase();
+      conditions.push({ customerSource: srcStr });
     }
 
     if (filters.isActive !== undefined) {
