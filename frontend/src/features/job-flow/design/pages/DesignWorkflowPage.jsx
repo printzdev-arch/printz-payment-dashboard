@@ -686,8 +686,8 @@ export const DesignWorkflowPage = () => {
           <button
             type="button"
             className={`jf-btn ${activeView === "workbench" || activeView === "workspace"
-                ? "dw-btn-nav-active"
-                : "jf-btn-secondary"
+              ? "dw-btn-nav-active"
+              : "jf-btn-secondary"
               } jf-btn-sm`}
             onClick={() => {
               if (!selectedJob && jobs.length > 0) setSelectedJob(jobs[0]);
@@ -717,7 +717,7 @@ export const DesignWorkflowPage = () => {
       {activeView === "queue" && (
         <>
           {/* Top Header & Round Robin Setting */}
-          <div className="dq-top-header-wrapper">
+          {/* <div className="dq-top-header-wrapper">
             <div className="dq-header-titles">
               <h2>Designer Allocation (Round Robin)</h2>
               <p>Automatically assign approved job orders to designers using round robin method.</p>
@@ -756,7 +756,7 @@ export const DesignWorkflowPage = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Main Card: Pending Job Orders for Designer Allocation */}
           <div className="dq-main-table-card">
@@ -1962,7 +1962,7 @@ export const DesignWorkflowPage = () => {
       {/* ──────────────── SCREEN 4: WHATSAPP PROOF REVIEW ──────────────── */}
       {activeView === "customer-proof" && (
         <div className="jf-card" style={{ maxWidth: "600px", margin: "0 auto", padding: "1.5rem" }}>
-          <h3 className="jf-card-title">Customer WhatsApp Proof Approval</h3>
+          <h3 className="-title">Customer WhatsApp Proof Approval</h3>
           <div style={{ background: "#eff6ff", padding: "1rem", borderRadius: "8px", margin: "1rem 0" }}>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#1e40af" }}>
               Customer Link Generated for: <strong>{selectedJob?.customerName || "Customer"}</strong> (Job {selectedJob?.jobNo || "JO-2025-003"})

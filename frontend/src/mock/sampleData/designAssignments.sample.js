@@ -707,7 +707,11 @@ export const sampleDesignAssignments = [
       "gsm": 170,
       "side": "DOUBLE_SIDE",
       "colourMode": "COLOUR",
-      "finishing": ["CUTTING", "CREASING", "FOLDING"],
+      "finishing": [
+        "CUTTING",
+        "CREASING",
+        "FOLDING"
+      ],
       "customerNotes": "Pastel botanical palette with rose gold headings",
       "designNotes": "Layout grid aligned for accordion fold"
     },
@@ -717,9 +721,24 @@ export const sampleDesignAssignments = [
     "designerNotes": "Mockup draft 1 in progress on Adobe InDesign.",
     "internalNotes": "Customer requested PDF proof link via WhatsApp once ready.",
     "timeline": [
-      { "event": "ASSIGNMENT_CREATED", "status": "PENDING_ASSIGNMENT", "actor": "System Workflow", "timestamp": "2026-10-09T14:00:00.000Z" },
-      { "event": "DESIGNER_ASSIGNED", "status": "ASSIGNED", "actor": "Branch Manager", "timestamp": "2026-10-09T14:30:00.000Z" },
-      { "event": "DESIGN_STARTED", "status": "IN_PROGRESS", "actor": "Priya R", "timestamp": "2026-10-10T09:00:00.000Z" }
+      {
+        "event": "ASSIGNMENT_CREATED",
+        "status": "PENDING_ASSIGNMENT",
+        "actor": "System Workflow",
+        "timestamp": "2026-10-09T14:00:00.000Z"
+      },
+      {
+        "event": "DESIGNER_ASSIGNED",
+        "status": "ASSIGNED",
+        "actor": "Branch Manager",
+        "timestamp": "2026-10-09T14:30:00.000Z"
+      },
+      {
+        "event": "DESIGN_STARTED",
+        "status": "IN_PROGRESS",
+        "actor": "Priya R",
+        "timestamp": "2026-10-10T09:00:00.000Z"
+      }
     ],
     "createdAt": "2026-10-09T14:00:00.000Z",
     "updatedAt": "2026-10-10T09:00:00.000Z"
@@ -761,7 +780,10 @@ export const sampleDesignAssignments = [
       "gsm": 380,
       "side": "SINGLE_SIDE",
       "colourMode": "COLOUR",
-      "finishing": ["EYELETS", "EDGE_TAPING"],
+      "finishing": [
+        "EYELETS",
+        "EDGE_TAPING"
+      ],
       "customerNotes": "Dark roast espresso mug photo with typography: 'URBAN CAFE'",
       "designNotes": "300 DPI high resolution vector banner"
     },
@@ -785,11 +807,36 @@ export const sampleDesignAssignments = [
     "designerNotes": "Customer approved proof v1 directly without revisions.",
     "internalNotes": "Production ready file exported to RIP queue.",
     "timeline": [
-      { "event": "ASSIGNMENT_CREATED", "status": "PENDING_ASSIGNMENT", "actor": "System Workflow", "timestamp": "2026-10-08T16:00:00.000Z" },
-      { "event": "DESIGNER_ASSIGNED", "status": "ASSIGNED", "actor": "Branch Manager", "timestamp": "2026-10-08T16:15:00.000Z" },
-      { "event": "DESIGN_STARTED", "status": "IN_PROGRESS", "actor": "Priya R", "timestamp": "2026-10-09T08:30:00.000Z" },
-      { "event": "PROOF_SUBMITTED", "status": "PROOF_SUBMITTED", "actor": "Priya R", "timestamp": "2026-10-09T11:00:00.000Z" },
-      { "event": "PROOF_APPROVED", "status": "APPROVED", "actor": "Customer", "timestamp": "2026-10-09T15:00:00.000Z" }
+      {
+        "event": "ASSIGNMENT_CREATED",
+        "status": "PENDING_ASSIGNMENT",
+        "actor": "System Workflow",
+        "timestamp": "2026-10-08T16:00:00.000Z"
+      },
+      {
+        "event": "DESIGNER_ASSIGNED",
+        "status": "ASSIGNED",
+        "actor": "Branch Manager",
+        "timestamp": "2026-10-08T16:15:00.000Z"
+      },
+      {
+        "event": "DESIGN_STARTED",
+        "status": "IN_PROGRESS",
+        "actor": "Priya R",
+        "timestamp": "2026-10-09T08:30:00.000Z"
+      },
+      {
+        "event": "PROOF_SUBMITTED",
+        "status": "PROOF_SUBMITTED",
+        "actor": "Priya R",
+        "timestamp": "2026-10-09T11:00:00.000Z"
+      },
+      {
+        "event": "PROOF_APPROVED",
+        "status": "APPROVED",
+        "actor": "Customer",
+        "timestamp": "2026-10-09T15:00:00.000Z"
+      }
     ],
     "createdAt": "2026-10-08T16:00:00.000Z",
     "updatedAt": "2026-10-09T15:00:00.000Z"

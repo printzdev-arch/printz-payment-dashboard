@@ -352,50 +352,6 @@ export const EstimationPage = () => {
   return (
     <JobFlowLayout
       title="Estimation & Pricing"
-      actions={
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "queue" && statusFilter === "all" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => {
-              setActiveTab("queue");
-              setStatusFilter("all");
-            }}
-          >
-            All Estimates ({estimates.length})
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "queue" && statusFilter === "pending" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => {
-              setActiveTab("queue");
-              setStatusFilter("pending");
-            }}
-          >
-            Pending ({pendingCount})
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "queue" && statusFilter === "revision" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => {
-              setActiveTab("queue");
-              setStatusFilter("revision");
-            }}
-          >
-            Revision ({revisionCount})
-          </button>
-          <button
-            type="button"
-            className={`jf-btn ${activeTab === "queue" && statusFilter === "approved" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-            onClick={() => {
-              setActiveTab("queue");
-              setStatusFilter("approved");
-            }}
-          >
-            Approved ({approvedCount})
-          </button>
-        </div>
-      }
     >
       {/* ──────────────── TAB 1: MANAGER APPROVAL QUEUE (Image 3 Screen 3) ──────────────── */}
       {activeTab === "queue" && (

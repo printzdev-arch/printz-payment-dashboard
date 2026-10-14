@@ -269,12 +269,29 @@ export const QualityControlPage = ({ embedded = false }) => {
     // Load live QC jobs from backend (both pending ProductionOrders and JobOrders in QC stage)
     Promise.allSettled([
       jobFlowApi.getPendingQualityChecks(),
-      jobFlowApi.getJobOrders({ currentStage: "QC,REWORK,REPRINT", limit: 50 }),
+      jobFlowApi.getJobOrders({ limit: 100 }),
       jobFlowApi.getProductionOrders({ limit: 100 }),
       jobFlowApi.getReprintRequests({ status: "REQUESTED,PENDING_APPROVAL", limit: 20 }),
-    ]).then(([pendingPoRes, jobOrdersRes, poRes, reprintRes]) => {
+      jobFlowApi.getQualityChecks({ limit: 100 }),
+    ]).then(([pendingPoRes, jobOrdersRes, poRes, reprintRes, qcChecksRes]) => {
       const merged = [];
       const seenJobNos = new Set();
+
+      // Build index of passed QC check IDs
+      const passedQcSet = new Set();
+      if (qcChecksRes?.status === "fulfilled" && qcChecksRes.value) {
+        const checks = qcChecksRes.value.data?.items || qcChecksRes.value.data || (Array.isArray(qcChecksRes.value) ? qcChecksRes.value : []);
+        if (Array.isArray(checks)) {
+          checks.forEach((c) => {
+            if (c.result === "PASS") {
+              const pId = String(c.productionOrderId?._id || c.productionOrderId || "");
+              if (pId) passedQcSet.add(pId);
+              const jId = String(c.jobOrderId?._id || c.jobOrderId || "");
+              if (jId) passedQcSet.add(jId);
+            }
+          });
+        }
+      }
 
       // Build index of all production orders by PO ID and Job Order ID
       const allPos = poRes.status === "fulfilled" && poRes.value
@@ -325,6 +342,13 @@ export const QualityControlPage = ({ embedded = false }) => {
 
         const batchQty = po?.actualQty || po?.plannedQty || specs.quantity || jobObj?.quantity || 500;
 
+        const isApproved =
+          po?.status === "COMPLETED" ||
+          ["READY", "DELIVERY", "DELIVERED", "COMPLETED", "SETTLED"].includes(String(jobObj?.currentStage || "").toUpperCase()) ||
+          ["READY", "DELIVERED", "COMPLETED", "SETTLED"].includes(String(jobObj?.status || "").toUpperCase()) ||
+          (poId && passedQcSet.has(poId)) ||
+          (jobObj?._id && passedQcSet.has(String(jobObj._id)));
+
         return {
           _id: poId || jobObj?._id || jobObj?.id,
           productionOrderId: poId,
@@ -341,7 +365,7 @@ export const QualityControlPage = ({ embedded = false }) => {
           machine: po?.machine || po?.machineId?.printerName || "Floor Station",
           operator: po?.assignedEmployees?.[0] || po?.assignedEmployeeIds?.[0]?.name || "Production Team",
           completedTime: (po?.updatedAt || jobObj?.updatedAt) ? new Date(po?.updatedAt || jobObj?.updatedAt).toLocaleTimeString() : "Just now",
-          status: "PENDING_QC",
+          status: isApproved ? "PASSED" : "PENDING_QC",
           raw: { ...(po || {}), jobOrderId: jobObj || po?.jobOrderId },
         };
       };
@@ -417,7 +441,11 @@ export const QualityControlPage = ({ embedded = false }) => {
                   machine: "Digital Press 01",
                   operator: "Production Team",
                   completedTime: job.updatedAt ? new Date(job.updatedAt).toLocaleTimeString() : "Just now",
-                  status: "PENDING_QC",
+                  status: (
+                    ["READY", "DELIVERY", "DELIVERED", "COMPLETED", "SETTLED"].includes(String(job.currentStage || "").toUpperCase()) ||
+                    ["READY", "DELIVERED", "COMPLETED", "SETTLED"].includes(String(job.status || "").toUpperCase()) ||
+                    (jId && passedQcSet.has(jId))
+                  ) ? "PASSED" : "PENDING_QC",
                   raw: job,
                 });
               }
@@ -447,12 +475,13 @@ export const QualityControlPage = ({ embedded = false }) => {
           setSelectedQcJob(match);
           // When coming from Production with a specific job, go straight to inspection form (15B)
           setActiveTab("15B");
-        } else if (merged.length > 0) {
-          // No exact match found - show the queue so user can pick
-          setSelectedQcJob(merged[0]);
+        } else {
+          // No exact match found - keep QC form empty
+          setSelectedQcJob(null);
         }
-      } else if (merged.length > 0) {
-        setSelectedQcJob(merged[0]);
+      } else {
+        // QC form starts clean and empty until user initiates inspection
+        setSelectedQcJob(null);
       }
 
       // Update reprint requests from live backend data
@@ -504,12 +533,12 @@ export const QualityControlPage = ({ embedded = false }) => {
     }
 
     let isMounted = true;
-    const poId = selectedQcJob.productionOrderId || selectedQcJob._id;
-    const jId = selectedQcJob.jobOrderId?._id || selectedQcJob.jobOrderId;
+    const poId = selectedQcJob?.productionOrderId;
+    const jId = selectedQcJob?.jobOrderId?._id || selectedQcJob?.jobOrderId;
 
     const fetches = [];
-    if (!selectedQcJob.operations || selectedQcJob.operations.length === 0) {
-      if (poId) {
+    if (!selectedQcJob?.operations || selectedQcJob.operations.length === 0) {
+      if (poId && /^[0-9a-fA-F]{24}$/.test(poId)) {
         fetches.push(jobFlowApi.getProductionOrderById(poId).catch(() => null));
       } else if (jId) {
         fetches.push(jobFlowApi.getProductionOrders({ jobOrderId: jId }).then(r => (r?.data?.items || r?.data || (Array.isArray(r) ? r : []))?.[0]).catch(() => null));
@@ -650,12 +679,24 @@ export const QualityControlPage = ({ embedded = false }) => {
           notes: "All criteria passed inspection. Approved for packaging and dispatch.",
           comments: "All criteria passed inspection. Approved for packaging and dispatch.",
         });
-        toast.success(`Job ${selectedQcJob?.jobNo || ""} PASSED Quality Control! Moved to Ready for Delivery queue.`);
+        toast.success(`Job ${selectedQcJob?.jobNo || ""} approved! QC status updated.`);
         setQcQueue((prev) =>
-          prev.map((q) => ((q._id || q.id) === targetId ? { ...q, status: "PASSED" } : q))
+          prev.map((q) => {
+            const matches =
+              (q._id && q._id === targetId) ||
+              (q.productionOrderId && q.productionOrderId === targetId) ||
+              (q.jobNo && q.jobNo === selectedQcJob?.jobNo) ||
+              (q.jobOrderId && q.jobOrderId === selectedQcJob?.jobOrderId);
+            return matches ? { ...q, status: "PASSED" } : q;
+          })
         );
-        const actualJobId = selectedQcJob?.jobOrderId?._id || selectedQcJob?.jobOrderId || targetId;
-        navigate(`/jobflow/delivery?jobId=${actualJobId}`);
+        // Clear QC form so it becomes empty
+        setSelectedQcJob(null);
+        setInspectionCriteria([]);
+        setDefectNotes("");
+        setQcVerdict("PASS");
+        // Return to QC Queue overview table
+        setActiveTab("15A");
       } else {
         if (routingDecision === "TARGETED_REWORK") {
           await jobFlowApi.performQualityCheck(targetId, {
@@ -698,6 +739,7 @@ export const QualityControlPage = ({ embedded = false }) => {
 
   // Dispatch Targeted Rework (16A)
   const handleDispatchRework = async () => {
+    if (!selectedQcJob) return;
     setLoading(true);
     try {
       await jobFlowApi.reworkProductionStep(selectedQcJob._id, {
@@ -708,9 +750,11 @@ export const QualityControlPage = ({ embedded = false }) => {
         quantity: affectedQty,
       });
       toast.success(`Targeted Rework task dispatched for ${selectedQcJob.jobNo} to ${reworkMachine}!`);
+      setSelectedQcJob(null);
       setActiveTab("15A");
     } catch {
       toast.success(`Targeted Rework task dispatched for ${selectedQcJob.jobNo} to ${reworkMachine}!`);
+      setSelectedQcJob(null);
       setActiveTab("15A");
     } finally {
       setLoading(false);
@@ -789,7 +833,7 @@ export const QualityControlPage = ({ embedded = false }) => {
       {activeTab === "15A" && (
         <div>
           {/* Top 4 KPI Cards (Image 7 Screen 15A) */}
-          <div className="jf-stat-grid">
+          {/* <div className="jf-stat-grid">
             <div className="jf-stat-box">
               <div className="jf-stat-icon" style={{ background: "#fef3c7", color: "#92400e" }}>
                 <Clock size={22} />
@@ -829,7 +873,7 @@ export const QualityControlPage = ({ embedded = false }) => {
                 <div className="jf-stat-label">Active Rework Batches</div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Completed Production Batches DataTable with Search, Sorting, Rows Per Page & Pagination */}
           <JobFlowDataTable
@@ -888,28 +932,69 @@ export const QualityControlPage = ({ embedded = false }) => {
                 key: "status",
                 label: "QC Status",
                 sortable: true,
-                render: (val) => (
-                  <StatusBadge status={val === "PASSED" ? "Completed" : "Active"} />
-                ),
+                render: (val) => {
+                  const isPassed = val === "PASSED" || val === "COMPLETED" || val === "APPROVED";
+                  return isPassed ? (
+                    <span
+                      className="jf-badge jf-badge-green"
+                      style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600 }}
+                    >
+                      <CheckCircle size={12} /> Approved
+                    </span>
+                  ) : (
+                    <span
+                      className="jf-badge jf-badge-amber"
+                      style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600 }}
+                    >
+                      <Clock size={12} /> Pending QC
+                    </span>
+                  );
+                },
               },
               {
                 key: "actions",
                 label: "Inspection",
                 sortable: false,
                 align: "right",
-                render: (_, item) => (
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-primary jf-btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedQcJob(item);
-                      setActiveTab("15B");
-                    }}
-                  >
-                    <ShieldCheck size={14} /> Start Inspection
-                  </button>
-                ),
+                render: (_, item) => {
+                  const isApproved = item.status === "PASSED" || item.status === "COMPLETED" || item.status === "APPROVED";
+                  if (isApproved) {
+                    return (
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-secondary jf-btn-sm"
+                        style={{
+                          color: "#15803d",
+                          borderColor: "#bbf7d0",
+                          backgroundColor: "#f0fdf4",
+                          cursor: "pointer",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedQcJob(item);
+                          setActiveTab("15B");
+                        }}
+                        title="View Inspection Details"
+                      >
+                        <CheckCircle size={14} /> Approved ✓
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-primary jf-btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedQcJob(item);
+                        setActiveTab("15B");
+                      }}
+                    >
+                      <ShieldCheck size={14} /> Start Inspection
+                    </button>
+                  );
+                },
               },
             ]}
             data={qcQueue}
@@ -928,6 +1013,39 @@ export const QualityControlPage = ({ embedded = false }) => {
       )}
 
       {/* ──────────────── SCREEN 15B: QUALITY CONTROL - INSPECTION FORM ──────────────── */}
+      {activeTab === "15B" && !selectedQcJob && (
+        <div className="jf-card" style={{ textAlign: "center", padding: "4rem 2rem" }}>
+          <div
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              background: "#f1f5f9",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.25rem",
+              color: "#64748b",
+            }}
+          >
+            <ShieldCheck size={32} />
+          </div>
+          <h3 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.5rem" }}>
+            No Job Selected for Inspection
+          </h3>
+          <p style={{ color: "#64748b", maxWidth: "460px", margin: "0 auto 1.5rem", fontSize: "0.875rem" }}>
+            The QC inspection form is currently empty. Please select a batch from the QC Queue to evaluate its quality checklist.
+          </p>
+          <button
+            type="button"
+            className="jf-btn jf-btn-primary"
+            onClick={() => setActiveTab("15A")}
+          >
+            Go to QC Queue
+          </button>
+        </div>
+      )}
+
       {activeTab === "15B" && selectedQcJob && (
         <div>
           {/* Header Bar */}
@@ -976,11 +1094,27 @@ export const QualityControlPage = ({ embedded = false }) => {
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <span style={{ fontSize: "0.875rem", color: "#64748b" }}>
                   Batch Size: <strong style={{ color: "#15803d" }}>{(selectedQcJob.batchQty || 0).toLocaleString()} pcs</strong>
                 </span>
-                <span className="jf-badge jf-badge-blue">In Inspection</span>
+                {selectedQcJob.status === "PASSED" ? (
+                  <span className="jf-badge jf-badge-green" style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                    <CheckCircle size={12} /> Approved
+                  </span>
+                ) : (
+                  <span className="jf-badge jf-badge-blue">In Inspection</span>
+                )}
+                <button
+                  type="button"
+                  className="jf-btn jf-btn-secondary jf-btn-sm"
+                  onClick={() => {
+                    setSelectedQcJob(null);
+                    setActiveTab("15A");
+                  }}
+                >
+                  Back to Queue
+                </button>
               </div>
             </div>
           </div>
@@ -1107,15 +1241,22 @@ export const QualityControlPage = ({ embedded = false }) => {
                     All {(selectedQcJob.batchQty || 0).toLocaleString()} finished {selectedQcJob.productType || "units"} adhere to ISO 12647-2 color fidelity standards, dimensions are exact ({selectedQcJob.dimensions || "Standard"}), and job order specifications verified.
                   </div>
 
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-primary"
-                    style={{ width: "100%", padding: "0.75rem" }}
-                    onClick={handleSubmitInspection}
-                    disabled={loading}
-                  >
-                    <Truck size={16} /> Approve & Move to Ready for Delivery
-                  </button>
+                  {selectedQcJob.status === "PASSED" ? (
+                    <div style={{ padding: "0.85rem", background: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0", color: "#166534", textAlign: "center", fontWeight: 700 }}>
+                      <CheckCircle size={16} style={{ verticalAlign: "middle", marginRight: "0.4rem" }} />
+                      Quality Inspection Approved & Completed
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-primary"
+                      style={{ width: "100%", padding: "0.75rem" }}
+                      onClick={handleSubmitInspection}
+                      disabled={loading}
+                    >
+                      <CheckCircle size={16} /> Approve Inspection
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -1194,7 +1335,40 @@ export const QualityControlPage = ({ embedded = false }) => {
       )}
 
       {/* ──────────────── SCREEN 16A: REWORK MANAGEMENT - TARGETED OPERATION REWORK ──────────────── */}
-      {activeTab === "16A" && (
+      {activeTab === "16A" && !selectedQcJob && (
+        <div className="jf-card" style={{ textAlign: "center", padding: "4rem 2rem", maxWidth: "850px", margin: "0 auto" }}>
+          <div
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              background: "#fef3c7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.25rem",
+              color: "#b45309",
+            }}
+          >
+            <RotateCcw size={32} />
+          </div>
+          <h3 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.5rem" }}>
+            No Defective Batch Selected for Rework
+          </h3>
+          <p style={{ color: "#64748b", maxWidth: "460px", margin: "0 auto 1.5rem", fontSize: "0.875rem" }}>
+            To dispatch a targeted rework, select a batch from the QC Queue, conduct an inspection in Screen 15B, and route defects to Targeted Rework.
+          </p>
+          <button
+            type="button"
+            className="jf-btn jf-btn-primary"
+            onClick={() => setActiveTab("15A")}
+          >
+            Go to QC Queue
+          </button>
+        </div>
+      )}
+
+      {activeTab === "16A" && selectedQcJob && (
         <div style={{ maxWidth: "850px", margin: "0 auto" }}>
           <div className="jf-card">
             <div className="jf-card-header">
@@ -1210,7 +1384,7 @@ export const QualityControlPage = ({ embedded = false }) => {
             {/* Defect Summary Banner */}
             <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "1rem", borderRadius: "8px", marginBottom: "1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                <strong>Job: {selectedQcJob.jobNo} ({selectedQcJob.customerName})</strong>
+                <strong>Job: {selectedQcJob.jobNo || "—"} ({selectedQcJob.customerName || "Customer"})</strong>
                 <span style={{ color: "#b45309", fontWeight: 700 }}>Affected: {affectedQty} pcs</span>
               </div>
               <div style={{ fontSize: "0.8125rem", color: "#92400e" }}>
@@ -1385,77 +1559,85 @@ export const QualityControlPage = ({ embedded = false }) => {
 
           {/* Right: Manager Approval Details Pane */}
           <div className="jf-card">
-            <div className="jf-card-header">
-              <div>
-                <h3 className="jf-card-title">Manager Scrap & Reprint Review</h3>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Ref: <strong>{selectedReprint.reprintNo}</strong>
-                </span>
-              </div>
-              <StatusBadge status={selectedReprint.status === "APPROVED" ? "Approved" : "Pending"} />
-            </div>
+            {selectedReprint ? (
+              <>
+                <div className="jf-card-header">
+                  <div>
+                    <h3 className="jf-card-title">Manager Scrap & Reprint Review</h3>
+                    <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                      Ref: <strong>{selectedReprint.reprintNo}</strong>
+                    </span>
+                  </div>
+                  <StatusBadge status={selectedReprint.status === "APPROVED" ? "Approved" : "Pending"} />
+                </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", fontSize: "0.875rem", marginBottom: "1.25rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ color: "#64748b" }}>Job Order:</span>
-                <strong>{selectedReprint.jobNo} ({selectedReprint.customerName})</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ color: "#64748b" }}>Scrap / Wasted Batch:</span>
-                <span>{selectedReprint.quantity} pcs ({selectedReprint.product})</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ color: "#64748b" }}>Estimated Scrap Loss:</span>
-                <span style={{ fontWeight: 700, color: "#dc2626", fontSize: "1.125rem" }}>
-                  RM {selectedReprint.scrapCost.toFixed(2)}
-                </span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ color: "#64748b" }}>Responsible Machine:</span>
-                <span>{selectedReprint.machine}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b" }}>Requested By:</span>
-                <span>{typeof selectedReprint.requestedBy === "object" ? (selectedReprint.requestedBy?.name || selectedReprint.requestedBy?.email || "Inspector") : (selectedReprint.requestedBy || "Inspector")}</span>
-              </div>
-            </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", fontSize: "0.875rem", marginBottom: "1.25rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ color: "#64748b" }}>Job Order:</span>
+                    <strong>{selectedReprint.jobNo} ({selectedReprint.customerName})</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ color: "#64748b" }}>Scrap / Wasted Batch:</span>
+                    <span>{selectedReprint.quantity} pcs ({selectedReprint.product})</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ color: "#64748b" }}>Estimated Scrap Loss:</span>
+                    <span style={{ fontWeight: 700, color: "#dc2626", fontSize: "1.125rem" }}>
+                      RM {Number(selectedReprint.scrapCost || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ color: "#64748b" }}>Responsible Machine:</span>
+                    <span>{selectedReprint.machine}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748b" }}>Requested By:</span>
+                    <span>{typeof selectedReprint.requestedBy === "object" ? (selectedReprint.requestedBy?.name || selectedReprint.requestedBy?.email || "Inspector") : (selectedReprint.requestedBy || "Inspector")}</span>
+                  </div>
+                </div>
 
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", padding: "0.75rem", borderRadius: "6px", marginBottom: "1.25rem", fontSize: "0.8125rem", color: "#991b1b" }}>
-              <strong>Root Cause Statement:</strong>
-              <div>{selectedReprint.reason}</div>
-            </div>
+                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", padding: "0.75rem", borderRadius: "6px", marginBottom: "1.25rem", fontSize: "0.8125rem", color: "#991b1b" }}>
+                  <strong>Root Cause Statement:</strong>
+                  <div>{selectedReprint.reason}</div>
+                </div>
 
-            <div className="jf-form-group" style={{ marginBottom: "1.5rem" }}>
-              <label className="jf-label">Manager Decision Notes & Root Cause Correction</label>
-              <textarea
-                className="jf-textarea"
-                value={managerNotes}
-                onChange={(e) => setManagerNotes(e.target.value)}
-              />
-            </div>
+                <div className="jf-form-group" style={{ marginBottom: "1.5rem" }}>
+                  <label className="jf-label">Manager Decision Notes & Root Cause Correction</label>
+                  <textarea
+                    className="jf-textarea"
+                    value={managerNotes}
+                    onChange={(e) => setManagerNotes(e.target.value)}
+                  />
+                </div>
 
-            {selectedReprint.status === "PENDING_APPROVAL" ? (
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-danger-outline"
-                  style={{ flex: 1 }}
-                  onClick={() => handleRejectReprint(selectedReprint)}
-                >
-                  <XCircle size={16} /> Reject / Salvage
-                </button>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-primary"
-                  style={{ flex: 1 }}
-                  onClick={() => handleApproveReprint(selectedReprint)}
-                >
-                  <CheckCircle size={16} /> Approve Full Reprint
-                </button>
-              </div>
+                {selectedReprint.status === "PENDING_APPROVAL" ? (
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-danger-outline"
+                      style={{ flex: 1 }}
+                      onClick={() => handleRejectReprint(selectedReprint)}
+                    >
+                      <XCircle size={16} /> Reject / Salvage
+                    </button>
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-primary"
+                      style={{ flex: 1 }}
+                      onClick={() => handleApproveReprint(selectedReprint)}
+                    >
+                      <CheckCircle size={16} /> Approve Full Reprint
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ padding: "0.75rem", background: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0", color: "#166534", textAlign: "center", fontWeight: 700 }}>
+                    ✓ Decision recorded ({selectedReprint.status})
+                  </div>
+                )}
+              </>
             ) : (
-              <div style={{ padding: "0.75rem", background: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0", color: "#166534", textAlign: "center", fontWeight: 700 }}>
-                ✓ Decision recorded ({selectedReprint.status})
+              <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#64748b" }}>
+                <p>Select a reprint request from the left table to review.</p>
               </div>
             )}
           </div>

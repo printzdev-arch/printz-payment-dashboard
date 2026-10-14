@@ -1,3 +1,3 @@
-const CommonNumberSequence = require("../../../../models/common/NumberSequence");
+const CommonNumberSequence = require("./common/NumberSequence");
 
 module.exports = CommonNumberSequence;

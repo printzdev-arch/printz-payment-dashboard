@@ -1070,7 +1070,7 @@ export const ProductionPage = () => {
           </div>
 
           {/* 5 Summary Cards */}
-          <div className="jf-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          {/* <div className="jf-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
             <div
               className="jf-stat-box"
               style={{ cursor: "pointer" }}
@@ -1152,7 +1152,7 @@ export const ProductionPage = () => {
                 <div className="jf-stat-label">Completed</div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Section A: Production Status Summary */}
           <div className="jf-card">
@@ -1249,120 +1249,6 @@ export const ProductionPage = () => {
               </table>
             </div>
           </div>
-
-          {/* Section B & C Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem" }}>
-            {/* Section B: Operation Queue Summary */}
-            <div className="jf-card">
-              <div className="jf-card-header">
-                <div>
-                  <h3 className="jf-card-title">Operation Queue Summary</h3>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                    Breakdown of active operations by configured process category
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={() => handleTabChange("queue")}
-                >
-                  Floor Queue <ArrowRight size={14} />
-                </button>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {[
-                  { name: "Digital & Offset Printing", code: "PRINT", count: 4, running: 2, failed: 0 },
-                  { name: "Thermal Lamination", code: "LAMINATION", count: 3, running: 1, failed: 0 },
-                  { name: "Die-Cutting & Creasing", code: "DIE_CUTTING", count: 2, running: 1, failed: 1 },
-                  { name: "Standard Trimming", code: "CUTTING", count: 3, running: 1, failed: 0 },
-                  { name: "Final Packing", code: "PACKING", count: 5, running: 2, failed: 0 },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "0.75rem",
-                      background: "#f8fafc",
-                      borderRadius: "6px",
-                      border: "1px solid #e2e8f0",
-                    }}
-                  >
-                    <div>
-                      <strong style={{ fontSize: "0.875rem", color: "#0f172a", display: "block" }}>
-                        {item.name}
-                      </strong>
-                      <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                        Code: {item.code}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                      <span className="jf-badge jf-badge-success">{item.running} Active</span>
-                      {item.failed > 0 && (
-                        <span className="jf-badge jf-badge-danger">{item.failed} Failed</span>
-                      )}
-                      <span className="jf-badge jf-badge-default">{item.count} Queued</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section C: Quality and Rework Summary */}
-            <div className="jf-card">
-              <div className="jf-card-header">
-                <div>
-                  <h3 className="jf-card-title">Quality & Rework Metrics</h3>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                    Inspections, pass rates & resolution channels
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                  <div style={{ padding: "0.875rem", background: "#f0fdf4", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-                    <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#166534" }}>{counts.qcPassed}</div>
-                    <div style={{ fontSize: "0.8125rem", color: "#15803d" }}>QC Passed First-Pass</div>
-                  </div>
-                  <div style={{ padding: "0.875rem", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
-                    <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#991b1b" }}>{counts.qcIssues}</div>
-                    <div style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>QC Defects Flagged</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                    <span style={{ color: "#475569" }}>Pending QC Inspections</span>
-                    <strong>{counts.pendingQC}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                    <span style={{ color: "#475569" }}>Targeted Rework in Progress</span>
-                    <strong>{counts.reworkReq}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                    <span style={{ color: "#475569" }}>Reprints Awaiting Approval</span>
-                    <strong>{reprintRequests.filter((r) => r.status === "REQUESTED").length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                    <span style={{ color: "#475569" }}>Reprints in Production</span>
-                    <strong>{reprintRequests.filter((r) => r.status === "IN_PRODUCTION" || r.status === "APPROVED").length}</strong>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-primary jf-btn-sm"
-                  onClick={() => navigate("/jobflow/qc")}
-                  style={{ marginTop: "0.5rem" }}
-                >
-                  Open QC Workstation <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -1403,7 +1289,7 @@ export const ProductionPage = () => {
           </div>
 
           {/* 5 Summary Cards (Screenshot 1) */}
-          <div className="jf-stat-grid" style={{ gridTemplateColumns: counts.unassigned > 0 ? "repeat(5, 1fr)" : "repeat(4, 1fr)" }}>
+          {/* <div className="jf-stat-grid" style={{ gridTemplateColumns: counts.unassigned > 0 ? "repeat(5, 1fr)" : "repeat(4, 1fr)" }}>
             {counts.unassigned > 0 && (
               <div
                 className="jf-stat-box"
@@ -1418,9 +1304,9 @@ export const ProductionPage = () => {
                   <div className="jf-stat-label">Unassigned</div>
                 </div>
               </div>
-            )}
+            )} */}
 
-            <div
+            {/* <div
               className="jf-stat-box"
               style={{ cursor: "pointer", border: orderStatusFilter === "PLANNED" ? "2px solid #0284c7" : undefined }}
               onClick={() => setOrderStatusFilter(orderStatusFilter === "PLANNED" ? "ALL" : "PLANNED")}
@@ -1432,9 +1318,9 @@ export const ProductionPage = () => {
                 <div className="jf-stat-val">{counts.planned}</div>
                 <div className="jf-stat-label">Planned</div>
               </div>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className="jf-stat-box"
               style={{ cursor: "pointer", border: orderStatusFilter === "IN_PROGRESS" ? "2px solid #2563eb" : undefined }}
               onClick={() => setOrderStatusFilter(orderStatusFilter === "IN_PROGRESS" ? "ALL" : "IN_PROGRESS")}
@@ -1446,9 +1332,9 @@ export const ProductionPage = () => {
                 <div className="jf-stat-val">{counts.inProgress}</div>
                 <div className="jf-stat-label">In Progress</div>
               </div>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className="jf-stat-box"
               style={{ cursor: "pointer", border: orderStatusFilter === "QC" ? "2px solid #ca8a04" : undefined }}
               onClick={() => setOrderStatusFilter(orderStatusFilter === "QC" ? "ALL" : "QC")}
@@ -1460,9 +1346,9 @@ export const ProductionPage = () => {
                 <div className="jf-stat-val">{counts.pendingQC}</div>
                 <div className="jf-stat-label">QC Pending</div>
               </div>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className="jf-stat-box"
               style={{ cursor: "pointer", border: orderStatusFilter === "COMPLETED" ? "2px solid #16a34a" : undefined }}
               onClick={() => setOrderStatusFilter(orderStatusFilter === "COMPLETED" ? "ALL" : "COMPLETED")}
@@ -1474,8 +1360,8 @@ export const ProductionPage = () => {
                 <div className="jf-stat-val">{counts.completed}</div>
                 <div className="jf-stat-label">Completed</div>
               </div>
-            </div>
-          </div>
+            </div> */}
+          {/* </div> */}
 
           {/* Filters — Above the table (Screenshot 1) */}
           <div className="jf-card" style={{ padding: "1.25rem" }}>
@@ -1532,25 +1418,9 @@ export const ProductionPage = () => {
                 <option value="Guillotine Cutter 01">Guillotine Cutter 01</option>
               </select>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>From:</span>
-                <input
-                  type="date"
-                  className="jf-input"
-                  value={orderFromDate}
-                  onChange={(e) => setOrderFromDate(e.target.value)}
-                />
-              </div>
+              
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>To:</span>
-                <input
-                  type="date"
-                  className="jf-input"
-                  value={orderToDate}
-                  onChange={(e) => setOrderToDate(e.target.value)}
-                />
-              </div>
+
 
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <button

@@ -62,6 +62,10 @@ const { jobOrderRoutes } = require("./job-order");
 const { designRoutes } = require("./design");
 const publicRoutes = require("./public/public.routes");
 
+// Invoicing & Settlement routes (Module 10)
+const { invoiceRoutes } = require("./invoice");
+const settlementRoutes = require("./settlement/settlement.routes");
+
 // SLA & Performance routes (Module 09)
 
 const {
@@ -146,6 +150,11 @@ router.use("/delivery-orders", deliveryOrdersRoutes);
 router.use("/delivery-proofs", deliveryProofsRoutes);
 router.use("/delivery", deliveryModuleRouter);
 router.use("/production", productionModuleRouter);
+
+// Mount Module 10: Invoicing & Settlement sub-routers
+router.use("/invoices", invoiceRoutes);
+router.use("/settlement", settlementRoutes);
+router.use("/", settlementRoutes);
 
 // Job Order Production & Reprint endpoints (POST /job-orders/:id/production/plan & POST /job-orders/:id/reprint-requests)
 router.post(

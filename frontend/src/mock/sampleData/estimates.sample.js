@@ -982,19 +982,55 @@ export const sampleEstimates = [
         "quantity": 1000,
         "unit": "PCS",
         "lines": [
-          { "lineId": "line_bw_001_1", "description": "Art Card 350 GSM Velvet Stock", "category": "MATERIAL", "quantity": 88, "unit": "SHEETS", "rate": 4.5, "amount": 396 },
-          { "lineId": "line_bw_001_2", "description": "Digital Press Color Print", "category": "PRINTING", "quantity": 1000, "unit": "CARDS", "rate": 1.2, "amount": 1200 },
-          { "lineId": "line_bw_001_3", "description": "Thermal Velvet Matte Lamination", "category": "FINISHING", "quantity": 88, "unit": "SHEETS", "rate": 5.0, "amount": 440 },
-          { "lineId": "line_bw_001_4", "description": "Metallic Gold Hot Foil Stamping", "category": "FINISHING", "quantity": 1000, "unit": "CARDS", "rate": 0.41, "amount": 414 }
+          {
+            "lineId": "line_bw_001_1",
+            "description": "Art Card 350 GSM Velvet Stock",
+            "category": "MATERIAL",
+            "quantity": 88,
+            "unit": "SHEETS",
+            "rate": 4.5,
+            "amount": 396
+          },
+          {
+            "lineId": "line_bw_001_2",
+            "description": "Digital Press Color Print",
+            "category": "PRINTING",
+            "quantity": 1000,
+            "unit": "CARDS",
+            "rate": 1.2,
+            "amount": 1200
+          },
+          {
+            "lineId": "line_bw_001_3",
+            "description": "Thermal Velvet Matte Lamination",
+            "category": "FINISHING",
+            "quantity": 88,
+            "unit": "SHEETS",
+            "rate": 5,
+            "amount": 440
+          },
+          {
+            "lineId": "line_bw_001_4",
+            "description": "Metallic Gold Hot Foil Stamping",
+            "category": "FINISHING",
+            "quantity": 1000,
+            "unit": "CARDS",
+            "rate": 0.41,
+            "amount": 414
+          }
         ],
-        "itemSubtotal": 2450.00
+        "itemSubtotal": 2450
       }
     ],
-    "subtotal": 2450.00,
+    "subtotal": 2450,
     "discount": 0,
-    "taxableAmount": 2450.00,
-    "tax": { "type": "GST", "rate": 18, "taxAmount": 441.00 },
-    "grandTotal": 2891.00,
+    "taxableAmount": 2450,
+    "tax": {
+      "type": "GST",
+      "rate": 18,
+      "taxAmount": 441
+    },
+    "grandTotal": 2891,
     "validUntil": "2026-10-25",
     "createdBy": "Branch Manager",
     "createdAt": "2026-10-10T08:35:00.000Z",
@@ -1027,18 +1063,46 @@ export const sampleEstimates = [
         "quantity": 2500,
         "unit": "PCS",
         "lines": [
-          { "lineId": "line_bw_002_1", "description": "170 GSM Gloss Art Paper A4", "category": "MATERIAL", "quantity": 2500, "unit": "SHEETS", "rate": 1.4, "amount": 3500 },
-          { "lineId": "line_bw_002_2", "description": "Double Sided Full Colour Offset Print", "category": "PRINTING", "quantity": 2500, "unit": "SHEETS", "rate": 1.6, "amount": 4000 },
-          { "lineId": "line_bw_002_3", "description": "Creasing & 2-Fold Accordion", "category": "FINISHING", "quantity": 2500, "unit": "PCS", "rate": 0.56, "amount": 1400 }
+          {
+            "lineId": "line_bw_002_1",
+            "description": "170 GSM Gloss Art Paper A4",
+            "category": "MATERIAL",
+            "quantity": 2500,
+            "unit": "SHEETS",
+            "rate": 1.4,
+            "amount": 3500
+          },
+          {
+            "lineId": "line_bw_002_2",
+            "description": "Double Sided Full Colour Offset Print",
+            "category": "PRINTING",
+            "quantity": 2500,
+            "unit": "SHEETS",
+            "rate": 1.6,
+            "amount": 4000
+          },
+          {
+            "lineId": "line_bw_002_3",
+            "description": "Creasing & 2-Fold Accordion",
+            "category": "FINISHING",
+            "quantity": 2500,
+            "unit": "PCS",
+            "rate": 0.56,
+            "amount": 1400
+          }
         ],
-        "itemSubtotal": 8900.00
+        "itemSubtotal": 8900
       }
     ],
-    "subtotal": 8900.00,
+    "subtotal": 8900,
     "discount": 0,
-    "taxableAmount": 8900.00,
-    "tax": { "type": "GST", "rate": 18, "taxAmount": 1602.00 },
-    "grandTotal": 10502.00,
+    "taxableAmount": 8900,
+    "tax": {
+      "type": "GST",
+      "rate": 18,
+      "taxAmount": 1602
+    },
+    "grandTotal": 10502,
     "validUntil": "2026-10-24",
     "approvedAt": "2026-10-09T14:00:00.000Z",
     "approvedBy": "Customer (Online Portal)",
@@ -1073,10 +1137,26 @@ export const sampleEstimates = [
         "quantity": 2,
         "unit": "PCS",
         "lines": [
-          { "lineId": "line_bw_003_1", "description": "Star Flex 380 GSM Media (64 Sq.Ft)", "category": "MATERIAL", "quantity": 64, "unit": "SQFT", "rate": 16, "amount": 1024 },
-          { "lineId": "line_bw_003_2", "description": "Eco-Solvent Outdoor Print", "category": "PRINTING", "quantity": 64, "unit": "SQFT", "rate": 12, "amount": 768 }
+          {
+            "lineId": "line_bw_003_1",
+            "description": "Star Flex 380 GSM Media (64 Sq.Ft)",
+            "category": "MATERIAL",
+            "quantity": 64,
+            "unit": "SQFT",
+            "rate": 16,
+            "amount": 1024
+          },
+          {
+            "lineId": "line_bw_003_2",
+            "description": "Eco-Solvent Outdoor Print",
+            "category": "PRINTING",
+            "quantity": 64,
+            "unit": "SQFT",
+            "rate": 12,
+            "amount": 768
+          }
         ],
-        "itemSubtotal": 1792.00
+        "itemSubtotal": 1792
       },
       {
         "jobItemId": "item_bw_003_2",
@@ -1085,17 +1165,37 @@ export const sampleEstimates = [
         "quantity": 4,
         "unit": "PCS",
         "lines": [
-          { "lineId": "line_bw_003_3", "description": "Non-Tearable Polyester Film & Print", "category": "PRINTING", "quantity": 4, "unit": "PCS", "rate": 450, "amount": 1800 },
-          { "lineId": "line_bw_003_4", "description": "Aluminum Base Cassette Hardware", "category": "MATERIAL", "quantity": 4, "unit": "PCS", "rate": 152, "amount": 608 }
+          {
+            "lineId": "line_bw_003_3",
+            "description": "Non-Tearable Polyester Film & Print",
+            "category": "PRINTING",
+            "quantity": 4,
+            "unit": "PCS",
+            "rate": 450,
+            "amount": 1800
+          },
+          {
+            "lineId": "line_bw_003_4",
+            "description": "Aluminum Base Cassette Hardware",
+            "category": "MATERIAL",
+            "quantity": 4,
+            "unit": "PCS",
+            "rate": 152,
+            "amount": 608
+          }
         ],
-        "itemSubtotal": 2408.00
+        "itemSubtotal": 2408
       }
     ],
-    "subtotal": 4200.00,
+    "subtotal": 4200,
     "discount": 0,
-    "taxableAmount": 4200.00,
-    "tax": { "type": "GST", "rate": 18, "taxAmount": 756.00 },
-    "grandTotal": 4956.00,
+    "taxableAmount": 4200,
+    "tax": {
+      "type": "GST",
+      "rate": 18,
+      "taxAmount": 756
+    },
+    "grandTotal": 4956,
     "validUntil": "2026-10-22",
     "approvedAt": "2026-10-08T16:00:00.000Z",
     "approvedBy": "Customer (WhatsApp Confirmation)",
@@ -1130,11 +1230,35 @@ export const sampleEstimates = [
         "quantity": 30,
         "unit": "BOOK",
         "lines": [
-          { "lineId": "line_bw_004_1", "description": "90 GSM Maplitho Paper & Hardboard", "category": "MATERIAL", "quantity": 30, "unit": "PAD", "rate": 55, "amount": 1650 },
-          { "lineId": "line_bw_004_2", "description": "Single Color Precision Offset Print", "category": "PRINTING", "quantity": 30, "unit": "PAD", "rate": 45, "amount": 1350 },
-          { "lineId": "line_bw_004_3", "description": "Top Padding Glue & Numbering", "category": "FINISHING", "quantity": 30, "unit": "PAD", "rate": 25, "amount": 750 }
+          {
+            "lineId": "line_bw_004_1",
+            "description": "90 GSM Maplitho Paper & Hardboard",
+            "category": "MATERIAL",
+            "quantity": 30,
+            "unit": "PAD",
+            "rate": 55,
+            "amount": 1650
+          },
+          {
+            "lineId": "line_bw_004_2",
+            "description": "Single Color Precision Offset Print",
+            "category": "PRINTING",
+            "quantity": 30,
+            "unit": "PAD",
+            "rate": 45,
+            "amount": 1350
+          },
+          {
+            "lineId": "line_bw_004_3",
+            "description": "Top Padding Glue & Numbering",
+            "category": "FINISHING",
+            "quantity": 30,
+            "unit": "PAD",
+            "rate": 25,
+            "amount": 750
+          }
         ],
-        "itemSubtotal": 3750.00
+        "itemSubtotal": 3750
       },
       {
         "jobItemId": "item_bw_004_2",
@@ -1143,17 +1267,37 @@ export const sampleEstimates = [
         "quantity": 20,
         "unit": "REAMS",
         "lines": [
-          { "lineId": "line_bw_004_4", "description": "Royal Executive Bond 100 GSM", "category": "MATERIAL", "quantity": 20, "unit": "REAM", "rate": 80, "amount": 1600 },
-          { "lineId": "line_bw_004_5", "description": "Full Colour High Resolution Print", "category": "PRINTING", "quantity": 20, "unit": "REAM", "rate": 70, "amount": 1400 }
+          {
+            "lineId": "line_bw_004_4",
+            "description": "Royal Executive Bond 100 GSM",
+            "category": "MATERIAL",
+            "quantity": 20,
+            "unit": "REAM",
+            "rate": 80,
+            "amount": 1600
+          },
+          {
+            "lineId": "line_bw_004_5",
+            "description": "Full Colour High Resolution Print",
+            "category": "PRINTING",
+            "quantity": 20,
+            "unit": "REAM",
+            "rate": 70,
+            "amount": 1400
+          }
         ],
-        "itemSubtotal": 3000.00
+        "itemSubtotal": 3000
       }
     ],
-    "subtotal": 6750.00,
+    "subtotal": 6750,
     "discount": 0,
-    "taxableAmount": 6750.00,
-    "tax": { "type": "GST", "rate": 18, "taxAmount": 1215.00 },
-    "grandTotal": 7965.00,
+    "taxableAmount": 6750,
+    "tax": {
+      "type": "GST",
+      "rate": 18,
+      "taxAmount": 1215
+    },
+    "grandTotal": 7965,
     "validUntil": "2026-10-20",
     "approvedAt": "2026-10-07T12:00:00.000Z",
     "approvedBy": "Customer (Direct Acceptance)",
@@ -1188,19 +1332,55 @@ export const sampleEstimates = [
         "quantity": 150,
         "unit": "BOOK",
         "lines": [
-          { "lineId": "line_bw_005_1", "description": "130 GSM Matt Art Inside Pages (150pp)", "category": "MATERIAL", "quantity": 150, "unit": "BOOK", "rate": 45, "amount": 6750 },
-          { "lineId": "line_bw_005_2", "description": "Double Sided Digital Production Print", "category": "PRINTING", "quantity": 150, "unit": "BOOK", "rate": 40, "amount": 6000 },
-          { "lineId": "line_bw_005_3", "description": "350 GSM Hardcover Soft-Touch Matte Lam", "category": "MATERIAL", "quantity": 150, "unit": "BOOK", "rate": 20, "amount": 3000 },
-          { "lineId": "line_bw_005_4", "description": "Hot Melt Perfect Binding & Shrink Wrap", "category": "FINISHING", "quantity": 150, "unit": "BOOK", "rate": 18.33, "amount": 2750 }
+          {
+            "lineId": "line_bw_005_1",
+            "description": "130 GSM Matt Art Inside Pages (150pp)",
+            "category": "MATERIAL",
+            "quantity": 150,
+            "unit": "BOOK",
+            "rate": 45,
+            "amount": 6750
+          },
+          {
+            "lineId": "line_bw_005_2",
+            "description": "Double Sided Digital Production Print",
+            "category": "PRINTING",
+            "quantity": 150,
+            "unit": "BOOK",
+            "rate": 40,
+            "amount": 6000
+          },
+          {
+            "lineId": "line_bw_005_3",
+            "description": "350 GSM Hardcover Soft-Touch Matte Lam",
+            "category": "MATERIAL",
+            "quantity": 150,
+            "unit": "BOOK",
+            "rate": 20,
+            "amount": 3000
+          },
+          {
+            "lineId": "line_bw_005_4",
+            "description": "Hot Melt Perfect Binding & Shrink Wrap",
+            "category": "FINISHING",
+            "quantity": 150,
+            "unit": "BOOK",
+            "rate": 18.33,
+            "amount": 2750
+          }
         ],
-        "itemSubtotal": 18500.00
+        "itemSubtotal": 18500
       }
     ],
-    "subtotal": 18500.00,
+    "subtotal": 18500,
     "discount": 0,
-    "taxableAmount": 18500.00,
-    "tax": { "type": "GST", "rate": 18, "taxAmount": 3330.00 },
-    "grandTotal": 21830.00,
+    "taxableAmount": 18500,
+    "tax": {
+      "type": "GST",
+      "rate": 18,
+      "taxAmount": 3330
+    },
+    "grandTotal": 21830,
     "validUntil": "2026-10-18",
     "approvedAt": "2026-10-05T12:00:00.000Z",
     "approvedBy": "Customer (Signed Purchase Order)",

@@ -3,6 +3,7 @@ const productionOrderRepository = require("../../../infrastructure/database/mong
 const deliveryOrderRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoDeliveryOrderRepository");
 const jobOrderRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoJobOrderRepository");
 const productionOperationRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoProductionOperationRepository");
+const productionStateRepository = require("../../../infrastructure/database/mongoose/repositories/production/MongoProductionStateRepository");
 const ReworkService = require("./rework.service");
 const ReprintService = require("./reprint.service");
 const ProductionStateService = require("./productionState.service");
@@ -44,8 +45,8 @@ class QualityCheckService {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${productionOrderId}`);
     }
 
-    if (order.status !== "QC" && order.status !== "IN_PROGRESS") {
-      throw ErrorHelper.badRequest(`Cannot perform QC on an order in status '${order.status}'. Expected QC.`);
+    if (!["QC", "IN_PROGRESS", "COMPLETED", "PLANNED"].includes(order.status)) {
+      throw ErrorHelper.badRequest(`Cannot perform QC on an order in status '${order.status}'.`);
     }
 
     const {
@@ -72,18 +73,25 @@ class QualityCheckService {
 
     const isPass = result === "PASS" || result === "CONDITIONAL";
 
-    const qChecked = quantityChecked !== undefined ? Number(quantityChecked) : Number(order.plannedQty || 0);
-    const qAccepted = acceptedQty !== undefined ? Number(acceptedQty) : (isPass ? qChecked : 0);
-    const qRejected = rejectedQty !== undefined ? Number(rejectedQty) : (isPass ? 0 : qChecked);
+    let qChecked = quantityChecked !== undefined ? Number(quantityChecked) : Number(order.plannedQty || 0);
+    if (!qChecked || isNaN(qChecked) || qChecked <= 0) {
+      qChecked = Math.max(1, (Number(acceptedQty) || 0) + (Number(rejectedQty) || 0));
+    }
+    let qAccepted = acceptedQty !== undefined ? Number(acceptedQty) : (isPass ? qChecked : 0);
+    let qRejected = rejectedQty !== undefined ? Number(rejectedQty) : (isPass ? 0 : qChecked);
 
     if (qChecked < 0 || qAccepted < 0 || qRejected < 0) {
       throw ErrorHelper.badRequest("Quantities cannot be negative.");
     }
 
     if (qAccepted + qRejected !== qChecked) {
-      throw ErrorHelper.badRequest(
-        `Quantity mismatch: acceptedQty (${qAccepted}) + rejectedQty (${qRejected}) must equal quantityChecked (${qChecked}).`
-      );
+      if (isPass) {
+        qAccepted = qChecked;
+        qRejected = 0;
+      } else {
+        qRejected = qChecked;
+        qAccepted = 0;
+      }
     }
 
     // Normalize checklist items for backward and forward compatibility

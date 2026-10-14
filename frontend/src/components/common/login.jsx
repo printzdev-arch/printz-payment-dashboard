@@ -32,7 +32,20 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(emailOrPhone, password);
+      const user = await login(emailOrPhone, password);
+      if (user?.role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (user?.role === "manager") {
+        navigate("/manager-dashboard");
+      } else if (user?.role === "designer") {
+        navigate("/design/my-queue");
+      } else if (user?.role === "operator") {
+        navigate("/v3/production/queue");
+      } else if (user?.role === "staff" || user?.role === "cashier") {
+        navigate("/sales-pos");
+      } else {
+        navigate("/manager-dashboard");
+      }
     } catch (error) {
       const errorMsg =
         error?.response?.data?.message ||
@@ -285,7 +298,10 @@ const Login = () => {
                   if (passwordRef.current) passwordRef.current.value = "Manager@123";
                   setLoading(true);
                   try {
-                    await login("bn@printz.shop", "Manager@123");
+                    const user = await login("bn@printz.shop", "Manager@123");
+                    if (user?.role === "manager") navigate("/manager-dashboard");
+                    else if (user?.role === "admin") navigate("/admin-dashboard");
+                    else navigate("/manager-dashboard");
                   } catch (error) {
                     const errorMsg =
                       error?.response?.data?.message ||
@@ -316,7 +332,10 @@ const Login = () => {
                   if (passwordRef.current) passwordRef.current.value = "Admin@123";
                   setLoading(true);
                   try {
-                    await login("admin@printz.shop", "Admin@123");
+                    const user = await login("admin@printz.shop", "Admin@123");
+                    if (user?.role === "admin") navigate("/admin-dashboard");
+                    else if (user?.role === "manager") navigate("/manager-dashboard");
+                    else navigate("/admin-dashboard");
                   } catch (error) {
                     const errorMsg =
                       error?.response?.data?.message ||

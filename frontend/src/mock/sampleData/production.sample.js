@@ -212,7 +212,10 @@ export const sampleEligibleJobsForPlanning = [
       "gsm": 380,
       "side": "SINGLE_SIDE",
       "colourMode": "COLOUR",
-      "finishing": ["EYELETS", "EDGE_TAPING"]
+      "finishing": [
+        "EYELETS",
+        "EDGE_TAPING"
+      ]
     }
   },
   {

@@ -602,7 +602,7 @@ export const sampleJobs = [
     "totalQuantity": 1000,
     "estimateId": "est_bw_001",
     "estimateNo": "EST-2026-00015",
-    "estimatedAmount": 2450.00,
+    "estimatedAmount": 2450,
     "items": [
       {
         "jobItemId": "item_bw_001_1",
@@ -667,7 +667,7 @@ export const sampleJobs = [
     "totalQuantity": 2500,
     "estimateId": "est_bw_002",
     "estimateNo": "EST-2026-00016",
-    "estimatedAmount": 8900.00,
+    "estimatedAmount": 8900,
     "items": [
       {
         "jobItemId": "item_bw_002_1",
@@ -732,7 +732,7 @@ export const sampleJobs = [
     "totalQuantity": 6,
     "estimateId": "est_bw_003",
     "estimateNo": "EST-2026-00017",
-    "estimatedAmount": 4200.00,
+    "estimatedAmount": 4200,
     "items": [
       {
         "jobItemId": "item_bw_003_1",
@@ -824,7 +824,7 @@ export const sampleJobs = [
     "totalQuantity": 50,
     "estimateId": "est_bw_004",
     "estimateNo": "EST-2026-00018",
-    "estimatedAmount": 6750.00,
+    "estimatedAmount": 6750,
     "productionOrderId": "po_bw_001",
     "items": [
       {
@@ -920,10 +920,10 @@ export const sampleJobs = [
     "totalQuantity": 150,
     "estimateId": "est_bw_005",
     "estimateNo": "EST-2026-00019",
-    "estimatedAmount": 18500.00,
+    "estimatedAmount": 18500,
     "productionOrderId": "po_bw_002",
     "invoiceNo": "INV-2026-00012",
-    "invoiceAmount": 21830.00,
+    "invoiceAmount": 21830,
     "paymentStatus": "PAID",
     "items": [
       {

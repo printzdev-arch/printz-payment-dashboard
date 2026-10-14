@@ -48,7 +48,7 @@ module.exports = {
   PORT: process.env.PORT || 5000,
   NODE_ENV,
   isProduction,
-  MONGO_URI: process.env.MONGO_URI || "mongodb://127.0.0.1:27017/printz_payment_dashboard",
+  MONGO_URI: process.env.MONGO_URI || "mongodb://127.0.0.1:27017/newprintz_db",
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || (isProduction ? undefined : "printz_default_access_secret_2026"),
   JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || process.env.JWT_EXPIRES_IN || "15m",
   JWT_SECRET: process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET || (isProduction ? undefined : "printz_default_access_secret_2026"),

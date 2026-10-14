@@ -62,11 +62,24 @@ class MongoDeliveryOrderRepository extends IDeliveryOrderRepository {
   }
 
   async findById(id) {
-    return DeliveryOrder.findById(id);
+    const mongoose = require("mongoose");
+    if (mongoose.Types.ObjectId.isValid(id) && String(new mongoose.Types.ObjectId(id)) === String(id)) {
+      const doc = await DeliveryOrder.findById(id);
+      if (doc) return doc;
+    }
+    return DeliveryOrder.findOne({
+      $or: [{ deliveryNo: id }, { jobOrderId: id }],
+    });
   }
 
   async findByIdWithDetails(id) {
-    return DeliveryOrder.findById(id)
+    const mongoose = require("mongoose");
+    const isHexId = mongoose.Types.ObjectId.isValid(id) && String(new mongoose.Types.ObjectId(id)) === String(id);
+    const filter = isHexId
+      ? { $or: [{ _id: id }, { deliveryNo: id }, { jobOrderId: id }] }
+      : { $or: [{ deliveryNo: id }, { jobOrderId: id }] };
+
+    return DeliveryOrder.findOne(filter)
       .populate("jobOrderId")
       .populate("branchId", "name code address phone")
       .populate("reviewedBy", "name email role")
@@ -105,7 +118,16 @@ class MongoDeliveryOrderRepository extends IDeliveryOrderRepository {
   }
 
   async update(id, updateData) {
-    return DeliveryOrder.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    const mongoose = require("mongoose");
+    if (mongoose.Types.ObjectId.isValid(id) && String(new mongoose.Types.ObjectId(id)) === String(id)) {
+      const updated = await DeliveryOrder.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+      if (updated) return updated;
+    }
+    return DeliveryOrder.findOneAndUpdate(
+      { $or: [{ deliveryNo: id }, { jobOrderId: id }] },
+      { $set: updateData },
+      { new: true }
+    );
   }
 
   async countDocuments(filter = {}) {

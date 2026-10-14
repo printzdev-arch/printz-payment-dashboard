@@ -123,6 +123,8 @@ const jobOrderSchema = new mongoose.Schema(
         "QC",
         "READY",
         "DELIVERED",
+        "COMPLETED",
+        "SETTLED",
         "ON_HOLD",
         "CANCELLED",
         "ACTIVE",

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Truck,
   Package,
+  PackageCheck,
   Send,
   CheckCircle,
   Clock,
@@ -28,18 +29,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 export const DeliveryPage = ({ embedded = false }) => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const preselectedJobId = searchParams.get("jobId");
-  const tabParam = searchParams.get("tab");
 
-  // 4 tabs matching Image 6: 17A, 17B, 18A, 18B
-  const [activeTab, setActiveTab] = useState(tabParam || "17A");
-
-  useEffect(() => {
-    if (tabParam && ["17A", "17B", "18A", "18B"].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam]);
+  // Default to Delivery Tracking (18A)
+  const [activeTab, setActiveTab] = useState("18A");
   const [loading, setLoading] = useState(false);
 
   // 17A: Ready for Delivery Queue
@@ -311,7 +305,7 @@ export const DeliveryPage = ({ embedded = false }) => {
 
   const renderSubNav = () => (
     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: embedded ? "1.25rem" : 0 }}>
-      <button
+      {/* <button
         type="button"
         className={`jf-btn ${activeTab === "17A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
         onClick={() => setActiveTab("17A")}
@@ -324,7 +318,7 @@ export const DeliveryPage = ({ embedded = false }) => {
         onClick={() => setActiveTab("17B")}
       >
         Assign Delivery (Create DO)
-      </button>
+      </button> */}
       <button
         type="button"
         className={`jf-btn ${activeTab === "18A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
@@ -332,13 +326,13 @@ export const DeliveryPage = ({ embedded = false }) => {
       >
         Delivery Tracking ({activeDeliveries.length})
       </button>
-      <button
+      {/* <button
         type="button"
         className={`jf-btn ${activeTab === "18B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
         onClick={() => setActiveTab("18B")}
       >
         Handover & Settlement
-      </button>
+      </button> */}
     </div>
   );
 
@@ -349,7 +343,7 @@ export const DeliveryPage = ({ embedded = false }) => {
       {activeTab === "17A" && (
         <div>
           {/* Top 4 KPI Cards (Image 6 Screen 17A) */}
-          <div className="jf-stat-grid">
+          {/* <div className="jf-stat-grid">
             <div className="jf-stat-box">
               <div className="jf-stat-icon" style={{ background: "#fef3c7", color: "#92400e" }}>
                 <Package size={22} />
@@ -389,7 +383,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 <div className="jf-stat-label">Delivered Today</div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Ready Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}
           {/* QC Redirect Banner - shows when arriving from QC page with a specific job */}
@@ -525,36 +519,54 @@ export const DeliveryPage = ({ embedded = false }) => {
       {/* ──────────────── SCREEN 17B: ASSIGN DELIVERY - CREATE DELIVERY ORDER ──────────────── */}
       {activeTab === "17B" && (
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <div className="jf-card">
-            <div className="jf-card-header">
-              <div>
-                <h3 className="jf-card-title">Create Delivery Order (DO)</h3>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Job Ref: <strong>{selectedJob.jobNo}</strong> • {selectedJob.customerName}
-                </span>
-              </div>
-              <span className="jf-badge jf-badge-green">QC Cleared</span>
+          {!selectedJob ? (
+            <div className="jf-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
+              <PackageCheck size={40} style={{ color: "#94a3b8", marginBottom: "0.75rem" }} />
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "#0f172a" }}>
+                No Order Selected for Delivery Assignment
+              </h3>
+              <p style={{ color: "#64748b", fontSize: "0.875rem", margin: "0 0 1.25rem 0" }}>
+                Please choose a completed order from the Delivery Assignment Queue (17A) first.
+              </p>
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary"
+                onClick={() => setActiveTab("17A")}
+              >
+                Go to Assignment Queue (17A)
+              </button>
             </div>
+          ) : (
+            <div className="jf-card">
+              <div className="jf-card-header">
+                <div>
+                  <h3 className="jf-card-title">Create Delivery Order (DO)</h3>
+                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                    Job Ref: <strong>{selectedJob?.jobNo || "N/A"}</strong> • {selectedJob?.customerName || "Customer"}
+                  </span>
+                </div>
+                <span className="jf-badge jf-badge-green">QC Cleared</span>
+              </div>
 
-            {/* Grid 1: Customer & Package Specs */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-              <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-                <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
-                  Destination & Contact Details
-                </h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                  <div><span style={{ color: "#64748b" }}>Client:</span> <strong>{selectedJob.customerName}</strong></div>
-                  <div><span style={{ color: "#64748b" }}>Mobile:</span> {selectedJob.customerPhone}</div>
-                  <div><span style={{ color: "#64748b" }}>Address:</span> {selectedJob.address}</div>
-                  <div>
-                    <span style={{ color: "#64748b" }}>Balance Due on Delivery:</span>{" "}
-                    <strong style={{ color: "#dc2626" }}>RM {selectedJob.balanceDue.toFixed(2)}</strong>
+              {/* Grid 1: Customer & Package Specs */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+                <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
+                  <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
+                    Destination & Contact Details
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.8125rem" }}>
+                    <div><span style={{ color: "#64748b" }}>Client:</span> <strong>{selectedJob?.customerName || "Customer"}</strong></div>
+                    <div><span style={{ color: "#64748b" }}>Mobile:</span> {selectedJob?.customerPhone || "N/A"}</div>
+                    <div><span style={{ color: "#64748b" }}>Address:</span> {selectedJob?.address || "Main Store"}</div>
+                    <div>
+                      <span style={{ color: "#64748b" }}>Balance Due on Delivery:</span>{" "}
+                      <strong style={{ color: "#dc2626" }}>RM {(Number(selectedJob?.balanceDue) || 0).toFixed(2)}</strong>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-                <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
+                <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
+                  <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
                   Packaging & Security Specifications
                 </h4>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.8125rem" }}>
@@ -751,8 +763,9 @@ export const DeliveryPage = ({ embedded = false }) => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* ──────────────── SCREEN 18A: DISPATCH & HANDOVER - DELIVERY TRACKING ──────────────── */}
       {activeTab === "18A" && (
@@ -879,34 +892,52 @@ export const DeliveryPage = ({ embedded = false }) => {
       {/* ──────────────── SCREEN 18B: DELIVERY COMPLETION & SETTLEMENT ──────────────── */}
       {activeTab === "18B" && (
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <div className="jf-card">
-            <div className="jf-card-header">
-              <div>
-                <h3 className="jf-card-title">Delivery Completion & Final Settlement Handover</h3>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  DO Ref: <strong>{selectedDelivery.deliveryNo}</strong> • Job: {selectedDelivery.jobNo}
-                </span>
-              </div>
-              <StatusBadge status="In Progress" />
+          {!selectedDelivery ? (
+            <div className="jf-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
+              <Truck size={40} style={{ color: "#94a3b8", marginBottom: "0.75rem" }} />
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "#0f172a" }}>
+                No In-Transit Delivery Selected
+              </h3>
+              <p style={{ color: "#64748b", fontSize: "0.875rem", margin: "0 0 1.25rem 0" }}>
+                Please select an active dispatch from the Transit Tracking Queue (18A) to complete handover and settlement.
+              </p>
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary"
+                onClick={() => setActiveTab("18A")}
+              >
+                Go to Transit Tracking (18A)
+              </button>
             </div>
-
-            {/* Financial Reconciliation Summary Banner */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
-              <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>Customer:</span>
-                <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a" }}>
-                  {selectedDelivery.customerName}
+          ) : (
+            <div className="jf-card">
+              <div className="jf-card-header">
+                <div>
+                  <h3 className="jf-card-title">Delivery Completion & Final Settlement Handover</h3>
+                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                    DO Ref: <strong>{selectedDelivery?.deliveryNo || "N/A"}</strong> • Job: {selectedDelivery?.jobNo || "N/A"}
+                  </span>
                 </div>
-                <div style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: "4px" }}>
-                  {selectedDelivery.deliveryAddress}
-                </div>
+                <StatusBadge status="In Progress" />
               </div>
 
-              <div style={{ background: "#f0fdf4", padding: "1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-                <span style={{ fontSize: "0.8125rem", color: "#166534" }}>Outstanding Balance Due:</span>
-                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#15803d" }}>
-                  RM {selectedDelivery.balanceDue.toFixed(2)}
+              {/* Financial Reconciliation Summary Banner */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+                <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
+                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>Customer:</span>
+                  <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a" }}>
+                    {selectedDelivery?.customerName || "Customer"}
+                  </div>
+                  <div style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: "4px" }}>
+                    {selectedDelivery?.deliveryAddress || "Counter Pickup"}
+                  </div>
                 </div>
+
+                <div style={{ background: "#f0fdf4", padding: "1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                  <span style={{ fontSize: "0.8125rem", color: "#166534" }}>Outstanding Balance Due:</span>
+                  <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#15803d" }}>
+                    RM {(Number(selectedDelivery?.balanceDue) || 0).toFixed(2)}
+                  </div>
                 <div style={{ fontSize: "0.75rem", color: "#166534" }}>
                   Must be collected prior to final sign-off
                 </div>
@@ -1020,8 +1051,9 @@ export const DeliveryPage = ({ embedded = false }) => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
     </div>
   );
 

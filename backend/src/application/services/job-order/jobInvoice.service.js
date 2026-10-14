@@ -17,8 +17,8 @@ class JobInvoiceService {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
 
-    if (!["READY", "DELIVERED"].includes(job.status)) {
-      throw ErrorHelper.conflict(`Invoice can only be generated when Job is 'READY' or 'DELIVERED'. Current: '${job.status}'`);
+    if (!["READY", "DELIVERED", "COMPLETED", "SETTLED"].includes(job.status)) {
+      throw ErrorHelper.conflict(`Invoice can only be generated when Job is 'READY', 'DELIVERED', or 'COMPLETED'. Current: '${job.status}'`);
     }
 
     // Check if an invoice already exists for this job
@@ -27,7 +27,7 @@ class JobInvoiceService {
     });
 
     if (existingSale) {
-      throw ErrorHelper.conflict("An invoice already exists for this Job Order.");
+      return existingSale;
     }
 
     const items = await jobItemRepository.findByJobOrderId(job._id);

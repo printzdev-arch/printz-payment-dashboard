@@ -810,11 +810,13 @@ class DeliveryOrderService {
       return order;
     }
 
-    // Dispatch cannot occur before packing
+    // Auto-complete packing if dispatched directly from READY, REVIEWED, or ASSIGNED
     if (order.status !== "PACKED") {
-      throw ErrorHelper.badRequest(
-        `Cannot dispatch delivery order before it is packed. Expected status PACKED, current status is '${order.status}'.`
-      );
+      if (!order.packedAt) {
+        order.packedAt = new Date();
+        order.packedBy = user ? user._id : null;
+        order.itemsVerified = true;
+      }
     }
 
     if (dispatchData.deliveryType) {

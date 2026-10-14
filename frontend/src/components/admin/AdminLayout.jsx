@@ -129,7 +129,6 @@ const AdminLayout = ({ children }) => {
   const [isPrinterToggled, setIsPrinterToggled] = useState(false);
   const [isStockToggled, setIsStockToggled] = useState(false);
   const [isAdditionalToggled, setIsAdditionalToggled] = useState(false);
-  const [isProductionToggled, setIsProductionToggled] = useState(false);
 
   const initialProfilePic = (() => {
     try {
@@ -288,11 +287,6 @@ const AdminLayout = ({ children }) => {
   const togglePrinterData = () => setIsPrinterToggled((prev) => !prev);
   const toggleStockData = () => setIsStockToggled((prev) => !prev);
   const toggleAdditionalData = () => setIsAdditionalToggled((prev) => !prev);
-  const isProductionOpen =
-    isProductionToggled ||
-    location.pathname.includes("/production") ||
-    location.pathname.includes("/v3/production");
-  const toggleProductionData = () => setIsProductionToggled((prev) => !prev);
 
   const isActiveRoute = (route) => location.pathname === route;
 
@@ -398,13 +392,16 @@ const AdminLayout = ({ children }) => {
 
           {/* Production (Planning & Orders) */}
           <li className="sidebar-nav-item">
-            <button
-              type="button"
-              onClick={toggleProductionData}
-              className={`sidebar-dropdown-toggle ${
-                location.pathname.includes("/production") ||
-                location.pathname.includes("/v3/production")
-                  ? "active-parent"
+            <NavLink
+              to="/v3/production/planning"
+              className={`sidebar-link ${
+                isActiveRoute("/v3/production") ||
+                isActiveRoute("/production") ||
+                isActiveRoute("/v3/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/v3/production/orders") ||
+                isActiveRoute("/production/orders")
+                  ? "active-link"
                   : ""
               }`}
             >
@@ -412,75 +409,15 @@ const AdminLayout = ({ children }) => {
                 <Layers size={18} className="sidebar-link-icon" />
                 <span>Production</span>
               </div>
-              {isProductionOpen ? (
-                <ChevronDown size={16} className="sidebar-link-icon" />
-              ) : (
-                <ChevronRight size={16} className="sidebar-link-icon" />
+              {(isActiveRoute("/v3/production") ||
+                isActiveRoute("/production") ||
+                isActiveRoute("/v3/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/v3/production/orders") ||
+                isActiveRoute("/production/orders")) && (
+                <ChevronRight size={16} className="sidebar-active-arrow" />
               )}
-            </button>
-
-            {isProductionOpen && (
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=overview"
-                    className={`sidebar-dropdown-link ${
-                      location.pathname.includes("/production") &&
-                      (new URLSearchParams(location.search).get("tab") === "overview" ||
-                        (!new URLSearchParams(location.search).get("tab") &&
-                          !location.pathname.includes("/planning")))
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Production Dashboard
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=orders"
-                    className={`sidebar-dropdown-link ${
-                      new URLSearchParams(location.search).get("tab") === "orders" ? "active" : ""
-                    }`}
-                  >
-                    Production Orders
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=queue"
-                    className={`sidebar-dropdown-link ${
-                      new URLSearchParams(location.search).get("tab") === "queue" ? "active" : ""
-                    }`}
-                  >
-                    Operation Queue
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=reprints"
-                    className={`sidebar-dropdown-link ${
-                      new URLSearchParams(location.search).get("tab") === "reprints" ? "active" : ""
-                    }`}
-                  >
-                    Reprint Management
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production/planning"
-                    className={`sidebar-dropdown-link ${
-                      location.pathname.includes("/planning") ||
-                      new URLSearchParams(location.search).get("tab") === "planning"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Production Planning
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+            </NavLink>
           </li>
 
           {/* Admins */}

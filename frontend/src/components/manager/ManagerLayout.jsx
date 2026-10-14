@@ -242,50 +242,6 @@ const ManagerLayout = ({ children }) => {
 
   const isActiveRoute = (route) => location.pathname === route;
 
-  // JobFlow Accordion Submenu States & Active Checks
-  const [openDropdowns, setOpenDropdowns] = useState(() => {
-    const p = window.location.pathname;
-    return {
-      customers: p.includes("/customers") || p.includes("/qr-request"),
-      jobs: p.includes("/jobs"),
-      design: p.includes("/design"),
-      production: p.includes("/production"),
-      delivery: p.includes("/delivery"),
-    };
-  });
-
-  const toggleDropdown = (key) => {
-    setOpenDropdowns((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  useEffect(() => {
-    const p = location.pathname;
-    setOpenDropdowns((prev) => ({
-      ...prev,
-      customers: prev.customers || p.includes("/customers") || p.includes("/qr-request"),
-      jobs: prev.jobs || p.includes("/jobs"),
-      design: prev.design || p.includes("/design"),
-      production: prev.production || p.includes("/production"),
-      delivery: prev.delivery || p.includes("/delivery"),
-    }));
-  }, [location.pathname]);
-
-  const searchParams = new URLSearchParams(location.search);
-  const urlView = searchParams.get("view");
-  const urlTab = searchParams.get("tab");
-
-  const isCustomersActive = location.pathname.includes("/customers") || location.pathname.includes("/qr-request");
-  const isJobsActive = location.pathname.includes("/jobs");
-  const isEstimatesActive = location.pathname.includes("/estimates");
-  const isDesignActive = location.pathname.startsWith("/design") || location.pathname.startsWith("/jobflow/design");
-  const isProductionActive = location.pathname.startsWith("/production") || location.pathname.startsWith("/jobflow/production");
-  const isQcActive = location.pathname.includes("/quality-control") || location.pathname.includes("/qc");
-  const isDeliveryActive = location.pathname.startsWith("/delivery") || location.pathname.startsWith("/jobflow/delivery");
-  const isSettlementActive = location.pathname.includes("/settlement");
-
   const handleLogout = async () => {
     try {
       localStorage.removeItem("userBranchName");
@@ -413,162 +369,76 @@ const ManagerLayout = ({ children }) => {
             </NavLink>
           </li>
 
-          {/* JobFlow - Customer Master & QR */}
           <li className="sidebar-nav-item">
-            <div
-              className={`sidebar-link ${isCustomersActive ? "active-link" : ""}`}
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigate("/customers");
-                setOpenDropdowns((prev) => ({ ...prev, customers: true }));
-              }}
+            <NavLink
+              to="/jobflow"
+              className={`sidebar-link ${isActiveRoute("/jobflow") ? "active-link" : ""
+                }`}
+            >
+              <div className="sidebar-link-content">
+                <Users size={18} className="sidebar-link-icon" />
+                <span>Overview</span>
+              </div>
+
+              {isActiveRoute("/jobflow") && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
+          </li>
+
+          {/* JobFlow - Customer Master */}
+          <li className="sidebar-nav-item">
+            <NavLink
+              to="/customers"
+              className={`sidebar-link ${isActiveRoute("/customers") ||
+                  isActiveRoute("/jobflow/customers") ||
+                  isActiveRoute("/v3/customers")
+                  ? "active-link"
+                  : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <Users size={18} className="sidebar-link-icon" />
                 <span>Customers</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown("customers");
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "4px",
-                }}
-                title={openDropdowns.customers ? "Collapse Customers" : "Expand Customers"}
-              >
-                {openDropdowns.customers ? (
-                  <ChevronDown size={15} className="sidebar-active-arrow" />
-                ) : (
+
+              {(isActiveRoute("/customers") ||
+                isActiveRoute("/jobflow/customers") ||
+                isActiveRoute("/v3/customers")) && (
                   <ChevronRight size={15} className="sidebar-active-arrow" />
                 )}
-              </button>
-            </div>
-            {openDropdowns.customers && (
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/customers"
-                    className={`sidebar-dropdown-link ${
-                      location.pathname === "/customers" ||
-                      location.pathname === "/jobflow/customers" ||
-                      location.pathname === "/v3/customers"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Customer Master
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/jobflow/qr-request"
-                    className={`sidebar-dropdown-link ${
-                      location.pathname.includes("/qr-request") ? "active" : ""
-                    }`}
-                  >
-                    Branch QR Form
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+            </NavLink>
           </li>
 
           {/* JobFlow - Job Orders */}
           <li className="sidebar-nav-item">
-            <div
-              className={`sidebar-link ${isJobsActive ? "active-link" : ""}`}
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigate("/jobs");
-                setOpenDropdowns((prev) => ({ ...prev, jobs: true }));
-              }}
+            <NavLink
+              to="/jobs"
+              className={`sidebar-link ${isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs") ? "active-link" : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <Briefcase size={18} className="sidebar-link-icon" />
                 <span>Job Orders</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown("jobs");
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "4px",
-                }}
-                title={openDropdowns.jobs ? "Collapse Job Orders" : "Expand Job Orders"}
-              >
-                {openDropdowns.jobs ? (
-                  <ChevronDown size={15} className="sidebar-active-arrow" />
-                ) : (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
-              </button>
-            </div>
-            {openDropdowns.jobs && (
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/jobs"
-                    className={`sidebar-dropdown-link ${
-                      (location.pathname === "/jobs" ||
-                        location.pathname === "/jobflow/jobs" ||
-                        location.pathname === "/v3/jobs") &&
-                      !location.pathname.includes("/new")
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    All Job Orders
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/jobs/new"
-                    className={`sidebar-dropdown-link ${
-                      location.pathname.includes("/new") ? "active" : ""
-                    }`}
-                  >
-                    Create Job Order
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+              {(isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs")) && (
+                <ChevronRight size={15} className="sidebar-active-arrow" />
+              )}
+            </NavLink>
           </li>
 
           {/* JobFlow - Estimates & Quotations */}
           <li className="sidebar-nav-item">
             <NavLink
               to="/estimates"
-              className={`sidebar-link ${
-                isActiveRoute("/estimates") ||
-                isActiveRoute("/jobflow/estimates") ||
-                isActiveRoute("/v3/estimates")
-                  ? "active-link"
-                  : ""
-              }`}
+              className={`sidebar-link ${isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates") ? "active-link" : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <Calculator size={18} className="sidebar-link-icon" />
                 <span>Estimates & Quotes</span>
               </div>
-              {(isActiveRoute("/estimates") ||
-                isActiveRoute("/jobflow/estimates") ||
-                isActiveRoute("/v3/estimates")) && (
+              {(isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates")) && (
                 <ChevronRight size={15} className="sidebar-active-arrow" />
               )}
             </NavLink>
@@ -576,317 +446,152 @@ const ManagerLayout = ({ children }) => {
 
           {/* JobFlow - Design Workflow */}
           <li className="sidebar-nav-item">
-            <div
-              className={`sidebar-link ${isDesignActive ? "active-link" : ""}`}
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigate("/design?view=queue");
-                setOpenDropdowns((prev) => ({ ...prev, design: true }));
-              }}
+            <NavLink
+              to="/design"
+              className={`sidebar-link ${isActiveRoute("/design") ||
+                  isActiveRoute("/jobflow/design") ||
+                  isActiveRoute("/v3/design") ||
+                  isActiveRoute("/design/workbench") ||
+                  isActiveRoute("/design/workspace") ||
+                  location.pathname.startsWith("/design") ||
+                  location.pathname.startsWith("/jobflow/design")
+                  ? "active-link"
+                  : ""
+                }`}
+              style={({ isActive }) =>
+                isActive ||
+                  location.pathname.startsWith("/design") ||
+                  location.pathname.startsWith("/jobflow/design")
+                  ? {
+                    backgroundColor: "rgba(22, 163, 74, 0.15)",
+                    borderLeft: "3px solid #16a34a",
+                    color: "#ffffff",
+                  }
+                  : {}
+              }
             >
               <div className="sidebar-link-content">
-                <Palette size={18} className="sidebar-link-icon" />
+                <Palette
+                  size={18}
+                  className="sidebar-link-icon"
+                  style={
+                    location.pathname.startsWith("/design") ||
+                      location.pathname.startsWith("/jobflow/design")
+                      ? { color: "#16a34a" }
+                      : {}
+                  }
+                />
                 <span>Design</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown("design");
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "4px",
-                }}
-                title={openDropdowns.design ? "Collapse Design" : "Expand Design"}
-              >
-                {openDropdowns.design ? (
-                  <ChevronDown size={15} className="sidebar-active-arrow" />
-                ) : (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
+              {(isActiveRoute("/design") ||
+                isActiveRoute("/jobflow/design") ||
+                isActiveRoute("/v3/design") ||
+                isActiveRoute("/design/workbench") ||
+                isActiveRoute("/design/workspace") ||
+                location.pathname.startsWith("/design") ||
+                location.pathname.startsWith("/jobflow/design")) && (
+                  <ChevronRight
+                    size={15}
+                    className="sidebar-active-arrow"
+                    style={{ color: "#16a34a" }}
+                  />
                 )}
-              </button>
-            </div>
-            {openDropdowns.design && (
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/design?view=queue"
-                    className={`sidebar-dropdown-link ${
-                      isDesignActive &&
-                      (urlView === "queue" ||
-                        (!urlView &&
-                          !location.pathname.includes("/workbench") &&
-                          !location.pathname.includes("/workspace")))
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Design Queue (Supervisor)
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/design?view=workbench"
-                    className={`sidebar-dropdown-link ${
-                      urlView === "workbench" ||
-                      location.pathname.includes("/workbench") ||
-                      location.pathname.includes("/workspace")
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Design Workbench
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/design?view=my-jobs"
-                    className={`sidebar-dropdown-link ${
-                      urlView === "my-jobs" ? "active" : ""
-                    }`}
-                  >
-                    Designer My Jobs
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/design?view=customer-proof"
-                    className={`sidebar-dropdown-link ${
-                      urlView === "customer-proof" ? "active" : ""
-                    }`}
-                  >
-                    WhatsApp Proof Review
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+            </NavLink>
           </li>
 
           {/* JobFlow - Production Operations */}
           <li className="sidebar-nav-item">
-            <div
-              className={`sidebar-link ${isProductionActive ? "active-link" : ""}`}
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigate("/production?tab=overview");
-                setOpenDropdowns((prev) => ({ ...prev, production: true }));
-              }}
+            <NavLink
+              to="/production"
+              className={`sidebar-link ${isActiveRoute("/production") ||
+                  isActiveRoute("/jobflow/production") ||
+                  isActiveRoute("/jobflow/production-planning") ||
+                  isActiveRoute("/jobflow/production/planning") ||
+                  isActiveRoute("/production/planning") ||
+                  isActiveRoute("/production-planning") ||
+                  isActiveRoute("/v3/production")
+                  ? "active-link"
+                  : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <Layers size={18} className="sidebar-link-icon" />
                 <span>Production</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown("production");
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "4px",
-                }}
-                title={openDropdowns.production ? "Collapse Production" : "Expand Production"}
-              >
-                {openDropdowns.production ? (
-                  <ChevronDown size={15} className="sidebar-active-arrow" />
-                ) : (
+              {(isActiveRoute("/production") ||
+                isActiveRoute("/jobflow/production") ||
+                isActiveRoute("/jobflow/production-planning") ||
+                isActiveRoute("/jobflow/production/planning") ||
+                isActiveRoute("/production/planning") ||
+                isActiveRoute("/production-planning") ||
+                isActiveRoute("/v3/production")) && (
                   <ChevronRight size={15} className="sidebar-active-arrow" />
                 )}
-              </button>
-            </div>
-            {openDropdowns.production && (
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=overview"
-                    className={`sidebar-dropdown-link ${
-                      isProductionActive &&
-                      (urlTab === "overview" ||
-                        (!urlTab && !location.pathname.includes("/planning")))
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Production Dashboard
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=orders"
-                    className={`sidebar-dropdown-link ${
-                      urlTab === "orders" ? "active" : ""
-                    }`}
-                  >
-                    Production Orders
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=queue"
-                    className={`sidebar-dropdown-link ${
-                      urlTab === "queue" ? "active" : ""
-                    }`}
-                  >
-                    Operation Queue
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production?tab=reprints"
-                    className={`sidebar-dropdown-link ${
-                      urlTab === "reprints" ? "active" : ""
-                    }`}
-                  >
-                    Reprint Management
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production/planning"
-                    className={`sidebar-dropdown-link ${
-                      location.pathname.includes("/planning") || urlTab === "planning"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Production Planning
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+            </NavLink>
           </li>
 
           {/* JobFlow - Quality Control */}
           <li className="sidebar-nav-item">
             <NavLink
               to="/quality-control"
-              className={`sidebar-link ${
-                isQcActive ? "active-link" : ""
-              }`}
+              className={`sidebar-link ${isActiveRoute("/quality-control") ||
+                isActiveRoute("/jobflow/qc") ||
+                isActiveRoute("/v3/quality-control")
+                ? "active-link"
+                : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <ShieldCheck size={18} className="sidebar-link-icon" />
                 <span>Quality Control</span>
               </div>
-              {isQcActive && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
+              {(isActiveRoute("/quality-control") ||
+                isActiveRoute("/jobflow/qc") ||
+                isActiveRoute("/v3/quality-control")) && (
+                  <ChevronRight size={15} className="sidebar-active-arrow" />
+                )}
             </NavLink>
           </li>
 
           {/* JobFlow - Delivery Management */}
           <li className="sidebar-nav-item">
-            <div
-              className={`sidebar-link ${isDeliveryActive ? "active-link" : ""}`}
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigate("/delivery?tab=17A");
-                setOpenDropdowns((prev) => ({ ...prev, delivery: true }));
-              }}
+            <NavLink
+              to="/delivery"
+              className={`sidebar-link ${isActiveRoute("/delivery") ||
+                isActiveRoute("/jobflow/delivery")
+                ? "active-link"
+                : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <Truck size={18} className="sidebar-link-icon" />
                 <span>Delivery</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown("delivery");
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "4px",
-                }}
-                title={openDropdowns.delivery ? "Collapse Delivery" : "Expand Delivery"}
-              >
-                {openDropdowns.delivery ? (
-                  <ChevronDown size={15} className="sidebar-active-arrow" />
-                ) : (
+              {(isActiveRoute("/delivery") ||
+                isActiveRoute("/jobflow/delivery")) && (
                   <ChevronRight size={15} className="sidebar-active-arrow" />
                 )}
-              </button>
-            </div>
-            {openDropdowns.delivery && (
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/delivery?tab=17A"
-                    className={`sidebar-dropdown-link ${
-                      isDeliveryActive && (urlTab === "17A" || !urlTab)
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    Ready for Delivery Queue
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/delivery?tab=17B"
-                    className={`sidebar-dropdown-link ${
-                      urlTab === "17B" ? "active" : ""
-                    }`}
-                  >
-                    Delivery Details (DO-xxxxx)
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/delivery?tab=18A"
-                    className={`sidebar-dropdown-link ${
-                      urlTab === "18A" ? "active" : ""
-                    }`}
-                  >
-                    Pack & Dispatch
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/delivery?tab=18B"
-                    className={`sidebar-dropdown-link ${
-                      urlTab === "18B" ? "active" : ""
-                    }`}
-                  >
-                    Handover Evidence & Proof
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+            </NavLink>
           </li>
 
           {/* JobFlow - Settlement */}
           <li className="sidebar-nav-item">
             <NavLink
               to="/settlement"
-              className={`sidebar-link ${
-                isSettlementActive ? "active-link" : ""
-              }`}
+              className={`sidebar-link ${isActiveRoute("/settlement") ||
+                isActiveRoute("/jobflow/settlement")
+                ? "active-link"
+                : ""
+                }`}
             >
               <div className="sidebar-link-content">
                 <Receipt size={18} className="sidebar-link-icon" />
                 <span>Settlement</span>
               </div>
-              {isSettlementActive && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
+              {(isActiveRoute("/settlement") ||
+                isActiveRoute("/jobflow/settlement")) && (
+                  <ChevronRight size={15} className="sidebar-active-arrow" />
+                )}
             </NavLink>
           </li>
         </ul>

@@ -21,7 +21,7 @@ const validate = (req, res, next) => {
 };
 
 const idParamValidator = (paramName = "id") => [
-  param(paramName).isMongoId().withMessage(`Valid ${paramName} is required`),
+  param(paramName).notEmpty().withMessage(`Valid ${paramName} is required`),
   validate,
 ];
 
@@ -35,7 +35,7 @@ const createDeliveryOrderValidator = [
 ];
 
 const updateDeliveryDetailsValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("deliveryType")
     .optional()
     .isIn(["DELIVERY", "COUNTER_PICKUP", "COURIER"])
@@ -44,12 +44,12 @@ const updateDeliveryDetailsValidator = [
 ];
 
 const reviewJobValidator = [
-  param("jobOrderId").isMongoId().withMessage("Valid Job Order ID is required"),
+  param("jobOrderId").notEmpty().withMessage("Valid Job Order ID is required"),
   validate,
 ];
 
 const assignDeliveryValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("deliveryPersonName")
     .optional()
     .isString()
@@ -59,9 +59,7 @@ const assignDeliveryValidator = [
     .isString()
     .withMessage("deliveryPersonPhone must be a string"),
   body("assignedEmployeeId")
-    .optional()
-    .isMongoId()
-    .withMessage("Valid assignedEmployeeId is required"),
+    .optional(),
   body("vehicleNumber")
     .optional()
     .isString()
@@ -70,7 +68,7 @@ const assignDeliveryValidator = [
 ];
 
 const packDeliveryValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("packedQuantity")
     .optional()
     .isNumeric()
@@ -83,7 +81,7 @@ const packDeliveryValidator = [
 ];
 
 const dispatchDeliveryValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("deliveryType")
     .optional()
     .isIn(["DELIVERY", "COUNTER_PICKUP", "COURIER"])
@@ -92,7 +90,7 @@ const dispatchDeliveryValidator = [
 ];
 
 const recordHandoverValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("recipientName")
     .optional()
     .isString()
@@ -105,7 +103,7 @@ const recordHandoverValidator = [
 ];
 
 const deliverValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("receivedBy")
     .optional()
     .isString()
@@ -118,7 +116,7 @@ const deliverValidator = [
 ];
 
 const verifyOtpValidator = [
-  param("id").isMongoId().withMessage("Valid Delivery Order ID is required"),
+  param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("otp").notEmpty().withMessage("OTP is required"),
   validate,
 ];

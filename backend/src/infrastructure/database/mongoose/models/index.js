@@ -56,12 +56,21 @@ const QualityCheck = require("./production/QualityCheck");
 const ReprintRequest = require("./production/ReprintRequest");
 const DeliveryOrder = require("./production/DeliveryOrder");
 
+// Invoicing & Settlement
+const Invoice = require("./invoice/Invoice");
+const InvoiceReminder = require("./invoice/InvoiceReminder");
+const Payment = require("./payment/Payment");
+
 // SLA & Rating
 const SlaConfiguration = require("./sla/SlaConfiguration");
 const DesignerRating = require("./sla/DesignerRating");
 const DesignApprovalToken = require("./design/DesignApprovalToken");
 
 module.exports = {
+  // Invoicing & Settlement
+  Invoice,
+  InvoiceReminder,
+  Payment,
   // Auth & Master
   User,
   Role,

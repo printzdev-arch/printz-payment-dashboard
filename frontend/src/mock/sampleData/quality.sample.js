@@ -244,9 +244,21 @@ export const sampleQualityChecks = [
     "result": "PASS",
     "correctiveAction": "NONE",
     "checklist": [
-      { "item": "Color accuracy & density", "result": "PASS", "notes": "Solid crisp typography" },
-      { "item": "Dimensions & cutting precision", "result": "PASS", "notes": "A5 148x210mm exact" },
-      { "item": "Padding & binding strength", "result": "PASS", "notes": "Top glue firm, sheets tear cleanly" }
+      {
+        "item": "Color accuracy & density",
+        "result": "PASS",
+        "notes": "Solid crisp typography"
+      },
+      {
+        "item": "Dimensions & cutting precision",
+        "result": "PASS",
+        "notes": "A5 148x210mm exact"
+      },
+      {
+        "item": "Padding & binding strength",
+        "result": "PASS",
+        "notes": "Top glue firm, sheets tear cleanly"
+      }
     ],
     "defects": [],
     "comments": "Inspected all 30 pads. Padding and perforation verified. Approved for dispatch.",
@@ -276,9 +288,21 @@ export const sampleQualityChecks = [
     "result": "PASS",
     "correctiveAction": "NONE",
     "checklist": [
-      { "item": "Binding integrity", "result": "PASS", "notes": "Perfect bind spine square & firm" },
-      { "item": "Cover soft-touch finish", "result": "PASS", "notes": "Velvet feel flawless, no scuffs" },
-      { "item": "Page sequence & collation", "result": "PASS", "notes": "All 150 pages verified" }
+      {
+        "item": "Binding integrity",
+        "result": "PASS",
+        "notes": "Perfect bind spine square & firm"
+      },
+      {
+        "item": "Cover soft-touch finish",
+        "result": "PASS",
+        "notes": "Velvet feel flawless, no scuffs"
+      },
+      {
+        "item": "Page sequence & collation",
+        "result": "PASS",
+        "notes": "All 150 pages verified"
+      }
     ],
     "defects": [],
     "comments": "Executive quality. Shrink wrapped in bundles of 25. Ready for billing & delivery.",

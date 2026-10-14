@@ -145,11 +145,14 @@ const authorizePermission = (resource, action = "read") => {
       return next(ErrorHelper.unauthorized("Authentication required."));
     }
 
-    // Admins have unrestricted access
+    // Admins and managers have unrestricted operational access
     if (
       req.user.role === "admin" ||
+      req.user.role === "superadmin" ||
       req.user.role === "SUPER_ADMIN" ||
-      req.user.roleCode === "SUPER_ADMIN"
+      req.user.roleCode === "SUPER_ADMIN" ||
+      req.user.roleCode === "ADMIN" ||
+      req.user.role === "manager"
     ) {
       return next();
     }

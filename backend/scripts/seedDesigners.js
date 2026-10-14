@@ -3,7 +3,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const mongoose = require("mongoose");
 
 async function seed() {
-  const uri = process.env.MONGO_URI || "mongodb://localhost:27017/vasu_db";
+  const uri = process.env.MONGO_URI || "mongodb://localhost:27017/newprintz_db";
   await mongoose.connect(uri);
   const names = [
     { name: "Ali Hassan", code: "EMP-001" },
