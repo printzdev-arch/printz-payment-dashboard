@@ -181,6 +181,17 @@
   opacity: 0.9;
 }
 
+/* Active Parent for open/active dropdowns */
+.sidebar-dropdown-toggle.active-parent {
+  color: #ffffff;
+  background: rgba(16, 185, 129, 0.12);
+  border-left: 3px solid #10b981;
+}
+
+.sidebar-dropdown-toggle.active-parent .sidebar-link-icon {
+  color: #10b981;
+}
+
 /* Dropdowns */
 .sidebar-dropdown-list {
   list-style: none;

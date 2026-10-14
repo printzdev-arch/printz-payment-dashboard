@@ -28,11 +28,18 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 export const DeliveryPage = ({ embedded = false }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const preselectedJobId = searchParams.get("jobId");
+  const tabParam = searchParams.get("tab");
 
   // 4 tabs matching Image 6: 17A, 17B, 18A, 18B
-  const [activeTab, setActiveTab] = useState("17A");
+  const [activeTab, setActiveTab] = useState(tabParam || "17A");
+
+  useEffect(() => {
+    if (tabParam && ["17A", "17B", "18A", "18B"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
   const [loading, setLoading] = useState(false);
 
   // 17A: Ready for Delivery Queue
