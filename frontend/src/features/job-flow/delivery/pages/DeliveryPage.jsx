@@ -1,1072 +1,905 @@
 import React, { useState, useEffect } from "react";
 import {
   Truck,
-  Package,
   PackageCheck,
   Send,
   CheckCircle,
-  Clock,
-  UserCheck,
   MapPin,
   Phone,
-  FileCheck,
-  QrCode,
-  DollarSign,
-  Receipt,
-  Printer,
-  ChevronRight,
   ShieldCheck,
-  AlertTriangle,
-  FileText,
-  CreditCard
+  Search,
+  Eye,
+  RefreshCw,
+  ArrowRight,
+  X,
+  Package,
+  UserCheck,
+  Wallet,
+  Receipt,
+  TrendingUp,
 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
-import jobFlowApi from "../api/deliveryApi";
-import { toast } from "react-toastify";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import deliveryApi from "../api/deliveryApi";
+import "../styles/delivery.css";
+
+// Phase 1 Modals
+import CreateDeliveryOrderModal from "../components/CreateDeliveryOrderModal";
+import AssignDeliveryModal from "../components/AssignDeliveryModal";
+import PackDeliveryModal from "../components/PackDeliveryModal";
+import HandoverProofModal from "../components/HandoverProofModal";
+
+const TABS = [
+  { key: "REVIEW", label: "Manager Review", icon: ShieldCheck },
+  { key: "ASSIGNED", label: "Assigned", icon: Send },
+  { key: "PACKED", label: "Packed", icon: PackageCheck },
+  { key: "OUT_FOR_DELIVERY", label: "In Transit", icon: Truck },
+  { key: "DELIVERED", label: "Delivered", icon: CheckCircle },
+];
+
+const getInitials = (name = "") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase() || "?";
+
+const Avatar = ({ name }) => (
+  <span className="dlv-avatar" aria-hidden="true">
+    {getInitials(name)}
+  </span>
+);
 
 export const DeliveryPage = ({ embedded = false }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const preselectedJobId = searchParams.get("jobId");
+  const tabParam = searchParams.get("tab");
 
-  // Default to Delivery Tracking (18A)
-  const [activeTab, setActiveTab] = useState("18A");
-  const [loading, setLoading] = useState(false);
-
-  // 17A: Ready for Delivery Queue
-  const [readyJobs, setReadyJobs] = useState([]);
-  const [selectedJob, setSelectedJob] = useState(null);
+  // Tab State: "REVIEW" | "ASSIGNED" | "PACKED" | "OUT_FOR_DELIVERY" | "DELIVERED"
+  const [activeTab, setActiveTab] = useState(
+    tabParam && ["REVIEW", "ASSIGNED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(tabParam.toUpperCase())
+      ? tabParam.toUpperCase()
+      : "REVIEW"
+  );
 
   useEffect(() => {
-    // Load live Delivery jobs from backend (Ready for Delivery queue - Screen 17A)
-    jobFlowApi
-      .getJobOrders({ currentStage: "READY,DELIVERY", limit: 50 })
-      .then((res) => {
-        const items = res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
-        if (Array.isArray(items) && items.length > 0) {
-          // Sort by most recently updated first
-          const sorted = [...items].sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
-          const mapped = sorted.map((job) => ({
-            _id: job._id || job.id,
-            jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
-            customerName:
-              job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-            customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "N/A",
-            address: job.customerSnapshot?.address || "Counter Pickup",
-            itemsDesc: `${job.title || "Print Order"} - ${job.quantity || 500} pcs`,
-            totalAmount: Number(job.grandTotal || job.totalAmount || 350.0),
-            advancePaid: Number(job.advancePaid || 0),
-            balanceDue: Number((job.grandTotal || job.totalAmount || 350.0) - (job.advancePaid || 0)),
-            dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Today",
-            deliveryType: job.deliveryMethod || "In-House Fleet",
-            priority: job.priority || "Normal",
-            status: "READY_FOR_DELIVERY",
-            raw: job,
-          }));
-          setReadyJobs(mapped);
+    if (tabParam) {
+      const upper = tabParam.toUpperCase();
+      if (["REVIEW", "ASSIGNED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(upper)) {
+        setActiveTab(upper);
+      }
+    }
+  }, [tabParam]);
 
-          // If navigated from QC with a jobId, highlight the job in 17A queue (don't auto-switch to 17B)
-          if (preselectedJobId) {
-            const match = mapped.find(
-              (j) => (j._id || j.id) === preselectedJobId || j.jobNo === preselectedJobId
-            );
-            if (match) {
-              // Highlight the matching job but stay on the 17A queue tab so user can see it
-              setSelectedJob(match);
-              // Stay on 17A - the user will click "Assign Delivery" themselves
-            } else {
-              // Try to fetch the job directly and add it to the top of the queue
-              jobFlowApi
-                .getJobOrderById(preselectedJobId)
-                .then((singleRes) => {
-                  const job = singleRes?.data || singleRes;
-                  if (job && job._id) {
-                    const formattedJob = {
-                      _id: job._id || job.id,
-                      jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
-                      customerName:
-                        job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-                      customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "N/A",
-                      address: job.customerSnapshot?.address || "Counter Pickup",
-                      itemsDesc: `${job.title || job.productType || "Print Order"} - ${job.quantity || 500} pcs`,
-                      totalAmount: Number(job.grandTotal || job.totalAmount || 350.0),
-                      advancePaid: Number(job.advancePaid || 0),
-                      balanceDue: Number((job.grandTotal || job.totalAmount || 350.0) - (job.advancePaid || 0)),
-                      dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Today",
-                      deliveryType: "In-House Fleet",
-                      priority: job.priority || "Normal",
-                      status: "READY_FOR_DELIVERY",
-                      raw: job,
-                    };
-                    setReadyJobs((prev) => [formattedJob, ...prev.filter(j => j._id !== formattedJob._id)]);
-                    setSelectedJob(formattedJob);
-                  }
-                })
-                .catch(() => {});
-            }
-          } else {
-            setSelectedJob(mapped[0]);
-          }
-        } else if (preselectedJobId) {
-          // No jobs in READY stage yet - fetch this specific job to show it
-          jobFlowApi
-            .getJobOrderById(preselectedJobId)
-            .then((singleRes) => {
-              const job = singleRes?.data || singleRes;
-              if (job && job._id) {
-                const formattedJob = {
-                  _id: job._id || job.id,
-                  jobNo: job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`,
-                  customerName:
-                    job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-                  customerPhone: job.customerPhone || job.customerSnapshot?.mobile || "N/A",
-                  address: job.customerSnapshot?.address || "Counter Pickup",
-                  itemsDesc: `${job.title || job.productType || "Print Order"} - ${job.quantity || 500} pcs`,
-                  totalAmount: Number(job.grandTotal || job.totalAmount || 350.0),
-                  advancePaid: Number(job.advancePaid || 0),
-                  balanceDue: Number((job.grandTotal || job.totalAmount || 350.0) - (job.advancePaid || 0)),
-                  dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString() : "Today",
-                  deliveryType: "In-House Fleet",
-                  priority: job.priority || "Normal",
-                  status: "READY_FOR_DELIVERY",
-                  raw: job,
-                };
-                setReadyJobs([formattedJob]);
-                setSelectedJob(formattedJob);
-              }
-            })
-            .catch(() => {});
-        } else {
-          setReadyJobs([]);
-          setSelectedJob(null);
-        }
-      })
-      .catch((err) => {
-        console.warn("Failed fetching live delivery jobs:", err);
-        setReadyJobs([]);
-        setSelectedJob(null);
-      });
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", newTab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
-    // Load live Delivery Orders (Screen 18A: Active Deliveries & Transit Tracking)
-    // Only show actively dispatched/in-transit orders (not READY - those are in the 17A queue above)
-    jobFlowApi
-      .getDeliveryOrders({ limit: 100 })
-      .then((res) => {
-        const items = res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
-        if (Array.isArray(items)) {
-          // Sort by most recently created first
-          const sorted = [...items].sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
-          // Include all delivery orders (including newly generated READY orders from QC)
-          const activeMapped = sorted.map((d) => {
-            const jObj = d.jobOrderId && typeof d.jobOrderId === "object" ? d.jobOrderId : null;
-            return {
-              _id: d._id || d.id,
-              deliveryNo: d.deliveryNo || `DO-${String(d._id).slice(-6)}`,
-              jobNo: jObj?.jobNo || d.jobNo || "JO-CURRENT",
-              customerName: jObj?.customerName || d.customerName || "Customer",
-              deliveryAddress: d.deliveryAddress || jObj?.customerSnapshot?.address || "Counter Pickup / Main Store",
-              method: d.deliveryMethod === "IN_HOUSE" ? `${d.driverName || "Fleet Driver"} (${d.vehicleNumber || "Van"})` : (d.deliveryMethod || "In-House Fleet"),
-              dispatchTime: d.dispatchedAt ? new Date(d.dispatchedAt).toLocaleTimeString() : (d.createdAt ? new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "Scheduled"),
-              estArrival: d.estArrival || (d.status === "DELIVERED" ? "Completed" : d.status === "READY" ? "Ready to Dispatch" : "Within 2 Hours"),
-              balanceDue: Number(d.balanceDue || 0),
-              status: d.status || "READY",
-              raw: d,
-            };
-          });
-          setActiveDeliveries(activeMapped);
-        }
-      })
-      .catch((err) => console.warn("Failed fetching live delivery orders:", err));
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Data collections
+  const [readyJobs, setReadyJobs] = useState([]);
+  const [deliveryOrders, setDeliveryOrders] = useState([]);
+
+  // Modal controls
+  const [selectedJobForDO, setSelectedJobForDO] = useState(null);
+  const [selectedDOForAssign, setSelectedDOForAssign] = useState(null);
+  const [selectedDOForPack, setSelectedDOForPack] = useState(null);
+  const [selectedDOForHandover, setSelectedDOForHandover] = useState(null);
+
+  useEffect(() => {
+    loadAllData();
   }, [preselectedJobId]);
 
-  // 17B: Delivery Order Form State
-  const [deliveryMethod, setDeliveryMethod] = useState("IN_HOUSE"); // "IN_HOUSE", "COURIER", "PICKUP"
-  const [packageCount, setPackageCount] = useState(2);
-  const [packageWeight, setPackageWeight] = useState("3.5");
-  const [tamperSealId, setTamperSealId] = useState("PS-99214");
-  const [driverName, setDriverName] = useState("Ramesh Kumar");
-  const [driverPhone, setDriverPhone] = useState("012-987 6543");
-  const [vehiclePlate, setVehiclePlate] = useState("WXX 8892 (Van)");
-  const [courierPartner, setCourierPartner] = useState("Lalamove Delivery");
-  const [courierTracking, setCourierTracking] = useState("LLM-8849102");
-  const [checklistVerified, setChecklistVerified] = useState({
-    goodsVerified: true,
-    invoiceAttached: true,
-    sealApplied: true,
-  });
-
-  // 18A: Active Delivery Orders (In-Transit Tracking)
-  const [activeDeliveries, setActiveDeliveries] = useState([]);
-  const [selectedDelivery, setSelectedDelivery] = useState(null);
-
-  // 18B: Settlement / Handover Form State
-  const [recipientName, setRecipientName] = useState("Daniel Lee (Purchasing Manager)");
-  const [recipientPhone, setRecipientPhone] = useState("012-345 6789");
-  const [collectedAmount, setCollectedAmount] = useState(110.60);
-  const [paymentMode, setPaymentMode] = useState("DUITNOW_QR"); // "CASH", "DUITNOW_QR", "CARD", "CREDIT_TERM"
-  const [paymentRef, setPaymentRef] = useState("TXN-20261011-8891");
-  const [handoverRemarks, setHandoverRemarks] = useState("Received in sound sealed condition. Final balance collected.");
-
-  // Create Delivery Order (17A -> 17B -> 18A)
-  const handleCreateDeliveryOrder = async () => {
+  const loadAllData = async () => {
     setLoading(true);
     try {
-      const doNumber = `DO-202610-${Math.floor(1000 + Math.random() * 9000)}`;
-      await jobFlowApi.createDeliveryOrder({
-        jobOrderId: selectedJob._id,
-        jobNo: selectedJob.jobNo,
-        customerName: selectedJob.customerName,
-        deliveryAddress: selectedJob.address,
-        deliveryMethod,
-        driverName: deliveryMethod === "IN_HOUSE" ? driverName : courierPartner,
-        driverPhone: deliveryMethod === "IN_HOUSE" ? driverPhone : "",
-        vehicleNumber: deliveryMethod === "IN_HOUSE" ? vehiclePlate : courierTracking,
-        packageCount,
-        sealNumber: tamperSealId,
-      });
+      // 1. Fetch ready jobs for review (completed in production)
+      const [resReadyJobs, resOrders] = await Promise.all([
+        deliveryApi.getReadyJobsForDelivery().catch(() => null),
+        deliveryApi.getDeliveryOrders({ limit: 100 }).catch(() => null),
+      ]);
 
-      const newDO = {
-        _id: `do-${Date.now()}`,
-        deliveryNo: doNumber,
-        jobNo: selectedJob.jobNo,
-        customerName: selectedJob.customerName,
-        deliveryAddress: selectedJob.address,
-        method: deliveryMethod === "IN_HOUSE" ? `${driverName} (${vehiclePlate})` : courierPartner,
-        dispatchTime: "Just Now",
-        estArrival: "Within 2 Hours",
-        balanceDue: selectedJob.balanceDue,
-        status: "DISPATCHED",
-      };
-
-      setActiveDeliveries((prev) => [newDO, ...prev]);
-      toast.success(`Delivery Order ${doNumber} created & dispatched successfully!`);
-      setActiveTab("18A");
-    } catch {
-      toast.success(`Delivery Order created & dispatched successfully!`);
-      setActiveTab("18A");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Update Status in 18A
-  const handleUpdateTransitStatus = async (item, nextStatus) => {
-    try {
-      if (nextStatus === "DELIVERED") {
-        setSelectedDelivery(item);
-        setActiveTab("18B");
-        return;
+      // Map ready jobs
+      let readyItems = resReadyJobs?.data?.items || resReadyJobs?.data || (Array.isArray(resReadyJobs) ? resReadyJobs : []);
+      if (!Array.isArray(readyItems) || readyItems.length === 0) {
+        // Fallback: fetch job orders in READY / DELIVERY stage
+        try {
+          const fallbackRes = await deliveryApi.getJobOrders({ currentStage: "READY,DELIVERY,READY_FOR_DELIVERY", limit: 50 });
+          readyItems = fallbackRes?.data?.items || fallbackRes?.data || [];
+        } catch {}
       }
 
-      await jobFlowApi.dispatchDeliveryOrder(item._id);
-      setActiveDeliveries((prev) =>
-        prev.map((d) => (d._id === item._id ? { ...d, status: nextStatus } : d))
-      );
-      toast.success(`Transit status updated to ${nextStatus}!`);
-    } catch {
-      setActiveDeliveries((prev) =>
-        prev.map((d) => (d._id === item._id ? { ...d, status: nextStatus } : d))
-      );
-      toast.success(`Transit status updated to ${nextStatus}!`);
-    }
-  };
-
-  // Complete Handover & Settlement (18B)
-  const handleCompleteHandover = async () => {
-    setLoading(true);
-    try {
-      await jobFlowApi.deliverOrder(selectedDelivery._id, {
-        receivedBy: recipientName,
-        contact: recipientPhone,
-        notes: handoverRemarks,
-        paymentCollected: collectedAmount,
-        paymentMode,
-        reference: paymentRef,
+      // Map delivery orders
+      const orderItems = resOrders?.data?.items || resOrders?.data || (Array.isArray(resOrders) ? resOrders : []);
+      const formattedDOs = (Array.isArray(orderItems) ? orderItems : []).map((d) => {
+        const jObj = d.jobOrderId && typeof d.jobOrderId === "object" ? d.jobOrderId : null;
+        return {
+          _id: d._id || d.id,
+          deliveryNo: d.deliveryNo || `DO-${String(d._id || "").slice(-6)}`,
+          jobOrderId: jObj?._id || d.jobOrderId,
+          jobNo: jObj?.jobNo || d.jobNo || "JO-CURRENT",
+          customerName: d.customerName || jObj?.customerName || "Customer",
+          customerPhone: d.customerPhone || jObj?.customerPhone || "N/A",
+          deliveryAddress: d.deliveryAddress || jObj?.customerSnapshot?.address || "Counter Pickup",
+          deliveryType: d.deliveryType || "DELIVERY",
+          deliveryPersonName: d.deliveryPersonName || d.driverName || "Unassigned",
+          deliveryPersonPhone: d.deliveryPersonPhone || d.driverPhone || "",
+          vehicle: d.vehicle || d.vehicleNumber || "",
+          expectedDeliveryDate: d.expectedDeliveryDate,
+          status: d.status || "READY",
+          otpVerified: Boolean(d.otpVerified),
+          proofSubmitted: Boolean(d.proofSubmitted || d.signatureUrl),
+          raw: d,
+        };
       });
+      setDeliveryOrders(formattedDOs);
 
-      toast.success(`Job ${selectedDelivery.jobNo} marked DELIVERED and SETTLED! Final Tax Invoice issued.`);
-      setActiveDeliveries((prev) =>
-        prev.map((d) => (d._id === selectedDelivery._id ? { ...d, status: "DELIVERED" } : d))
-      );
-      // Navigate to Settlement Ledger for full audit
-      const targetJobId = selectedDelivery?.jobNo || selectedDelivery?._id || selectedJob?.jobNo || selectedJob?._id || "";
-      navigate(`/jobflow/settlement${targetJobId ? `?jobId=${targetJobId}` : ""}`);
-    } catch {
-      toast.success(`Job ${selectedDelivery?.jobNo || ""} marked DELIVERED and SETTLED!`);
-      const targetJobId = selectedDelivery?.jobNo || selectedDelivery?._id || selectedJob?.jobNo || selectedJob?._id || "";
-      navigate(`/jobflow/settlement${targetJobId ? `?jobId=${targetJobId}` : ""}`);
+      // Map ready jobs and link delivery order if already created in DB
+      const formattedReady = (Array.isArray(readyItems) ? readyItems : []).map((j) => {
+        const jId = String(j._id || j.id || "");
+        const matchedDO = j.deliveryOrder || formattedDOs.find((d) => String(d.jobOrderId) === jId || (d.jobNo && d.jobNo === j.jobNo));
+        return {
+          _id: j._id || j.id,
+          jobNo: j.jobNo || j.orderNumber || `JO-${jId.slice(-6)}`,
+          customerName: j.customerName || j.customerSnapshot?.name || j.customer?.name || "Customer",
+          customerPhone: j.customerPhone || j.customerSnapshot?.mobile || j.customer?.mobile || "N/A",
+          deliveryAddress: j.deliveryAddress || j.customerSnapshot?.address || "Counter Pickup",
+          title: j.title || j.productType || "Print Order",
+          quantity: j.quantity || 500,
+          grandTotal: Number(j.grandTotal || j.totalAmount || 0),
+          advancePaid: Number(j.advancePaid || 0),
+          balanceDue: Math.max(0, Number(j.grandTotal || j.totalAmount || 0) - Number(j.advancePaid || 0)),
+          currentStage: j.currentStage || "READY_FOR_DELIVERY",
+          reviewedByManager: Boolean(j.reviewedByManager || matchedDO),
+          deliveryOrder: matchedDO || null,
+          isDeliveryPrepared: Boolean(matchedDO || j.isDeliveryPrepared),
+          raw: j,
+        };
+      });
+      setReadyJobs(formattedReady);
+
+      // Auto-focus preselected job
+      if (preselectedJobId) {
+        const matchReady = formattedReady.find((j) => j._id === preselectedJobId || j.jobNo === preselectedJobId);
+        if (matchReady) {
+          setActiveTab("REVIEW");
+          setSelectedJobForDO(matchReady);
+        } else {
+          const matchDO = formattedDOs.find((d) => d._id === preselectedJobId || d.jobNo === preselectedJobId);
+          if (matchDO) {
+            if (matchDO.status === "DELIVERED") setActiveTab("DELIVERED");
+            else if (matchDO.status === "OUT_FOR_DELIVERY") setActiveTab("OUT_FOR_DELIVERY");
+            else if (matchDO.status === "PACKED") setActiveTab("PACKED");
+            else setActiveTab("ASSIGNED");
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed loading delivery data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderSubNav = () => (
-    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: embedded ? "1.25rem" : 0 }}>
-      {/* <button
-        type="button"
-        className={`jf-btn ${activeTab === "17A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("17A")}
-      >
-        Ready for Delivery ({readyJobs.length})
-      </button>
-      <button
-        type="button"
-        className={`jf-btn ${activeTab === "17B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("17B")}
-      >
-        Assign Delivery (Create DO)
-      </button> */}
-      <button
-        type="button"
-        className={`jf-btn ${activeTab === "18A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("18A")}
-      >
-        Delivery Tracking ({activeDeliveries.length})
-      </button>
-      {/* <button
-        type="button"
-        className={`jf-btn ${activeTab === "18B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("18B")}
-      >
-        Handover & Settlement
-      </button> */}
-    </div>
-  );
+  // Dispatch Action (Step 5)
+  const handleDispatchOrder = async (deliveryOrder) => {
+    try {
+      setLoading(true);
+      await deliveryApi.dispatchDeliveryOrder(deliveryOrder._id || deliveryOrder.id, {
+        dispatchNotes: "Driver departed branch with verified parcel",
+      });
+      // Also generate handover OTP immediately
+      try {
+        await deliveryApi.generateOtp(deliveryOrder._id || deliveryOrder.id);
+      } catch {}
 
-  const mainDeliveryContent = (
-    <div>
-      {embedded && renderSubNav()}
-      {/* ──────────────── SCREEN 17A: READY FOR DELIVERY QUEUE ──────────────── */}
-      {activeTab === "17A" && (
-        <div>
-          {/* Top 4 KPI Cards (Image 6 Screen 17A) */}
-          {/* <div className="jf-stat-grid">
-            <div className="jf-stat-box">
-              <div className="jf-stat-icon" style={{ background: "#fef3c7", color: "#92400e" }}>
-                <Package size={22} />
-              </div>
-              <div>
-                <div className="jf-stat-val">{readyJobs.length}</div>
-                <div className="jf-stat-label">Ready for Dispatch</div>
-              </div>
-            </div>
+      toast.success(`Delivery Order ${deliveryOrder.deliveryNo} is DISPATCHED & Handover OTP sent!`);
+      await loadAllData();
+      setActiveTab("OUT_FOR_DELIVERY");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to dispatch order");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            <div className="jf-stat-box">
-              <div className="jf-stat-icon" style={{ background: "#fee2e2", color: "#b91c1c" }}>
-                <Truck size={22} />
-              </div>
-              <div>
-                <div className="jf-stat-val">{activeDeliveries.filter(d => d.status === "OUT_FOR_DELIVERY" || d.status === "DISPATCHED").length}</div>
-                <div className="jf-stat-label">Out for Delivery</div>
-              </div>
-            </div>
+  // Counters for tabs
+  const countReview = readyJobs.length;
+  const countAssigned = deliveryOrders.filter((d) => d.status === "READY" || d.status === "ASSIGNED").length;
+  const countPacked = deliveryOrders.filter((d) => d.status === "PACKED").length;
+  const countOutForDelivery = deliveryOrders.filter((d) => d.status === "OUT_FOR_DELIVERY").length;
+  const countDelivered = deliveryOrders.filter((d) => d.status === "DELIVERED").length;
 
-            <div className="jf-stat-box">
-              <div className="jf-stat-icon" style={{ background: "#dbeafe", color: "#1e40af" }}>
-                <UserCheck size={22} />
-              </div>
-              <div>
-                <div className="jf-stat-val">4</div>
-                <div className="jf-stat-label">Counter Pickup Pending</div>
-              </div>
-            </div>
+  const tabCounts = {
+    REVIEW: countReview,
+    ASSIGNED: countAssigned,
+    PACKED: countPacked,
+    OUT_FOR_DELIVERY: countOutForDelivery,
+    DELIVERED: countDelivered,
+  };
 
-            <div className="jf-stat-box">
-              <div className="jf-stat-icon" style={{ background: "#dcfce7", color: "#15803d" }}>
-                <CheckCircle size={22} />
-              </div>
-              <div>
-                <div className="jf-stat-val">{activeDeliveries.filter(d => d.status === "DELIVERED").length}</div>
-                <div className="jf-stat-label">Delivered Today</div>
-              </div>
-            </div>
-          </div> */}
+  // Filtered lists
+  const filterList = (list) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(
+      (item) =>
+        (item.jobNo && item.jobNo.toLowerCase().includes(q)) ||
+        (item.deliveryNo && item.deliveryNo.toLowerCase().includes(q)) ||
+        (item.customerName && item.customerName.toLowerCase().includes(q)) ||
+        (item.deliveryPersonName && item.deliveryPersonName.toLowerCase().includes(q)) ||
+        (item.deliveryAddress && item.deliveryAddress.toLowerCase().includes(q))
+    );
+  };
 
-          {/* Ready Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}
-          {/* QC Redirect Banner - shows when arriving from QC page with a specific job */}
-          {preselectedJobId && selectedJob && (
-            <div style={{
-              background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
-              border: "1px solid #86efac",
-              borderRadius: "10px",
-              padding: "0.875rem 1.25rem",
-              marginBottom: "1.25rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-            }}>
-              <CheckCircle size={20} style={{ color: "#16a34a", flexShrink: 0 }} />
-              <div>
-                <div style={{ fontWeight: 700, color: "#166534", fontSize: "0.9375rem" }}>
-                  ✅ {selectedJob.jobNo} — Passed QC! Ready for Delivery Assignment
-                </div>
-                <div style={{ fontSize: "0.8125rem", color: "#15803d", marginTop: "2px" }}>
-                  Job has been cleared by Quality Control and is now in the delivery queue below. Click <strong>Assign Delivery</strong> to create the delivery order.
-                </div>
-              </div>
-            </div>
-          )}
+  const getActiveList = () => {
+    if (activeTab === "REVIEW") return filterList(readyJobs);
+    if (activeTab === "ASSIGNED") return filterList(deliveryOrders.filter((d) => d.status === "READY" || d.status === "ASSIGNED"));
+    if (activeTab === "PACKED") return filterList(deliveryOrders.filter((d) => d.status === "PACKED"));
+    if (activeTab === "OUT_FOR_DELIVERY") return filterList(deliveryOrders.filter((d) => d.status === "OUT_FOR_DELIVERY"));
+    if (activeTab === "DELIVERED") return filterList(deliveryOrders.filter((d) => d.status === "DELIVERED"));
+    return [];
+  };
 
-          <JobFlowDataTable
-            columns={[
-              {
-                key: "jobNo",
-                label: "Job ID",
-                sortable: true,
-                width: "130px",
-                render: (val, job) => (
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <strong style={{ color: selectedJob?._id === job._id ? "#16a34a" : undefined }}>{val}</strong>
-                    {selectedJob?._id === job._id && preselectedJobId && (
-                      <span style={{ fontSize: "0.65rem", background: "#dcfce7", color: "#166534", border: "1px solid #86efac", borderRadius: "9999px", padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" }}>
-                        QC Cleared ✓
-                      </span>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                key: "customerName",
-                label: "Customer Name",
-                sortable: true,
-                render: (val, job) => (
-                  <div>
-                    <strong>{val}</strong>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{job.customerPhone}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "itemsDesc",
-                label: "Items & Specifications",
-                sortable: true,
-              },
-              {
-                key: "totalAmount",
-                label: "Total / Balance Due",
-                sortable: true,
-                render: (val, job) => (
-                  <div>
-                    <div>RM {Number(val).toFixed(2)}</div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: job.balanceDue > 0 ? "#dc2626" : "#15803d",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Bal: RM {Number(job.balanceDue).toFixed(2)}
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                key: "dueDate",
-                label: "Target Due Date",
-                sortable: true,
-              },
-              {
-                key: "deliveryType",
-                label: "Delivery Mode",
-                sortable: true,
-                render: (val) => <span className="jf-badge jf-badge-blue">{val}</span>,
-              },
-              {
-                key: "priority",
-                label: "Priority",
-                sortable: true,
-                render: (val) => <span className="jf-badge jf-badge-red">{val}</span>,
-              },
-              {
-                key: "actions",
-                label: "Dispatch Action",
-                sortable: false,
-                align: "right",
-                render: (_, job) => (
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-primary jf-btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedJob(job);
-                      setActiveTab("17B");
-                    }}
-                  >
-                    <Truck size={14} /> Assign Delivery
-                  </button>
-                ),
-              },
-            ]}
-            data={readyJobs}
-            loading={loading}
-            searchable={true}
-            searchPlaceholder="Search ready jobs by ID, customer or items..."
-            initialPageSize={10}
-            pageSizeOptions={[5, 10, 25, 50]}
-            emptyMessage="No completed QC orders currently awaiting delivery assignment."
-            onRowClick={(job) => {
-              setSelectedJob(job);
-              setActiveTab("17B");
-            }}
-          />
-        </div>
-      )}
+  const activeList = getActiveList();
+  const activeTabMeta = TABS.find((t) => t.key === activeTab);
 
-
-      {/* ──────────────── SCREEN 17B: ASSIGN DELIVERY - CREATE DELIVERY ORDER ──────────────── */}
-      {activeTab === "17B" && (
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          {!selectedJob ? (
-            <div className="jf-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
-              <PackageCheck size={40} style={{ color: "#94a3b8", marginBottom: "0.75rem" }} />
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "#0f172a" }}>
-                No Order Selected for Delivery Assignment
-              </h3>
-              <p style={{ color: "#64748b", fontSize: "0.875rem", margin: "0 0 1.25rem 0" }}>
-                Please choose a completed order from the Delivery Assignment Queue (17A) first.
-              </p>
-              <button
-                type="button"
-                className="jf-btn jf-btn-primary"
-                onClick={() => setActiveTab("17A")}
-              >
-                Go to Assignment Queue (17A)
-              </button>
-            </div>
-          ) : (
-            <div className="jf-card">
-              <div className="jf-card-header">
-                <div>
-                  <h3 className="jf-card-title">Create Delivery Order (DO)</h3>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                    Job Ref: <strong>{selectedJob?.jobNo || "N/A"}</strong> • {selectedJob?.customerName || "Customer"}
-                  </span>
-                </div>
-                <span className="jf-badge jf-badge-green">QC Cleared</span>
-              </div>
-
-              {/* Grid 1: Customer & Package Specs */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-                <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-                  <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
-                    Destination & Contact Details
-                  </h4>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                    <div><span style={{ color: "#64748b" }}>Client:</span> <strong>{selectedJob?.customerName || "Customer"}</strong></div>
-                    <div><span style={{ color: "#64748b" }}>Mobile:</span> {selectedJob?.customerPhone || "N/A"}</div>
-                    <div><span style={{ color: "#64748b" }}>Address:</span> {selectedJob?.address || "Main Store"}</div>
-                    <div>
-                      <span style={{ color: "#64748b" }}>Balance Due on Delivery:</span>{" "}
-                      <strong style={{ color: "#dc2626" }}>RM {(Number(selectedJob?.balanceDue) || 0).toFixed(2)}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-                  <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
-                  Packaging & Security Specifications
-                </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.8125rem" }}>
-                  <div className="jf-form-group">
-                    <label className="jf-label">Bundles / Boxes</label>
-                    <input
-                      type="number"
-                      className="jf-input"
-                      value={packageCount}
-                      onChange={(e) => setPackageCount(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="jf-form-group">
-                    <label className="jf-label">Weight (kg)</label>
-                    <input
-                      type="text"
-                      className="jf-input"
-                      value={packageWeight}
-                      onChange={(e) => setPackageWeight(e.target.value)}
-                    />
-                  </div>
-                  <div className="jf-form-group" style={{ gridColumn: "span 2" }}>
-                    <label className="jf-label">Tamper-Proof Seal ID</label>
-                    <input
-                      type="text"
-                      className="jf-input"
-                      value={tamperSealId}
-                      onChange={(e) => setTamperSealId(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Delivery Method Selector */}
-            <div style={{ marginBottom: "1.5rem" }}>
-              <label className="jf-label" style={{ marginBottom: "0.5rem" }}>Select Delivery Logistics Method</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                <div
-                  style={{
-                    padding: "1rem",
-                    borderRadius: "8px",
-                    border: deliveryMethod === "IN_HOUSE" ? "2px solid var(--jf-primary)" : "1px solid var(--jf-border)",
-                    background: deliveryMethod === "IN_HOUSE" ? "#f0fdf4" : "#ffffff",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setDeliveryMethod("IN_HOUSE")}
-                >
-                  <strong style={{ color: deliveryMethod === "IN_HOUSE" ? "#15803d" : "#0f172a" }}>
-                    In-House Fleet
-                  </strong>
-                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Internal driver & company van</div>
-                </div>
-
-                <div
-                  style={{
-                    padding: "1rem",
-                    borderRadius: "8px",
-                    border: deliveryMethod === "COURIER" ? "2px solid var(--jf-primary)" : "1px solid var(--jf-border)",
-                    background: deliveryMethod === "COURIER" ? "#f0fdf4" : "#ffffff",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setDeliveryMethod("COURIER")}
-                >
-                  <strong style={{ color: deliveryMethod === "COURIER" ? "#15803d" : "#0f172a" }}>
-                    Third-Party Courier
-                  </strong>
-                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Lalamove, Grab, DHL, etc.</div>
-                </div>
-
-                <div
-                  style={{
-                    padding: "1rem",
-                    borderRadius: "8px",
-                    border: deliveryMethod === "PICKUP" ? "2px solid var(--jf-primary)" : "1px solid var(--jf-border)",
-                    background: deliveryMethod === "PICKUP" ? "#f0fdf4" : "#ffffff",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setDeliveryMethod("PICKUP")}
-                >
-                  <strong style={{ color: deliveryMethod === "PICKUP" ? "#15803d" : "#0f172a" }}>
-                    Self-Pickup / Counter
-                  </strong>
-                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Customer collects at retail store</div>
-                </div>
-              </div>
-            </div>
-
-            {/* In-House Driver Fields */}
-            {deliveryMethod === "IN_HOUSE" && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
-                <div className="jf-form-group">
-                  <label className="jf-label">Assigned Driver</label>
-                  <input
-                    type="text"
-                    className="jf-input"
-                    value={driverName}
-                    onChange={(e) => setDriverName(e.target.value)}
-                  />
-                </div>
-                <div className="jf-form-group">
-                  <label className="jf-label">Driver Contact</label>
-                  <input
-                    type="text"
-                    className="jf-input"
-                    value={driverPhone}
-                    onChange={(e) => setDriverPhone(e.target.value)}
-                  />
-                </div>
-                <div className="jf-form-group">
-                  <label className="jf-label">Vehicle Plate / Type</label>
-                  <input
-                    type="text"
-                    className="jf-input"
-                    value={vehiclePlate}
-                    onChange={(e) => setVehiclePlate(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Courier Fields */}
-            {deliveryMethod === "COURIER" && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
-                <div className="jf-form-group">
-                  <label className="jf-label">Courier Partner</label>
-                  <input
-                    type="text"
-                    className="jf-input"
-                    value={courierPartner}
-                    onChange={(e) => setCourierPartner(e.target.value)}
-                  />
-                </div>
-                <div className="jf-form-group">
-                  <label className="jf-label">Tracking / Booking Reference</label>
-                  <input
-                    type="text"
-                    className="jf-input"
-                    value={courierTracking}
-                    onChange={(e) => setCourierTracking(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Pre-Dispatch Inspection Checklist */}
-            <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)", marginBottom: "1.5rem" }}>
-              <h4 style={{ margin: "0 0 0.5rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
-                Pre-Dispatch Handover Verification Checklist
-              </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={checklistVerified.goodsVerified}
-                    onChange={(e) => setChecklistVerified({ ...checklistVerified, goodsVerified: e.target.checked })}
-                  />
-                  <span>Packaging sealed, counted & labeled with Delivery Note barcode</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={checklistVerified.invoiceAttached}
-                    onChange={(e) => setChecklistVerified({ ...checklistVerified, invoiceAttached: e.target.checked })}
-                  />
-                  <span>Commercial Tax Invoice copy and Delivery Order duplicate attached in outer envelope</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={checklistVerified.sealApplied}
-                    onChange={(e) => setChecklistVerified({ ...checklistVerified, sealApplied: e.target.checked })}
-                  />
-                  <span>QC Pass quality seal verified intact on exterior wrap</span>
-                </label>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary"
-                onClick={() => setActiveTab("17A")}
-              >
-                Back to Queue
-              </button>
-              <button
-                type="button"
-                className="jf-btn jf-btn-primary"
-                onClick={handleCreateDeliveryOrder}
-                disabled={loading}
-              >
-                <Send size={16} /> Confirm & Dispatch Delivery Order
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-
-      {/* ──────────────── SCREEN 18A: DISPATCH & HANDOVER - DELIVERY TRACKING ──────────────── */}
-      {activeTab === "18A" && (
-        <div>
-          {/* Active Deliveries Table */}
-          {/* Active Dispatches DataTable with Search, Sorting, Rows Per Page & Pagination */}
-          <JobFlowDataTable
-            columns={[
-              {
-                key: "deliveryNo",
-                label: "Delivery Order #",
-                sortable: true,
-                width: "140px",
-                render: (val) => <strong>{val}</strong>,
-              },
-              {
-                key: "jobNo",
-                label: "Job ID & Customer",
-                sortable: true,
-                render: (val, item) => (
-                  <div>
-                    <strong>{val}</strong>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.customerName}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "deliveryAddress",
-                label: "Destination",
-                sortable: true,
-              },
-              {
-                key: "method",
-                label: "Assigned Logistics",
-                sortable: true,
-              },
-              {
-                key: "dispatchTime",
-                label: "Dispatch Time",
-                sortable: true,
-              },
-              {
-                key: "estArrival",
-                label: "Estimated Arrival",
-                sortable: true,
-              },
-              {
-                key: "status",
-                label: "Transit Status",
-                sortable: true,
-                render: (val) => <StatusBadge status={val} />,
-              },
-              {
-                key: "actions",
-                label: "Actions",
-                sortable: false,
-                align: "right",
-                render: (_, item) => (
-                  <div>
-                    {(item.status === "READY" || item.status === "PACKED") && (
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-primary jf-btn-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateTransitStatus(item, "OUT_FOR_DELIVERY");
-                        }}
-                      >
-                        <Truck size={13} /> Dispatch
-                      </button>
-                    )}
-                    {item.status === "DISPATCHED" && (
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-secondary jf-btn-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateTransitStatus(item, "OUT_FOR_DELIVERY");
-                        }}
-                      >
-                        <Truck size={13} /> Out for Delivery
-                      </button>
-                    )}
-                    {item.status === "OUT_FOR_DELIVERY" && (
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-primary jf-btn-sm"
-                        style={{ backgroundColor: "#15803d", borderColor: "#15803d" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDelivery(item);
-                          setActiveTab("18B");
-                        }}
-                      >
-                        <FileCheck size={13} /> Handover & Settle
-                      </button>
-                    )}
-                    {item.status === "DELIVERED" && (
-                      <span style={{ fontSize: "0.8125rem", color: "#15803d", fontWeight: 700 }}>
-                        ✓ Delivered
-                      </span>
-                    )}
-                  </div>
-                ),
-              },
-            ]}
-            data={activeDeliveries}
-            loading={loading}
-            searchable={true}
-            searchPlaceholder="Search dispatches by DO #, job, customer or destination..."
-            initialPageSize={10}
-            pageSizeOptions={[5, 10, 25, 50]}
-            emptyMessage="No active deliveries in transit."
-            onRowClick={(item) => {
-              setSelectedDelivery(item);
-              if (item.status === "OUT_FOR_DELIVERY" || item.status === "READY" || item.status === "DISPATCHED") {
-                setActiveTab("18B");
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* ──────────────── SCREEN 18B: DELIVERY COMPLETION & SETTLEMENT ──────────────── */}
-      {activeTab === "18B" && (
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          {!selectedDelivery ? (
-            <div className="jf-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
-              <Truck size={40} style={{ color: "#94a3b8", marginBottom: "0.75rem" }} />
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "#0f172a" }}>
-                No In-Transit Delivery Selected
-              </h3>
-              <p style={{ color: "#64748b", fontSize: "0.875rem", margin: "0 0 1.25rem 0" }}>
-                Please select an active dispatch from the Transit Tracking Queue (18A) to complete handover and settlement.
-              </p>
-              <button
-                type="button"
-                className="jf-btn jf-btn-primary"
-                onClick={() => setActiveTab("18A")}
-              >
-                Go to Transit Tracking (18A)
-              </button>
-            </div>
-          ) : (
-            <div className="jf-card">
-              <div className="jf-card-header">
-                <div>
-                  <h3 className="jf-card-title">Delivery Completion & Final Settlement Handover</h3>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                    DO Ref: <strong>{selectedDelivery?.deliveryNo || "N/A"}</strong> • Job: {selectedDelivery?.jobNo || "N/A"}
-                  </span>
-                </div>
-                <StatusBadge status="In Progress" />
-              </div>
-
-              {/* Financial Reconciliation Summary Banner */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
-                <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>Customer:</span>
-                  <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a" }}>
-                    {selectedDelivery?.customerName || "Customer"}
-                  </div>
-                  <div style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: "4px" }}>
-                    {selectedDelivery?.deliveryAddress || "Counter Pickup"}
-                  </div>
-                </div>
-
-                <div style={{ background: "#f0fdf4", padding: "1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "#166534" }}>Outstanding Balance Due:</span>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#15803d" }}>
-                    RM {(Number(selectedDelivery?.balanceDue) || 0).toFixed(2)}
-                  </div>
-                <div style={{ fontSize: "0.75rem", color: "#166534" }}>
-                  Must be collected prior to final sign-off
-                </div>
-              </div>
-            </div>
-
-            {/* Recipient Handover Details */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.25rem" }}>
-              <div className="jf-form-group">
-                <label className="jf-label jf-label-required">Recipient Full Name</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="e.g. Daniel Lee"
-                />
-              </div>
-
-              <div className="jf-form-group">
-                <label className="jf-label jf-label-required">Recipient Contact Phone</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  value={recipientPhone}
-                  onChange={(e) => setRecipientPhone(e.target.value)}
-                  placeholder="e.g. 012-345 6789"
-                />
-              </div>
-            </div>
-
-            {/* Proof of Delivery / Signature box */}
-            <div className="jf-form-group" style={{ marginBottom: "1.25rem" }}>
-              <label className="jf-label">Digital Proof of Delivery (POD) / Recipient Signature</label>
-              <div className="jf-signature-box">
-                <FileCheck size={28} color="#15803d" style={{ marginBottom: "0.5rem" }} />
-                <span style={{ fontWeight: 600, color: "#0f172a" }}>Digital Handover Acknowledged</span>
-                <span style={{ fontSize: "0.75rem" }}>
-                  Recipient confirms package sealed, contents undamaged, and quantity verified.
-                </span>
-              </div>
-            </div>
-
-            {/* Settlement Payment Collection */}
-            <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "8px", border: "1px solid var(--jf-border)", marginBottom: "1.5rem" }}>
-              <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#0f172a" }}>
-                Balance Collection Details
-              </h4>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                <div className="jf-form-group">
-                  <label className="jf-label">Amount Collected (RM)</label>
-                  <input
-                    type="number"
-                    className="jf-input"
-                    value={collectedAmount}
-                    onChange={(e) => setCollectedAmount(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="jf-form-group">
-                  <label className="jf-label">Payment Mode</label>
-                  <select
-                    className="jf-select"
-                    value={paymentMode}
-                    onChange={(e) => setPaymentMode(e.target.value)}
-                  >
-                    <option value="DUITNOW_QR">DuitNow UPI QR</option>
-                    <option value="CASH">Cash on Delivery</option>
-                    <option value="CARD">Credit / Debit Card</option>
-                    <option value="CREDIT_TERM">Corporate Credit 30-Days</option>
-                  </select>
-                </div>
-
-                <div className="jf-form-group">
-                  <label className="jf-label">Transaction / Receipt Ref</label>
-                  <input
-                    type="text"
-                    className="jf-input"
-                    value={paymentRef}
-                    onChange={(e) => setPaymentRef(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="jf-form-group" style={{ marginBottom: "1.5rem" }}>
-              <label className="jf-label">Handover Notes</label>
-              <input
-                type="text"
-                className="jf-input"
-                value={handoverRemarks}
-                onChange={(e) => setHandoverRemarks(e.target.value)}
-              />
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary"
-                onClick={() => setActiveTab("18A")}
-              >
-                Back to Tracking
-              </button>
-              <button
-                type="button"
-                className="jf-btn jf-btn-primary"
-                onClick={handleCompleteHandover}
-                disabled={loading}
-              >
-                <CheckCircle size={16} /> Complete Job & Settle Balance
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-    </div>
-  );
-
-  if (embedded) {
-    return mainDeliveryContent;
-  }
+  // KPI values derived from data already loaded above
+  const maxStageCount = Math.max(1, ...Object.values(tabCounts));
+  const pipelineValue = readyJobs.reduce((sum, j) => sum + j.grandTotal, 0);
+  const balanceToCollect = readyJobs.reduce((sum, j) => sum + j.balanceDue, 0);
+  const completionRate = deliveryOrders.length
+    ? Math.round((countDelivered / deliveryOrders.length) * 100)
+    : 0;
+  const formatMoney = (n) =>
+    `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
   return (
     <JobFlowLayout
-      title="Manager Delivery Management & Dispatch Tracking"
-      actions={renderSubNav()}
+      title="Delivery & Fulfillment Workflow"
+      subtitle="Phase 1: Manager Review, Delivery Order (DO) Creation, Staff Assignment, Packing, Dispatch & OTP Handover Proof"
+      activeStep={5}
+      actions={
+        <button
+          type="button"
+          className="dlv-refresh-btn"
+          onClick={loadAllData}
+          disabled={loading}
+          title="Refresh Delivery Queue"
+        >
+          <RefreshCw size={15} className={loading ? "dlv-spin" : ""} />
+          <span>Refresh</span>
+        </button>
+      }
     >
-      {mainDeliveryContent}
+      <div className="dlv-page delivery-feature-container">
+        {/* ── KPI Overview (each stage card also switches the view) ── */}
+        <section className="dlv-kpi-section" aria-label="Delivery key performance indicators">
+          <div className="dlv-kpi-grid">
+            {TABS.map(({ key, label, icon: Icon }) => {
+              const isActive = activeTab === key;
+              const count = tabCounts[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={isActive}
+                  className={`dlv-kpi ${isActive ? "is-active" : ""}`}
+                  onClick={() => handleTabChange(key)}
+                >
+                  <div className="dlv-kpi-top">
+                    <span className="dlv-kpi-icon">
+                      <Icon size={18} />
+                    </span>
+                    <span className="dlv-kpi-tag">{isActive ? "Viewing" : "Stage"}</span>
+                  </div>
+                  <div className="dlv-kpi-value">{count}</div>
+                  <div className="dlv-kpi-label">{label}</div>
+                  <div className="dlv-kpi-bar" aria-hidden="true">
+                    <span style={{ width: `${Math.round((count / maxStageCount) * 100)}%` }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="dlv-kpi-insights">
+            <div className="dlv-insight">
+              <span className="dlv-insight-icon">
+                <Wallet size={18} />
+              </span>
+              <div>
+                <div className="dlv-insight-label">Pipeline value</div>
+                <div className="dlv-insight-value">{formatMoney(pipelineValue)}</div>
+              </div>
+            </div>
+            <div className="dlv-insight">
+              <span className="dlv-insight-icon is-warn">
+                <Receipt size={18} />
+              </span>
+              <div>
+                <div className="dlv-insight-label">Balance to collect</div>
+                <div className={`dlv-insight-value ${balanceToCollect > 0 ? "is-due" : "is-paid"}`}>
+                  {formatMoney(balanceToCollect)}
+                </div>
+              </div>
+            </div>
+            <div className="dlv-insight">
+              <span className="dlv-insight-icon">
+                <TrendingUp size={18} />
+              </span>
+              <div className="dlv-insight-grow">
+                <div className="dlv-insight-label">Delivery completion</div>
+                <div className="dlv-insight-value">{completionRate}%</div>
+                <div className="dlv-kpi-bar dlv-insight-bar" aria-hidden="true">
+                  <span style={{ width: `${completionRate}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Toolbar ── */}
+        <div className="dlv-toolbar">
+          <div className="dlv-search">
+            <Search size={16} className="dlv-search-icon" />
+            <input
+              type="text"
+              className="dlv-search-input"
+              placeholder={`Search ${activeTab.replace(/_/g, " ").toLowerCase()} by job, DO, customer or address...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="dlv-search-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="dlv-result-count">
+            Showing <strong>{activeList.length}</strong> {activeTabMeta?.label.toLowerCase()}
+          </div>
+        </div>
+
+        {/* ── TAB 1: READY FOR REVIEW ── */}
+        {activeTab === "REVIEW" && (
+          <section className="dlv-card">
+            <header className="dlv-card-head">
+              <div className="dlv-card-title">
+                <span className="dlv-card-icon">
+                  <ShieldCheck size={18} />
+                </span>
+                <div>
+                  <h3>Manager Review & Delivery Order Creation</h3>
+                  <p>Completed jobs waiting for delivery review</p>
+                </div>
+              </div>
+              <span className="dlv-pill">
+                Total: <strong>{activeList.length}</strong> jobs
+              </span>
+            </header>
+
+            <div className="dlv-table-wrap">
+              <table className="jf-table dlv-table">
+                <thead>
+                  <tr>
+                    <th>Job Order No</th>
+                    <th>Customer Details</th>
+                    <th>Print Material & Qty</th>
+                    <th>Delivery Type</th>
+                    <th>Total & Balance</th>
+                    <th>Review Status</th>
+                    <th className="dlv-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="dlv-empty">
+                        <div className="dlv-empty-state">
+                          <Package size={28} />
+                          <span>No pending completed jobs waiting for delivery review.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    activeList.map((job) => (
+                      <tr key={job._id}>
+                        <td data-label="Job Order">
+                          <div className="dlv-primary">{job.jobNo}</div>
+                          <div className="dlv-sub">{job.title}</div>
+                        </td>
+                        <td data-label="Customer">
+                          <div className="dlv-person">
+                            <Avatar name={job.customerName} />
+                            <div>
+                              <div className="dlv-primary">{job.customerName}</div>
+                              <div className="dlv-sub dlv-inline">
+                                <Phone size={12} /> {job.customerPhone}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Qty">
+                          <span className="dlv-qty">
+                            <strong>{job.quantity}</strong> pcs
+                          </span>
+                        </td>
+                        <td data-label="Delivery">
+                          <span className={`delivery-method-pill ${job.deliveryAddress === "Counter Pickup" ? "pickup" : "internal"}`}>
+                            {job.deliveryAddress === "Counter Pickup" ? "Counter Pickup" : "Home Delivery"}
+                          </span>
+                        </td>
+                        <td data-label="Total">
+                          <div className="dlv-primary">₹{job.grandTotal.toFixed(2)}</div>
+                          <div className={`dlv-sub ${job.balanceDue > 0 ? "dlv-due" : "dlv-paid"}`}>
+                            Bal Due: ₹{job.balanceDue.toFixed(2)}
+                          </div>
+                        </td>
+                        <td data-label="Status">
+                          {job.isDeliveryPrepared ? (
+                            <span className="dlv-chip-success">✓ DO Created ({job.deliveryOrder?.deliveryNo || "Ready"})</span>
+                          ) : (
+                            <StatusBadge status="READY" domain="delivery" />
+                          )}
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          {job.isDeliveryPrepared ? (
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-ghost"
+                              onClick={() => setSelectedJobForDO({ ...job, readOnly: true })}
+                              title="View Delivery Order (Read Only)"
+                            >
+                              <Eye size={14} /> View
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-primary"
+                              onClick={() => setSelectedJobForDO({ ...job, readOnly: false })}
+                            >
+                              Review & Create DO
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* ── TAB 2: ASSIGNED STAFF (DO Status: READY / ASSIGNED) ── */}
+        {activeTab === "ASSIGNED" && (
+          <section className="dlv-card">
+            <header className="dlv-card-head">
+              <div className="dlv-card-title">
+                <span className="dlv-card-icon">
+                  <Send size={18} />
+                </span>
+                <div>
+                  <h3>Assigned Delivery Orders</h3>
+                  <p>Orders ready to be packed or reassigned</p>
+                </div>
+              </div>
+              <span className="dlv-pill">
+                Total: <strong>{activeList.length}</strong> orders
+              </span>
+            </header>
+
+            <div className="dlv-table-wrap">
+              <table className="jf-table dlv-table">
+                <thead>
+                  <tr>
+                    <th>DO Number</th>
+                    <th>Linked Job</th>
+                    <th>Recipient & Contact</th>
+                    <th>Delivery Type & Address</th>
+                    <th>Assigned Staff</th>
+                    <th>Status</th>
+                    <th className="dlv-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="dlv-empty">
+                        <div className="dlv-empty-state">
+                          <Package size={28} />
+                          <span>No delivery orders currently in Ready / Assigned queue.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    activeList.map((d) => (
+                      <tr key={d._id}>
+                        <td data-label="DO No">
+                          <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
+                        </td>
+                        <td data-label="Job">
+                          <div className="dlv-primary">{d.jobNo}</div>
+                        </td>
+                        <td data-label="Recipient">
+                          <div className="dlv-person">
+                            <Avatar name={d.customerName} />
+                            <div>
+                              <div className="dlv-primary">{d.customerName}</div>
+                              <div className="dlv-sub">{d.customerPhone}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Type & Address">
+                          <span className={`delivery-method-pill ${d.deliveryType === "COUNTER_PICKUP" ? "pickup" : "internal"}`}>
+                            {d.deliveryType}
+                          </span>
+                          <div className="dlv-sub dlv-ellipsis">{d.deliveryAddress}</div>
+                        </td>
+                        <td data-label="Staff">
+                          <div className="dlv-primary dlv-inline">
+                            <UserCheck size={14} className="dlv-muted-icon" /> {d.deliveryPersonName}
+                          </div>
+                          <div className="dlv-sub">{d.vehicle || d.deliveryPersonPhone}</div>
+                        </td>
+                        <td data-label="Status">
+                          <StatusBadge status={d.status} domain="delivery" />
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          <div className="dlv-btn-group">
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-ghost"
+                              onClick={() => setSelectedDOForAssign(d)}
+                            >
+                              {d.status === "ASSIGNED" ? "Re-assign" : "Assign Staff"}
+                            </button>
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-primary"
+                              onClick={() => setSelectedDOForPack(d)}
+                            >
+                              Pack Goods
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* ── TAB 3: PACKED GOODS (DO Status: PACKED) ── */}
+        {activeTab === "PACKED" && (
+          <section className="dlv-card">
+            <header className="dlv-card-head">
+              <div className="dlv-card-title">
+                <span className="dlv-card-icon">
+                  <PackageCheck size={18} />
+                </span>
+                <div>
+                  <h3>Packed Goods</h3>
+                  <p>Parcels ready to be dispatched</p>
+                </div>
+              </div>
+              <span className="dlv-pill">
+                Total: <strong>{activeList.length}</strong> parcels
+              </span>
+            </header>
+
+            <div className="dlv-table-wrap">
+              <table className="jf-table dlv-table">
+                <thead>
+                  <tr>
+                    <th>DO Number</th>
+                    <th>Linked Job</th>
+                    <th>Recipient</th>
+                    <th>Rider / Vehicle</th>
+                    <th>Packing Status</th>
+                    <th className="dlv-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="dlv-empty">
+                        <div className="dlv-empty-state">
+                          <Package size={28} />
+                          <span>No packed parcels pending dispatch.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    activeList.map((d) => (
+                      <tr key={d._id}>
+                        <td data-label="DO No">
+                          <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
+                        </td>
+                        <td data-label="Job">
+                          <div className="dlv-primary">{d.jobNo}</div>
+                        </td>
+                        <td data-label="Recipient">
+                          <div className="dlv-person">
+                            <Avatar name={d.customerName} />
+                            <div>
+                              <div className="dlv-primary">{d.customerName}</div>
+                              <div className="dlv-sub dlv-ellipsis">{d.deliveryAddress}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Rider">
+                          <div className="dlv-primary dlv-inline">
+                            <UserCheck size={14} className="dlv-muted-icon" /> {d.deliveryPersonName}
+                          </div>
+                          <div className="dlv-sub">{d.vehicle}</div>
+                        </td>
+                        <td data-label="Status">
+                          <StatusBadge status="PACKED" domain="delivery" />
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          <button
+                            type="button"
+                            className="dlv-btn dlv-btn-accent"
+                            onClick={() => handleDispatchOrder(d)}
+                            disabled={loading}
+                          >
+                            <Truck size={14} /> Dispatch & Send OTP
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* ── TAB 4: OUT FOR DELIVERY (DO Status: OUT_FOR_DELIVERY) ── */}
+        {activeTab === "OUT_FOR_DELIVERY" && (
+          <section className="dlv-card">
+            <header className="dlv-card-head">
+              <div className="dlv-card-title">
+                <span className="dlv-card-icon">
+                  <Truck size={18} />
+                </span>
+                <div>
+                  <h3>Active Deliveries in Transit</h3>
+                  <p>Riders on the road, awaiting OTP handover</p>
+                </div>
+              </div>
+              <span className="dlv-pill">
+                Total: <strong>{activeList.length}</strong> active deliveries
+              </span>
+            </header>
+
+            <div className="dlv-table-wrap">
+              <table className="jf-table dlv-table">
+                <thead>
+                  <tr>
+                    <th>DO Number</th>
+                    <th>Linked Job</th>
+                    <th>Customer Name & Phone</th>
+                    <th>Destination</th>
+                    <th>Rider Info</th>
+                    <th>Status</th>
+                    <th className="dlv-right">Handover Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="dlv-empty">
+                        <div className="dlv-empty-state">
+                          <Truck size={28} />
+                          <span>No deliveries currently out for delivery.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    activeList.map((d) => (
+                      <tr key={d._id}>
+                        <td data-label="DO No">
+                          <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
+                        </td>
+                        <td data-label="Job">
+                          <div className="dlv-primary">{d.jobNo}</div>
+                        </td>
+                        <td data-label="Customer">
+                          <div className="dlv-person">
+                            <Avatar name={d.customerName} />
+                            <div>
+                              <div className="dlv-primary">{d.customerName}</div>
+                              <div className="dlv-sub dlv-inline">
+                                <Phone size={12} /> {d.customerPhone}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Destination">
+                          <div className="dlv-inline dlv-ellipsis-wide">
+                            <MapPin size={14} className="dlv-muted-icon" />
+                            <span>{d.deliveryAddress}</span>
+                          </div>
+                        </td>
+                        <td data-label="Rider">
+                          <div className="dlv-primary">{d.deliveryPersonName}</div>
+                          <div className="dlv-sub">{d.vehicle}</div>
+                        </td>
+                        <td data-label="Status">
+                          <StatusBadge status="OUT_FOR_DELIVERY" domain="delivery" />
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          <button
+                            type="button"
+                            className="dlv-btn dlv-btn-success"
+                            onClick={() => setSelectedDOForHandover(d)}
+                          >
+                            Verify OTP & Handover
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* ── TAB 5: DELIVERED (DO Status: DELIVERED) ── */}
+        {activeTab === "DELIVERED" && (
+          <section className="dlv-card">
+            <header className="dlv-card-head">
+              <div className="dlv-card-title">
+                <span className="dlv-card-icon">
+                  <CheckCircle size={18} />
+                </span>
+                <div>
+                  <h3>Delivered Orders</h3>
+                  <p>Completed handovers with proof of delivery</p>
+                </div>
+              </div>
+              <span className="dlv-pill">
+                Total: <strong>{activeList.length}</strong> delivered orders
+              </span>
+            </header>
+
+            <div className="dlv-table-wrap">
+              <table className="jf-table dlv-table">
+                <thead>
+                  <tr>
+                    <th>DO Number</th>
+                    <th>Linked Job</th>
+                    <th>Customer Name</th>
+                    <th>Delivery Type</th>
+                    <th>Proof Status</th>
+                    <th>Delivery Status</th>
+                    <th className="dlv-right">Next Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="dlv-empty">
+                        <div className="dlv-empty-state">
+                          <CheckCircle size={28} />
+                          <span>No delivered orders found.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    activeList.map((d) => (
+                      <tr key={d._id}>
+                        <td data-label="DO No">
+                          <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
+                        </td>
+                        <td data-label="Job">
+                          <div className="dlv-primary">{d.jobNo}</div>
+                        </td>
+                        <td data-label="Customer">
+                          <div className="dlv-person">
+                            <Avatar name={d.customerName} />
+                            <div>
+                              <div className="dlv-primary">{d.customerName}</div>
+                              <div className="dlv-sub">{d.customerPhone}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Type">
+                          <span className={`delivery-method-pill ${d.deliveryType === "COUNTER_PICKUP" ? "pickup" : "internal"}`}>
+                            {d.deliveryType}
+                          </span>
+                        </td>
+                        <td data-label="Proof">
+                          <span className="dlv-chip-success">✓ POD Uploaded</span>
+                        </td>
+                        <td data-label="Status">
+                          <StatusBadge status="DELIVERED" domain="delivery" />
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          <button
+                            type="button"
+                            className="dlv-btn dlv-btn-primary"
+                            onClick={() => navigate(`/jobflow/invoice?jobId=${d.jobOrderId || d.jobNo}`)}
+                          >
+                            Generate Tax Invoice <ArrowRight size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ── MODALS ── */}
+      <CreateDeliveryOrderModal
+        isOpen={Boolean(selectedJobForDO)}
+        onClose={() => setSelectedJobForDO(null)}
+        job={selectedJobForDO}
+        readOnly={Boolean(selectedJobForDO?.readOnly)}
+        onCreated={() => {
+          loadAllData();
+        }}
+      />
+
+      <AssignDeliveryModal
+        isOpen={Boolean(selectedDOForAssign)}
+        onClose={() => setSelectedDOForAssign(null)}
+        deliveryOrder={selectedDOForAssign}
+        onAssigned={() => {
+          loadAllData();
+        }}
+      />
+
+      <PackDeliveryModal
+        isOpen={Boolean(selectedDOForPack)}
+        onClose={() => setSelectedDOForPack(null)}
+        deliveryOrder={selectedDOForPack}
+        onPacked={() => {
+          loadAllData();
+          handleTabChange("PACKED");
+        }}
+      />
+
+      <HandoverProofModal
+        isOpen={Boolean(selectedDOForHandover)}
+        onClose={() => setSelectedDOForHandover(null)}
+        deliveryOrder={selectedDOForHandover}
+        onDelivered={() => {
+          loadAllData();
+          handleTabChange("DELIVERED");
+        }}
+      />
     </JobFlowLayout>
   );
 };

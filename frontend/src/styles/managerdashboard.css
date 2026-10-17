@@ -1,4 +1,4 @@
-/* Modern Manager Dashboard Styles - Matching Admin Theme */
+/* Manager Dashboard — modern green theme + responsive (class names unchanged) */
 
 .manager-dashboard-wrapper {
   display: flex;
@@ -8,7 +8,19 @@
   box-sizing: border-box;
 }
 
-/* Stat Cards Grid */
+/* One orchestrated reveal on load */
+.manager-dashboard-wrapper > * {
+  animation: mgrRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.manager-dashboard-wrapper > *:nth-child(2) { animation-delay: 0.06s; }
+.manager-dashboard-wrapper > *:nth-child(3) { animation-delay: 0.12s; }
+
+@keyframes mgrRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Stat cards ---------- */
 .manager-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -18,121 +30,110 @@
 }
 
 .manager-stat-card-modern {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 20px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e6ebe8;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-.manager-stat-card-modern:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
-  border-color: #cbd5e1;
+/* soft corner glow */
+.manager-stat-card-modern::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .manager-stat-card-modern::after {
   content: "";
   position: absolute;
-  top: 0;
   left: 0;
+  top: 20%;
+  bottom: 20%;
   width: 4px;
-  height: 100%;
+  border-radius: 0 4px 4px 0;
   background: transparent;
-  transition: background 0.2s ease;
 }
 
-.manager-stat-card-modern.emerald::after {
-  background: #059669;
+.manager-stat-card-modern:hover {
+  transform: translateY(-3px);
+  border-color: #a7f3d0;
+  box-shadow: 0 16px 32px -16px rgba(5, 150, 105, 0.35);
 }
-.manager-stat-card-modern.blue::after {
-  background: #2563eb;
-}
-.manager-stat-card-modern.purple::after {
-  background: #7c3aed;
-}
-.manager-stat-card-modern.amber::after {
-  background: #d97706;
-}
+
+/* Variants stay distinct but all sit in the green family */
+.manager-stat-card-modern.emerald::after { background: #059669; }
+.manager-stat-card-modern.blue::after    { background: #0d9488; }
+.manager-stat-card-modern.purple::after  { background: #65a30d; }
+.manager-stat-card-modern.amber::after   { background: #15803d; }
 
 .manager-stat-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform 0.25s ease;
 }
 
 .manager-stat-card-modern:hover .manager-stat-icon-wrapper {
-  transform: scale(1.05);
+  transform: scale(1.06) rotate(-3deg);
 }
 
-.manager-stat-icon-wrapper.emerald {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-}
-
-.manager-stat-icon-wrapper.blue {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
-}
-
-.manager-stat-icon-wrapper.purple {
-  background: #f5f3ff;
-  color: #7c3aed;
-  border: 1px solid #ddd6fe;
-}
-
-.manager-stat-icon-wrapper.amber {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
-}
+.manager-stat-icon-wrapper.emerald { background: linear-gradient(135deg, #d1fae5, #ecfdf5); color: #059669; border: 1px solid #a7f3d0; }
+.manager-stat-icon-wrapper.blue    { background: linear-gradient(135deg, #ccfbf1, #f0fdfa); color: #0d9488; border: 1px solid #99f6e4; }
+.manager-stat-icon-wrapper.purple  { background: linear-gradient(135deg, #ecfccb, #f7fee7); color: #65a30d; border: 1px solid #d9f99d; }
+.manager-stat-icon-wrapper.amber   { background: linear-gradient(135deg, #dcfce7, #f0fdf4); color: #15803d; border: 1px solid #bbf7d0; }
 
 .manager-stat-info {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
 .manager-stat-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: 0.005em;
 }
 
 .manager-stat-num {
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.2;
   margin: 0;
-  letter-spacing: -0.02em;
   font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
 }
 
 .manager-stat-desc {
+  margin: 0;
   font-size: 0.78rem;
   color: #94a3b8;
-  margin: 0;
 }
 
-/* Two-column layout for details */
+/* ---------- Details grid ---------- */
 .manager-details-grid {
   display: grid;
   grid-template-columns: 1fr 1.35fr;
@@ -141,65 +142,68 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 960px) {
-  .manager-details-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Modern Card */
+/* ---------- Content card ---------- */
 .manager-content-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e6ebe8;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
 }
 
 .manager-card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
+  gap: 10px;
+  padding: 16px 22px;
+  background: linear-gradient(180deg, #f9fcfa 0%, #ffffff 100%);
+  border-bottom: 1px solid #eef3f0;
 }
 
 .manager-card-title-group {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .manager-card-title-icon {
+  box-sizing: content-box;
+  padding: 7px;
+  border-radius: 10px;
+  background: #ecfdf5;
   color: #059669;
 }
 
 .manager-card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0f172a;
   margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #0f172a;
 }
 
 .manager-badge-pill {
-  font-size: 0.75rem;
+  padding: 4px 11px;
+  font-size: 0.74rem;
   font-weight: 600;
-  padding: 3px 9px;
   border-radius: 9999px;
   background: #ecfdf5;
-  color: #059669;
+  color: #047857;
   border: 1px solid #a7f3d0;
+  white-space: nowrap;
 }
 
 .manager-card-body {
-  padding: 20px;
   flex: 1;
+  padding: 22px;
 }
 
-/* User Profile Section */
+/* ---------- Profile ---------- */
 .manager-profile-box {
   display: flex;
   flex-direction: column;
@@ -210,37 +214,38 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed #dde6e1;
 }
 
 .manager-avatar-large {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
-  font-weight: 700;
   flex-shrink: 0;
-  border: 2px solid #ffffff;
-  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2);
+  background: linear-gradient(135deg, #34d399 0%, #059669 55%, #047857 100%);
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 600;
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px #a7f3d0, 0 10px 20px -8px rgba(5, 150, 105, 0.55);
 }
 
 .manager-profile-name-group {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .manager-profile-name {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #0f172a;
   margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: #0f172a;
 }
 
 .manager-profile-tag {
@@ -255,17 +260,24 @@
 .manager-info-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .manager-info-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: #f7faf8;
+  border: 1px solid #edf2ef;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.manager-info-item:hover {
+  background: #f1f9f5;
+  border-color: #cdeedd;
 }
 
 .manager-info-item-left {
@@ -277,46 +289,53 @@
   font-weight: 500;
 }
 
+.manager-info-item-left svg { color: #059669; }
+
 .manager-info-item-right {
   font-size: 0.88rem;
   font-weight: 600;
   color: #1e293b;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-/* Activity Feed */
+/* ---------- Activity ---------- */
 .manager-activity-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .manager-activity-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 13px 14px;
+  border-radius: 14px;
   background: #ffffff;
-  border: 1px solid #f1f5f9;
-  transition: all 0.2s ease;
+  border: 1px solid #eef2f0;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .manager-activity-item:hover {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: #f7fcf9;
+  border-color: #cdeedd;
+  transform: translateX(2px);
 }
 
 .manager-activity-icon-bubble {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: #ecfdf5;
+  background: linear-gradient(135deg, #d1fae5, #ecfdf5);
   color: #059669;
-  border: 1px solid #d1fae5;
+  border: 1px solid #a7f3d0;
 }
 
 .manager-activity-content {
@@ -333,56 +352,57 @@
 }
 
 .manager-activity-title {
+  margin: 0;
   font-size: 0.88rem;
   font-weight: 600;
   color: #1e293b;
-  margin: 0;
 }
 
 .manager-activity-time-pill {
-  font-size: 0.75rem;
-  color: #64748b;
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
 }
 
 .manager-activity-subtitle {
+  margin: 0;
   font-size: 0.8rem;
   color: #64748b;
-  margin: 0;
 }
 
 .manager-no-activity {
-  padding: 36px 20px;
-  text-align: center;
-  color: #94a3b8;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #94a3b8;
 }
 
-/* Modernized Loading state */
+/* ---------- Loading ---------- */
 .manager-dashboard-loading {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 24px;
   gap: 16px;
-  color: #1e293b;
-  font-size: 0.95rem;
-  font-weight: 600;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
-  position: relative;
-  overflow: hidden;
   max-width: 480px;
   margin: 40px auto;
+  padding: 56px 24px;
+  background: #ffffff;
+  border: 1px solid #e6ebe8;
+  border-radius: 20px;
+  box-shadow: 0 16px 36px -20px rgba(5, 150, 105, 0.3);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1e293b;
 }
 
 .manager-dashboard-loading::before {
@@ -392,29 +412,87 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #10b981, #059669, #34d399);
+  background: linear-gradient(90deg, #34d399, #059669, #34d399);
+  background-size: 200% 100%;
+  animation: mgrShimmer 1.6s linear infinite;
 }
 
 .manager-dashboard-loading p {
   margin: 0;
-  color: #1e293b;
-  font-weight: 600;
+  color: #334155;
+  font-weight: 500;
 }
 
 .manager-dashboard-loading-spinner {
-  width: 44px;
-  height: 44px;
-  border: 3.5px solid rgba(16, 185, 129, 0.15);
+  width: 42px;
+  height: 42px;
+  border: 3px solid #d1fae5;
   border-top-color: #059669;
-  border-right-color: #10b981;
   border-radius: 50%;
-  animation: managerSpin 0.85s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+  animation: managerSpin 0.85s linear infinite;
 }
 
-@keyframes managerSpin {
-  to {
-    transform: rotate(360deg);
+@keyframes managerSpin { to { transform: rotate(360deg); } }
+@keyframes mgrShimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 960px) {
+  .manager-details-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .manager-dashboard-wrapper { gap: 14px; }
+
+  .manager-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
+
+  .manager-stat-card-modern { padding: 18px; border-radius: 18px; }
+  .manager-stat-icon-wrapper { width: 48px; height: 48px; border-radius: 14px; }
+  .manager-stat-num { font-size: 1.55rem; }
+
+  .manager-content-card { border-radius: 18px; }
+  .manager-card-header { padding: 14px 16px; }
+  .manager-card-body { padding: 16px; }
+
+  .manager-profile-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manager-info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .manager-info-item-right { text-align: left; }
+
+  .manager-activity-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .manager-dashboard-loading { margin: 24px 12px; padding: 40px 16px; }
 }
 
+@media (hover: none) {
+  .manager-stat-card-modern:hover,
+  .manager-activity-item:hover { transform: none; }
+  .manager-stat-card-modern:hover .manager-stat-icon-wrapper { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-dashboard-wrapper > *,
+  .manager-dashboard-loading::before { animation: none; }
+  .manager-dashboard-loading-spinner { animation-duration: 2s; }
+  .manager-stat-card-modern,
+  .manager-activity-item,
+  .manager-stat-icon-wrapper { transition: none; }
+}

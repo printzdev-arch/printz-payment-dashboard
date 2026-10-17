@@ -17,7 +17,8 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import EstimateReviewModal from "../components/EstimateReviewModal";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
-import jobFlowApi from "../api/estimationApi";
+import estimationApi from "../api/estimationApi";
+import "../styles/estimation.css";
 import { toast } from "react-toastify";
 
 export const EstimationPage = () => {
@@ -66,7 +67,7 @@ export const EstimationPage = () => {
   const fetchEstimates = async () => {
     setLoading(true);
     try {
-      const res = await jobFlowApi.getJobOrders({ limit: 500 });
+      const res = await estimationApi.getJobOrders({ limit: 500 });
       let list = [];
       if (res?.data?.items && Array.isArray(res.data.items)) {
         list = res.data.items;
@@ -246,7 +247,7 @@ export const EstimationPage = () => {
         staffRemarks: estimateForm.staffRemarks,
       };
 
-      await jobFlowApi.submitEstimate(preselectedJobId || "dummy-job-id", payload);
+      await estimationApi.submitEstimate(preselectedJobId || "dummy-job-id", payload);
       toast.success("Estimate submitted for Manager Approval!");
       setActiveTab("queue");
       fetchEstimates();
@@ -274,7 +275,7 @@ export const EstimationPage = () => {
 
       const remarks = typeof approvalData === "string" ? approvalData : (approvalData.remarks || "");
       const payload = typeof approvalData === "object" ? { ...approvalData } : { remarks };
-      await jobFlowApi.approveEstimate(id, payload);
+      await estimationApi.approveEstimate(id, payload);
 
       setEstimates((prev) =>
         prev.map((est) => {
@@ -324,7 +325,7 @@ export const EstimationPage = () => {
     setStatusFilter("revision");
 
     try {
-      await jobFlowApi.rejectEstimate(id, { reason: remarks });
+      await estimationApi.rejectEstimate(id, { reason: remarks });
       await fetchEstimates();
     } catch (err) {
       console.warn("Reject estimate fallback:", err);
@@ -412,36 +413,8 @@ export const EstimationPage = () => {
               },
               {
                 key: "jobNo",
-                label: "Job No & Requirements",
+                label: "Job No",
                 sortable: true,
-                render: (val, row) => {
-                  const finishing = row.finishingServices || [];
-                  return (
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{val || "-"}</div>
-                      {finishing.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px" }}>
-                          {finishing.map((f, i) => (
-                            <span
-                              key={i}
-                              style={{
-                                fontSize: "0.7rem",
-                                background: "#f0fdf4",
-                                color: "#166534",
-                                border: "1px solid #bbf7d0",
-                                padding: "1px 5px",
-                                borderRadius: "4px",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {f.name || f.code}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                },
               },
               {
                 key: "customerName",
@@ -627,9 +600,6 @@ export const EstimationPage = () => {
 
           {/* Action Buttons */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-            <button type="button" className="jf-btn jf-btn-secondary">
-              Save as Draft
-            </button>
             <button
               type="button"
               className="jf-btn jf-btn-primary"

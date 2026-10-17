@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Layers,
   Sparkles,
+  UserCheck,
 } from "lucide-react";
 
 export const ViewDesignJobModal = ({
@@ -21,6 +22,9 @@ export const ViewDesignJobModal = ({
   job,
   onOpenWorkbench,
   onReassign,
+  isDesignerUser = false,
+  isViewingOnly = false,
+  currentDesignerName = "",
 }) => {
   if (!isOpen || !job) return null;
 
@@ -42,6 +46,44 @@ export const ViewDesignJobModal = ({
     job.raw?.notes ||
     "Design brand identity with primary company colors. Follow typography and logo placement standards as per client brand guide.";
 
+  const stage = job.stage || job.currentStage || job.raw?.currentStage || "";
+  const isAssigned = status === "Assigned" || stage === "DESIGN_ASSIGNED";
+  const isInProgress =
+    status === "In Progress" ||
+    stage === "DESIGN_IN_PROGRESS" ||
+    status === "Proof Sent" ||
+    status === "Pending Sample Approvals" ||
+    stage === "SAMPLE_APPROVAL";
+  const isApproved =
+    !isAssigned &&
+    status !== "Waiting" &&
+    (["In Progress", "Proof Sent", "Pending Sample Approvals", "Revision", "Completed"].includes(status) ||
+      ["DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "REVISION", "COMPLETED", "PRODUCTION_PLANNING"].includes(stage) ||
+      Boolean(job.acceptedAt || job.raw?.acceptedAt));
+
+  const shouldHideReassign =
+    isAssigned ||
+    isInProgress ||
+    ["Assigned", "In Progress", "Proof Sent", "Pending Sample Approvals", "Completed"].includes(status) ||
+    ["DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "COMPLETED", "PRODUCTION_PLANNING"].includes(stage);
+
+  // If viewing in designer login and job is rejected or assigned to someone else
+  const isAllocatedToOtherDesigner =
+    Boolean(isViewingOnly) ||
+    Boolean(job.isRejected) ||
+    Boolean(job.rejectedByMe) ||
+    (isDesignerUser &&
+      job.designerName &&
+      job.designerName !== "- Unassigned" &&
+      currentDesignerName &&
+      !job.designerName.toLowerCase().includes(currentDesignerName.toLowerCase()) &&
+      !currentDesignerName.toLowerCase().includes(job.designerName.toLowerCase()));
+
+  const displayDesignerName =
+    isAllocatedToOtherDesigner && isDesignerUser
+      ? "Allocated to other designer"
+      : designerName;
+
   return (
     <div className="alloc-modal-overlay" onClick={onClose}>
       <div
@@ -61,7 +103,11 @@ export const ViewDesignJobModal = ({
                       ? "#dcfce7"
                       : status === "In Progress"
                       ? "#dbeafe"
+                      : status === "Pending Sample Approvals" || status === "Proof Sent"
+                      ? "#f5f3ff"
                       : status === "Revision"
+                      ? "#fef3c7"
+                      : status === "Assigned"
                       ? "#fef3c7"
                       : "#f1f5f9",
                   color:
@@ -69,7 +115,11 @@ export const ViewDesignJobModal = ({
                       ? "#15803d"
                       : status === "In Progress"
                       ? "#1d4ed8"
+                      : status === "Pending Sample Approvals" || status === "Proof Sent"
+                      ? "#6d28d9"
                       : status === "Revision"
+                      ? "#b45309"
+                      : status === "Assigned"
                       ? "#b45309"
                       : "#475569",
                   fontSize: "0.75rem",
@@ -203,24 +253,41 @@ export const ViewDesignJobModal = ({
                     marginTop: "0.25rem",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "50%",
-                      background: "#16a34a",
-                      color: "#ffffff",
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    {designerName.slice(0, 2).toUpperCase()}
-                  </div>
+                  {isAllocatedToOtherDesigner && isDesignerUser ? (
+                    <div
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        background: "#16a34a",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <UserCheck size={16} />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        background: "#16a34a",
+                        color: "#ffffff",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      {designerName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <strong style={{ fontSize: "0.9rem", color: "#0f172a" }}>
-                    {designerName}
+                    {displayDesignerName}
                   </strong>
                 </div>
               </div>
@@ -244,11 +311,110 @@ export const ViewDesignJobModal = ({
                     marginTop: "0.35rem",
                   }}
                 >
-                  <CheckCircle2 size={16} style={{ color: "#16a34a" }} />
+                  {isApproved ? (
+                    <CheckCircle2 size={16} style={{ color: "#16a34a" }} />
+                  ) : isAssigned ? (
+                    <Clock size={16} style={{ color: "#d97706" }} />
+                  ) : (
+                    <CheckCircle2 size={16} style={{ color: "#64748b" }} />
+                  )}
                   <strong style={{ fontSize: "0.9rem", color: "#0f172a" }}>{status}</strong>
                 </div>
               </div>
             </div>
+
+            {/* Designer Acceptance / Approval Information */}
+            {isAssigned && (
+              <div
+                style={{
+                  marginTop: "0.85rem",
+                  padding: "0.75rem 1rem",
+                  background: "#fffbeb",
+                  border: "1px solid #fef3c7",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "0.6rem",
+                  fontSize: "0.8125rem",
+                  color: "#92400e",
+                }}
+              >
+                <Clock size={16} style={{ color: "#d97706", flexShrink: 0, marginTop: "2px" }} />
+                <div>
+                  <div style={{ fontWeight: 600 }}>Designer Approval: Pending Acceptance</div>
+                  <div style={{ marginTop: "3px", color: "#b45309", fontSize: "0.78125rem", lineHeight: 1.45 }}>
+                    {isAllocatedToOtherDesigner && isDesignerUser
+                      ? "This job order is allocated to other designer and is pending acceptance."
+                      : `${designerName} has been assigned this job order. The designer has not accepted/approved it yet. Workbench will unlock once the designer accepts the assignment.`}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isApproved && (
+              <div
+                style={{
+                  marginTop: "0.85rem",
+                  padding: "0.65rem 1rem",
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  fontSize: "0.8125rem",
+                  color: "#166534",
+                }}
+              >
+                <CheckCircle2 size={16} style={{ color: "#16a34a", flexShrink: 0 }} />
+                <span>
+                  {isAllocatedToOtherDesigner && isDesignerUser ? (
+                    <>
+                      <strong>Designer Approved:</strong> Accepted by other designer and in progress.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Designer Approved:</strong> {designerName} accepted this assignment and the workbench is unlocked.
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* Redesign Started / Not Started Status for Revision Jobs */}
+            {(status === "Revision" || stage === "REVISION" || job.isRedesign || job.designStatus === "REVISION") && (
+              <div
+                style={{
+                  marginTop: "0.85rem",
+                  padding: "0.75rem 1rem",
+                  background: (job.isRevisionStarted || job.raw?.isRevisionStarted || job.isRevisionWorkStarted) ? "#f0fdf4" : "#fffbeb",
+                  border: `1px solid ${(job.isRevisionStarted || job.raw?.isRevisionStarted || job.isRevisionWorkStarted) ? "#bbf7d0" : "#fef3c7"}`,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "0.6rem",
+                  fontSize: "0.8125rem",
+                  color: (job.isRevisionStarted || job.raw?.isRevisionStarted || job.isRevisionWorkStarted) ? "#166534" : "#92400e",
+                }}
+              >
+                {(job.isRevisionStarted || job.raw?.isRevisionStarted || job.isRevisionWorkStarted) ? (
+                  <CheckCircle2 size={16} style={{ color: "#16a34a", flexShrink: 0, marginTop: "2px" }} />
+                ) : (
+                  <Clock size={16} style={{ color: "#d97706", flexShrink: 0, marginTop: "2px" }} />
+                )}
+                <div>
+                  <div style={{ fontWeight: 600 }}>
+                    Designer Redesign Status:{" "}
+                    {(job.isRevisionStarted || job.raw?.isRevisionStarted || job.isRevisionWorkStarted) ? "Started by Designer" : "Not Started"}
+                  </div>
+                  <div style={{ marginTop: "3px", fontSize: "0.78125rem", lineHeight: 1.45 }}>
+                    {(job.isRevisionStarted || job.raw?.isRevisionStarted || job.isRevisionWorkStarted)
+                      ? `${designerName} has officially started the redesign workflow in workbench.`
+                      : `${designerName} has been assigned this revision but has not clicked Start yet.`}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section 3: Requirements & Design Brief */}
@@ -282,35 +448,39 @@ export const ViewDesignJobModal = ({
         {/* Footer */}
         <div className="alloc-modal-footer" style={{ justifyContent: "space-between" }}>
           <div>
-            <button
-              type="button"
-              className="alloc-btn-cancel"
-              style={{ color: "#2563eb", borderColor: "#bfdbfe" }}
-              onClick={() => {
-                onClose();
-                if (onReassign) onReassign(job);
-              }}
-            >
-              Reassign Designer
-            </button>
+            {!shouldHideReassign && !isViewingOnly && !isDesignerUser && onReassign && (
+              <button
+                type="button"
+                className="alloc-btn-cancel"
+                style={{ color: "#2563eb", borderColor: "#bfdbfe" }}
+                onClick={() => {
+                  onClose();
+                  if (onReassign) onReassign(job);
+                }}
+              >
+                Reassign Designer
+              </button>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button type="button" className="alloc-btn-cancel" onClick={onClose}>
               Close
             </button>
-            <button
-              type="button"
-              className="dw-btn-primary-green"
-              style={{ padding: "0.5rem 1.25rem", borderRadius: "6px" }}
-              onClick={() => {
-                onClose();
-                if (onOpenWorkbench) onOpenWorkbench(job);
-              }}
-            >
-              <Palette size={14} />
-              Open in Workbench
-            </button>
+            {isApproved && !isViewingOnly && !(isDesignerUser && isAllocatedToOtherDesigner) && (
+              <button
+                type="button"
+                className="dw-btn-primary-green"
+                style={{ padding: "0.5rem 1.25rem", borderRadius: "6px" }}
+                onClick={() => {
+                  onClose();
+                  if (onOpenWorkbench) onOpenWorkbench(job);
+                }}
+              >
+                <Palette size={14} />
+                Open in Workbench
+              </button>
+            )}
           </div>
         </div>
       </div>

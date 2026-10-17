@@ -26,8 +26,14 @@ export * from "./quality-control";
 // Delivery Sub-Domain
 export * from "./delivery";
 
+// Invoice Sub-Domain
+export * from "./invoice";
+
 // Settlement Sub-Domain
 export * from "./settlement";
+
+// POS & Sales Receipts Sub-Domain
+export * from "./pos";
 
 // Dashboard
 export * from "./dashboard";

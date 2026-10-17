@@ -11,6 +11,7 @@ import {
   X,
   Inbox
 } from "lucide-react";
+import { TableSkeletonRows } from "../../../../shared/motion";
 
 /**
  * JobFlowDataTable
@@ -29,6 +30,7 @@ export const JobFlowDataTable = ({
   columns = [],
   data = [],
   loading = false,
+  sortable = false,
   searchable = true,
   searchPlaceholder = "Search records...",
   searchKeys = [],
@@ -47,7 +49,7 @@ export const JobFlowDataTable = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({
-    key: defaultSortKey,
+    key: sortable ? defaultSortKey : "",
     direction: defaultSortDir,
   });
   const [currentPage, setCurrentPage] = useState(1);
@@ -95,7 +97,7 @@ export const JobFlowDataTable = ({
 
   // 2. Sort Data
   const sortedData = useMemo(() => {
-    if (!sortConfig.key) return filteredData;
+    if (!sortable || !sortConfig.key) return filteredData;
 
     return [...filteredData].sort((a, b) => {
       const aVal = getNestedValue(a, sortConfig.key);
@@ -120,7 +122,7 @@ export const JobFlowDataTable = ({
         return bStr.localeCompare(aStr);
       }
     });
-  }, [filteredData, sortConfig]);
+  }, [filteredData, sortConfig, sortable]);
 
   // 3. Pagination Slicing
   const totalEntries = sortedData.length;
@@ -136,8 +138,8 @@ export const JobFlowDataTable = ({
   }, [sortedData, validPage, pageSize, pagination]);
 
   // Handle column header sort toggle
-  const handleSort = (key, sortable = true) => {
-    if (!sortable || !key) return;
+  const handleSort = (key, colSortable = true) => {
+    if (!sortable || colSortable === false || !key) return;
 
     setSortConfig((prev) => {
       if (prev.key === key) {
@@ -287,8 +289,8 @@ export const JobFlowDataTable = ({
           <thead>
             <tr>
               {columns.map((col, idx) => {
-                const isSorted = sortConfig.key === col.key;
-                const canSort = col.sortable !== false && col.key;
+                const isSorted = Boolean(sortable) && sortConfig.key === col.key;
+                const canSort = Boolean(sortable) && col.sortable !== false && Boolean(col.key);
 
                 return (
                   <th
@@ -331,24 +333,10 @@ export const JobFlowDataTable = ({
 
           <tbody>
             {loading ? (
-              // Loading skeleton rows
-              Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, rIdx) => (
-                <tr key={`skeleton-${rIdx}`}>
-                  {columns.map((_, cIdx) => (
-                    <td key={`sc-${cIdx}`} style={{ padding: "1rem" }}>
-                      <div
-                        style={{
-                          height: "14px",
-                          borderRadius: "4px",
-                          background: "linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)",
-                          backgroundSize: "200% 100%",
-                          animation: "jfShimmer 1.5s infinite",
-                        }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
+              <TableSkeletonRows
+                rowCount={pageSize > 6 ? 6 : Math.max(3, pageSize)}
+                columnCount={columns.length}
+              />
             ) : paginatedData.length === 0 ? (
               // Empty State
               <tr>
@@ -378,6 +366,7 @@ export const JobFlowDataTable = ({
                 return (
                   <tr
                     key={id}
+                    className="printz-row-animated"
                     onClick={() => onRowClick && onRowClick(row)}
                     style={{
                       cursor: onRowClick ? "pointer" : "default",

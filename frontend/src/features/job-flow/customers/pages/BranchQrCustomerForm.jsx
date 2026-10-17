@@ -14,7 +14,9 @@ import {
   Phone,
   Mail,
   FileText,
+  ArrowLeft,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import jobFlowApi from "../api/customersApi";
 import { toast } from "react-toastify";
 
@@ -107,6 +109,7 @@ const matchBranch = (bList = [], target = {}) => {
 };
 
 export const BranchQrCustomerForm = () => {
+  const navigate = useNavigate();
   const managerInfo = getManagerBranchInfo();
   const [branches, setBranches] = useState([]);
   const [formData, setFormData] = useState({
@@ -173,6 +176,8 @@ export const BranchQrCustomerForm = () => {
           name: hasEnoughName ? rawName : undefined,
           phone: hasEnoughPhone ? rawPhone : undefined,
           email: hasEnoughEmail ? rawEmail : undefined,
+          gstin: (formData.gstin || "").trim() || undefined,
+          company: (formData.companyName || "").trim() || undefined,
         });
 
         const data = res?.data || res || {};
@@ -239,6 +244,8 @@ export const BranchQrCustomerForm = () => {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         email: formData.email?.trim() || undefined,
+        gstin: (formData.gstin || "").trim() || undefined,
+        company: (formData.companyName || "").trim() || undefined,
       });
       const checkData = checkRes?.data || checkRes || {};
       if (checkData.exists && checkData.customer) {
@@ -289,7 +296,34 @@ export const BranchQrCustomerForm = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#062817", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#062817", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
+      {managerInfo.isManager && (
+        <div style={{ width: "100%", maxWidth: "960px", marginBottom: "0.85rem", display: "flex", justifyContent: "flex-start" }}>
+          <button
+            type="button"
+            onClick={() => navigate("/customers")}
+            style={{
+              background: "rgba(255, 255, 255, 0.12)",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              color: "#ffffff",
+              padding: "0.45rem 0.9rem",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "0.45rem",
+              transition: "all 0.18s ease",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)")}
+            onMouseOut={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)")}
+          >
+            <ArrowLeft size={16} />
+            <span>← Back to Customer Directory</span>
+          </button>
+        </div>
+      )}
       <div
         style={{
           display: "grid",

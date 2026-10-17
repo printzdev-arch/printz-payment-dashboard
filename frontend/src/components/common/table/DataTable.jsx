@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import "./DataTable.css";
 import Pagination from "../Pagination";
+import { TableSkeletonRows } from "../../../shared/motion";
 
 /**
  * Modern, reusable, purely presentational DataTable matching PrintZ design language.
@@ -54,6 +55,7 @@ const DataTable = ({
   searchable = true,
   searchPlaceholder = "Search...",
   searchKeys,
+  sortable = false,
   pagination = true,
   pageSize = 10,
   pageSizeOptions,
@@ -88,7 +90,7 @@ const DataTable = ({
 
   // Sorting
   const sortedData = useMemo(() => {
-    if (!sortConfig.key) return filteredData;
+    if (!sortable || !sortConfig.key) return filteredData;
     return [...filteredData].sort((a, b) => {
       const aVal = a[sortConfig.key] ?? "";
       const bVal = b[sortConfig.key] ?? "";
@@ -101,7 +103,7 @@ const DataTable = ({
       if (aStr > bStr) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-  }, [filteredData, sortConfig]);
+  }, [filteredData, sortConfig, sortable]);
 
   // Pagination
   const totalPages = Math.ceil(sortedData.length / currentPageSize) || 1;
@@ -112,6 +114,7 @@ const DataTable = ({
   }, [sortedData, pagination, currentPage, currentPageSize]);
 
   const handleSort = (key) => {
+    if (!sortable) return;
     setSortConfig((prev) => {
       if (prev.key === key) {
         return {
@@ -168,29 +171,33 @@ const DataTable = ({
         <table className="printz-modern-table">
           <thead>
             <tr>
-              {columns.map((col, idx) => (
-                <th
-                  key={col.key || idx}
-                  style={{
-                    textAlign: col.align || "left",
-                    width: col.width || "auto",
-                  }}
-                  className={col.sortable !== false ? "sortable" : ""}
-                  onClick={() => col.sortable !== false && handleSort(col.key)}
-                >
-                  <span className="printz-th-content">
-                    {col.label}
-                    {col.sortable !== false && (
-                      <ArrowUpDown
-                        size={13}
-                        className={`printz-sort-arrows ${
-                          sortConfig.key === col.key ? "active" : ""
-                        }`}
-                      />
-                    )}
-                  </span>
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                const canSort = Boolean(sortable) && col.sortable !== false && Boolean(col.key);
+                return (
+                  <th
+                    key={col.key || idx}
+                    style={{
+                      textAlign: col.align || "left",
+                      width: col.width || "auto",
+                      cursor: canSort ? "pointer" : "default",
+                    }}
+                    className={canSort ? "sortable" : ""}
+                    onClick={() => canSort && handleSort(col.key)}
+                  >
+                    <span className="printz-th-content">
+                      {col.label}
+                      {canSort && (
+                        <ArrowUpDown
+                          size={13}
+                          className={`printz-sort-arrows ${
+                            sortConfig.key === col.key ? "active" : ""
+                          }`}
+                        />
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
               {hasActionColumn && (
                 <th style={{ textAlign: "center", width: "120px" }}>ACTIONS</th>
               )}
@@ -198,15 +205,10 @@ const DataTable = ({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td
-                  colSpan={columns.length + (hasActionColumn ? 1 : 0)}
-                  className="printz-table-loading"
-                >
-                  <div className="printz-spinner" />
-                  <span>Loading records...</span>
-                </td>
-              </tr>
+              <TableSkeletonRows
+                rowCount={currentPageSize > 6 ? 6 : Math.max(3, currentPageSize)}
+                columnCount={columns.length + (hasActionColumn ? 1 : 0)}
+              />
             ) : paginatedData.length === 0 ? (
               <tr>
                 <td
@@ -222,7 +224,7 @@ const DataTable = ({
                   pagination ? (currentPage - 1) * currentPageSize + rowIdx : rowIdx;
 
                 return (
-                  <tr key={row.id || row._id || rowIdx}>
+                  <tr key={row.id || row._id || rowIdx} className="printz-row-animated">
                     {columns.map((col, colIdx) => (
                       <td
                         key={col.key || colIdx}

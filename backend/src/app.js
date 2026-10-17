@@ -3,18 +3,18 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const swaggerUi = require("swagger-ui-express");
-const swaggerDocument = require("./infrastructure/config/swagger");
-const env = require("./infrastructure/config/env");
-const routes = require("./presentation/routes");
-const notFound = require("./presentation/middleware/notFound.middleware");
-const errorHandler = require("./presentation/middleware/error.middleware");
-const { setupDesignEventListeners } = require("./shared/events/design/designEvents.listener");
-const { setupSlaEventListeners } = require("./shared/events/sla/slaEvents.listener");
-const DesignAllocationService = require("./application/services/design/designAllocation.service");
-const slaSchedulerService = require("./application/services/sla/slaScheduler.service");
+const swaggerDocument = require("./config/swagger");
+const env = require("./config/env");
+require("./models");
+const routes = require("./routes");
+const notFound = require("./middleware/notFound.middleware");
+const errorHandler = require("./middleware/error.middleware");
+const { setupDesignEventListeners } = require("./utils/events/design/designEvents.listener");
+const { setupSlaEventListeners } = require("./utils/events/sla/slaEvents.listener");
+const { designAllocationService, slaSchedulerService } = require("./services");
 
 // Initialize design event listeners (auto-allocate on DESIGN_QUEUE, auto-release on cancel)
-setupDesignEventListeners(DesignAllocationService);
+setupDesignEventListeners(designAllocationService);
 
 // Initialize SLA event listeners & scheduler
 setupSlaEventListeners();
@@ -33,7 +33,10 @@ app.use(
 );
 
 // CORS configuration
-const allowedOrigins = env.CLIENT_URL ? env.CLIENT_URL.split(",") : ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"];
+const allowedOrigins = env.CLIENT_URL
+  ? env.CLIENT_URL.split(",")
+  : ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"];
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -90,8 +93,9 @@ app.get("/api-docs.json", (req, res) => {
 });
 
 // Health check endpoint for staging / production monitoring & load balancers
-app.get(["/health", "/api/v1/health"], (req, res) => {
-  const dbState = require("mongoose").connection.readyState;
+app.get(["/health", "/api/health", "/api/v1/health"], (req, res) => {
+  const conn = require("mongoose").connection;
+  const dbState = conn.readyState;
   const dbStatusMap = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
   const isHealthy = dbState === 1;
 
@@ -100,9 +104,12 @@ app.get(["/health", "/api/v1/health"], (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: env.NODE_ENV,
-    database: {
+    db: dbStatusMap[dbState] || "unknown",
+    database: isHealthy ? conn.name : undefined,
+    dbDetails: {
       status: dbStatusMap[dbState] || "unknown",
       readyState: dbState,
+      name: isHealthy ? conn.name : undefined,
     },
     version: "1.0.0",
   });
@@ -117,9 +124,13 @@ app.get("/", (req, res) => {
   });
 });
 
-// API Routes
-app.use("/api", routes);
+// Static file serving for uploads (design proofs, attachments, samples)
+const path = require("path");
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
+// API Routes (Dual prefix support for /api/v1 and /api - more specific route mounted first)
 app.use("/api/v1", routes);
+app.use("/api", routes);
 
 // 404 & Global Error Handling
 app.use(notFound);

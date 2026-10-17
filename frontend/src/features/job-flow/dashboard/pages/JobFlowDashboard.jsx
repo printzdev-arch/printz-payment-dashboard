@@ -17,7 +17,8 @@ import {
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
-import jobFlowApi from "../../shared/api/jobFlowApiClient";
+import dashboardApi from "../api/dashboardApi";
+import "../styles/dashboard.css";
 
 export const JobFlowDashboard = () => {
   const [counts, setCounts] = useState({
@@ -42,8 +43,8 @@ export const JobFlowDashboard = () => {
     setLoading(true);
     try {
       const [jobsRes, custRes] = await Promise.allSettled([
-        jobFlowApi.getJobOrders({ limit: 6 }),
-        jobFlowApi.getCustomers({ limit: 1 }),
+        dashboardApi.getJobOrders({ limit: 6 }),
+        dashboardApi.getCustomers({ limit: 1 }),
       ]);
 
       if (jobsRes.status === "fulfilled" && jobsRes.value?.data?.items) {

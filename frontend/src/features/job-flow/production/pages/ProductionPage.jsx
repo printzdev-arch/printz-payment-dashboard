@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Layers,
@@ -17,6 +17,10 @@ import {
   QrCode,
   Printer,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronDown,
   UserCheck,
   Check,
   Activity,
@@ -42,6 +46,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import jobFlowApi from "../api/productionApi";
+import "../styles/production.css";
 import { toast } from "react-toastify";
 
 // Production Action Modals
@@ -57,6 +62,521 @@ const formatUser = (u, fallback = "-") => {
   if (!u) return fallback;
   if (typeof u === "string") return u;
   return u.name || u.email || u.username || fallback;
+};
+
+// ──────────────── OPERATION QUEUE DROPDOWN PRESETS ────────────────
+const QUEUE_OPERATION_OPTIONS = [
+  { value: "ALL", label: "All Operations" },
+  { value: "PRINT", label: "Printing" },
+  { value: "CUTTING", label: "Cutting" },
+  { value: "LAMINATION", label: "Lamination" },
+  { value: "BINDING", label: "Binding" },
+  { value: "FOLDING", label: "Folding" },
+  { value: "CREASING", label: "Creasing" },
+  { value: "SPIRAL", label: "Spiral Binding" },
+  { value: "UV", label: "UV Coating" },
+  { value: "MOUNTING", label: "Mounting" },
+  { value: "HEAT_PRESS", label: "Heat Press" },
+  { value: "PACKING", label: "Packing" },
+];
+
+const QUEUE_STATUS_OPTIONS = [
+  { value: "ALL_ELIGIBLE", label: "All Eligible" },
+  { value: "PENDING", label: "Pending" },
+  { value: "RUNNING", label: "Running" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "FAILED", label: "Failed" },
+  { value: "SKIPPED", label: "Skipped" },
+];
+
+// ──────────────── REUSABLE SEARCHABLE SELECT DROPDOWN ────────────────
+const SearchableSelect = ({
+  options = [],
+  value,
+  onChange,
+  placeholder = "Select...",
+  searchPlaceholder = "Search options...",
+  label = null,
+  style = {},
+  width = "200px",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+
+  const filteredOptions = options.filter((opt) =>
+    (opt.label || "").toLowerCase().includes(searchTerm.toLowerCase().trim())
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: "relative",
+        width,
+        minWidth: "160px",
+        display: "inline-block",
+        ...style,
+      }}
+    >
+      {label && (
+        <span
+          style={{
+            display: "block",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            color: "#64748b",
+            marginBottom: "4px",
+          }}
+        >
+          {label}
+        </span>
+      )}
+      <button
+        type="button"
+        className="jf-input jf-input-sm"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "0.5rem",
+          cursor: "pointer",
+          background: "#ffffff",
+          textAlign: "left",
+          width: "100%",
+          height: "36px",
+          padding: "0 10px",
+          fontWeight: 600,
+          color: selectedOption?.value !== "ALL" && selectedOption?.value !== "ALL_ELIGIBLE" ? "#15803d" : "#0f172a",
+          border: selectedOption?.value !== "ALL" && selectedOption?.value !== "ALL_ELIGIBLE" ? "1.5px solid #86efac" : "1px solid #cbd5e1",
+          borderRadius: "6px",
+        }}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setSearchTerm("");
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown
+          size={14}
+          style={{
+            color: "#64748b",
+            flexShrink: 0,
+            transform: isOpen ? "rotate(180deg)" : "none",
+            transition: "transform 0.15s ease",
+          }}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            zIndex: 250,
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: "8px",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+            padding: "8px",
+            maxHeight: "280px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+          }}
+        >
+          {/* Search box inside the select dropdown */}
+          <div style={{ position: "relative" }}>
+            <Search
+              size={13}
+              style={{
+                position: "absolute",
+                left: "8px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#94a3b8",
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="text"
+              autoFocus
+              className="jf-input jf-input-sm"
+              placeholder={searchPlaceholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                paddingLeft: "26px",
+                paddingRight: searchTerm ? "24px" : "8px",
+                width: "100%",
+                height: "30px",
+                fontSize: "0.8125rem",
+                borderRadius: "4px",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                style={{
+                  position: "absolute",
+                  right: "6px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#94a3b8",
+                  padding: "2px",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearchTerm("");
+                }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Filtered Options list */}
+          <div
+            style={{
+              overflowY: "auto",
+              maxHeight: "190px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2px",
+            }}
+          >
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => {
+                const isSelected = opt.value === value;
+                return (
+                  <div
+                    key={opt.value}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: "4px",
+                      fontSize: "0.8125rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      background: isSelected ? "#f0fdf4" : "transparent",
+                      color: isSelected ? "#15803d" : "#1e293b",
+                      fontWeight: isSelected ? 700 : 500,
+                      transition: "background 0.1s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = "#f1f5f9";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = "transparent";
+                    }}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setSearchTerm("");
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check size={14} style={{ color: "#15803d" }} />}
+                  </div>
+                );
+              })
+            ) : (
+              <div
+                style={{
+                  padding: "10px 8px",
+                  fontSize: "0.75rem",
+                  color: "#94a3b8",
+                  textAlign: "center",
+                }}
+              >
+                No options matching "{searchTerm}"
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ──────────────── UNIFIED TABLE PAGINATION FOOTER ────────────────
+const TablePaginationFooter = ({
+  currentPage = 1,
+  totalItems = 0,
+  rowsPerPage = 10,
+  onPageChange,
+  onRowsPerPageChange,
+  pageSizeOptions = [5, 10, 20, 50],
+  itemName = "items",
+}) => {
+  const rows = Math.max(1, Number(rowsPerPage) || 10);
+  const totalPages = Math.max(1, Math.ceil(totalItems / rows));
+  const validPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startRecord = totalItems === 0 ? 0 : (validPage - 1) * rows + 1;
+  const endRecord = Math.min(validPage * rows, totalItems);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      let start = Math.max(2, validPage - 1);
+      let end = Math.min(totalPages - 1, validPage + 1);
+      if (validPage <= 2) {
+        end = 4;
+      } else if (validPage >= totalPages - 1) {
+        start = totalPages - 3;
+      }
+      if (start > 2) pages.push("...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < totalPages - 1) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "0.75rem",
+        padding: "0.875rem 1.25rem",
+        borderTop: "1px solid #e2e8f0",
+        fontSize: "0.8125rem",
+        color: "#64748b",
+        background: "#fafbfc",
+        borderBottomLeftRadius: "8px",
+        borderBottomRightRadius: "8px",
+      }}
+    >
+      {/* Left: Rows per page input field + quick presets + count */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          <span style={{ fontWeight: 600, color: "#475569" }}>Rows per page:</span>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(100, totalItems || 100)}
+            aria-label="Rows per page input field"
+            className="jf-input jf-input-sm"
+            style={{
+              width: "60px",
+              height: "30px",
+              padding: "2px 6px",
+              textAlign: "center",
+              fontWeight: 700,
+              color: "#0f172a",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "4px",
+            }}
+            value={rowsPerPage}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "") {
+                onRowsPerPageChange("");
+              } else {
+                const num = parseInt(val, 10);
+                if (!isNaN(num) && num > 0) {
+                  onRowsPerPageChange(num);
+                }
+              }
+              onPageChange(1);
+            }}
+            onBlur={() => {
+              if (!rowsPerPage || Number(rowsPerPage) < 1) {
+                onRowsPerPageChange(pageSizeOptions[0] || 10);
+              }
+            }}
+          />
+          <select
+            className="jf-input jf-input-sm"
+            style={{
+              height: "30px",
+              padding: "2px 6px",
+              fontSize: "0.75rem",
+              color: "#475569",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            value={pageSizeOptions.includes(Number(rowsPerPage)) ? Number(rowsPerPage) : "custom"}
+            onChange={(e) => {
+              if (e.target.value !== "custom") {
+                onRowsPerPageChange(Number(e.target.value));
+                onPageChange(1);
+              }
+            }}
+            title="Quick preset"
+          >
+            {pageSizeOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt} / page
+              </option>
+            ))}
+            {!pageSizeOptions.includes(Number(rowsPerPage)) && (
+              <option value="custom">Custom ({rowsPerPage})</option>
+            )}
+          </select>
+        </div>
+
+        <span style={{ color: "#64748b" }}>
+          Showing <strong style={{ color: "#0f172a" }}>{startRecord}</strong> -{" "}
+          <strong style={{ color: "#0f172a" }}>{endRecord}</strong> of{" "}
+          <strong style={{ color: "#0f172a" }}>{totalItems}</strong> {itemName}
+        </span>
+      </div>
+
+      {/* Right: Full Pagination Navigation */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+        <button
+          type="button"
+          className="jf-btn jf-btn-secondary jf-btn-sm"
+          style={{
+            padding: "4px 8px",
+            height: "30px",
+            borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          disabled={validPage <= 1}
+          onClick={() => onPageChange(1)}
+          title="First Page"
+        >
+          <ChevronsLeft size={14} />
+        </button>
+
+        <button
+          type="button"
+          className="jf-btn jf-btn-secondary jf-btn-sm"
+          style={{
+            padding: "4px 8px",
+            height: "30px",
+            borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
+            gap: "2px",
+          }}
+          disabled={validPage <= 1}
+          onClick={() => onPageChange(Math.max(1, validPage - 1))}
+          title="Previous Page"
+        >
+          <ChevronLeft size={14} /> Prev
+        </button>
+
+        <div style={{ display: "flex", gap: "0.25rem", margin: "0 0.25rem" }}>
+          {getPageNumbers().map((num, idx) => {
+            if (num === "...") {
+              return (
+                <span
+                  key={`ellipsis-${idx}`}
+                  style={{
+                    minWidth: "28px",
+                    height: "30px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#94a3b8",
+                    fontSize: "0.8125rem",
+                  }}
+                >
+                  ...
+                </span>
+              );
+            }
+            const isActive = num === validPage;
+            return (
+              <button
+                key={`page-${num}`}
+                type="button"
+                style={{
+                  minWidth: "30px",
+                  height: "30px",
+                  padding: "0 6px",
+                  borderRadius: "4px",
+                  border: isActive ? "1px solid #15803d" : "1px solid #cbd5e1",
+                  background: isActive ? "#15803d" : "#ffffff",
+                  color: isActive ? "#ffffff" : "#334155",
+                  fontWeight: isActive ? 700 : 500,
+                  cursor: "pointer",
+                  fontSize: "0.8125rem",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => onPageChange(num)}
+              >
+                {num}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="jf-btn jf-btn-secondary jf-btn-sm"
+          style={{
+            padding: "4px 8px",
+            height: "30px",
+            borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
+            gap: "2px",
+          }}
+          disabled={validPage >= totalPages}
+          onClick={() => onPageChange(Math.min(totalPages, validPage + 1))}
+          title="Next Page"
+        >
+          Next <ChevronRight size={14} />
+        </button>
+
+        <button
+          type="button"
+          className="jf-btn jf-btn-secondary jf-btn-sm"
+          style={{
+            padding: "4px 8px",
+            height: "30px",
+            borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          disabled={validPage >= totalPages}
+          onClick={() => onPageChange(totalPages)}
+          title="Last Page"
+        >
+          <ChevronsRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export const ProductionPage = () => {
@@ -107,6 +627,8 @@ export const ProductionPage = () => {
       setActiveTab("orders");
     } else if (location.pathname.includes("/production/queue")) {
       setActiveTab("queue");
+    } else {
+      setActiveTab("overview");
     }
   }, [location.pathname, searchParams]);
 
@@ -175,6 +697,8 @@ export const ProductionPage = () => {
   const [overviewDateFrom, setOverviewDateFrom] = useState("");
   const [overviewDateTo, setOverviewDateTo] = useState("");
   const [overviewBranch, setOverviewBranch] = useState("ALL");
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [summaryRowsPerPage, setSummaryRowsPerPage] = useState(6);
 
   // Production Orders Pagination & Extra Filters (Screenshot 1)
   const [orderBranchFilter, setOrderBranchFilter] = useState("ALL");
@@ -186,9 +710,11 @@ export const ProductionPage = () => {
   const [isEditOrderModalOpen, setIsEditOrderModalOpen] = useState(false);
   const [editOrderData, setEditOrderData] = useState(null);
 
-  // Operation Queue Filters & Workbench (Screenshot 3)
+  // Operation Queue Filters, Workbench & Pagination (Screenshot 3)
   const [queueBranchFilter, setQueueBranchFilter] = useState("ALL");
   const [queueAssignedToMe, setQueueAssignedToMe] = useState(false);
+  const [queuePage, setQueuePage] = useState(1);
+  const [queueRowsPerPage, setQueueRowsPerPage] = useState(10);
   const [selectedQueueOp, setSelectedQueueOp] = useState(null);
   const [wbInputQty, setWbInputQty] = useState(1000);
   const [wbOutputQty, setWbOutputQty] = useState(1000);
@@ -202,7 +728,7 @@ export const ProductionPage = () => {
     { item: "Black Digital Ink", quantity: 1, type: "INK_TONER" },
   ]);
 
-  // Reprint Management Modal & Filters (Screenshot 5)
+  // Reprint Management Modal, Filters & Pagination (Screenshot 5)
   const [isNewReprintModalOpen, setIsNewReprintModalOpen] = useState(false);
   const [newReprintJobId, setNewReprintJobId] = useState("");
   const [newReprintJobItem, setNewReprintJobItem] = useState("");
@@ -213,7 +739,14 @@ export const ProductionPage = () => {
   const [reprintStatusFilter, setReprintStatusFilter] = useState("ALL");
   const [reprintFromDate, setReprintFromDate] = useState("");
   const [reprintToDate, setReprintToDate] = useState("");
+  const [reprintPage, setReprintPage] = useState(1);
+  const [reprintRowsPerPage, setReprintRowsPerPage] = useState(10);
   const [selectedReprint, setSelectedReprint] = useState(null);
+  const [reprintReviewComment, setReprintReviewComment] = useState("");
+
+  // Order Details Operations Timeline Pagination (Tab 5)
+  const [detailsOpPage, setDetailsOpPage] = useState(1);
+  const [detailsOpRowsPerPage, setDetailsOpRowsPerPage] = useState(10);
 
   // ──────────────── FETCH LIVE BACKEND DATA ────────────────
   const fetchData = async () => {
@@ -600,14 +1133,67 @@ export const ProductionPage = () => {
     });
   }, [productionOrders, orderSearch, orderStatusFilter, orderPriorityFilter, orderBranchFilter, orderMachineFilter, orderFromDate, orderToDate]);
 
-  const paginatedOrders = useMemo(() => {
-    const start = (orderPage - 1) * orderRowsPerPage;
-    return filteredOrders.slice(start, start + orderRowsPerPage);
-  }, [filteredOrders, orderPage, orderRowsPerPage]);
+  const orderRows = Math.max(1, Number(orderRowsPerPage) || 10);
+  const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / orderRows));
+  const validOrderPage = Math.min(Math.max(1, orderPage), totalOrderPages);
 
-  const totalOrderPages = Math.ceil(filteredOrders.length / orderRowsPerPage) || 1;
+  const paginatedOrders = useMemo(() => {
+    const start = (validOrderPage - 1) * orderRows;
+    return filteredOrders.slice(start, start + orderRows);
+  }, [filteredOrders, validOrderPage, orderRows]);
+
+  // ──────────────── PAGINATION & FILTERING FOR PRODUCTION STATUS SUMMARY (OVERVIEW) ────────────────
+  const filteredSummaryOrders = useMemo(() => {
+    return productionOrders.filter((order) => {
+      if (overviewBranch !== "ALL") {
+        const bName = (order.branchId?.name || order.branchName || "").toLowerCase();
+        if (!bName.includes(overviewBranch.toLowerCase())) return false;
+      }
+      if (overviewDateFrom) {
+        const orderDate = new Date(order.plannedStartDate || order.createdAt || order.plannedStart);
+        if (orderDate < new Date(overviewDateFrom)) return false;
+      }
+      if (overviewDateTo) {
+        const orderDate = new Date(order.plannedStartDate || order.createdAt || order.plannedStart);
+        if (orderDate > new Date(overviewDateTo + "T23:59:59")) return false;
+      }
+      return true;
+    });
+  }, [productionOrders, overviewBranch, overviewDateFrom, overviewDateTo]);
+
+  const summaryRows = Math.max(1, Number(summaryRowsPerPage) || 6);
+  const totalSummaryPages = Math.max(1, Math.ceil(filteredSummaryOrders.length / summaryRows));
+  const validSummaryPage = Math.min(Math.max(1, summaryPage), totalSummaryPages);
+
+  const paginatedSummaryOrders = useMemo(() => {
+    const start = (validSummaryPage - 1) * summaryRows;
+    return filteredSummaryOrders.slice(start, start + summaryRows);
+  }, [filteredSummaryOrders, validSummaryPage, summaryRows]);
+
+  const getSummaryPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    if (totalSummaryPages <= maxVisible) {
+      for (let i = 1; i <= totalSummaryPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      let start = Math.max(2, validSummaryPage - 1);
+      let end = Math.min(totalSummaryPages - 1, validSummaryPage + 1);
+      if (validSummaryPage <= 2) {
+        end = 4;
+      } else if (validSummaryPage >= totalSummaryPages - 1) {
+        start = totalSummaryPages - 3;
+      }
+      if (start > 2) pages.push("...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < totalSummaryPages - 1) pages.push("...");
+      pages.push(totalSummaryPages);
+    }
+    return pages;
+  };
 
   // ──────────────── FILTERS FOR OPERATION QUEUE (PAGE 4) ────────────────
+  const [queueSearch, setQueueSearch] = useState("");
   const [queueTabFilter, setQueueTabFilter] = useState("ALL_ELIGIBLE");
   const [queueOpCodeFilter, setQueueOpCodeFilter] = useState("ALL");
   const [queueMachineFilter, setQueueMachineFilter] = useState("ALL");
@@ -638,6 +1224,27 @@ export const ProductionPage = () => {
       );
       // If productionOrders list is loaded, filter out orphaned old mock operations
       if (productionOrders.length > 0 && !parentOrder) return false;
+
+      // Filter by queueSearch
+      if (queueSearch) {
+        const q = queueSearch.toLowerCase().trim();
+        const opName = (op.operationName || op.operation || "").toLowerCase();
+        const opCode = (op.operationCode || "").toLowerCase();
+        const machine = (op.machine || "").toLowerCase();
+        const emp = (op.assignedEmployee || op.operatorId?.name || "").toLowerCase();
+        const jobNo = (parentOrder?.jobOrderNo || parentOrder?.jobOrderId?.jobNo || "").toLowerCase();
+        const poNo = (parentOrder?.orderNumber || parentOrder?.productionNo || "").toLowerCase();
+        const cust = (parentOrder?.customerName || "").toLowerCase();
+        const match =
+          opName.includes(q) ||
+          opCode.includes(q) ||
+          machine.includes(q) ||
+          emp.includes(q) ||
+          jobNo.includes(q) ||
+          poNo.includes(q) ||
+          cust.includes(q);
+        if (!match) return false;
+      }
 
       // Filter by specific Production Order if selected
       if (queueOrderFilter !== "ALL") {
@@ -672,7 +1279,83 @@ export const ProductionPage = () => {
 
       return true;
     });
-  }, [operationQueue, queueTabFilter, queueOpCodeFilter, queueMachineFilter, queueOrderFilter, queueBranchFilter, queueAssignedToMe, productionOrders]);
+  }, [operationQueue, queueSearch, queueTabFilter, queueOpCodeFilter, queueMachineFilter, queueOrderFilter, queueBranchFilter, queueAssignedToMe, productionOrders]);
+
+  const queueRows = Math.max(1, Number(queueRowsPerPage) || 10);
+  const totalQueuePages = Math.max(1, Math.ceil(filteredQueue.length / queueRows));
+  const validQueuePage = Math.min(Math.max(1, queuePage), totalQueuePages);
+
+  const paginatedQueue = useMemo(() => {
+    const start = (validQueuePage - 1) * queueRows;
+    return filteredQueue.slice(start, start + queueRows);
+  }, [filteredQueue, validQueuePage, queueRows]);
+
+  // ──────────────── FILTERS & PAGINATION FOR REPRINT REQUESTS (PAGE 5) ────────────────
+  const filteredReprints = useMemo(() => {
+    return reprintRequests.filter((r) => {
+      if (reprintStatusFilter !== "ALL" && r.status !== reprintStatusFilter) return false;
+      if (reprintSearch) {
+        const q = reprintSearch.toLowerCase();
+        const jobNo = (r.jobOrderId?.jobNo || r.jobOrderNo || "").toLowerCase();
+        const reqNo = (r.reprintRequestNo || r._id || "").toLowerCase();
+        const reason = (r.reason || "").toLowerCase();
+        if (!jobNo.includes(q) && !reqNo.includes(q) && !reason.includes(q)) return false;
+      }
+      if (reprintFromDate) {
+        const rDate = new Date(r.createdAt || r.requestedAt);
+        if (rDate < new Date(reprintFromDate)) return false;
+      }
+      if (reprintToDate) {
+        const rDate = new Date(r.createdAt || r.requestedAt);
+        if (rDate > new Date(reprintToDate + "T23:59:59")) return false;
+      }
+      return true;
+    });
+  }, [reprintRequests, reprintStatusFilter, reprintSearch, reprintFromDate, reprintToDate]);
+
+  const reprintRows = Math.max(1, Number(reprintRowsPerPage) || 10);
+  const totalReprintPages = Math.max(1, Math.ceil(filteredReprints.length / reprintRows));
+  const validReprintPage = Math.min(Math.max(1, reprintPage), totalReprintPages);
+
+  const paginatedReprints = useMemo(() => {
+    const start = (validReprintPage - 1) * reprintRows;
+    return filteredReprints.slice(start, start + reprintRows);
+  }, [filteredReprints, validReprintPage, reprintRows]);
+
+  // ──────────────── PAGINATION FOR ORDER DETAILS OPERATIONS TIMELINE (TAB 5) ────────────────
+  const detailsOps = useMemo(() => {
+    return selectedOrder?.operations || [];
+  }, [selectedOrder]);
+
+  const detailsOpRows = Math.max(1, Number(detailsOpRowsPerPage) || 10);
+  const totalDetailsOpPages = Math.max(1, Math.ceil(detailsOps.length / detailsOpRows));
+  const validDetailsOpPage = Math.min(Math.max(1, detailsOpPage), totalDetailsOpPages);
+
+  const paginatedDetailsOperations = useMemo(() => {
+    const start = (validDetailsOpPage - 1) * detailsOpRows;
+    return detailsOps.slice(start, start + detailsOpRows);
+  }, [detailsOps, validDetailsOpPage, detailsOpRows]);
+
+  // Reset pagination pages when filters or selected records change
+  useEffect(() => {
+    setSummaryPage(1);
+  }, [overviewBranch, overviewDateFrom, overviewDateTo]);
+
+  useEffect(() => {
+    setOrderPage(1);
+  }, [orderSearch, orderStatusFilter, orderPriorityFilter, orderBranchFilter, orderMachineFilter, orderFromDate, orderToDate]);
+
+  useEffect(() => {
+    setQueuePage(1);
+  }, [queueSearch, queueTabFilter, queueOpCodeFilter, queueMachineFilter, queueOrderFilter, queueBranchFilter, queueAssignedToMe]);
+
+  useEffect(() => {
+    setReprintPage(1);
+  }, [reprintSearch, reprintStatusFilter, reprintFromDate, reprintToDate]);
+
+  useEffect(() => {
+    setDetailsOpPage(1);
+  }, [selectedOrder?._id, selectedOrder?.id]);
 
   // ──────────────── SAVE PLANNING CONFIGURATION (PAGE 3) ────────────────
   const handleSavePlanning = async () => {
@@ -948,61 +1631,7 @@ export const ProductionPage = () => {
         </div>
       }
     >
-      {/* ──────────────── TOP NAVIGATION MODULE BAR (6 PAGES) ──────────────── */}
-      <div className="jf-nav-tabs" style={{ marginBottom: "1.25rem" }}>
-        <button
-          type="button"
-          className={`jf-nav-tab ${activeTab === "overview" ? "active" : ""}`}
-          onClick={() => handleTabChange("overview")}
-        >
-          <Activity size={16} />
-          1. Production Dashboard
-        </button>
-
-        <button
-          type="button"
-          className={`jf-nav-tab ${activeTab === "orders" ? "active" : ""}`}
-          onClick={() => handleTabChange("orders")}
-        >
-          <Layers size={16} />
-          2. Production Orders ({counts.totalOrders})
-        </button>
-
-        <button
-          type="button"
-          className={`jf-nav-tab ${activeTab === "queue" ? "active" : ""}`}
-          onClick={() => handleTabChange("queue")}
-        >
-          <Sliders size={16} />
-          3. Operation Queue ({operationQueue.length})
-        </button>
-
-        <button
-          type="button"
-          className={`jf-nav-tab ${activeTab === "reprints" ? "active" : ""}`}
-          onClick={() => handleTabChange("reprints")}
-        >
-          <Printer size={16} />
-          4. Reprint Management ({counts.reprintReq})
-        </button>
-
-        {(selectedOrder || activeTab === "details") && (
-          <button
-            type="button"
-            className={`jf-nav-tab ${activeTab === "details" ? "active" : ""}`}
-            onClick={() =>
-              handleTabChange(
-                "details",
-                selectedOrder ? { orderId: selectedOrder._id || selectedOrder.id } : {}
-              )
-            }
-          >
-            <Eye size={16} />
-            Order Details {selectedOrder ? `(${selectedOrder.orderNumber || selectedOrder.productionNo || `PO-${selectedOrder._id?.slice(-6)}`})` : ""}
-          </button>
-        )}
-      </div>
-
+    
       {/* ──────────────── TAB 1: PRODUCTION OVERVIEW (PAGE 1) ──────────────── */}
       {activeTab === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -1010,12 +1639,9 @@ export const ProductionPage = () => {
           <div className="jf-card" style={{ padding: "1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: "1.375rem", fontWeight: 700, color: "#0f172a" }}>
+                <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
                   Production Dashboard
                 </h2>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Real-time floor visibility, active branch workflow metrics & order statuses
-                </span>
               </div>
 
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
@@ -1159,9 +1785,6 @@ export const ProductionPage = () => {
             <div className="jf-card-header">
               <div>
                 <h3 className="jf-card-title">Production Status Summary</h3>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Live overview of active shop floor job orders across authorized branch
-                </span>
               </div>
               <button
                 type="button"
@@ -1187,7 +1810,7 @@ export const ProductionPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {productionOrders.slice(0, 6).map((order) => (
+                  {paginatedSummaryOrders.map((order) => (
                     <tr key={order._id || order.id}>
                       <td style={{ fontWeight: 600 }}>
                         <span
@@ -1238,7 +1861,7 @@ export const ProductionPage = () => {
                       </td>
                     </tr>
                   ))}
-                  {productionOrders.length === 0 && (
+                  {filteredSummaryOrders.length === 0 && (
                     <tr>
                       <td colSpan={8} style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
                         No production orders found in the database.
@@ -1248,6 +1871,17 @@ export const ProductionPage = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination footer with rows per page input field */}
+            <TablePaginationFooter
+              currentPage={validSummaryPage}
+              totalItems={filteredSummaryOrders.length}
+              rowsPerPage={summaryRowsPerPage}
+              onPageChange={setSummaryPage}
+              onRowsPerPageChange={setSummaryRowsPerPage}
+              pageSizeOptions={[5, 6, 10, 20, 50]}
+              itemName="orders"
+            />
           </div>
         </div>
       )}
@@ -1365,8 +1999,8 @@ export const ProductionPage = () => {
 
           {/* Filters — Above the table (Screenshot 1) */}
           <div className="jf-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.75rem" }}>
-              Filters — above the table
+            <div style={{ fontSize: "1.1rem", fontWeight: 750, color: "#0f172a", marginBottom: "0.75rem" }}>
+              Filters
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.75rem", alignItems: "center" }}>
               <div style={{ position: "relative" }}>
@@ -1666,49 +2300,16 @@ export const ProductionPage = () => {
               </table>
             </div>
 
-            {/* Pagination footer (Screenshot 1) */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.25rem", borderTop: "1px solid #e2e8f0", fontSize: "0.8125rem", color: "#64748b" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span>Rows per page:</span>
-                <select
-                  className="jf-input jf-input-sm"
-                  style={{ width: "auto", padding: "2px 8px" }}
-                  value={orderRowsPerPage}
-                  onChange={(e) => {
-                    setOrderRowsPerPage(Number(e.target.value));
-                    setOrderPage(1);
-                  }}
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>
-                  Showing {filteredOrders.length === 0 ? 0 : (orderPage - 1) * orderRowsPerPage + 1} -{" "}
-                  {Math.min(orderPage * orderRowsPerPage, filteredOrders.length)} of {filteredOrders.length}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", gap: "0.375rem" }}>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  disabled={orderPage <= 1}
-                  onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  disabled={orderPage >= totalOrderPages}
-                  onClick={() => setOrderPage((p) => Math.min(totalOrderPages, p + 1))}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            {/* Pagination footer */}
+            <TablePaginationFooter
+              currentPage={validOrderPage}
+              totalItems={filteredOrders.length}
+              rowsPerPage={orderRowsPerPage}
+              onPageChange={setOrderPage}
+              onRowsPerPageChange={setOrderRowsPerPage}
+              pageSizeOptions={[5, 10, 25, 50]}
+              itemName="orders"
+            />
           </div>
         </div>
       )}
@@ -1716,119 +2317,159 @@ export const ProductionPage = () => {
       {/* ──────────────── TAB 3: OPERATION QUEUE & WORKBENCH (SCREEN 3) ──────────────── */}
       {activeTab === "queue" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {/* Header & Operation Filter Tabs */}
+          {/* Header & Operation Filter Toolbar */}
           <div className="jf-card" style={{ padding: "1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "1rem",
+                marginBottom: "1rem",
+              }}
+            >
               <div>
-                <h2 style={{ margin: 0, fontSize: "1.375rem", fontWeight: 700, color: "#0f172a" }}>
+                <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
                   Operation Queue (Printing / Finishing / Packing)
                 </h2>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Live sequence-gated station queue across all digital & finishing work centers
-                </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b", fontWeight: 600 }}>Order:</span>
-                  <select
-                    className="jf-input jf-input-sm"
-                    value={queueOrderFilter}
-                    onChange={(e) => setQueueOrderFilter(e.target.value)}
-                    style={{ maxWidth: "240px" }}
+             
+            </div>
+
+            {/* Filter Bar with Search Feature and Select Options */}
+            <div
+              style={{
+                display: "flex",
+                gap: "0.75rem",
+                flexWrap: "wrap",
+                alignItems: "center",
+                borderTop: "1px solid #f1f5f9",
+                paddingTop: "0.875rem",
+              }}
+            >
+              {/* Search Feature: Direct text search across operations, job#, customer */}
+              <div style={{ position: "relative", minWidth: "220px", flex: "1 1 220px" }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: "absolute",
+                    left: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#94a3b8",
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  type="text"
+                  className="jf-input jf-input-sm"
+                  style={{ paddingLeft: "32px", paddingRight: queueSearch ? "28px" : "10px", height: "36px", width: "100%", borderRadius: "6px" }}
+                  placeholder="Search queue by operation, job no, customer..."
+                  value={queueSearch}
+                  onChange={(e) => setQueueSearch(e.target.value)}
+                />
+                {queueSearch && (
+                  <button
+                    type="button"
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#94a3b8",
+                      padding: "2px",
+                    }}
+                    onClick={() => setQueueSearch("")}
+                    title="Clear search"
                   >
-                    <option value="ALL">All Active Orders ({productionOrders.filter(o => o.status !== "CANCELLED" && o.status !== "UNASSIGNED").length})</option>
-                    {productionOrders
-                      .filter((o) => o.status !== "CANCELLED" && o.status !== "UNASSIGNED")
-                      .map((o) => (
-                        <option key={o._id || o.id} value={o._id || o.id}>
-                          {o.productionNo} ({o.jobOrderNo || o.jobOrderId?.jobNo || "Job"}) - {o.customerName || "Customer"}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "#64748b", fontWeight: 600 }}>Branch:</span>
-                  <select
-                    className="jf-input jf-input-sm"
-                    value={queueBranchFilter}
-                    onChange={(e) => setQueueBranchFilter(e.target.value)}
-                  >
-                    <option value="ALL">All Branches</option>
-                    <option value="Main HQ">Main HQ Branch</option>
-                    <option value="West Coast">West Coast Branch</option>
-                  </select>
-                </div>
+              {/* Select Option with Search Feature: Operation */}
+              <SearchableSelect
+                options={QUEUE_OPERATION_OPTIONS}
+                value={queueOpCodeFilter}
+                onChange={setQueueOpCodeFilter}
+                placeholder="All Operations"
+                searchPlaceholder="Search operations..."
+                width="210px"
+              />
 
-                <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8125rem", cursor: "pointer", fontWeight: 600, color: "#0f172a" }}>
-                  <input
-                    type="checkbox"
-                    checked={queueAssignedToMe}
-                    onChange={(e) => setQueueAssignedToMe(e.target.checked)}
-                    style={{ accentColor: "#0f172a", width: "16px", height: "16px" }}
-                  />
-                  Assigned to me
-                </label>
+              {/* Select Option: Status */}
+              <SearchableSelect
+                options={QUEUE_STATUS_OPTIONS}
+                value={queueTabFilter}
+                onChange={setQueueTabFilter}
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                width="160px"
+              />
 
+              {/* Order Select */}
+              <div style={{ minWidth: "180px", maxWidth: "230px", flex: "0 1 auto" }}>
+                <select
+                  className="jf-input jf-input-sm"
+                  value={queueOrderFilter}
+                  onChange={(e) => setQueueOrderFilter(e.target.value)}
+                  style={{ height: "36px", width: "100%", borderRadius: "6px", fontWeight: queueOrderFilter !== "ALL" ? 700 : 500 }}
+                >
+                  <option value="ALL">All Orders ({productionOrders.filter(o => o.status !== "CANCELLED" && o.status !== "UNASSIGNED").length})</option>
+                  {productionOrders
+                    .filter((o) => o.status !== "CANCELLED" && o.status !== "UNASSIGNED")
+                    .map((o) => (
+                      <option key={o._id || o.id} value={o._id || o.id}>
+                        {o.productionNo} ({o.jobOrderNo || o.jobOrderId?.jobNo || "Job"})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Branch Select */}
+              <div style={{ minWidth: "130px", flex: "0 1 auto" }}>
+                <select
+                  className="jf-input jf-input-sm"
+                  value={queueBranchFilter}
+                  onChange={(e) => setQueueBranchFilter(e.target.value)}
+                  style={{ height: "36px", width: "100%", borderRadius: "6px", fontWeight: queueBranchFilter !== "ALL" ? 700 : 500 }}
+                >
+                  <option value="ALL">All Branches</option>
+                  <option value="Main HQ">Main HQ</option>
+                  <option value="West Coast">West Coast</option>
+                </select>
+              </div>
+
+              {/* Reset Filters Button */}
+              {(queueSearch ||
+                queueOpCodeFilter !== "ALL" ||
+                queueTabFilter !== "ALL_ELIGIBLE" ||
+                queueOrderFilter !== "ALL" ||
+                queueBranchFilter !== "ALL" ||
+                queueAssignedToMe) && (
                 <button
                   type="button"
                   className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={triggerRefresh}
+                  style={{ height: "36px", padding: "0 12px", color: "#dc2626", borderRadius: "6px", display: "flex", alignItems: "center", gap: "0.25rem" }}
+                  onClick={() => {
+                    setQueueSearch("");
+                    setQueueOpCodeFilter("ALL");
+                    setQueueTabFilter("ALL_ELIGIBLE");
+                    setQueueOrderFilter("ALL");
+                    setQueueBranchFilter("ALL");
+                    setQueueAssignedToMe(false);
+                    setQueuePage(1);
+                  }}
+                  title="Reset all queue filters"
                 >
-                  <RefreshCw size={14} className={loading ? "spin" : ""} /> Refresh
+                  <X size={14} /> Reset
                 </button>
-              </div>
-            </div>
-
-            {/* Operation Category Tabs (Screenshot 3) */}
-            <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", borderTop: "1px solid #f1f5f9", paddingTop: "0.75rem" }}>
-              {[
-                { id: "ALL", label: "All Operations" },
-                { id: "PRINT", label: "Printing" },
-                { id: "CUTTING", label: "Cutting" },
-                { id: "LAMINATION", label: "Lamination" },
-                { id: "BINDING", label: "Binding" },
-                { id: "FOLDING", label: "Folding" },
-                { id: "CREASING", label: "Creasing" },
-                { id: "SPIRAL", label: "Spiral Binding" },
-                { id: "UV", label: "UV Coating" },
-                { id: "MOUNTING", label: "Mounting" },
-                { id: "HEAT_PRESS", label: "Heat Press" },
-                { id: "PACKING", label: "Packing" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`jf-btn ${queueOpCodeFilter === tab.id ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                  onClick={() => setQueueOpCodeFilter(tab.id)}
-                  style={{ fontSize: "0.75rem", padding: "4px 10px" }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Status Tabs */}
-            <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
-              {[
-                { id: "ALL_ELIGIBLE", label: "All Eligible" },
-                { id: "PENDING", label: "Pending" },
-                { id: "RUNNING", label: "Running" },
-                { id: "COMPLETED", label: "Completed" },
-                { id: "FAILED", label: "Failed" },
-                { id: "SKIPPED", label: "Skipped" },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`jf-btn ${queueTabFilter === t.id ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                  onClick={() => setQueueTabFilter(t.id)}
-                  style={{ fontSize: "0.75rem", padding: "3px 8px" }}
-                >
-                  {t.label}
-                </button>
-              ))}
+              )}
             </div>
           </div>
 
@@ -1854,7 +2495,7 @@ export const ProductionPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredQueue.map((op) => {
+                  {paginatedQueue.map((op) => {
                     const parentOrder = productionOrders.find(
                       (o) => (o._id || o.id) === (op.productionOrderId?._id || op.productionOrderId)
                     );
@@ -1989,6 +2630,17 @@ export const ProductionPage = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination footer */}
+            <TablePaginationFooter
+              currentPage={validQueuePage}
+              totalItems={filteredQueue.length}
+              rowsPerPage={queueRowsPerPage}
+              onPageChange={setQueuePage}
+              onRowsPerPageChange={setQueueRowsPerPage}
+              pageSizeOptions={[5, 10, 20, 50]}
+              itemName="operations"
+            />
           </div>
 
           {/* ──────────────── SELECTED JOB WORKBENCH (SCREEN 3) ──────────────── */}
@@ -2372,12 +3024,9 @@ export const ProductionPage = () => {
           <div className="jf-card" style={{ padding: "1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: "1.375rem", fontWeight: 700, color: "#0f172a" }}>
+                <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
                   Reprint Management
                 </h2>
-                <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-                  Track floor reprint requests, source stages, manager approvals & reprint runs
-                </span>
               </div>
 
               <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -2477,67 +3126,61 @@ export const ProductionPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {reprintRequests
-                    .filter((r) => {
-                      if (reprintStatusFilter !== "ALL" && r.status !== reprintStatusFilter) return false;
-                      if (reprintSearch) {
-                        const q = reprintSearch.toLowerCase();
-                        const jobNo = (r.jobOrderId?.jobNo || r.jobOrderNo || "").toLowerCase();
-                        const reqNo = (r.reprintRequestNo || r._id || "").toLowerCase();
-                        const reason = (r.reason || "").toLowerCase();
-                        if (!jobNo.includes(q) && !reqNo.includes(q) && !reason.includes(q)) return false;
-                      }
-                      return true;
-                    })
-                    .map((req) => (
-                      <tr key={req._id || req.id}>
-                        <td>
-                          <strong>{req.jobOrderId?.jobNo || req.jobOrderNo || "JO"}</strong>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                            {req.reprintRequestNo || `RR-${(req._id || "").slice(-5)}`}
-                          </div>
-                        </td>
-                        <td>{req.jobItem || req.productName || "Standard Run"}</td>
-                        <td>{formatUser(req.requestedBy, "Floor Operator")}</td>
-                        <td style={{ maxWidth: "220px", wordBreak: "break-word" }}>
-                          {req.reason || "Defect flagged during finishing"}
-                        </td>
-                        <td><strong>{req.quantity} pcs</strong></td>
-                        <td>
-                          <span className={`jf-badge ${req.sourceStage === "QC" ? "jf-badge-warning" : "jf-badge-info"}`}>
-                            {req.sourceStage || "QC"}
-                          </span>
-                        </td>
-                        <td>
-                          <StatusBadge status={req.status} />
-                        </td>
-                        <td>{formatUser(req.approvedBy, "-")}</td>
-                        <td>{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Today"}</td>
-                        <td>
-                          <div style={{ display: "flex", gap: "0.375rem" }}>
-                            {req.status === "REQUESTED" ? (
-                              <button
-                                type="button"
-                                className="jf-btn jf-btn-primary jf-btn-sm"
-                                onClick={() => setSelectedReprint(req)}
-                                style={{ background: "#0f172a", color: "#fff" }}
-                              >
-                                Review
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="jf-btn jf-btn-secondary jf-btn-sm"
-                                onClick={() => setSelectedReprint(req)}
-                              >
-                                Details
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  {reprintRequests.length === 0 && (
+                  {paginatedReprints.map((req) => (
+                    <tr key={req._id || req.id}>
+                      <td>
+                        <strong>{req.jobOrderId?.jobNo || req.jobOrderNo || "JO"}</strong>
+                        <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                          {req.reprintRequestNo || `RR-${(req._id || "").slice(-5)}`}
+                        </div>
+                      </td>
+                      <td>{req.jobItem || req.productName || "Standard Run"}</td>
+                      <td>{formatUser(req.requestedBy, "Floor Operator")}</td>
+                      <td style={{ maxWidth: "220px", wordBreak: "break-word" }}>
+                        {req.reason || "Defect flagged during finishing"}
+                      </td>
+                      <td><strong>{req.quantity} pcs</strong></td>
+                      <td>
+                        <span className={`jf-badge ${req.sourceStage === "QC" ? "jf-badge-warning" : "jf-badge-info"}`}>
+                          {req.sourceStage || "QC"}
+                        </span>
+                      </td>
+                      <td>
+                        <StatusBadge status={req.status} />
+                      </td>
+                      <td>{formatUser(req.approvedBy, "-")}</td>
+                      <td>{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Today"}</td>
+                      <td>
+                        <div style={{ display: "flex", gap: "0.375rem" }}>
+                          {req.status === "REQUESTED" ? (
+                            <button
+                              type="button"
+                              className="jf-btn jf-btn-primary jf-btn-sm"
+                              onClick={() => {
+                                setSelectedReprint(req);
+                                setReprintReviewComment("");
+                              }}
+                              style={{ background: "#0f172a", color: "#fff" }}
+                            >
+                              Review
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="jf-btn jf-btn-secondary jf-btn-sm"
+                              onClick={() => {
+                                setSelectedReprint(req);
+                                setReprintReviewComment("");
+                              }}
+                            >
+                              Details
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredReprints.length === 0 && (
                     <tr>
                       <td colSpan={10} style={{ textAlign: "center", padding: "2.5rem", color: "#64748b" }}>
                         No reprint requests found in the system.
@@ -2547,121 +3190,289 @@ export const ProductionPage = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination footer */}
+            <TablePaginationFooter
+              currentPage={validReprintPage}
+              totalItems={filteredReprints.length}
+              rowsPerPage={reprintRowsPerPage}
+              onPageChange={setReprintPage}
+              onRowsPerPageChange={setReprintRowsPerPage}
+              pageSizeOptions={[5, 10, 20, 50]}
+              itemName="requests"
+            />
           </div>
 
-          {/* Selected Reprint Approval Panel (Screenshot 5) */}
+          {/* ──────────────── POPUP MODAL: REPRINT REVIEW & DETAILS ──────────────── */}
           {selectedReprint && (
-            <div className="jf-card" style={{ border: "2px solid #e2e8f0", background: "#f8fafc", padding: "1.5rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 700, color: "#0f172a" }}>
-                  Reprint Details & Approval Panel — {selectedReprint.reprintRequestNo || `RR-${(selectedReprint._id || "").slice(-5)}`}
-                </h3>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={() => setSelectedReprint(null)}
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(15, 23, 42, 0.65)",
+                backdropFilter: "blur(4px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 1050,
+                padding: "1rem",
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setSelectedReprint(null);
+                }
+              }}
+            >
+              <div
+                className="jf-card"
+                style={{
+                  width: "100%",
+                  maxWidth: "650px",
+                  maxHeight: "90vh",
+                  overflowY: "auto",
+                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "12px",
+                  padding: "1.75rem",
+                  background: "#ffffff",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem",
+                }}
+              >
+                {/* Modal Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: "1px solid #e2e8f0",
+                    paddingBottom: "1rem",
+                  }}
                 >
-                  <X size={14} /> Close
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", fontSize: "0.875rem", marginBottom: "1.25rem" }}>
-                <div>
-                  <div style={{ color: "#64748b" }}>Job Order No:</div>
-                  <strong>{selectedReprint.jobOrderId?.jobNo || selectedReprint.jobOrderNo || "JO"}</strong>
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Job Item:</div>
-                  <strong>{selectedReprint.jobItem || selectedReprint.productName || "Primary Item"}</strong>
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Requested By:</div>
-                  <div>{formatUser(selectedReprint.requestedBy, "Floor Operator")}</div>
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Request Date:</div>
-                  <div>{selectedReprint.createdAt ? new Date(selectedReprint.createdAt).toLocaleString() : "Today"}</div>
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Quantity:</div>
-                  <strong style={{ fontSize: "1.125rem", color: "#dc2626" }}>{selectedReprint.quantity} units</strong>
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Source Stage:</div>
-                  <span className="jf-badge jf-badge-info">{selectedReprint.sourceStage || "QC"}</span>
-                </div>
-                <div style={{ gridColumn: "span 2" }}>
-                  <div style={{ color: "#64748b" }}>Reason for Reprint:</div>
-                  <div style={{ padding: "0.5rem", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "4px" }}>
-                    {selectedReprint.reason || "Defect flagged"}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Current Status:</div>
-                  <StatusBadge status={selectedReprint.status} />
-                </div>
-                <div>
-                  <div style={{ color: "#64748b" }}>Approval Info:</div>
-                  <div>{selectedReprint.approvedBy ? `Approved by ${formatUser(selectedReprint.approvedBy)}` : "Pending manager review"}</div>
-                </div>
-              </div>
-
-              {selectedReprint.status === "REQUESTED" && (
-                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "1rem" }}>
-                  <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-                    <label className="jf-label">Approval comments (required if rejecting):</label>
-                    <input
-                      type="text"
-                      className="jf-input"
-                      placeholder="Enter manager remarks or reason for rejection..."
-                      id="reprint-rejection-comment"
-                    />
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                    <button
-                      type="button"
-                      className="jf-btn jf-btn-danger"
-                      onClick={async () => {
-                        const comment = document.getElementById("reprint-rejection-comment")?.value;
-                        setLoading(true);
-                        try {
-                          await jobFlowApi.rejectReprintRequest(selectedReprint._id || selectedReprint.id, { reason: comment || "Rejected by supervisor" });
-                          toast.info("Reprint request rejected.");
-                          setSelectedReprint(null);
-                          triggerRefresh();
-                        } catch (e) {
-                          toast.error("Failed to reject request.");
-                        } finally {
-                          setLoading(false);
-                        }
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <div
+                      style={{
+                        width: "38px",
+                        height: "38px",
+                        borderRadius: "8px",
+                        background: selectedReprint.status === "REQUESTED" ? "#fef3c7" : "#e2e8f0",
+                        color: selectedReprint.status === "REQUESTED" ? "#d97706" : "#475569",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
-                      Reject Request
-                    </button>
-                    <button
-                      type="button"
-                      className="jf-btn jf-btn-primary"
-                      style={{ background: "#0f172a", color: "#fff" }}
-                      onClick={async () => {
-                        setLoading(true);
-                        try {
-                          await jobFlowApi.approveReprintRequest(selectedReprint._id || selectedReprint.id);
-                          toast.success("Reprint request approved! Routing to production queue.");
-                          setSelectedReprint(null);
-                          triggerRefresh();
-                        } catch (e) {
-                          toast.error("Failed to approve request.");
-                        } finally {
-                          setLoading(false);
-                        }
+                      <RotateCcw size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#0f172a" }}>
+                        {selectedReprint.status === "REQUESTED" ? "Review Reprint Request" : "Reprint Request Details"}
+                      </h3>
+                      <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                        {selectedReprint.reprintRequestNo || `RR-${(selectedReprint._id || "").slice(-5)}`}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-secondary jf-btn-sm"
+                    onClick={() => setSelectedReprint(null)}
+                    style={{ padding: "4px" }}
+                    title="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Details Grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1rem",
+                    fontSize: "0.875rem",
+                    padding: "1rem",
+                    background: "#f8fafc",
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Job Order No</div>
+                    <strong style={{ color: "#0f172a" }}>
+                      {selectedReprint.jobOrderId?.jobNo || selectedReprint.jobOrderNo || "JO"}
+                    </strong>
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Job Item</div>
+                    <strong style={{ color: "#0f172a" }}>
+                      {selectedReprint.jobItem || selectedReprint.productName || "Primary Item"}
+                    </strong>
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Requested By</div>
+                    <div style={{ color: "#1e293b", fontWeight: 500 }}>
+                      {formatUser(selectedReprint.requestedBy, "Floor Operator")}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Request Date</div>
+                    <div style={{ color: "#1e293b" }}>
+                      {selectedReprint.createdAt ? new Date(selectedReprint.createdAt).toLocaleString() : "Today"}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Quantity Needed</div>
+                    <strong style={{ fontSize: "1.125rem", color: "#dc2626" }}>
+                      {selectedReprint.quantity} units
+                    </strong>
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Source Stage</div>
+                    <span className={`jf-badge ${selectedReprint.sourceStage === "QC" ? "jf-badge-warning" : "jf-badge-info"}`}>
+                      {selectedReprint.sourceStage || "QC"}
+                    </span>
+                  </div>
+                  <div style={{ gridColumn: "span 2" }}>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "4px" }}>
+                      Reason for Reprint
+                    </div>
+                    <div
+                      style={{
+                        padding: "0.75rem",
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        color: "#0f172a",
+                        fontSize: "0.875rem",
+                        lineHeight: 1.5,
                       }}
                     >
-                      Approve Request
-                    </button>
+                      {selectedReprint.reason || "Defect flagged"}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Current Status</div>
+                    <StatusBadge status={selectedReprint.status} />
+                  </div>
+                  <div>
+                    <div style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Approval Info</div>
+                    <div style={{ color: "#1e293b", fontSize: "0.8125rem" }}>
+                      {selectedReprint.approvedBy ? `Approved by ${formatUser(selectedReprint.approvedBy)}` : "Pending manager review"}
+                    </div>
                   </div>
                 </div>
-              )}
+
+                {/* Manager Decision Section (if REQUESTED) */}
+                {selectedReprint.status === "REQUESTED" ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+                    <div className="jf-form-group">
+                      <label className="jf-label" style={{ fontWeight: 600 }}>
+                        Manager Remarks / Comments <span style={{ color: "#64748b", fontWeight: 400 }}>(required if rejecting)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="jf-input"
+                        placeholder="Enter approval notes or specific rejection reasons..."
+                        value={reprintReviewComment}
+                        onChange={(e) => setReprintReviewComment(e.target.value)}
+                        style={{ resize: "vertical" }}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        paddingTop: "0.75rem",
+                        borderTop: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-secondary"
+                        onClick={() => setSelectedReprint(null)}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-danger"
+                        disabled={loading}
+                        onClick={async () => {
+                          if (!reprintReviewComment.trim()) {
+                            toast.warning("Please enter a comment or reason before rejecting.");
+                            return;
+                          }
+                          setLoading(true);
+                          try {
+                            await jobFlowApi.rejectReprintRequest(selectedReprint._id || selectedReprint.id, {
+                              reason: reprintReviewComment.trim(),
+                              rejectionReason: reprintReviewComment.trim(),
+                            });
+                            toast.info("Reprint request rejected.");
+                            setSelectedReprint(null);
+                            triggerRefresh();
+                          } catch (e) {
+                            toast.error(e.response?.data?.message || "Failed to reject request.");
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                      >
+                        Reject Request
+                      </button>
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-primary"
+                        style={{ background: "#0f172a", color: "#ffffff", fontWeight: 600 }}
+                        disabled={loading}
+                        onClick={async () => {
+                          setLoading(true);
+                          try {
+                            await jobFlowApi.approveReprintRequest(selectedReprint._id || selectedReprint.id, {
+                              comments: reprintReviewComment.trim(),
+                            });
+                            toast.success("Reprint request approved! Routing to production queue.");
+                            setSelectedReprint(null);
+                            triggerRefresh();
+                          } catch (e) {
+                            toast.error(e.response?.data?.message || "Failed to approve request.");
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                      >
+                        Approve Request
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      paddingTop: "0.75rem",
+                      borderTop: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-secondary"
+                      onClick={() => setSelectedReprint(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -2879,7 +3690,7 @@ export const ProductionPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(selectedOrder.operations || []).map((op, idx) => (
+                    {paginatedDetailsOperations.map((op, idx) => (
                       <tr key={op._id || idx}>
                         <td>#{op.sequenceNo || idx + 1}</td>
                         <td>
@@ -2939,7 +3750,7 @@ export const ProductionPage = () => {
                         </td>
                       </tr>
                     ))}
-                    {(!selectedOrder.operations || selectedOrder.operations.length === 0) && (
+                    {detailsOps.length === 0 && (
                       <tr>
                         <td colSpan={11} style={{ textAlign: "center", padding: "1.5rem", color: "#64748b" }}>
                           Operations will appear once planned for this production order.
@@ -2949,6 +3760,19 @@ export const ProductionPage = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination footer */}
+              {detailsOps.length > 0 && (
+                <TablePaginationFooter
+                  currentPage={validDetailsOpPage}
+                  totalItems={detailsOps.length}
+                  rowsPerPage={detailsOpRowsPerPage}
+                  onPageChange={setDetailsOpPage}
+                  onRowsPerPageChange={setDetailsOpRowsPerPage}
+                  pageSizeOptions={[5, 10, 20]}
+                  itemName="operations"
+                />
+              )}
 
               {/* Once all operations completed, show prominent Send to QC banner */}
               {allOperationsCompleted && selectedOrder.status !== "QC" && selectedOrder.status !== "COMPLETED" && (

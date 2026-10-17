@@ -1,2 +1,453 @@
-/* Job Orders Feature Specific Styles */
-@import "../../shared/styles/job-flow.css";
+/* ==========================================================================
+   Job Orders feature — modern green theme + responsive layout
+   Used by: JobOrdersPage.jsx and CreateJobOrderPage.jsx (no JSX changes)
+
+   The Create Job Order form relies on shared classes (jf-create-job-grid,
+   jf-form-grid-2col, jf-card-body-stretch, jf-chips-wrap, jf-chip-btn,
+   jf-table-scroll-3rows, jf-dropzone). They are (re)defined here, prefixed
+   with "body" so they win over older definitions.
+   Breakpoints: 1180 / 1024 / 768 / 640 / 480 px
+   ========================================================================== */
+
+/* ---------- Original feature classes (names unchanged) ---------- */
+
+.job-orders-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.job-orders-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.job-orders-filter-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: #ffffff;
+  padding: 0.85rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid #e6ebe8;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.job-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.job-badge-pill.priority-rush {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.job-badge-pill.priority-standard {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.job-order-stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.job-customer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.job-customer-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.875rem;
+}
+
+.job-customer-contact {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.job-actions-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Job Orders list page
+   ========================================================================== */
+
+/* Search + filters become a clean card */
+body .jf-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e6ebe8;
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+body .jf-filter-bar .jf-search-input-wrap {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+body .jf-filter-bar .jf-search-input,
+body .jf-filter-bar .jf-select {
+  border-radius: 10px;
+}
+
+body .jf-filter-bar .jf-select:focus,
+body .jf-filter-bar .jf-search-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+/* Stage badge in the table follows the green theme */
+body .jf-filter-bar ~ * .jf-badge-blue {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+/* ==========================================================================
+   Create Job Order form
+   ========================================================================== */
+
+/* Two-column grid of cards */
+body .jf-create-job-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+body .jf-create-job-grid > .jf-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-bottom: 0;
+  border: 1px solid #e6ebe8;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body .jf-create-job-grid > .jf-card:hover {
+  border-color: #cfe9dd;
+  box-shadow: 0 14px 30px -20px rgba(5, 150, 105, 0.35);
+}
+
+/* Order Summary card gets the emphasis */
+body .jf-create-job-grid > .jf-card:last-child {
+  border-color: #a7f3d0 !important;
+  background: linear-gradient(180deg, #fbfefc 0%, #ffffff 100%);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.06), 0 18px 36px -24px rgba(5, 150, 105, 0.45);
+}
+
+body .jf-create-job-grid .jf-card-header {
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #eef3f0;
+}
+
+/* Green marker before each card title */
+body .jf-create-job-grid .jf-card-title::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  margin-right: 0.6rem;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #34d399, #059669);
+  vertical-align: -2px;
+}
+
+body .jf-card-body-stretch {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Field grid inside a card */
+body .jf-form-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+body .jf-form-grid-2col > .jf-form-group {
+  min-width: 0;
+}
+
+/* Inputs */
+body .jf-create-job-grid .jf-input,
+body .jf-create-job-grid .jf-select,
+body .jf-create-job-grid .jf-textarea {
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body .jf-create-job-grid .jf-input,
+body .jf-create-job-grid .jf-select {
+  min-height: 42px;
+}
+
+body .jf-create-job-grid .jf-input:focus,
+body .jf-create-job-grid .jf-select:focus,
+body .jf-create-job-grid .jf-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+/* Table cells keep their compact inline selects tidy */
+body .jf-create-job-grid .jf-table select.jf-select {
+  min-height: 28px;
+}
+
+/* Quick-add finishing chips */
+body .jf-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+body .jf-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+body .jf-chip-btn:hover {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: transparent;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px -10px rgba(5, 150, 105, 0.9);
+}
+
+body .jf-chip-btn:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Finishing table: scrolls sideways when narrow (vertical behaviour untouched) */
+body .jf-table-scroll-3rows {
+  overflow-x: auto;
+  border: 1px solid #eef3f0;
+  border-radius: 12px;
+}
+
+body .jf-table-scroll-3rows .jf-table th {
+  background: #f8faf9;
+  white-space: nowrap;
+}
+
+/* Upload dropzone */
+body .jf-dropzone {
+  border: 2px dashed #a7f3d0;
+  border-radius: 16px;
+  background: #f7fcf9;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body .jf-dropzone:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+  box-shadow: 0 10px 24px -16px rgba(5, 150, 105, 0.5);
+}
+
+body .jf-dropzone svg {
+  display: block;
+}
+
+/* Customer combobox: dropdown stays inside the viewport */
+body .jf-create-job-grid [style*="position: absolute"][style*="max-height: 260px"] {
+  border-radius: 14px !important;
+  border-color: #e6ebe8 !important;
+  box-shadow: 0 18px 40px -12px rgba(15, 23, 42, 0.25) !important;
+}
+
+/* ==========================================================================
+   <= 1180px : form cards stack (sidebar takes space on laptops)
+   ========================================================================== */
+@media (max-width: 1180px) {
+  body .jf-create-job-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   <= 1024px : tablet
+   ========================================================================== */
+@media (max-width: 1024px) {
+  body .jf-filter-bar .jf-search-input-wrap {
+    flex: 1 1 100%;
+  }
+}
+
+/* ==========================================================================
+   <= 768px : small tablet
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Finishing table keeps its columns and scrolls inside the card */
+  body .content-body .jf-table-scroll-3rows .jf-table {
+    display: table;
+    min-width: 640px;
+  }
+
+  /* Customer label row (name + "Add Customer" button) wraps */
+  body .jf-create-job-grid .jf-label[style*="justify-content: space-between"] {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+}
+
+/* ==========================================================================
+   <= 640px : mobile
+   ========================================================================== */
+@media (max-width: 640px) {
+  body .jf-create-job-grid {
+    gap: 1rem;
+  }
+
+  body .jf-create-job-grid > .jf-card {
+    border-radius: 16px;
+  }
+
+  /* Fields go to a single column */
+  body .jf-form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  /* Preview + summary mini-grids (inline "1fr 1fr") stack */
+  body .jf-create-job-grid [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Filter bar: every control full width */
+  body .jf-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body .jf-filter-bar .jf-search-input-wrap,
+  body .jf-filter-bar select,
+  body .jf-filter-bar .jf-btn {
+    width: 100% !important;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Summary card buttons share the row */
+  body .jf-create-job-grid div[style*="justify-content: flex-end"][style*="gap: 0.75rem"] {
+    flex-wrap: wrap;
+  }
+
+  body .jf-create-job-grid div[style*="justify-content: flex-end"][style*="gap: 0.75rem"] > .jf-btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  /* Finishing total bar wraps */
+  body .jf-create-job-grid div[style*="margin-top: auto"][style*="justify-content: space-between"] {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  /* Tap-friendly controls + no iOS zoom */
+  body .jf-create-job-grid .jf-btn,
+  body .jf-filter-bar .jf-btn {
+    min-height: 40px;
+  }
+
+  body .jf-create-job-grid input,
+  body .jf-create-job-grid select,
+  body .jf-create-job-grid textarea,
+  body .jf-filter-bar input,
+  body .jf-filter-bar select {
+    font-size: 16px !important;
+  }
+
+  /* Uploaded file rows: long names wrap instead of overflowing */
+  body .jf-create-job-grid [style*="justify-content: space-between"][style*="border: 1px solid var(--jf-border)"] > div:first-child {
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  /* Smaller preview banner */
+  body .jf-create-job-grid [style*="height: 155px"] {
+    height: 130px !important;
+  }
+}
+
+/* ==========================================================================
+   <= 480px : small phones
+   ========================================================================== */
+@media (max-width: 480px) {
+  body .jf-chip-btn {
+    padding: 0.4rem 0.7rem;
+  }
+
+  .job-orders-filter-strip {
+    padding: 0.75rem;
+  }
+}
+
+/* Touch devices: no hover lift */
+@media (hover: none) {
+  body .jf-chip-btn:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .jf-create-job-grid > .jf-card,
+  body .jf-chip-btn,
+  body .jf-dropzone {
+    transition: none;
+  }
+}

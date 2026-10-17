@@ -10,12 +10,15 @@ import {
   ShieldCheck,
   Truck,
   Receipt,
+  CreditCard,
   QrCode,
+  ShoppingCart,
 } from "lucide-react";
 import "../styles/job-flow.css";
 
 const tabs = [
   { path: "/jobflow", label: "Overview", icon: LayoutDashboard, exact: true },
+  { path: "/jobflow/pos", label: "POS Billing", icon: ShoppingCart },
   { path: "/jobflow/customers", label: "Customers", icon: Users },
   { path: "/jobflow/jobs", label: "Job Orders", icon: Briefcase },
   { path: "/jobflow/estimates", label: "Estimation", icon: Calculator },
@@ -23,7 +26,8 @@ const tabs = [
   { path: "/jobflow/production", label: "Production", icon: Layers },
   { path: "/jobflow/qc", label: "Quality Control", icon: ShieldCheck },
   { path: "/jobflow/delivery", label: "Delivery", icon: Truck },
-  { path: "/jobflow/settlement", label: "Settlement", icon: Receipt },
+  { path: "/jobflow/invoice", label: "Invoice", icon: Receipt },
+  { path: "/jobflow/settlement", label: "Settlement", icon: CreditCard },
   { path: "/jobflow/qr-request", label: "Branch QR Form", icon: QrCode },
 ];
 

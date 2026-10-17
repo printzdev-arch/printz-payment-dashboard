@@ -23,6 +23,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import jobFlowApi from "../api/qcApi";
+import "../styles/quality-control.css";
 import { toast } from "react-toastify";
 
 /**
@@ -250,13 +251,40 @@ export const generateQcCriteria = (job) => {
 
 export const QualityControlPage = ({ embedded = false }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const preselectedJobId = searchParams.get("jobId");
   const preselectedOrderId = searchParams.get("orderId");
+  const tabParam = searchParams.get("tab");
+
+  const getInitialQcTab = () => {
+    if (tabParam === "15A" || tabParam === "queue" || tabParam === "overview") return "15A";
+    if (tabParam === "15B" || tabParam === "inspection" || tabParam === "form") return "15B";
+    if (tabParam === "16A" || tabParam === "rework") return "16A";
+    if (tabParam === "16B" || tabParam === "reprints" || tabParam === "reprint") return "16B";
+    return tabParam || "15A";
+  };
 
   // 4 tabs matching Image 7: 15A, 15B, 16A, 16B
-  const [activeTab, setActiveTab] = useState("15A");
+  const [activeTab, setActiveTab] = useState(getInitialQcTab);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "15A" || t === "queue" || t === "overview") setActiveTab("15A");
+    else if (t === "15B" || t === "inspection" || t === "form") setActiveTab("15B");
+    else if (t === "16A" || t === "rework") setActiveTab("16A");
+    else if (t === "16B" || t === "reprints" || t === "reprint") setActiveTab("16B");
+    else if (t) setActiveTab(t);
+  }, [searchParams]);
+
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", newTab);
+      return next;
+    });
+  };
 
   // 15A: QC Queue Data
   const [qcQueue, setQcQueue] = useState([]);
@@ -798,28 +826,28 @@ export const QualityControlPage = ({ embedded = false }) => {
       <button
         type="button"
         className={`jf-btn ${activeTab === "15A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("15A")}
+        onClick={() => handleTabChange("15A")}
       >
         QC Queue & Overview
       </button>
       <button
         type="button"
         className={`jf-btn ${activeTab === "15B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("15B")}
+        onClick={() => handleTabChange("15B")}
       >
         QC Inspection Form
       </button>
       <button
         type="button"
         className={`jf-btn ${activeTab === "16A" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("16A")}
+        onClick={() => handleTabChange("16A")}
       >
         Targeted Operation Rework
       </button>
       <button
         type="button"
         className={`jf-btn ${activeTab === "16B" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-        onClick={() => setActiveTab("16B")}
+        onClick={() => handleTabChange("16B")}
       >
         Full Reprint Approvals ({reprintRequests.filter((r) => r.status === "PENDING_APPROVAL").length})
       </button>
@@ -1653,7 +1681,6 @@ export const QualityControlPage = ({ embedded = false }) => {
   return (
     <JobFlowLayout
       title="Quality Control & Defect Routing"
-      actions={renderSubNav()}
     >
       {mainQcContent}
     </JobFlowLayout>

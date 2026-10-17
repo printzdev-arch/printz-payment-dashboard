@@ -9,9 +9,6 @@ import {
   Edit3,
   Lock,
   X,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Search,
   Package,
   CheckCircle2,
@@ -427,26 +424,8 @@ const StockSection = ({
             <thead>
               <tr>
                 <th className="th-sno">S.NO</th>
-                <th className="th-item" onClick={() => handleSort("itemName")} style={{ cursor: "pointer" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    ITEM NAME
-                    {sortField === "itemName" ? (
-                      sortOrder === "asc" ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                    ) : (
-                      <ArrowUpDown size={13} color="#94a3b8" />
-                    )}
-                  </div>
-                </th>
-                <th className="th-category" onClick={() => handleSort("category")} style={{ cursor: "pointer" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    CATEGORY
-                    {sortField === "category" ? (
-                      sortOrder === "asc" ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                    ) : (
-                      <ArrowUpDown size={13} color="#94a3b8" />
-                    )}
-                  </div>
-                </th>
+                <th className="th-item">ITEM NAME</th>
+                <th className="th-category">CATEGORY</th>
                 <th className="center th-stock">OPENING</th>
                 <th className="center th-stock">ADDED</th>
                 <th className="center th-stock">CLOSING</th>

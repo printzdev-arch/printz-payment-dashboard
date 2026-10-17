@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { useNavigate } from "react-router-dom";
-import { FaEye, FaEyeSlash, FaEnvelope, FaLock } from "react-icons/fa";
+import { useNavigate, Link } from "react-router-dom";
+import { FaEye, FaEyeSlash, FaEnvelope, FaLock, FaPaintBrush } from "react-icons/fa";
+
 import { usePopup } from "../../hooks/usePopup";
 import Popup from "./Popup.jsx";
 import logo from "../../assets/logo.png";
@@ -33,12 +34,14 @@ const Login = () => {
 
     try {
       const user = await login(emailOrPhone, password);
-      if (user?.role === "admin") {
+      const isDes = user?.role === "designer" || ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah"].some((n) => (user?.name || "").toLowerCase().includes(n));
+      if (isDes) {
+        localStorage.setItem("userRole", "designer");
+        navigate("/jobflow/design?view=my-jobs");
+      } else if (user?.role === "admin") {
         navigate("/admin-dashboard");
       } else if (user?.role === "manager") {
         navigate("/manager-dashboard");
-      } else if (user?.role === "designer") {
-        navigate("/design/my-queue");
       } else if (user?.role === "operator") {
         navigate("/v3/production/queue");
       } else if (user?.role === "staff" || user?.role === "cashier") {
@@ -58,12 +61,13 @@ const Login = () => {
 
   useEffect(() => {
     if (role && currentUser) {
-      if (role === "admin") {
+      const isDes = role === "designer" || ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah"].some((n) => (currentUser?.name || "").toLowerCase().includes(n));
+      if (isDes) {
+        navigate("/jobflow/design?view=my-jobs");
+      } else if (role === "admin") {
         navigate("/admin-dashboard");
       } else if (role === "manager") {
         navigate("/manager-dashboard");
-      } else if (role === "designer") {
-        navigate("/design/my-queue");
       } else if (role === "operator") {
         navigate("/v3/production/queue");
       } else if (role === "qc_inspector") {
@@ -359,8 +363,89 @@ const Login = () => {
                 👑 Admin Login
               </button>
             </div>
+
+            {/* Designer Studio Login Portal Link */}
+            <div style={{ marginTop: "12px" }}>
+              <Link
+                to="/designer/login"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "10px 14px",
+                  fontSize: "0.8125rem",
+                  fontWeight: 700,
+                  background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                  color: "#38bdf8",
+                  border: "1px solid #334155",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.08)",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
+                }}
+              >
+                <FaPaintBrush style={{ color: "#38bdf8", fontSize: "0.85rem" }} />
+                <span>Designer Studio Login Portal →</span>
+              </Link>
+            </div>
+
+            {/* Quick Designer Login for All 6 Designers */}
+            <div style={{ marginTop: "10px", borderTop: "1px dashed #e2e8f0", paddingTop: "8px" }}>
+              <div style={{ fontSize: "0.6875rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", marginBottom: "6px", textAlign: "center" }}>
+                🎨 Quick Designer Login (6 Studio Designers)
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", justifyContent: "center" }}>
+                {[
+                  { name: "Ali Hassan", email: "ali.hassan@printz.com" },
+                  { name: "Siti Rahman", email: "siti.rahman@printz.com" },
+                  { name: "Kumar Anil", email: "kumar.anil@printz.com" },
+                  { name: "John Lee", email: "john.lee@printz.com" },
+                  { name: "Nur Aisyah", email: "nur.aisyah@printz.com" },
+                  { name: "Guna", email: "guna@gmail.com" },
+                ].map((des) => (
+                  <button
+                    key={des.email}
+                    type="button"
+                    disabled={loading}
+                    onClick={async () => {
+                      if (emailRef.current) emailRef.current.value = des.email;
+                      if (passwordRef.current) passwordRef.current.value = "designer123";
+                      setLoading(true);
+                      try {
+                        const user = await login(des.email, "designer123");
+                        localStorage.setItem("userRole", "designer");
+                        navigate("/jobflow/design?view=my-jobs");
+                      } catch (error) {
+                        const errorMsg =
+                          error?.response?.data?.message ||
+                          error?.message ||
+                          "Failed to log in. Please check credentials.";
+                        showError(`Failed to log in as ${des.name}: ${errorMsg}`);
+                        setLoading(false);
+                      }
+                    }}
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      backgroundColor: "#f0fdf4",
+                      color: "#166534",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    👤 {des.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </form>
+
 
         {/* Footer */}
         <div

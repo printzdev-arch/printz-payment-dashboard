@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import "../../styles/sidebar.css";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { PageTransition, MotionDropdown, MotionAccordion } from "../../shared/motion";
 import logo from "../../assets/logo.png";
 
 import {
@@ -15,6 +16,8 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
+  Sliders,
   LogOut,
   User,
   Menu,
@@ -122,6 +125,82 @@ const getPageTitle = (pathname) => {
 
 const AdminLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isAutoCollapseEnabled, setIsAutoCollapseEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar_auto_collapse") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [isHoveringLeftZone, setIsHoveringLeftZone] = useState(false);
+  const leftZoneTimerRef = useRef(null);
+  const autoCloseTimerRef = useRef(null);
+
+  const handleToggleAutoCollapse = (enabled) => {
+    setIsAutoCollapseEnabled(enabled);
+    try {
+      localStorage.setItem("sidebar_auto_collapse", String(enabled));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (!isAutoCollapseEnabled) {
+      if (leftZoneTimerRef.current) {
+        clearTimeout(leftZoneTimerRef.current);
+        leftZoneTimerRef.current = null;
+      }
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = null;
+      }
+      setIsHoveringLeftZone(false);
+      return;
+    }
+
+    const handleWindowMouseMove = (e) => {
+      if (isSidebarCollapsed) {
+        if (e.clientX <= 25) {
+          if (!leftZoneTimerRef.current) {
+            setIsHoveringLeftZone(true);
+            leftZoneTimerRef.current = setTimeout(() => {
+              setIsSidebarCollapsed(false);
+              setIsHoveringLeftZone(false);
+              leftZoneTimerRef.current = null;
+            }, 1000); // 1 seconds hold to open
+          }
+        } else {
+          if (leftZoneTimerRef.current) {
+            clearTimeout(leftZoneTimerRef.current);
+            leftZoneTimerRef.current = null;
+            setIsHoveringLeftZone(false);
+          }
+        }
+      } else {
+        if (e.clientX > 270) {
+          if (!autoCloseTimerRef.current) {
+            autoCloseTimerRef.current = setTimeout(() => {
+              setIsSidebarCollapsed(true);
+              autoCloseTimerRef.current = null;
+            }, 180);
+          }
+        } else {
+          if (autoCloseTimerRef.current) {
+            clearTimeout(autoCloseTimerRef.current);
+            autoCloseTimerRef.current = null;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      if (leftZoneTimerRef.current) clearTimeout(leftZoneTimerRef.current);
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, [isAutoCollapseEnabled, isSidebarCollapsed]);
+
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
 
@@ -310,16 +389,28 @@ const AdminLayout = ({ children }) => {
     <div className="layout">
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        {/* Brand Logo Header */}
-        <div
-          className="sidebar-logo-header"
-          onClick={() => navigate("/admin-dashboard")}
-        >
-          <img
-            src={logo}
-            alt="PrintZ Shop"
-            className="sidebar-brand-logo-img"
-          />
+        {/* Brand Logo Header with Close Arrow Button */}
+        <div className="sidebar-logo-header-row">
+          <div
+            className="sidebar-logo-header"
+            onClick={() => navigate("/admin-dashboard")}
+            style={{ cursor: "pointer" }}
+          >
+            <img
+              src={logo}
+              alt="PrintZ Shop"
+              className="sidebar-brand-logo-img"
+            />
+          </div>
+          <button
+            type="button"
+            className="sidebar-collapse-arrow-btn"
+            onClick={() => setIsSidebarCollapsed(true)}
+            title="Close sidebar"
+            aria-label="Close sidebar"
+          >
+            <ChevronLeft size={18} />
+          </button>
         </div>
 
         {/* Navigation Items */}
@@ -499,7 +590,7 @@ const AdminLayout = ({ children }) => {
                 )}
               </button>
 
-              {isPrinterDataOpen && (
+              <MotionAccordion isOpen={isPrinterDataOpen}>
                 <ul className="sidebar-dropdown-list">
                   <li className="sidebar-dropdown-item">
                     <NavLink
@@ -542,7 +633,7 @@ const AdminLayout = ({ children }) => {
                     </NavLink>
                   </li>
                 </ul>
-              )}
+              </MotionAccordion>
             </li>
           )}
 
@@ -565,7 +656,7 @@ const AdminLayout = ({ children }) => {
                 )}
               </button>
 
-              {isStockDataOpen && (
+              <MotionAccordion isOpen={isStockDataOpen}>
                 <ul className="sidebar-dropdown-list">
                   <li className="sidebar-dropdown-item">
                     <NavLink
@@ -608,7 +699,7 @@ const AdminLayout = ({ children }) => {
                     </NavLink>
                   </li>
                 </ul>
-              )}
+              </MotionAccordion>
             </li>
           )}
 
@@ -631,7 +722,7 @@ const AdminLayout = ({ children }) => {
                 )}
               </button>
 
-              {isRevenueDataOpen && (
+              <MotionAccordion isOpen={isRevenueDataOpen}>
                 <ul className="sidebar-dropdown-list">
                   <li className="sidebar-dropdown-item">
                     <NavLink
@@ -658,7 +749,7 @@ const AdminLayout = ({ children }) => {
                     </NavLink>
                   </li>
                 </ul>
-              )}
+              </MotionAccordion>
             </li>
           )}
 
@@ -681,7 +772,7 @@ const AdminLayout = ({ children }) => {
                 )}
               </button>
 
-              {isAdditionalOpen && (
+              <MotionAccordion isOpen={isAdditionalOpen}>
                 <ul className="sidebar-dropdown-list">
                   <li className="sidebar-dropdown-item">
                     <NavLink
@@ -734,7 +825,7 @@ const AdminLayout = ({ children }) => {
                     </NavLink>
                   </li>
                 </ul>
-              )}
+              </MotionAccordion>
             </li>
           )}
 
@@ -793,13 +884,33 @@ const AdminLayout = ({ children }) => {
           </li>
         </ul>
 
-        {/* Bottom Section: PrintZ Sidebar Illustration, Divider & Logout */}
+        {/* Bottom Section: PrintZ Sidebar Illustration, Divider, Auto-Hide Toggle & Logout */}
         <div className="sidebar-bottom-section">
           <div className="sidebar-illustration-container">
             <PrintZSidebarIllustration width="100%" height={190} />
           </div>
 
           <div className="sidebar-divider" />
+
+          {/* Auto-Hide Sidebar Feature Toggle */}
+          <div className="sidebar-autohide-toggle-card">
+            <div className="sidebar-autohide-info">
+              <Sliders size={14} className="sidebar-autohide-icon" />
+              <div className="sidebar-autohide-texts">
+                <span className="sidebar-autohide-title">Auto-Hide Sidebar</span>
+                <span className="sidebar-autohide-sub">Page hover close • 1s open</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`sidebar-switch-toggle ${isAutoCollapseEnabled ? "active" : ""}`}
+              onClick={() => handleToggleAutoCollapse(!isAutoCollapseEnabled)}
+              title={isAutoCollapseEnabled ? "Turn OFF Auto-Hide" : "Turn ON Auto-Hide"}
+              aria-label="Toggle auto-hide sidebar mode"
+            >
+              <span className="sidebar-switch-thumb" />
+            </button>
+          </div>
 
           <button
             type="button"
@@ -811,6 +922,13 @@ const AdminLayout = ({ children }) => {
           </button>
         </div>
       </aside>
+
+      {/* 2-Second Left Edge Hover Indicator */}
+      {isAutoCollapseEnabled && isSidebarCollapsed && (
+        <div
+          className={`sidebar-left-hover-indicator ${isHoveringLeftZone ? "active" : ""}`}
+        />
+      )}
 
       {/* Main Content Area with Modern Topbar */}
       <div className="main-content-wrap">
@@ -888,45 +1006,50 @@ const AdminLayout = ({ children }) => {
               </div>
 
               {/* Profile Dropdown */}
-              {isProfileDropdownOpen && (
-                <div className="topbar-dropdown-menu">
-                  <div className="dropdown-user-header">
-                    <p className="dropdown-user-name">{userName}</p>
-                    <p className="dropdown-user-email">
-                      {currentUser?.email || "Admin Account"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      handleProfile();
-                    }}
-                  >
-                    <User size={15} color="#059669" />
-                    <span>My Profile</span>
-                  </button>
-                  <div className="dropdown-divider" />
-                  <button
-                    type="button"
-                    className="dropdown-item dropdown-logout"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      handleLogout();
-                    }}
-                  >
-                    <LogOut size={15} />
-                    <span>Logout</span>
-                  </button>
+              <MotionDropdown
+                isOpen={isProfileDropdownOpen}
+                className="topbar-dropdown-menu"
+              >
+                <div className="dropdown-user-header">
+                  <p className="dropdown-user-name">{userName}</p>
+                  <p className="dropdown-user-email">
+                    {currentUser?.email || "Admin Account"}
+                  </p>
                 </div>
-              )}
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false);
+                    handleProfile();
+                  }}
+                >
+                  <User size={15} color="#059669" />
+                  <span>My Profile</span>
+                </button>
+                <div className="dropdown-divider" />
+                <button
+                  type="button"
+                  className="dropdown-item dropdown-logout"
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span>Logout</span>
+                </button>
+              </MotionDropdown>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="content-body">{children}</main>
+        <main className="content-body">
+          <PageTransition routeKey={`${location.pathname}${location.search}`}>
+            {children}
+          </PageTransition>
+        </main>
       </div>
     </div>
   );

@@ -11,19 +11,33 @@ const getActiveBranchInfo = () => {
     const userBranch = localStorage.getItem("userBranchName");
     const userObj = JSON.parse(localStorage.getItem("user") || "{}");
     const printzUser = JSON.parse(localStorage.getItem("printz_user") || "{}");
-    const branchName =
-      (userBranch && userBranch.trim()) ||
-      (userObj.branch && userObj.branch.trim()) ||
-      (userObj.branchName && userObj.branchName.trim()) ||
-      (printzUser.branch && printzUser.branch.trim()) ||
-      (printzUser.branchName && printzUser.branchName.trim()) ||
-      DEFAULT_MANAGER_BRANCH_NAME;
-    const branchId =
+
+    let rawBranchId =
       userObj.branchId ||
       (userObj.branchIds && userObj.branchIds[0]) ||
       printzUser.branchId ||
+      (userObj.branch && typeof userObj.branch === "object" ? (userObj.branch._id || userObj.branch.id) : null) ||
       DEFAULT_MANAGER_BRANCH_ID;
-    return { branchName: branchName || DEFAULT_MANAGER_BRANCH_NAME, branchId: branchId || DEFAULT_MANAGER_BRANCH_ID };
+
+    if (typeof rawBranchId === "object" && rawBranchId !== null) {
+      rawBranchId = rawBranchId._id || rawBranchId.id || DEFAULT_MANAGER_BRANCH_ID;
+    }
+    const branchId = String(rawBranchId || DEFAULT_MANAGER_BRANCH_ID).trim();
+
+    const branchName =
+      (userBranch && userBranch.trim()) ||
+      (typeof userObj.branch === "string" && userObj.branch.trim()) ||
+      (userObj.branch && typeof userObj.branch === "object" ? (userObj.branch.name || userObj.branch.branchName) : null) ||
+      (userObj.branchName && userObj.branchName.trim()) ||
+      (typeof printzUser.branch === "string" && printzUser.branch.trim()) ||
+      (printzUser.branch && typeof printzUser.branch === "object" ? (printzUser.branch.name || printzUser.branch.branchName) : null) ||
+      (printzUser.branchName && printzUser.branchName.trim()) ||
+      DEFAULT_MANAGER_BRANCH_NAME;
+
+    return {
+      branchName: branchName || DEFAULT_MANAGER_BRANCH_NAME,
+      branchId: branchId || DEFAULT_MANAGER_BRANCH_ID,
+    };
   } catch (e) {
     return { branchName: DEFAULT_MANAGER_BRANCH_NAME, branchId: DEFAULT_MANAGER_BRANCH_ID };
   }
@@ -115,6 +129,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
     companyName: "",
     gstin: "",
     defaultBranch: activeBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
+    branchId: activeBranch.branchId || DEFAULT_MANAGER_BRANCH_ID,
     remarks: "",
   });
 
@@ -280,20 +295,29 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
         })
         .catch(() => {});
 
-      // Fetch branches dynamically and default to manager's branch
+      // Fetch branches dynamically and resolve branch name by manager's branchId
       jobFlowApi.getBranches()
         .then((res) => {
           const bList = res?.data || res?.items || (Array.isArray(res) ? res : []);
           if (Array.isArray(bList) && bList.length > 0) {
             setBranches(bList);
-            if (!customer) {
-              const mgrBranch = findManagerBranch(bList, activeBranch);
-              if (mgrBranch) {
-                setFormData((prev) => ({
-                  ...prev,
-                  defaultBranch: mgrBranch.name || mgrBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
-                }));
-              }
+            const activeInfo = getActiveBranchInfo();
+            // Look up directly by branch manager's branchId
+            let matched = null;
+            if (activeInfo.branchId) {
+              matched = bList.find((b) => String(b._id || b.id) === String(activeInfo.branchId));
+            }
+            if (!matched && activeInfo.branchName) {
+              matched = findManagerBranch(bList, activeInfo);
+            }
+            if (matched) {
+              const resolvedName = matched.name || matched.branchName || DEFAULT_MANAGER_BRANCH_NAME;
+              const resolvedId = matched._id || matched.id;
+              setFormData((prev) => ({
+                ...prev,
+                defaultBranch: resolvedName,
+                branchId: resolvedId,
+              }));
             }
           }
         })
@@ -379,22 +403,20 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
         .join(", ");
 
       const activeInfo = getActiveBranchInfo();
-      let matchedBranch = branches.find(
-        (b) =>
-          (b._id || b.id) === formData.defaultBranch ||
-          (b.name && b.name.toLowerCase() === (formData.defaultBranch || "").toLowerCase()) ||
-          (b.branchName && b.branchName.toLowerCase() === (formData.defaultBranch || "").toLowerCase())
-      );
+      let branchId = formData.branchId || activeInfo.branchId;
 
-      if (!matchedBranch) {
-        matchedBranch = findManagerBranch(branches, activeInfo);
+      if (!branchId || !/^[0-9a-fA-F]{24}$/.test(String(branchId))) {
+        let matchedBranch = branches.find(
+          (b) =>
+            String(b._id || b.id) === String(activeInfo.branchId) ||
+            (b.name && b.name.toLowerCase() === (formData.defaultBranch || "").toLowerCase()) ||
+            (b.branchName && b.branchName.toLowerCase() === (formData.defaultBranch || "").toLowerCase())
+        );
+        if (!matchedBranch) {
+          matchedBranch = findManagerBranch(branches, activeInfo);
+        }
+        branchId = matchedBranch?._id || matchedBranch?.id || activeInfo.branchId || DEFAULT_MANAGER_BRANCH_ID;
       }
-
-      let branchId =
-        matchedBranch?._id ||
-        matchedBranch?.id ||
-        activeInfo.branchId ||
-        DEFAULT_MANAGER_BRANCH_ID;
 
       const payload = {
         name: formData.name.trim(),
@@ -453,9 +475,6 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
             <h2 className="jf-modal-title">
               {editingCustomer || customer ? "Edit / Reuse Customer Profile" : "Register Customer Information"}
             </h2>
-            <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>
-              Staff Assisted Intake • Central Customer Master Search
-            </div>
           </div>
           <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose}>
             <X size={18} />
@@ -514,7 +533,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                 </h3>
 
                 <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="jf-label">Customer Type</label>
+                  <label className="jf-label">Customer Source</label>
                   <div
                     style={{
                       display: "grid",
@@ -706,20 +725,6 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                       style={{ width: "100%", boxSizing: "border-box" }}
                     />
                   </div>
-
-                  <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-                    <label className="jf-label">Address Line 2</label>
-                    <input
-                      type="text"
-                      name="addressLine2"
-                      value={formData.addressLine2}
-                      onChange={handleChange}
-                      placeholder="Taman Sri Petaling"
-                      className="jf-input"
-                      style={{ width: "100%", boxSizing: "border-box" }}
-                    />
-                  </div>
-
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                     <div className="jf-form-group" style={{ minWidth: 0 }}>
                       <label className="jf-label">City</label>
@@ -809,36 +814,24 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
 
                   <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
                     <label className="jf-label">Default Branch</label>
-                    <select
-                      name="defaultBranch"
-                      value={formData.defaultBranch}
-                      onChange={handleChange}
-                      className="jf-select"
-                      style={{ width: "150px", boxSizing: "border-box" }}
-                    >
-                      {branches.length === 0 && (
-                        <option value={formData.defaultBranch || DEFAULT_MANAGER_BRANCH_NAME}>
-                          {formData.defaultBranch || DEFAULT_MANAGER_BRANCH_NAME}
-                        </option>
-                      )}
-                      {branches.map((b) => (
-                        <option key={b._id || b.id} value={b.name || b.branchName}>
-                          {b.name || b.branchName} ({b.code || b.branchCode || "BR"})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="jf-form-group">
-                    <label className="jf-label">Remarks</label>
                     <input
                       type="text"
-                      name="remarks"
-                      value={formData.remarks}
-                      onChange={handleChange}
-                      placeholder="Preferred contact via WhatsApp"
+                      name="defaultBranch"
+                      value={formData.defaultBranch || DEFAULT_MANAGER_BRANCH_NAME}
+                      readOnly
+                      disabled
                       className="jf-input"
-                      style={{ width: "100%", boxSizing: "border-box" }}
+                      title="Assigned automatically to your branch"
+                      style={{
+                        width: "100%",
+                        maxWidth: "220px",
+                        boxSizing: "border-box",
+                        backgroundColor: "#f8fafc",
+                        color: "#1e293b",
+                        fontWeight: 600,
+                        cursor: "not-allowed",
+                        border: "1px solid #cbd5e1",
+                      }}
                     />
                   </div>
                 </div>

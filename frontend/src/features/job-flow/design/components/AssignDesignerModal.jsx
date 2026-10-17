@@ -28,14 +28,14 @@ export const AssignDesignerModal = ({
   const [liveLastAssignedId, setLiveLastAssignedId] = useState(null);
   const [fetchingPool, setFetchingPool] = useState(false);
 
-  // Fallback designer pool matching active database staff
+  // Fallback designer pool matching active database staff (6 designers)
   const defaultDesigners = [
-    { _id: "des-priya", name: "Priya Raman", email: "priya@printz.in", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-    { _id: "des-ali", name: "Ali Hassan", email: "ali.hassan@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-    { _id: "des-john", name: "John Lee", email: "john.lee@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
-    { _id: "des-kumar", name: "Kumar Anil", email: "kumar.anil@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
-    { _id: "des-nur", name: "Nur Aisyah", email: "nur.aisyah@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-    { _id: "des-siti", name: "Siti Rahman", email: "siti.rahman@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
+    { _id: "des-ali", name: "Ali Hassan", email: "ali.hassan@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
+    { _id: "des-siti", name: "Siti Rahman", email: "siti.rahman@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
+    { _id: "des-kumar", name: "Kumar Anil", email: "kumar.anil@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
+    { _id: "des-john", name: "John Lee", email: "john.lee@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
+    { _id: "des-nur", name: "Nur Aisyah", email: "nur.aisyah@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
+    { _id: "des-guna", name: "Guna", email: "guna@gmail.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
   ];
 
   // Fetch live designer pool whenever modal opens or job changes
@@ -131,6 +131,19 @@ export const AssignDesignerModal = ({
   const customer = job.customerName || job.customerSnapshot?.name || "ABC Marketing";
   const jobItem = job.title || job.specs?.productType || job.items?.[0]?.itemName || "Flyer - A5";
   const priority = job.priority || "High";
+  const isRejected = Boolean(
+    job.isRejected ||
+    job.designStatus === "REJECTED" ||
+    job.designRejectionReason ||
+    job.rejectionReason ||
+    job.raw?.designStatus === "REJECTED" ||
+    job.raw?.designRejectionReason
+  );
+  const rejectionReason =
+    job.rejectionReason ||
+    job.designRejectionReason ||
+    job.raw?.designRejectionReason ||
+    "";
   const approvedAt = job.createdAt
     ? new Date(job.createdAt).toLocaleString("en-GB", {
       day: "2-digit",
@@ -186,12 +199,16 @@ export const AssignDesignerModal = ({
         }
 
         toast.success(
-          `Job order ${jobNo} assigned to ${assignedDesignerName} using round robin method!`
+          isRejected
+            ? `Job order ${jobNo} reallocated to ${assignedDesignerName} using round robin method!`
+            : `Job order ${jobNo} assigned to ${assignedDesignerName} using round robin method!`
         );
       } else {
         const res = await jobFlowApi.assignDesigner(jobId, {
           employeeId: selectedDesignerId,
           designerId: selectedDesignerId,
+          designerName: targetDesignerName,
+          email: targetDesigner?.email,
           method: "MANUAL",
         });
         const resData = res?.data || res || {};
@@ -206,9 +223,13 @@ export const AssignDesignerModal = ({
           if (match?.name) assignedDesignerName = match.name;
         }
         toast.success(
-          `Job order ${jobNo} manually assigned to ${assignedDesignerName}!`
+          isRejected
+            ? `Job order ${jobNo} reallocated to ${assignedDesignerName}!`
+            : `Job order ${jobNo} manually assigned to ${assignedDesignerName}!`
         );
       }
+
+      onClose();
 
       if (onAssigned) {
         onAssigned({
@@ -217,16 +238,14 @@ export const AssignDesignerModal = ({
           method: allocationMethod === "ROUND_ROBIN" ? "Round Robin" : "Manual",
         });
       }
-
-      onClose();
     } catch (err) {
       console.error("Allocation failed:", err);
       const msg = err.response?.data?.message || err.message || "Failed to allocate job order";
       toast.error(msg);
       // If error indicates job was already assigned or not found, notify parent to refresh and close
       if (err.response?.status === 409 || err.response?.status === 404) {
-        if (onAssigned) onAssigned({ jobId });
         onClose();
+        if (onAssigned) onAssigned({ jobId });
       }
     } finally {
       setLoading(false);
@@ -239,8 +258,14 @@ export const AssignDesignerModal = ({
         {/* Header */}
         <div className="alloc-modal-header">
           <div>
-            <h2 className="alloc-modal-title">Allocate Job Order</h2>
-            <p className="alloc-modal-subtitle">Assign this job order to a designer.</p>
+            <h2 className="alloc-modal-title">
+              {isRejected ? "Reallocate Job Order" : "Allocate Job Order"}
+            </h2>
+            <p className="alloc-modal-subtitle">
+              {isRejected
+                ? "Reassign this rejected job order to an available designer."
+                : "Assign this job order to a designer."}
+            </p>
           </div>
           <button
             type="button"
@@ -303,6 +328,37 @@ export const AssignDesignerModal = ({
                 </div>
               </div>
             </div>
+
+            {isRejected && (
+              <div
+                style={{
+                  marginTop: "0.85rem",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: "8px",
+                  padding: "0.6rem 0.85rem",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "0.5rem",
+                  fontSize: "0.8125rem",
+                  color: "#991b1b",
+                }}
+              >
+                <AlertCircle size={16} style={{ marginTop: "2px", flexShrink: 0, color: "#dc2626" }} />
+                <div>
+                  <strong style={{ fontWeight: 600 }}>Previous Assignment Rejected</strong>
+                  {rejectionReason ? (
+                    <span style={{ display: "block", marginTop: "2px", color: "#b91c1c" }}>
+                      Reason: &ldquo;{rejectionReason}&rdquo;
+                    </span>
+                  ) : (
+                    <span style={{ display: "block", marginTop: "2px", color: "#b91c1c" }}>
+                      This job was returned to the supervisor queue for reallocation.
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Card 2: Select Allocation Method */}
@@ -510,7 +566,13 @@ export const AssignDesignerModal = ({
             onClick={handleConfirm}
             disabled={loading}
           >
-            {loading ? "Allocating..." : "Confirm Allocation"}
+            {loading
+              ? isRejected
+                ? "Reallocating..."
+                : "Allocating..."
+              : isRejected
+                ? "Confirm Reallocation"
+                : "Confirm Allocation"}
           </button>
         </div>
       </div>

@@ -19,6 +19,7 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal";
 import jobFlowApi from "../api/jobOrdersApi";
+import "../styles/job-orders.css";
 import { toast } from "react-toastify";
 
 export const JobOrdersPage = () => {

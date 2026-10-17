@@ -50,6 +50,7 @@ import StockListManagerPage from "./components/manager/StockList.jsx";
 import PdfGenerator from "./components/manager/PdfGenerator.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { MotionToastContainer } from "./shared/motion/MotionToast";
 import "./features/job-flow/shared/styles/job-flow.css";
 import AdminDailyReadingsRevenue from "./components/admin/AdminDailyReadingsRevenue.jsx";
 import AdminStockReadingsRevenue from "./components/admin/AdminStockReadingsRevenue.jsx";
@@ -70,11 +71,14 @@ import {
   CreateJobOrderPage,
   EstimationPage,
   DesignWorkflowPage,
+  DesignerLoginPage,
   ProductionPage,
   QualityControlPage,
   DeliveryPage,
+  InvoicePage,
   SettlementPage,
   BranchQrCustomerForm,
+  PosBillingPage,
 } from "./features/job-flow";
 
 import { AuthProvider, useAuth, AuthContext } from "./context/AuthContext.jsx";
@@ -82,6 +86,9 @@ export { AuthProvider, useAuth, AuthContext };
 
 const pageTitleMapping = {
   "/login": "Login",
+  "/designer/login": "Designer Portal Login",
+  "/designer-login": "Designer Portal Login",
+
   "/forgot-password": "Forgot Password",
   "/admin-dashboard": "Admin Dashboard",
   "/manager-dashboard": "Manager Dashboard",
@@ -136,8 +143,15 @@ const pageTitleMapping = {
   "/v3/quality-control": "Quality Control & Rework",
   "/jobflow/delivery": "Delivery Management",
   "/delivery": "Delivery Management",
-  "/jobflow/settlement": "Settlement & Invoicing",
-  "/settlement": "Settlement & Invoicing",
+  "/jobflow/invoice": "Commercial Tax Invoicing",
+  "/invoice": "Commercial Tax Invoicing",
+  "/invoices": "Commercial Tax Invoicing",
+  "/jobflow/settlement": "Payment Settlement & Job Closure",
+  "/settlement": "Payment Settlement & Job Closure",
+  "/jobflow/pos": "POS Counter Billing & Sales Receipts",
+  "/pos": "POS Counter Billing & Sales Receipts",
+  "/pos-receipts": "POS Counter Billing & Sales Receipts",
+  "/sales-receipts": "POS Counter Billing & Sales Receipts",
 };
 
 
@@ -177,21 +191,17 @@ const AppContent = () => {
 
   return (
     <>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 9999 }}
-      />
+      {/* Hidden React-Toastify container so internal store emits onChange events */}
+      <div style={{ display: "none" }} aria-hidden="true">
+        <ToastContainer />
+      </div>
+      {/* Top-Center Framer Motion Glass-Pill Notifications */}
+      <MotionToastContainer />
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/designer/login" element={<DesignerLoginPage />} />
+        <Route path="/designer-login" element={<DesignerLoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/popup-demo" element={<PopupDemo />} />
         <Route
@@ -707,6 +717,60 @@ const AppContent = () => {
           }
         />
 
+        {/* POS Counter Billing & Sales Receipts */}
+        <Route
+          path="/jobflow/pos"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/pos"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/pos-receipts"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/sales-receipts"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
         {/* 2. Customer Master & Registration */}
         <Route
           path="/jobflow/customers"
@@ -1202,7 +1266,48 @@ const AppContent = () => {
           }
         />
 
-        {/* 9. Settlement & Invoice Generation */}
+        {/* 9. Commercial Tax Invoicing */}
+        <Route
+          path="/jobflow/invoice"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <InvoicePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/invoice"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <InvoicePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <InvoicePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* 10. Payment Settlement & Job Closure */}
         <Route
           path="/jobflow/settlement"
           element={
@@ -1234,6 +1339,60 @@ const AppContent = () => {
         <Route path="/jobflow/qr-request" element={<BranchQrCustomerForm />} />
         <Route path="/customer-register" element={<BranchQrCustomerForm />} />
         <Route path="/v3/customer-register" element={<BranchQrCustomerForm />} />
+
+        {/* 11. POS Counter Billing & Sales Receipts */}
+        <Route
+          path="/jobflow/pos"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/pos"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/pos-receipts"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/sales-receipts"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <PosBillingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
       </Routes>
 
 

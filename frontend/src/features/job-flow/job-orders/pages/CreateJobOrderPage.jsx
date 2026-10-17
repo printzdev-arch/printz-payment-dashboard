@@ -397,14 +397,6 @@ export const CreateJobOrderPage = () => {
           </button>
           <button
             type="button"
-            className="jf-btn jf-btn-secondary jf-btn-sm"
-            onClick={() => handleSubmitJob(true)}
-            disabled={loading}
-          >
-            <Save size={14} /> Save as Draft
-          </button>
-          <button
-            type="button"
             className="jf-btn jf-btn-primary jf-btn-sm"
             onClick={() => handleSubmitJob(false)}
             disabled={loading}
@@ -1131,14 +1123,6 @@ export const CreateJobOrderPage = () => {
                 onClick={() => navigate("/jobflow/jobs")}
               >
                 Cancel
-              </button>
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary"
-                onClick={() => handleSubmitJob(true)}
-                disabled={loading}
-              >
-                <Save size={16} /> Save as Draft
               </button>
               <button
                 type="button"

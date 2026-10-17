@@ -13,9 +13,6 @@ import {
   Check,
   X,
   Plus,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   PackageSearch,
   Package,
   Eye,
@@ -867,42 +864,8 @@ const StockList = () => {
                   <th style={{ width: "60px", textAlign: "center" }}>
                     S.No
                   </th>
-                  <th
-                    style={{ width: "140px" }}
-                    className="stock-sort-th"
-                    onClick={() => handleSort("stockId")}
-                  >
-                    <span className="stock-sort-header-inner">
-                      <span>Item ID</span>
-                      {sortField === "stockId" ? (
-                        sortOrder === "asc" ? (
-                          <ArrowUp size={13} color="#047857" />
-                        ) : (
-                          <ArrowDown size={13} color="#047857" />
-                        )
-                      ) : (
-                        <ArrowUpDown size={13} color="#6ee7b7" />
-                      )}
-                    </span>
-                  </th>
-                  <th
-                    style={{ minWidth: "220px" }}
-                    className="stock-sort-th"
-                    onClick={() => handleSort("itemName")}
-                  >
-                    <span className="stock-sort-header-inner">
-                      <span>Items</span>
-                      {sortField === "itemName" ? (
-                        sortOrder === "asc" ? (
-                          <ArrowUp size={13} color="#047857" />
-                        ) : (
-                          <ArrowDown size={13} color="#047857" />
-                        )
-                      ) : (
-                        <ArrowUpDown size={13} color="#6ee7b7" />
-                      )}
-                    </span>
-                  </th>
+                  <th style={{ width: "140px" }}>Item ID</th>
+                  <th style={{ minWidth: "220px" }}>Items</th>
                   <th style={{ width: "160px", textAlign: "center" }}>
                     Pages
                   </th>

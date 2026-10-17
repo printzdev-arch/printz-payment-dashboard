@@ -5,17 +5,22 @@ import {
   RotateCcw,
   Eye,
   Edit2,
+  Trash2,
+  PlusCircle,
   Users,
   User,
   Building,
   QrCode,
+  ExternalLink,
 } from "lucide-react";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import CustomerModal from "../components/CustomerModal";
 import CustomerDetailsModal from "../components/CustomerDetailsModal";
+import BranchQrModal from "../components/BranchQrModal";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import jobFlowApi from "../api/customersApi";
+import "../styles/customers.css";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
@@ -45,6 +50,7 @@ export const CustomersPage = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
@@ -151,18 +157,50 @@ export const CustomersPage = () => {
     fetchCustomers();
   };
 
+  const handleDeleteCustomer = async (cust) => {
+    const custId = cust?._id || cust?.id;
+    if (!custId) return;
+    const custName = cust.name || cust.companyName || cust.customerCode || "this customer";
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete customer "${custName}"? This action cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await jobFlowApi.deleteCustomer(custId);
+      toast.success(`Customer "${custName}" deleted successfully`);
+      setCustomers((prev) => prev.filter((c) => (c._id || c.id) !== custId));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+      fetchTabCounts();
+    } catch (err) {
+      console.error("Failed to delete customer:", err);
+      toast.error(err.response?.data?.message || "Failed to delete customer");
+    }
+  };
+
   return (
     <JobFlowLayout
       title="Customer Directory & Enquiries"
       actions={
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary"
+            onClick={() => setIsQrModalOpen(true)}
+            title="View & Print Scannable Branch Counter Stand"
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+          >
+            <QrCode size={16} /> Branch QR Stand
+          </button>
           <button
             type="button"
             className="jf-btn jf-btn-secondary"
             onClick={() => navigate("/jobflow/qr-request")}
             title="Open Self-Service Branch QR Form"
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
           >
-            <QrCode size={16} /> Branch QR Form
+            <ExternalLink size={16} /> Open QR Form
           </button>
           <button
             type="button"
@@ -171,6 +209,7 @@ export const CustomersPage = () => {
               setSelectedCustomer(null);
               setIsAddModalOpen(true);
             }}
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
           >
             <Plus size={16} /> Add Customer
           </button>
@@ -272,21 +311,9 @@ export const CustomersPage = () => {
           <option value="inactive">Inactive</option>
         </select>
 
-        <select
-          className="jf-select"
-          style={{width:"150px"}}
-          value={branchFilter}
-          onChange={(e) => setBranchFilter(e.target.value)}
-        >
-          <option value="all">All Branches</option>
-          {branches.map((b) => (
-            <option key={b._id || b.id} value={b._id || b.id}>
-              {b.name || b.branchName}
-            </option>
-          ))}
-        </select>
+        
 
-        <button
+        {/* <button
           type="button"
           className="jf-btn jf-btn-secondary jf-btn-sm"
           onClick={() => {
@@ -298,20 +325,21 @@ export const CustomersPage = () => {
           }}
         >
           <RotateCcw size={14} /> Reset
-        </button>
+        </button> */}
 
-        <button type="submit" className="jf-btn jf-btn-primary jf-btn-sm">
+        {/* <button type="submit" className="jf-btn jf-btn-primary jf-btn-sm">
           <Search size={14} /> Search
-        </button>
+        </button> */}
       </form>
 
       {/* Customer Directory Table */}
       <JobFlowDataTable
+        sortable={false}
         columns={[
           {
             key: "customerCode",
             label: "Customer Code",
-            sortable: true,
+            sortable: false,
             width: "140px",
             render: (val, row, idx) => (
               <strong style={{ color: "var(--jf-primary-dark)" }}>
@@ -321,8 +349,8 @@ export const CustomersPage = () => {
           },
           {
             key: "name",
-            label: "Name / Company",
-            sortable: true,
+            label: "Name",
+            sortable: false,
             render: (val, row) => (
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 {row.customerSource === "COMPANY" || row.company || row.companyName ? (
@@ -341,20 +369,20 @@ export const CustomersPage = () => {
           },
           {
             key: "phone",
-            label: "Phone / Mobile",
-            sortable: true,
+            label: "Phone",
+            sortable: false,
             render: (val, row) => val || row.mobile || "N/A",
           },
-          {
-            key: "email",
-            label: "Email",
-            sortable: true,
-            render: (val) => val || "N/A",
-          },
+          // {
+          //   key: "email",
+          //   label: "Email",
+          //   sortable: false,
+          //   render: (val) => val || "N/A",
+          // },
           {
             key: "customerType",
             label: "Type",
-            sortable: true,
+            sortable: false,
             width: "120px",
             render: (val) => {
               const isQr = val === "QR" || val === "qr" || val === "QR_CODE";
@@ -372,7 +400,7 @@ export const CustomersPage = () => {
           {
             key: "customerSource",
             label: "Source",
-            sortable: true,
+            sortable: false,
             width: "120px",
             render: (val, row) => {
               const isCompany = val === "COMPANY" || Boolean(row.company || row.companyName);
@@ -387,16 +415,16 @@ export const CustomersPage = () => {
               );
             },
           },
-          {
-            key: "gstin",
-            label: "GSTIN",
-            sortable: true,
-            render: (val) => val ? <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#475569" }}>{val}</span> : "—",
-          },
+          // {
+          //   key: "gstin",
+          //   label: "GSTIN",
+          //   sortable: false,
+          //   render: (val) => val ? <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#475569" }}>{val}</span> : "—",
+          // },
           {
             key: "status",
             label: "Status",
-            sortable: true,
+            sortable: false,
             render: (val) => <StatusBadge status={val || "Active"} />,
           },
           {
@@ -404,8 +432,22 @@ export const CustomersPage = () => {
             label: "Actions",
             sortable: false,
             align: "right",
+            width: "170px",
             render: (_, row) => (
-              <div style={{ display: "inline-flex", gap: "0.35rem" }}>
+              <div style={{ display: "inline-flex", gap: "0.35rem", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="jf-btn jf-btn-primary jf-btn-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/jobflow/jobs/new?customerId=${row._id || row.id}`);
+                  }}
+                  title="Create Job Order (+Job)"
+                  aria-label="Create Job Order"
+                  style={{ padding: "0.35rem 0.5rem" }}
+                >
+                  <PlusCircle size={15} />
+                </button>
                 <button
                   type="button"
                   className="jf-btn jf-btn-secondary jf-btn-sm"
@@ -414,8 +456,10 @@ export const CustomersPage = () => {
                     navigate(`/jobflow/customers/${row._id || row.id || row.customerCode || row.code}`);
                   }}
                   title="View Customer Profile"
+                  aria-label="View Customer Profile"
+                  style={{ padding: "0.35rem 0.5rem" }}
                 >
-                  <Eye size={14} /> View
+                  <Eye size={15} />
                 </button>
                 <button
                   type="button"
@@ -426,19 +470,23 @@ export const CustomersPage = () => {
                     setIsAddModalOpen(true);
                   }}
                   title="Edit Customer"
+                  aria-label="Edit Customer"
+                  style={{ padding: "0.35rem 0.5rem" }}
                 >
-                  <Edit2 size={14} />
+                  <Edit2 size={15} />
                 </button>
                 <button
                   type="button"
-                  className="jf-btn jf-btn-primary jf-btn-sm"
+                  className="jf-btn jf-btn-danger-outline jf-btn-sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/jobflow/jobs/new?customerId=${row._id || row.id}`);
+                    handleDeleteCustomer(row);
                   }}
-                  title="Create Job Order"
+                  title="Delete Customer"
+                  aria-label="Delete Customer"
+                  style={{ padding: "0.35rem 0.5rem" }}
                 >
-                  + Job
+                  <Trash2 size={15} />
                 </button>
               </div>
             ),
@@ -473,6 +521,13 @@ export const CustomersPage = () => {
             setSelectedCustomer(null);
           }}
           customer={selectedCustomer}
+        />
+      )}
+
+      {isQrModalOpen && (
+        <BranchQrModal
+          isOpen={isQrModalOpen}
+          onClose={() => setIsQrModalOpen(false)}
         />
       )}
     </JobFlowLayout>

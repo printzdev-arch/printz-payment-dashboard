@@ -1,2 +1,438 @@
-/* Feature Styles */
-@import '../../shared/styles/job-flow.css';
+/* ==========================================================================
+   Production feature — modern green theme + responsive layout
+   Used by: ProductionPage.jsx (no JSX changes needed)
+
+   ProductionPage styles most of its layout inline, so the rules below match
+   those inline styles with attribute selectors and use !important where they
+   must win. Breakpoints: 1100 / 1024 / 768 / 640 / 480 px
+   ========================================================================== */
+
+/* ---------- Original feature classes (names unchanged) ---------- */
+
+.production-feature-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.production-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.production-stat-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #ffffff;
+  border: 1px solid #e6ebe8;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.production-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: #a7f3d0;
+  box-shadow: 0 12px 26px -12px rgba(5, 150, 105, 0.3);
+}
+
+.production-stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+  color: #059669;
+}
+
+.production-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.22rem 0.65rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.production-status-chip.planned     { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.production-status-chip.in-progress { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.production-status-chip.completed   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.production-status-chip.reprint     { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+.production-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.production-operation-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scrollbar-width: thin;
+}
+
+/* Refresh icon spin (RefreshCw uses className="spin") */
+.spin {
+  animation: prodSpin 0.9s linear infinite;
+}
+
+@keyframes prodSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Modern polish — cards
+   ========================================================================== */
+
+/* Page sections (every tab renders its cards inside a flex column) */
+[style*="display: flex"][style*="flex-direction: column"] > .jf-card {
+  border: 1px solid #e6ebe8;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Table cards keep their content flush with the rounded corners */
+.jf-card[style*="padding: 0px"] {
+  overflow: hidden;
+}
+
+/* Header cards get a soft green wash */
+.jf-card[style*="padding: 1.25rem"] > div:first-child h2 {
+  letter-spacing: -0.02em;
+}
+
+/* Selected-job workbench: replace the heavy black outline */
+.jf-card[style*="border: 2px solid rgb(15, 23, 42)"] {
+  border: 1px solid #a7f3d0 !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08), 0 20px 40px -24px rgba(5, 150, 105, 0.45) !important;
+  border-radius: 20px !important;
+}
+
+/* Workbench side panels */
+[style*="grid-template-columns: 1fr 1fr"][style*="gap: 1.5rem"] > div[style*="background: rgb(248, 250, 252)"] {
+  border-radius: 14px !important;
+  border-color: #e6ebe8 !important;
+}
+
+/* Primary dark buttons become brand green */
+.jf-btn[style*="background: rgb(15, 23, 42)"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 8px 18px -10px rgba(5, 150, 105, 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.jf-btn[style*="background: rgb(15, 23, 42)"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px -10px rgba(5, 150, 105, 0.9);
+}
+
+/* QC buttons: violet -> teal to stay in the palette */
+.jf-btn[style*="background: rgb(124, 58, 237)"] {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%) !important;
+  border: none !important;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+div[style*="overflow-x: auto"] > .jf-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+div[style*="overflow-x: auto"] > .jf-table th {
+  background: #f8faf9;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+div[style*="overflow-x: auto"] > .jf-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+div[style*="overflow-x: auto"] > .jf-table tbody tr:hover td {
+  background: #f6fbf8;
+}
+
+/* ==========================================================================
+   Pagination footer (TablePaginationFooter)
+   ========================================================================== */
+[style*="rgb(250, 251, 252)"] {
+  background: #fbfdfc !important;
+  border-top: 1px solid #eef3f0 !important;
+}
+
+[style*="rgb(250, 251, 252)"] input[type="number"]:focus,
+[style*="rgb(250, 251, 252)"] select:focus {
+  outline: none;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+/* Active page number */
+[style*="rgb(250, 251, 252)"] button[style*="background: rgb(21, 128, 61)"] {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border-color: #059669 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 14px -8px rgba(5, 150, 105, 0.9);
+}
+
+[style*="rgb(250, 251, 252)"] button {
+  border-radius: 8px !important;
+}
+
+/* ==========================================================================
+   Inputs, searchable select, modals
+   ========================================================================== */
+.jf-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+/* Modal overlays (Plan, Edit, New Reprint, Reprint Review) */
+div[style*="position: fixed"][style*="z-index: 1050"] {
+  background: rgba(3, 31, 24, 0.55) !important;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+div[style*="position: fixed"][style*="z-index: 1050"] > .jf-card {
+  border-radius: 20px !important;
+  border: 1px solid #e6ebe8 !important;
+  box-shadow: 0 30px 70px -20px rgba(2, 20, 15, 0.45) !important;
+  animation: prodModalIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes prodModalIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ==========================================================================
+   <= 1100px : wide tables scroll sideways inside their own wrapper
+   ========================================================================== */
+@media (max-width: 1100px) {
+  body .content-body div[style*="overflow-x: auto"] > .jf-table {
+    display: table;
+    min-width: 860px;
+  }
+
+  body .content-body div[style*="overflow-x: auto"] > .jf-table:has(thead th:nth-child(10)) {
+    min-width: 1040px;
+  }
+
+  body .content-body div[style*="overflow-x: auto"] > .jf-table:has(thead th:nth-child(11)) {
+    min-width: 1180px;
+  }
+
+  body .content-body div[style*="overflow-x: auto"] > .jf-table:has(thead th:nth-child(13)) {
+    min-width: 1320px;
+  }
+}
+
+/* ==========================================================================
+   <= 1024px : tablet
+   ========================================================================== */
+@media (max-width: 1024px) {
+  /* Reprint filters: search on its own row, the rest in two columns */
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr auto"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr auto"] > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Workbench: Job details | Operation details, and QC history | Sample notes */
+  [style*="grid-template-columns: 1fr 1fr"][style*="gap: 1.5rem"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Complete-operation quantities: 3 -> 2 columns */
+  [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ==========================================================================
+   <= 768px : small tablet
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Page titles */
+  .jf-card h2[style*="font-size: 1.5rem"],
+  .jf-card h2[style*="font-size: 1.375rem"] {
+    font-size: 1.25rem !important;
+  }
+
+  /* Header cards: title row and buttons stack */
+  .jf-card[style*="padding: 1.25rem"] > div[style*="justify-content: space-between"] {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  /* Searchable selects fill the row */
+  div[style*="display: inline-block"][style*="min-width: 160px"] {
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Operation queue filter bar: every control takes a full row */
+  div[style*="padding-top: 0.875rem"][style*="border-top: 1px solid"] > * {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Pagination footer stacks */
+  [style*="rgb(250, 251, 252)"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  [style*="rgb(250, 251, 252)"] > div {
+    justify-content: center;
+    flex-wrap: wrap !important;
+    row-gap: 0.5rem;
+  }
+}
+
+/* ==========================================================================
+   <= 640px : mobile
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* Card padding tightens */
+  .jf-card[style*="padding: 1.25rem"],
+  .jf-card[style*="padding: 1.5rem"] {
+    padding: 1rem !important;
+  }
+
+  .jf-card[style*="padding: 1.75rem"] {
+    padding: 1.1rem !important;
+  }
+
+  [style*="display: flex"][style*="flex-direction: column"] > .jf-card {
+    border-radius: 16px;
+  }
+
+  /* All two- and three-column forms stack */
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr 1fr"],
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr auto"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Reprint details: full-width reason block no longer spans a missing column */
+  [style*="grid-column: span 2"] {
+    grid-column: auto !important;
+  }
+
+  /* Overview filters: label + control rows span the width */
+  div[style*="gap: 0.375rem"] {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  div[style*="gap: 0.375rem"] > select,
+  div[style*="gap: 0.375rem"] > input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Modals become near-full-screen sheets */
+  div[style*="position: fixed"][style*="z-index: 1050"] {
+    padding: 8px !important;
+  }
+
+  div[style*="position: fixed"][style*="z-index: 1050"] > .jf-card {
+    max-height: 96dvh !important;
+    overflow-y: auto;
+  }
+
+  /* Modal footers: buttons share the row */
+  div[style*="position: fixed"][style*="z-index: 1050"] div[style*="justify-content: flex-end"][style*="gap: 0.75rem"] {
+    flex-wrap: wrap;
+  }
+
+  div[style*="position: fixed"][style*="z-index: 1050"] div[style*="justify-content: flex-end"][style*="gap: 0.75rem"] > .jf-btn {
+    flex: 1 1 120px;
+    justify-content: center;
+  }
+
+  /* Tap-friendly controls */
+  .jf-btn {
+    min-height: 38px;
+  }
+
+  /* 16px prevents iOS zooming into fields */
+  .jf-input,
+  select.jf-input,
+  textarea.jf-input,
+  input[type="date"],
+  input[type="datetime-local"] {
+    font-size: 16px !important;
+  }
+
+  /* Workbench heading row wraps */
+  .jf-card[style*="border: 2px solid"] > div:first-child {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Tab content spacing */
+  [style*="display: flex"][style*="flex-direction: column"][style*="gap: 1.5rem"] {
+    gap: 1rem !important;
+  }
+}
+
+/* ==========================================================================
+   <= 480px : small phones
+   ========================================================================== */
+@media (max-width: 480px) {
+  .production-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Row action buttons wrap neatly in tables */
+  div[style*="overflow-x: auto"] > .jf-table td .jf-btn-sm {
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+/* Touch devices: no hover lift */
+@media (hover: none) {
+  .production-stat-card:hover,
+  .jf-btn[style*="background: rgb(15, 23, 42)"]:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 2s; }
+  div[style*="position: fixed"][style*="z-index: 1050"] > .jf-card { animation: none; }
+  .production-stat-card,
+  .jf-btn[style*="background: rgb(15, 23, 42)"] { transition: none; }
+}

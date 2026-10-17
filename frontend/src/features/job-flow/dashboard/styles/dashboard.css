@@ -1,0 +1,463 @@
+/* ==========================================================================
+   JobFlow Dashboard — modern green theme + responsive layout
+   Used by: JobFlowDashboard.jsx (no JSX changes needed)
+
+   The page sets most styling inline, so the rules below target it through
+   the pipeline banner (the card with the dark green gradient) and its
+   siblings: the stat grid and the jobs table card. That keeps these styles
+   from leaking into other JobFlow pages.
+   Breakpoints: 1024 / 640 / 420 px
+   ========================================================================== */
+
+/* ---------- Original feature classes (names unchanged) ---------- */
+
+.dashboard-feature-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-stage-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-stage-card:hover {
+  transform: translateY(-2px);
+  border-color: #a7f3d0;
+  box-shadow: 0 10px 24px -10px rgba(5, 150, 105, 0.25);
+}
+
+.dashboard-stage-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+}
+
+.dashboard-stage-card.stage-estimation::before { background: #f59e0b; }
+.dashboard-stage-card.stage-design::before     { background: #8b5cf6; }
+.dashboard-stage-card.stage-production::before { background: #3b82f6; }
+.dashboard-stage-card.stage-qc::before         { background: #10b981; }
+.dashboard-stage-card.stage-delivery::before   { background: #06b6d4; }
+.dashboard-stage-card.stage-settlement::before { background: #6366f1; }
+
+.dashboard-quick-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Header actions (Branch QR Form / Create Job Order)
+   ========================================================================== */
+div:has(> a.jf-btn[href="/jobflow/qr-request"]) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ==========================================================================
+   1. Pipeline banner
+   ========================================================================== */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  border-radius: 20px;
+  padding: 1.75rem !important;
+  background: linear-gradient(135deg, #052e22 0%, #065f46 60%, #047857 100%) !important;
+  box-shadow: 0 16px 36px -16px rgba(6, 78, 59, 0.6);
+}
+
+/* soft glow in the corner */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"]::before {
+  content: "";
+  position: absolute;
+  top: -140px;
+  right: -90px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] h2 {
+  font-size: 1.4rem !important;
+  letter-spacing: -0.02em;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] p {
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+/* Stage tiles */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 14px !important;
+  padding: 1rem 0.75rem !important;
+  backdrop-filter: blur(4px);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a:hover {
+  background: rgba(255, 255, 255, 0.17) !important;
+  border-color: rgba(110, 231, 183, 0.55) !important;
+  transform: translateY(-3px);
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a svg {
+  width: 38px;
+  height: 38px;
+  padding: 9px;
+  border-radius: 11px;
+  background: rgba(52, 211, 153, 0.16);
+  margin-bottom: 0.5rem !important;
+  box-sizing: border-box;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a:focus-visible {
+  outline: 2px solid #6ee7b7;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   2. Metric stat boxes
+   ========================================================================== */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #10b981;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:hover {
+  transform: translateY(-2px);
+  border-color: #a7f3d0;
+  box-shadow: 0 12px 26px -12px rgba(5, 150, 105, 0.28);
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* All five icons stay in the green family (overrides inline colors) */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(1) .jf-stat-icon { background: #ecfdf5 !important; color: #059669 !important; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(2) .jf-stat-icon { background: #f0fdfa !important; color: #0d9488 !important; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(3) .jf-stat-icon { background: #f7fee7 !important; color: #65a30d !important; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(4) .jf-stat-icon { background: #f0fdf4 !important; color: #15803d !important; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(5) .jf-stat-icon { background: #ecfdf5 !important; color: #047857 !important; }
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-val {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-label {
+  margin-top: 3px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   3. Active Production & Job Orders card
+   ========================================================================== */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-card-title svg {
+  padding: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #059669 !important;
+  box-sizing: border-box;
+}
+
+/* Lifecycle badge matches the green theme */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-badge-blue {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+/* Table polish (works with whatever markup JobFlowDataTable renders) */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card table th {
+  background: #f8faf9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card table tbody tr:hover td {
+  background: #f6fbf8;
+}
+
+/* ==========================================================================
+   Modern layer
+   ========================================================================== */
+
+/* Banner: second glow, lighter grid texture, one-time reveal */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] {
+  animation: jfDashRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background-image:
+    radial-gradient(80% 90% at 100% 0%, rgba(52, 211, 153, 0.28) 0%, transparent 60%),
+    radial-gradient(60% 80% at 0% 100%, rgba(16, 185, 129, 0.16) 0%, transparent 60%),
+    linear-gradient(135deg, #052e22 0%, #065f46 60%, #047857 100%) !important;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box {
+  animation: jfDashRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(1) { animation-delay: 0.05s; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(2) { animation-delay: 0.1s; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(3) { animation-delay: 0.15s; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(4) { animation-delay: 0.2s; }
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes jfDashRise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Stat boxes: corner glow + larger rounding */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box {
+  border-radius: 20px;
+  padding: 1.2rem 1.35rem;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box::after {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.13) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.18);
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-val {
+  font-size: 1.9rem;
+  letter-spacing: -0.03em;
+}
+
+/* Jobs card: roomier + rounder, action buttons feel tappable */
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card {
+  border-radius: 20px;
+  animation: jfDashRise 0.55s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-btn-primary {
+  border-radius: 10px;
+  box-shadow: 0 6px 14px -8px rgba(5, 150, 105, 0.7);
+}
+
+.jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-btn-secondary {
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"],
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box,
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card { animation: none; }
+}
+
+/* ==========================================================================
+   <= 1024px : tablet
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] {
+    padding: 1.4rem !important;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* ==========================================================================
+   <= 640px : mobile
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* Header buttons share the row */
+  div:has(> a.jf-btn[href="/jobflow/qr-request"]) {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  div:has(> a.jf-btn[href="/jobflow/qr-request"]) > a {
+    flex: 1 1 140px;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] {
+    padding: 1.1rem !important;
+    border-radius: 16px;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] h2 {
+    font-size: 1.15rem !important;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] p {
+    font-size: 0.82rem !important;
+  }
+
+  /* 8 stage tiles in a tidy 2-column grid */
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] > div[style*="grid-template-columns"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.6rem !important;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box {
+    padding: 0.95rem 1rem;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-val {
+    font-size: 1.5rem;
+  }
+
+  /* Table card header: title then full-width button */
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card .jf-card-header .jf-btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* 16px stops iOS zooming into the table search box */
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card input,
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-card select {
+    font-size: 16px !important;
+  }
+}
+
+/* ==========================================================================
+   <= 420px : small phones
+   ========================================================================== */
+@media (max-width: 420px) {
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a {
+    padding: 0.85rem 0.5rem !important;
+  }
+}
+
+/* Touch devices: no hover lift */
+@media (hover: none) {
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a:hover,
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box:hover,
+  .dashboard-stage-card:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] a,
+  .jf-card[style*="linear-gradient(135deg, rgb(6, 78, 59)"] ~ .jf-stat-grid .jf-stat-box,
+  .dashboard-stage-card {
+    transition: none !important;
+  }
+}

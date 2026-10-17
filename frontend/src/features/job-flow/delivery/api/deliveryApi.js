@@ -1,9 +1,10 @@
 import api from "../../../../services/api";
-import { jobFlowApi } from "../../shared/api/jobFlowApiClient";
 
+/**
+ * Delivery Management Dedicated API
+ * Manages Delivery Orders, Ready-for-Delivery review, Packing, Dispatch, OTP verification, and Handover proof
+ */
 export const deliveryApi = {
-  ...jobFlowApi,
-
   // ── Step 1: Manager Review (Ready for Delivery Queue) ──
   getReadyJobsForDelivery: async (params = {}) => {
     const res = await api.get("/delivery-orders/ready-jobs", { params });
@@ -19,6 +20,16 @@ export const deliveryApi = {
   getDeliveryOrders: async (params = {}) => {
     const res = await api.get("/delivery-orders", { params });
     return res.data;
+  },
+
+  getDeliveryStaff: async (params = {}) => {
+    try {
+      const res = await api.get("/delivery-orders/delivery-staff", { params });
+      return res.data;
+    } catch {
+      const res = await api.get("/employees", { params });
+      return res.data;
+    }
   },
 
   getDeliveryOrderById: async (id) => {
@@ -76,6 +87,11 @@ export const deliveryApi = {
     return res.data;
   },
 
+  deliverOrder: async (id, data) => {
+    const res = await api.post(`/delivery-orders/${id}/deliver`, data);
+    return res.data;
+  },
+
   getDeliveryProof: async (id) => {
     const res = await api.get(`/delivery-orders/${id}/proof`);
     return res.data;
@@ -83,6 +99,22 @@ export const deliveryApi = {
 
   getDeliveryProofs: async (params = {}) => {
     const res = await api.get("/delivery-proofs", { params });
+    return res.data;
+  },
+
+  // ── Job Orders & Branch Helpers ──
+  getJobOrders: async (params = {}) => {
+    const res = await api.get("/job-orders", { params });
+    return res.data;
+  },
+
+  getJobOrderById: async (id) => {
+    const res = await api.get(`/job-orders/${id}`);
+    return res.data;
+  },
+
+  getBranches: async () => {
+    const res = await api.get("/branches");
     return res.data;
   },
 };

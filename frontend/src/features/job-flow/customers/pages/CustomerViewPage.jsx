@@ -381,18 +381,18 @@ export const CustomerViewPage = () => {
             <h3 className="jf-card-title">
               <Briefcase size={18} style={{ color: "var(--jf-primary)" }} /> Job Orders Placed by {name} ({jobOrders.length})
             </h3>
-            <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+            {/* <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
               Showing all historical and active orders associated with customer ID: <strong>{code}</strong>
-            </span>
+            </span> */}
           </div>
-
+{/* 
           <button
             type="button"
             className="jf-btn jf-btn-primary jf-btn-sm"
             onClick={() => navigate(`/jobflow/jobs/new?customerId=${customer._id || id}`)}
           >
             <PlusCircle size={14} /> + Create Job Order
-          </button>
+          </button> */}
         </div>
 
         {/* Common Reusable JobFlowDataTable with Search, Sorting, Rows per Page & Pagination */}

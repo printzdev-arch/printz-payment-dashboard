@@ -1,2 +1,364 @@
-/* Feature Styles */
-@import '../../shared/styles/job-flow.css';
+/* ==========================================================================
+   PrintZ - Estimation & Quotations Feature Styles
+   Refreshed green theme. CSS only: no JSX changes required.
+   Modal overrides are scoped to .jf-modal-lg so other screens are not affected.
+   ========================================================================== */
+
+:root {
+  --est-green-50: #f0fdf6;
+  --est-green-100: #dcfce9;
+  --est-green-200: #bbf7d3;
+  --est-green-300: #86efb3;
+  --est-green-500: #10b981;
+  --est-green-600: #059669;
+  --est-green-700: #047857;
+  --est-green-800: #065f46;
+  --est-ink-900: #0f172a;
+  --est-ink-700: #334155;
+  --est-ink-500: #64748b;
+  --est-ink-400: #94a3b8;
+  --est-line: #e6ece9;
+  --est-line-soft: #f1f5f3;
+}
+
+/* ---------- Page-level helpers ---------- */
+.estimation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.estimation-queue-card {
+  background: #ffffff;
+  border: 1px solid var(--est-line);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(5, 150, 105, 0.12);
+}
+
+.estimation-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.estimation-pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.estimation-pricing-table th,
+.estimation-pricing-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--est-line-soft);
+}
+
+.estimation-pricing-table th {
+  background: var(--est-green-50);
+  color: var(--est-green-800);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.estimation-total-banner {
+  background: linear-gradient(135deg, var(--est-green-100) 0%, var(--est-green-50) 100%);
+  border: 1px solid var(--est-green-200);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.estimation-total-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--est-green-700);
+  letter-spacing: -0.01em;
+}
+
+.estimation-badge-pending,
+.estimation-badge-approved {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estimation-badge-pending {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.estimation-badge-approved {
+  background: var(--est-green-100);
+  color: var(--est-green-700);
+  border: 1px solid var(--est-green-300);
+}
+
+/* ==========================================================================
+   Estimate Review Modal  (scoped to .jf-modal-lg)
+   !important is used only to win over the inline styles in the component.
+   ========================================================================== */
+
+.jf-modal-lg {
+  border-radius: 18px !important;
+  border: 1px solid var(--est-line);
+  box-shadow: 0 24px 60px -20px rgba(6, 95, 70, 0.35), 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+  overflow: hidden;
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+.jf-modal-lg .jf-modal-header {
+  padding: 1rem 1.5rem !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--est-green-50) 100%);
+  border-bottom: 1px solid var(--est-line) !important;
+}
+
+.jf-modal-lg .jf-modal-title {
+  font-size: 1.1rem !important;
+  font-weight: 650 !important;
+  color: var(--est-ink-900) !important;
+  letter-spacing: -0.015em;
+}
+
+.jf-modal-lg .jf-header-subtitle {
+  color: var(--est-ink-500) !important;
+  font-size: 0.78rem !important;
+}
+
+/* Body */
+.jf-modal-lg .jf-modal-body {
+  padding: 1.25rem 1.5rem !important;
+  background: #fbfdfc;
+}
+
+.jf-modal-lg .jf-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.jf-modal-lg .jf-modal-body::-webkit-scrollbar-thumb {
+  background: var(--est-green-200);
+  border-radius: 8px;
+}
+
+/* Cards */
+.jf-modal-lg .jf-card {
+  background: #ffffff !important;
+  border: 1px solid var(--est-line) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.jf-modal-lg .jf-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--est-ink-900) !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em;
+}
+
+.jf-modal-lg .jf-card-title::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #10d9a0, #059669);
+  flex-shrink: 0;
+}
+
+/* Labels & inputs */
+.jf-modal-lg .jf-label {
+  color: var(--est-ink-700);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.jf-modal-lg .jf-input,
+.jf-modal-lg .jf-textarea,
+.jf-modal-lg select.jf-input {
+  border: 1px solid var(--est-line) !important;
+  border-radius: 10px !important;
+  background: #ffffff;
+  color: var(--est-ink-900);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.jf-modal-lg .jf-input:hover:not(:disabled),
+.jf-modal-lg .jf-textarea:hover {
+  border-color: var(--est-green-300) !important;
+}
+
+.jf-modal-lg .jf-input:focus,
+.jf-modal-lg .jf-textarea:focus {
+  outline: none;
+  border-color: var(--est-green-500) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.jf-modal-lg .jf-input:disabled {
+  background: var(--est-line-soft);
+  color: var(--est-ink-500);
+}
+
+.jf-modal-lg .jf-textarea::placeholder,
+.jf-modal-lg .jf-input::placeholder {
+  color: var(--est-ink-400);
+}
+
+/* Tables inside modal */
+.jf-modal-lg .jf-table-wrap {
+  border: 1px solid var(--est-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.jf-modal-lg .jf-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.jf-modal-lg .jf-table thead th {
+  background: var(--est-green-50) !important;
+  color: var(--est-green-800) !important;
+  font-size: 0.68rem !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--est-green-100) !important;
+  white-space: nowrap;
+}
+
+.jf-modal-lg .jf-table tbody td {
+  border-bottom: 1px solid var(--est-line-soft) !important;
+  font-size: 0.8125rem;
+  color: var(--est-ink-700);
+  vertical-align: middle;
+}
+
+.jf-modal-lg .jf-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+.jf-modal-lg .jf-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.jf-modal-lg .jf-table tbody tr:hover td {
+  background: var(--est-green-50);
+}
+
+/* Configuration chips in the finishing table */
+.jf-modal-lg .jf-table td span {
+  background: var(--est-green-50) !important;
+  color: var(--est-green-700);
+  border: 1px solid var(--est-green-100);
+  border-radius: 999px !important;
+  padding: 2px 10px !important;
+}
+
+/* Cost summary box (last block inside the modal body) */
+.jf-modal-lg .jf-modal-body > div:last-child > div {
+  background: linear-gradient(180deg, #ffffff 0%, var(--est-green-50) 100%) !important;
+  border: 1px solid var(--est-green-200) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 20px -12px rgba(5, 150, 105, 0.35) !important;
+}
+
+/* Footer */
+.jf-modal-lg .jf-modal-footer {
+  padding: 0.875rem 1.5rem !important;
+  background: #ffffff;
+  border-top: 1px solid var(--est-line) !important;
+  gap: 0.6rem;
+}
+
+/* Buttons inside modal */
+.jf-modal-lg .jf-btn {
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  transition: all 0.18s ease;
+}
+
+.jf-modal-lg .jf-btn-primary {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%) !important;
+  border: 1px solid var(--est-green-600) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px -6px rgba(5, 150, 105, 0.6);
+}
+
+.jf-modal-lg .jf-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #0fa876 0%, #047857 100%) !important;
+  transform: translateY(-1px);
+}
+
+.jf-modal-lg .jf-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.jf-modal-lg .jf-btn-secondary {
+  background: #ffffff !important;
+  border: 1px solid var(--est-line) !important;
+  color: var(--est-ink-700) !important;
+}
+
+.jf-modal-lg .jf-btn-secondary:hover:not(:disabled) {
+  background: var(--est-green-50) !important;
+  border-color: var(--est-green-300) !important;
+  color: var(--est-green-700) !important;
+}
+
+.jf-modal-lg .jf-btn-danger-outline {
+  background: #ffffff !important;
+  border: 1px solid #fecaca !important;
+  color: #dc2626 !important;
+}
+
+.jf-modal-lg .jf-btn-danger-outline:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  border-color: #f87171 !important;
+}
+
+.jf-modal-lg .jf-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.jf-modal-lg .jf-btn:focus-visible,
+.jf-modal-lg .jf-input:focus-visible {
+  outline: 2px solid var(--est-green-500);
+  outline-offset: 2px;
+}
+
+/* Small screens */
+@media (max-width: 768px) {
+  .jf-modal-lg .jf-modal-body {
+    padding: 1rem !important;
+  }
+
+  .jf-modal-lg .jf-modal-body > div[style*="grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .jf-modal-lg .jf-modal-body > div:last-child > div {
+    width: 100% !important;
+  }
+}
