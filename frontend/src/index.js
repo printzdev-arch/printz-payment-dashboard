@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
+import './styles/printzUnified.css';
 import jsPDF from 'jspdf';
 import autoTable, { applyPlugin } from 'jspdf-autotable';
 

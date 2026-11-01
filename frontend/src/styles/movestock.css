@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Poppins', sans-serif;
   color: #0f172a;
   box-sizing: border-box;
   width: 100%;
@@ -78,7 +78,7 @@
 .move-stock-card-sub {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: #475569;
 }
 
 .move-stock-count-badge {
@@ -200,7 +200,7 @@
 }
 
 .move-stock-prefix-icon {
-  color: #64748b;
+  color: #475569;
   display: flex;
   align-items: center;
   margin-right: 10px;
@@ -218,7 +218,7 @@
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   padding-right: 20px;
 }
 
@@ -226,7 +226,7 @@
   position: absolute;
   right: 12px;
   pointer-events: none;
-  color: #64748b;
+  color: #475569;
   display: flex;
   align-items: center;
 }
@@ -267,14 +267,14 @@
   font-size: 13px;
   color: #0f172a;
   outline: none;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   margin-left: 8px;
 }
 
 .move-stock-clear-search {
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: #475569;
   cursor: pointer;
   font-size: 13px;
   padding: 2px 4px;
@@ -381,7 +381,7 @@
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
   border-radius: 5px;
-  font-family: monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 12px;
   font-weight: 600;
   color: #334155;
@@ -449,7 +449,7 @@
   font-weight: 600;
   color: #0f172a;
   outline: none;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   transition: all 0.2s ease;
 }
 
@@ -470,7 +470,7 @@
 
 .move-stock-page-info {
   font-size: 13px;
-  color: #64748b;
+  color: #475569;
 }
 
 .move-stock-page-actions {
@@ -547,7 +547,7 @@
 
 .move-stock-stat-label {
   font-size: 11px;
-  color: #64748b;
+  color: #475569;
   text-transform: uppercase;
   font-weight: 600;
 }
@@ -580,7 +580,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
 }
 
 .printz-btn-clone:hover:not(:disabled) {
@@ -618,7 +618,7 @@
 .move-stock-empty-desc {
   margin: 0;
   font-size: 13.5px;
-  color: #64748b;
+  color: #475569;
   max-width: 460px;
   line-height: 1.5;
 }

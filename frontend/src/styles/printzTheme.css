@@ -28,7 +28,7 @@
 .printz-page-container {
   padding: 8px 24px 28px 24px;
   background-color: var(--printz-bg-page);
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 13.5px;
   color: var(--printz-text-dark);
   box-sizing: border-box;
@@ -59,7 +59,7 @@
 }
 
 .printz-breadcrumb .separator {
-  color: #d1d5db;
+  color: #6b7280;
   font-size: 12px;
 }
 
@@ -297,7 +297,7 @@
 }
 
 .printz-input-wrapper-modern input::placeholder {
-  color: #94a3b8 !important;
+  color: #475569 !important;
   font-weight: 400 !important;
 }
 
@@ -333,7 +333,7 @@
   margin-left: auto !important;
   background: transparent !important;
   border: none !important;
-  color: #94a3b8 !important;
+  color: #475569 !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
@@ -521,6 +521,12 @@
   background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
+}
+
+.printz-summary-icon.teal {
+  background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.28);
 }
 
 .printz-summary-content {
@@ -711,7 +717,7 @@
 }
 
 .printz-input-prefix-icon {
-  color: #9ca3af;
+  color: #4b5563;
   margin-right: 10px;
   flex-shrink: 0;
   display: flex;
@@ -728,11 +734,11 @@
   color: #1f2937 !important;
   width: 100% !important;
   box-shadow: none !important;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
 }
 
 .printz-input::placeholder {
-  color: #9ca3af;
+  color: #4b5563;
 }
 
 /* Buttons */
@@ -913,7 +919,7 @@
 .add-stock-pagination-info,
 .move-stock-page-info {
   font-size: 13px;
-  color: #64748b;
+  color: #475569;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
@@ -941,7 +947,7 @@
 .printz-per-page-label,
 .stock-per-page-label {
   font-size: 12px;
-  color: #64748b;
+  color: #475569;
   font-weight: 600;
 }
 
@@ -1076,7 +1082,7 @@
 .printz-page-pill.dots,
 .stock-page-pill.dots {
   cursor: default;
-  color: #94a3b8;
+  color: #475569;
   letter-spacing: 1px;
 }
 
@@ -1138,7 +1144,7 @@ select.add-assets-select,
 select.stock-select-field,
 select.printer-select,
 .admin-branch-selector {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
   font-size: 13px !important;
   color: #0f172a !important;
   background-color: #ffffff !important;
@@ -1146,7 +1152,7 @@ select.printer-select,
 }
 
 select option {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
   font-size: 13px !important;
   padding: 8px 12px !important;
   color: #1e293b !important;
@@ -1208,7 +1214,7 @@ table td {
 
 /* 6. Date Picker Input Elements & Universal Calendar Popup (Matching Reference Design) */
 input[type="date"] {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
   font-size: 13px !important;
   color: #0f172a !important;
 }
@@ -1219,7 +1225,7 @@ input[type="date"] {
 }
 
 .react-datepicker {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 16px !important;
   background-color: #ffffff !important;
@@ -1316,7 +1322,7 @@ input[type="date"] {
 }
 
 .react-datepicker__day-name {
-  color: #64748b !important;
+  color: #475569 !important;
   font-weight: 600 !important;
   font-size: 12px !important;
   width: 34px !important;
@@ -1428,7 +1434,7 @@ input[type="date"] {
 
 /* Outside month days */
 .react-datepicker__day--outside-month {
-  color: #94a3b8 !important;
+  color: #475569 !important;
   opacity: 0.5 !important;
 }
 

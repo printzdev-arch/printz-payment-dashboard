@@ -652,7 +652,7 @@ const PrinterReadingsSection = ({
             <h3 className="revenue-card-title">Printer Readings</h3>
           </div>
         </div>
-        <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+        <div style={{ padding: "24px", textAlign: "center", color: "#475569" }}>
           <AlertTriangle size={32} color="#f59e0b" style={{ margin: "0 auto 8px" }} />
           <h4 style={{ margin: "0 0 4px", color: "#0f172a" }}>No Small Printers Available</h4>
           <p style={{ margin: 0, fontSize: "13px" }}>
@@ -893,7 +893,7 @@ const PrinterReadingsSection = ({
                           style={{
                             fontWeight: 800,
                             color: "#047857",
-                            fontFamily: "'JetBrains Mono', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                           }}
                         >
                           {formatCurrency(printerTotal)}

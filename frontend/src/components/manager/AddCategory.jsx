@@ -65,7 +65,7 @@ const AddCategoryPopup = ({ onClose }) => {
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#64748b",
+                  color: "#475569",
                   padding: "4px",
                   borderRadius: "6px",
                   display: "flex",

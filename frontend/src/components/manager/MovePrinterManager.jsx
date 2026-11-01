@@ -1124,9 +1124,8 @@ const MovePrinterManager = () => {
           <h1 style={{ margin: "0 0 4px 0", fontSize: "26px", fontWeight: 700, color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
             Move & Clone <span className="highlight" style={{ color: "#059669" }}>Printers</span>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
-            Transfer hardware ownership and reading histories or clone printer setups across branches.
-          </p>
+          
+          
         </div>
       </div>
 

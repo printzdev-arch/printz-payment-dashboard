@@ -810,7 +810,7 @@ const MoveStock = () => {
                 ) : (
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "36px 16px" }}>
-                      <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
+                      <p style={{ margin: 0, color: "#475569", fontSize: "14px" }}>
                         No items found matching the selected branch or search query.
                       </p>
                     </td>

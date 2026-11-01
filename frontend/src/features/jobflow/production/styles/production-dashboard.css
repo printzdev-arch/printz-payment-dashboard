@@ -1,0 +1,740 @@
+/* ==========================================================================
+   Production Dashboard — High-Fidelity UI Stylesheet
+   Matches exact reference design with custom charts, metric cards & tables
+   ========================================================================== */
+
+:root {
+  --pdb-bg: #f8fafc;
+  --pdb-card-bg: #ffffff;
+  --pdb-border: #e2e8f0;
+  --pdb-text-main: #0f172a;
+  --pdb-text-muted: #64748b;
+  --pdb-text-subtle: #94a3b8;
+  --pdb-primary: #134e3a;
+  --pdb-primary-hover: #0d3829;
+  --pdb-primary-light: #e6f4ea;
+  --pdb-green-dark: #14532d;
+  --pdb-green-mid: #16a34a;
+  --pdb-green-light: #6ee7b7;
+  --pdb-green-subtle: #dcfce7;
+  --pdb-amber: #f59e0b;
+  --pdb-amber-subtle: #fef3c7;
+  --pdb-red: #ef4444;
+  --pdb-red-subtle: #fee2e2;
+  --pdb-blue: #0284c7;
+  --pdb-blue-subtle: #e0f2fe;
+}
+
+.pdb-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem 1.75rem 3rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  color: var(--pdb-text-main);
+}
+
+/* ── Top Header Bar ── */
+.pdb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pdb-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.pdb-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--pdb-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(19, 78, 58, 0.2);
+}
+
+.pdb-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--pdb-text-main);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.pdb-subtitle {
+  font-size: 0.84rem;
+  color: var(--pdb-text-muted);
+  margin: 0.2rem 0 0;
+  font-weight: 400;
+}
+
+.pdb-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pdb-control-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid var(--pdb-border);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.pdb-control-pill select {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  padding-right: 0.25rem;
+}
+
+/* ── Top Row: 6 KPI Metric Cards ── */
+.pdb-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.875rem;
+}
+
+@media (max-width: 1280px) {
+  .pdb-kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .pdb-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .pdb-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pdb-kpi-card {
+  background: var(--pdb-card-bg);
+  border: 1px solid var(--pdb-border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pdb-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.pdb-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.pdb-kpi-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pdb-kpi-icon.icon-green-flat {
+  color: var(--pdb-primary);
+  background: transparent;
+  width: auto;
+  height: auto;
+}
+
+.pdb-kpi-icon.icon-green-circle {
+  background-color: var(--pdb-primary);
+  color: #ffffff;
+}
+
+.pdb-kpi-icon.icon-green-check {
+  background-color: #105e43;
+  color: #ffffff;
+}
+
+.pdb-kpi-icon.icon-amber-circle {
+  background-color: var(--pdb-amber);
+  color: #ffffff;
+}
+
+.pdb-kpi-icon.icon-teal-circle {
+  background-color: #0d5f49;
+  color: #ffffff;
+}
+
+.pdb-kpi-icon.icon-printer-flat {
+  color: var(--pdb-primary);
+  background: transparent;
+  width: auto;
+  height: auto;
+}
+
+.pdb-kpi-label {
+  font-size: 0.78rem;
+  color: #475569;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.pdb-kpi-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--pdb-text-main);
+  line-height: 1.1;
+  margin: 0.2rem 0 0.45rem;
+}
+
+.pdb-kpi-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--pdb-text-muted);
+}
+
+.pdb-trend-badge {
+  font-weight: 700;
+}
+
+.pdb-trend-badge.up-good {
+  color: #16a34a;
+}
+
+.pdb-trend-badge.down-good {
+  color: #16a34a;
+}
+
+.pdb-trend-badge.up-warn {
+  color: #dc2626;
+}
+
+.pdb-trend-sub {
+  color: #475569;
+  font-size: 0.7rem;
+}
+
+/* ── Middle Section: 3 Visual Cards ── */
+.pdb-charts-row {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr 1fr;
+  gap: 0.875rem;
+}
+
+@media (max-width: 1120px) {
+  .pdb-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pdb-card {
+  background: var(--pdb-card-bg);
+  border: 1px solid var(--pdb-border);
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.pdb-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pdb-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--pdb-text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pdb-card-link {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #475569;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.pdb-card-link:hover {
+  color: var(--pdb-primary);
+  text-decoration: underline;
+}
+
+/* ── Chart 1: Production Progress Bar Chart ── */
+.pdb-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.pdb-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pdb-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-planned {
+  background-color: var(--pdb-green-light);
+}
+
+.dot-completed {
+  background-color: var(--pdb-primary);
+}
+
+.pdb-bar-chart-wrap {
+  width: 100%;
+  height: 190px;
+  position: relative;
+}
+
+.pdb-bar-chart-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ── Chart 2: Order Status Distribution Donut ── */
+.pdb-donut-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 100%;
+  min-height: 180px;
+}
+
+.pdb-donut-visual {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdb-donut-center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.pdb-donut-total {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--pdb-text-main);
+  line-height: 1;
+}
+
+.pdb-donut-sub {
+  font-size: 0.68rem;
+  color: var(--pdb-text-muted);
+  margin-top: 0.15rem;
+}
+
+.pdb-donut-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+}
+
+.pdb-donut-legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.pdb-donut-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.pdb-donut-val {
+  font-weight: 700;
+  color: var(--pdb-text-main);
+}
+
+/* ── Chart 3: Machine Utilization ── */
+.pdb-machine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  justify-content: center;
+  height: 100%;
+}
+
+.pdb-machine-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pdb-machine-name {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #334155;
+  width: 110px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdb-machine-bar-track {
+  flex: 1;
+  height: 12px;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.pdb-machine-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.pdb-machine-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Bottom Section: Two Columns (Tables & Alerts) ── */
+.pdb-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.62fr 1fr;
+  gap: 0.875rem;
+}
+
+@media (max-width: 1080px) {
+  .pdb-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pdb-bottom-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ── Data Tables ── */
+.pdb-table-wrap {
+  overflow-x: auto;
+  margin: 0 -0.25rem;
+}
+
+.pdb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.79rem;
+  text-align: left;
+}
+
+.pdb-table th {
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.72rem;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--pdb-border);
+  background: #f8fafc;
+  white-space: nowrap;
+}
+
+.pdb-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.pdb-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.pdb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pdb-col-num {
+  color: #475569;
+  font-weight: 500;
+  width: 20px;
+}
+
+.pdb-strong {
+  font-weight: 600;
+  color: var(--pdb-text-main);
+}
+
+.pdb-muted {
+  color: #475569;
+}
+
+/* Progress bar inside table cell */
+.pdb-table-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pdb-t-prog-track {
+  width: 48px;
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.pdb-t-prog-fill {
+  height: 100%;
+  background-color: #16a34a;
+  border-radius: 9999px;
+}
+
+.pdb-t-prog-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Status Badges */
+.pdb-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.pdb-badge-in-prod {
+  background-color: var(--pdb-green-subtle);
+  color: #15803d;
+}
+
+.pdb-badge-completed {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.pdb-badge-pending {
+  background-color: var(--pdb-amber-subtle);
+  color: #b45309;
+}
+
+.pdb-badge-delay {
+  background-color: var(--pdb-red-subtle);
+  color: #dc2626;
+}
+
+.pdb-badge-maintenance {
+  background-color: var(--pdb-amber-subtle);
+  color: #d97706;
+}
+
+.pdb-badge-inventory {
+  background-color: var(--pdb-blue-subtle);
+  color: #0284c7;
+}
+
+/* Action Buttons in tables */
+.pdb-btn-view {
+  background: #ffffff;
+  border: 1px solid var(--pdb-primary);
+  color: var(--pdb-primary);
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pdb-btn-view:hover {
+  background-color: var(--pdb-primary-light);
+}
+
+.pdb-btn-plan {
+  background: var(--pdb-primary);
+  border: 1px solid var(--pdb-primary);
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pdb-btn-plan:hover {
+  background-color: var(--pdb-primary-hover);
+}
+
+/* Rework & Reprint status count highlights */
+.pdb-count-red {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.pdb-count-blue {
+  color: #0284c7;
+  font-weight: 600;
+}
+
+.pdb-count-green {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.pdb-type-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ── PDB2 Extension Classes ── */
+.pdb2-trend-flat {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pdb2-down-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pdb2-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.pdb2-error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.pdb2-date {
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.pdb2-refresh {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  color: #334155;
+  font-size: 0.825rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.pdb2-refresh:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pdb2-loading {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.pdb-donut-svg {
+  transform: rotate(-90deg);
+}
+
+.pdb-contents-wrap {
+  display: contents;
+}
+

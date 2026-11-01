@@ -1,0 +1,1012 @@
+/* ==========================================================================
+   Production feature — modern green theme + responsive layout
+   Used by: ProductionPage.jsx (no JSX changes needed)
+
+   ProductionPage styles most of its layout inline, so the rules below match
+   those inline styles with attribute selectors and use !important where they
+   must win. Breakpoints: 1100 / 1024 / 768 / 640 / 480 px
+   ========================================================================== */
+
+/* ---------- Original feature classes (names unchanged) ---------- */
+
+.production-feature-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem 1.75rem 3rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.production-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 1rem;
+}
+
+.production-stat-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #ffffff;
+  border: 1px solid #e6ebe8;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.production-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: #a7f3d0;
+  box-shadow: 0 12px 26px -12px rgba(5, 150, 105, 0.3);
+}
+
+.production-stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+  color: #059669;
+}
+
+.production-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.22rem 0.65rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.production-status-chip.planned     { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.production-status-chip.in-progress { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.production-status-chip.completed   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.production-status-chip.reprint     { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+.production-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.production-operation-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scrollbar-width: thin;
+}
+
+/* Refresh icon spin (RefreshCw uses className="spin") */
+.spin {
+  animation: prodSpin 0.9s linear infinite;
+}
+
+@keyframes prodSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Modern polish — cards
+   ========================================================================== */
+
+/* Page sections (every tab renders its cards inside a flex column) */
+[style*="display: flex"][style*="flex-direction: column"] > .jf-card {
+  border: 1px solid #e6ebe8;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Table cards keep their content flush with the rounded corners */
+.jf-card[style*="padding: 0px"] {
+  overflow: hidden;
+}
+
+/* Header cards get a soft green wash */
+.jf-card[style*="padding: 1.25rem"] > div:first-child h2 {
+  letter-spacing: -0.02em;
+}
+
+/* Selected-job workbench: replace the heavy black outline */
+.jf-card[style*="border: 2px solid rgb(15, 23, 42)"] {
+  border: 1px solid #a7f3d0 !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08), 0 20px 40px -24px rgba(5, 150, 105, 0.45) !important;
+  border-radius: 20px !important;
+}
+
+/* Workbench side panels */
+[style*="grid-template-columns: 1fr 1fr"][style*="gap: 1.5rem"] > div[style*="background: rgb(248, 250, 252)"] {
+  border-radius: 14px !important;
+  border-color: #e6ebe8 !important;
+}
+
+/* Primary dark buttons become brand green */
+.jf-btn[style*="background: rgb(15, 23, 42)"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 8px 18px -10px rgba(5, 150, 105, 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.jf-btn[style*="background: rgb(15, 23, 42)"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px -10px rgba(5, 150, 105, 0.9);
+}
+
+/* QC buttons: violet -> teal to stay in the palette */
+.jf-btn[style*="background: rgb(124, 58, 237)"] {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%) !important;
+  border: none !important;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+div[style*="overflow-x: auto"] > .jf-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+div[style*="overflow-x: auto"] > .jf-table th {
+  background: #f8faf9;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+div[style*="overflow-x: auto"] > .jf-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+div[style*="overflow-x: auto"] > .jf-table tbody tr:hover td {
+  background: #f6fbf8;
+}
+
+/* ==========================================================================
+   Pagination footer (TablePaginationFooter)
+   ========================================================================== */
+[style*="rgb(250, 251, 252)"] {
+  background: #fbfdfc !important;
+  border-top: 1px solid #eef3f0 !important;
+}
+
+[style*="rgb(250, 251, 252)"] input[type="number"]:focus,
+[style*="rgb(250, 251, 252)"] select:focus {
+  outline: none;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+/* Active page number */
+[style*="rgb(250, 251, 252)"] button[style*="background: rgb(21, 128, 61)"] {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border-color: #059669 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 14px -8px rgba(5, 150, 105, 0.9);
+}
+
+[style*="rgb(250, 251, 252)"] button {
+  border-radius: 8px !important;
+}
+
+/* ==========================================================================
+   Inputs, searchable select, modals
+   ========================================================================== */
+.jf-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+/* Modal overlays (Plan, Edit, New Reprint, Reprint Review) */
+div[style*="position: fixed"][style*="z-index: 1050"] {
+  background: rgba(3, 31, 24, 0.55) !important;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+div[style*="position: fixed"][style*="z-index: 1050"] > .jf-card {
+  border-radius: 20px !important;
+  border: 1px solid #e6ebe8 !important;
+  box-shadow: 0 30px 70px -20px rgba(2, 20, 15, 0.45) !important;
+  animation: prodModalIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes prodModalIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ==========================================================================
+   <= 1100px : wide tables scroll sideways inside their own wrapper
+   ========================================================================== */
+@media (max-width: 1100px) {
+  body .content-body div[style*="overflow-x: auto"] > .jf-table {
+    display: table;
+    min-width: 860px;
+  }
+
+  body .content-body div[style*="overflow-x: auto"] > .jf-table:has(thead th:nth-child(10)) {
+    min-width: 1040px;
+  }
+
+  body .content-body div[style*="overflow-x: auto"] > .jf-table:has(thead th:nth-child(11)) {
+    min-width: 1180px;
+  }
+
+  body .content-body div[style*="overflow-x: auto"] > .jf-table:has(thead th:nth-child(13)) {
+    min-width: 1320px;
+  }
+}
+
+/* ==========================================================================
+   <= 1024px : tablet
+   ========================================================================== */
+@media (max-width: 1024px) {
+  /* Reprint filters: search on its own row, the rest in two columns */
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr auto"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr auto"] > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Workbench: Job details | Operation details, and QC history | Sample notes */
+  [style*="grid-template-columns: 1fr 1fr"][style*="gap: 1.5rem"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Complete-operation quantities: 3 -> 2 columns */
+  [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ==========================================================================
+   <= 768px : small tablet
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Page titles */
+  .jf-card h2[style*="font-size: 1.5rem"],
+  .jf-card h2[style*="font-size: 1.375rem"] {
+    font-size: 1.25rem !important;
+  }
+
+  /* Header cards: title row and buttons stack */
+  .jf-card[style*="padding: 1.25rem"] > div[style*="justify-content: space-between"] {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  /* Searchable selects fill the row */
+  div[style*="display: inline-block"][style*="min-width: 160px"] {
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Operation queue filter bar: every control takes a full row */
+  div[style*="padding-top: 0.875rem"][style*="border-top: 1px solid"] > * {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Pagination footer stacks */
+  [style*="rgb(250, 251, 252)"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  [style*="rgb(250, 251, 252)"] > div {
+    justify-content: center;
+    flex-wrap: wrap !important;
+    row-gap: 0.5rem;
+  }
+}
+
+/* ==========================================================================
+   <= 640px : mobile
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* Card padding tightens */
+  .jf-card[style*="padding: 1.25rem"],
+  .jf-card[style*="padding: 1.5rem"] {
+    padding: 1rem !important;
+  }
+
+  .jf-card[style*="padding: 1.75rem"] {
+    padding: 1.1rem !important;
+  }
+
+  [style*="display: flex"][style*="flex-direction: column"] > .jf-card {
+    border-radius: 16px;
+  }
+
+  /* All two- and three-column forms stack */
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr 1fr"],
+  [style*="grid-template-columns: 2fr 1fr 1fr 1fr auto"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Reprint details: full-width reason block no longer spans a missing column */
+  [style*="grid-column: span 2"] {
+    grid-column: auto !important;
+  }
+
+  /* Overview filters: label + control rows span the width */
+  div[style*="gap: 0.375rem"] {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  div[style*="gap: 0.375rem"] > select,
+  div[style*="gap: 0.375rem"] > input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Modals become near-full-screen sheets */
+  div[style*="position: fixed"][style*="z-index: 1050"] {
+    padding: 8px !important;
+  }
+
+  div[style*="position: fixed"][style*="z-index: 1050"] > .jf-card {
+    max-height: 96dvh !important;
+    overflow-y: auto;
+  }
+
+  /* Modal footers: buttons share the row */
+  div[style*="position: fixed"][style*="z-index: 1050"] div[style*="justify-content: flex-end"][style*="gap: 0.75rem"] {
+    flex-wrap: wrap;
+  }
+
+  div[style*="position: fixed"][style*="z-index: 1050"] div[style*="justify-content: flex-end"][style*="gap: 0.75rem"] > .jf-btn {
+    flex: 1 1 120px;
+    justify-content: center;
+  }
+
+  /* Tap-friendly controls */
+  .jf-btn {
+    min-height: 38px;
+  }
+
+  /* 16px prevents iOS zooming into fields */
+  .jf-input,
+  select.jf-input,
+  textarea.jf-input,
+  input[type="date"],
+  input[type="datetime-local"] {
+    font-size: 16px !important;
+  }
+
+  /* Workbench heading row wraps */
+  .jf-card[style*="border: 2px solid"] > div:first-child {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Tab content spacing */
+  [style*="display: flex"][style*="flex-direction: column"][style*="gap: 1.5rem"] {
+    gap: 1rem !important;
+  }
+}
+
+/* ==========================================================================
+   <= 480px : small phones
+   ========================================================================== */
+@media (max-width: 480px) {
+  .production-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Row action buttons wrap neatly in tables */
+  div[style*="overflow-x: auto"] > .jf-table td .jf-btn-sm {
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+/* Touch devices: no hover lift */
+@media (hover: none) {
+  .production-stat-card:hover,
+  .jf-btn[style*="background: rgb(15, 23, 42)"]:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 2s; }
+  div[style*="position: fixed"][style*="z-index: 1050"] > .jf-card { animation: none; }
+  .production-stat-card,
+  .jf-btn[style*="background: rgb(15, 23, 42)"] { transition: none; }
+}
+/* ==========================================================================
+   PrintZ JobFlow — reference UI alignment (2026)
+   Keeps existing JSX, API wiring, state, validation and event handlers intact.
+   ========================================================================== */
+:root {
+  --printz-green-950: #003d2b;
+  --printz-green-900: #064e36;
+  --printz-green-800: #06603e;
+  --printz-green-700: #087747;
+  --printz-green-600: #079455;
+  --printz-green-100: #d9f5e7;
+  --printz-green-50: #f0fbf5;
+  --printz-ink: #101828;
+  --printz-muted: #52627a;
+  --printz-border: #e4ebe7;
+  --printz-surface: #ffffff;
+  --printz-page: #f4fbf8;
+}
+
+/* Main production canvas */
+.production-feature-container,
+[class*="production-page"],
+[class*="ProductionPage"] {
+  color: var(--printz-ink);
+}
+
+/* The application shell already owns the navigation/sidebar. Keep the content
+   bright, softly tinted and spacious like the supplied PrintZ references. */
+.jf-card {
+  background: var(--printz-surface) !important;
+  border: 1px solid var(--printz-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(14, 65, 43, 0.035) !important;
+}
+
+.jf-card h1,
+.jf-card h2,
+.jf-card h3,
+.jf-card h4 {
+  color: var(--printz-ink);
+  letter-spacing: -0.025em;
+}
+
+/* Search/filter strips */
+.jf-card input:not([type="checkbox"]):not([type="radio"]),
+.jf-card select,
+.jf-card textarea,
+.jf-input {
+  border: 1px solid #dce5e1 !important;
+  border-radius: 7px !important;
+  background-color: #fff !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+  transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.jf-card input:focus,
+.jf-card select:focus,
+.jf-card textarea:focus,
+.jf-input:focus {
+  outline: none !important;
+  border-color: #079455 !important;
+  box-shadow: 0 0 0 3px rgba(7, 148, 85, .11) !important;
+}
+
+.jf-card label,
+.jf-card small {
+  color: var(--printz-muted);
+}
+
+/* Tables: clean, compact and consistent with the reference screenshots */
+.jf-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: #344054;
+  font-size: 12.5px;
+}
+
+.jf-table thead th,
+.jf-table th {
+  background: #f7faf8 !important;
+  color: #344054 !important;
+  font-weight: 650 !important;
+  border-bottom: 1px solid #e2eae5 !important;
+  padding: 12px 11px !important;
+  white-space: nowrap;
+}
+
+.jf-table tbody td {
+  padding: 11px !important;
+  border-bottom: 1px solid #edf1ef !important;
+  vertical-align: middle;
+}
+
+.jf-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.jf-table tbody tr:hover td {
+  background: #f4fbf7 !important;
+}
+
+/* Buttons */
+.jf-btn {
+  min-height: 36px;
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+  letter-spacing: -.005em;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.jf-btn-primary,
+.jf-btn[style*="background: rgb(5, 150, 105)"],
+.jf-btn[style*="background: rgb(16, 185, 129)"],
+.jf-btn[style*="background: rgb(22, 163, 74)"],
+.jf-btn[style*="background: rgb(15, 23, 42)"] {
+  background: var(--printz-green-700) !important;
+  border-color: var(--printz-green-700) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.jf-btn-primary:hover:not(:disabled),
+.jf-btn[style*="background: rgb(5, 150, 105)"]:hover:not(:disabled),
+.jf-btn[style*="background: rgb(16, 185, 129)"]:hover:not(:disabled),
+.jf-btn[style*="background: rgb(22, 163, 74)"]:hover:not(:disabled),
+.jf-btn[style*="background: rgb(15, 23, 42)"]:hover:not(:disabled) {
+  background: var(--printz-green-800) !important;
+  transform: translateY(-1px);
+}
+
+.jf-btn-secondary {
+  background: #fff !important;
+  color: var(--printz-green-800) !important;
+  border: 1px solid #8bc8aa !important;
+  box-shadow: none !important;
+}
+
+.jf-btn-secondary:hover:not(:disabled) {
+  background: var(--printz-green-50) !important;
+  border-color: var(--printz-green-700) !important;
+}
+
+.jf-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* KPI/stat cards */
+.production-stats-grid {
+  gap: 12px !important;
+}
+
+.production-stat-card {
+  border-radius: 10px !important;
+  border-color: var(--printz-border) !important;
+  padding: 16px !important;
+  box-shadow: 0 2px 7px rgba(16, 60, 42, .035) !important;
+}
+
+.production-stat-icon {
+  border-radius: 10px !important;
+  background: #e3f7ec !important;
+  color: var(--printz-green-700) !important;
+}
+
+/* Status badges are compact pills with restrained color */
+.jf-badge,
+.production-status-chip {
+  border-radius: 6px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-weight: 650 !important;
+}
+
+/* Modals / detail panels */
+div[style*="position: fixed"][style*="z-index"] > .jf-card {
+  border-radius: 14px !important;
+  border: 1px solid #e1e9e5 !important;
+  box-shadow: 0 24px 70px rgba(16, 24, 40, .2) !important;
+}
+
+/* Consistent text hierarchy and section separation */
+.jf-card hr {
+  border: 0;
+  border-top: 1px solid #e8eeeb;
+}
+
+/* Don't allow long values to force the page wider than the viewport */
+.jf-card,
+.jf-table td,
+.jf-table th {
+  min-width: 0;
+}
+
+@media (min-width: 1200px) {
+  .production-feature-container {
+    gap: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .jf-card {
+    border-radius: 10px !important;
+  }
+  .jf-table {
+    min-width: 760px;
+  }
+  .jf-table thead th,
+  .jf-table tbody td {
+    padding: 9px 8px !important;
+  }
+}
+
+/* ==========================================================================
+   Shared Production Modal Components
+   ========================================================================== */
+.prod-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.prod-modal-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.prod-modal-icon-badge.green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.prod-modal-icon-badge.amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.prod-modal-icon-badge.red {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.prod-modal-icon-badge.blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.prod-modal-icon-badge.gray {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.prod-modal-subtitle {
+  font-size: 0.8125rem;
+  color: #475569;
+  display: block;
+  margin-top: 2px;
+}
+
+.prod-modal-close-btn {
+  padding: 4px !important;
+}
+
+.prod-modal-body-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prod-modal-info-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+}
+
+.prod-modal-info-box--3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.prod-modal-info-box--4col {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.prod-modal-info-full {
+  grid-column: span 2;
+}
+
+.prod-modal-label {
+  color: #475569;
+  display: block;
+  font-size: 0.775rem;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.prod-modal-val {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.prod-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.prod-modal-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.prod-modal-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.prod-modal-alert--amber {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.prod-modal-alert--red {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.prod-modal-alert--green {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  color: #166534;
+}
+
+.prod-modal-alert--blue {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.prod-modal-alert--neutral {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.prod-btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prod-field-hint {
+  font-size: 0.75rem;
+  color: #475569;
+  margin-top: 2px;
+  display: block;
+}
+
+/* Modal material tracking */
+.prod-mat-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.prod-mat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.prod-mat-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.prod-mat-subtitle {
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.prod-mat-empty {
+  padding: 1rem;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 0.8125rem;
+}
+
+.prod-mat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prod-mat-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  background: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.prod-mat-del-btn {
+  padding: 4px 8px !important;
+}
+
+/* Modal packing alert */
+.prod-modal-packing {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 0.875rem;
+  border-radius: 8px;
+}
+
+.prod-modal-packing-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: #166534;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.prod-modal-packing-icon {
+  color: #16a34a;
+}
+
+.prod-modal-packing-text {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8125rem;
+  color: #15803d;
+}
+
+.prod-modal-packing-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+/* QC Modal specific classes */
+.qc-modal-info-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.qc-verdict-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.qc-verdict-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.qc-issue-box {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.qc-issue-title {
+  margin: 0 0 0.5rem 0;
+  color: #9f1239;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.qc-radio-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  padding: 0.625rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.qc-radio-card:hover {
+  border-color: #cbd5e1;
+}
+
+.qc-radio-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.qc-radio-desc {
+  font-size: 0.75rem;
+  color: #475569;
+  display: block;
+}
+
+.qc-defect-box {
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 0.875rem;
+}
+
+.qc-defect-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.qc-defect-empty {
+  padding: 0.75rem;
+  text-align: center;
+  background: #fff7ed;
+  border-radius: 6px;
+  color: #9a3412;
+  font-size: 0.8125rem;
+}
+
+.qc-defect-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1.2fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  background: #fff7ed;
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+
+
+

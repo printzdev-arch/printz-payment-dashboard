@@ -6,7 +6,7 @@
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Trigger Box */
@@ -44,7 +44,7 @@
 .calendar-select-trigger.disabled {
   background: #f8fafc;
   border-color: #e2e8f0;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
 }
 
@@ -61,7 +61,7 @@
 .calendar-select-trigger-icon {
   display: flex;
   align-items: center;
-  color: #64748b;
+  color: #475569;
   flex-shrink: 0;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .calendar-select-trigger-text.placeholder {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 400;
 }
 
@@ -101,7 +101,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #64748b;
+  color: #475569;
   padding: 0;
   transition: all 0.15s ease;
 }
@@ -114,7 +114,7 @@
 .calendar-select-chevron {
   display: flex;
   align-items: center;
-  color: #64748b;
+  color: #475569;
   transition: transform 0.2s ease;
 }
 
@@ -190,7 +190,7 @@
   cursor: pointer;
   outline: none;
   transition: all 0.15s ease;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
 }
 
 .calendar-month-select:hover,
@@ -249,7 +249,7 @@
 .calendar-weekday-cell {
   font-size: 11.5px;
   font-weight: 600;
-  color: #64748b;
+  color: #475569;
   padding: 4px 0;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -284,7 +284,7 @@
 }
 
 .calendar-day-cell.other-month {
-  color: #cbd5e1;
+  color: #64748b;
 }
 
 .calendar-day-cell.today {
@@ -307,7 +307,7 @@
 }
 
 .calendar-day-cell.disabled {
-  color: #cbd5e1;
+  color: #64748b;
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
@@ -332,7 +332,7 @@
   padding: 4px 8px;
   border-radius: 6px;
   transition: all 0.15s ease;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
 }
 
 .calendar-footer-btn.today-btn {
@@ -344,7 +344,7 @@
 }
 
 .calendar-footer-btn.clear-btn {
-  color: #64748b;
+  color: #475569;
 }
 
 .calendar-footer-btn.clear-btn:hover {

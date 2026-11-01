@@ -6,14 +6,15 @@
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .branch-select-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
   height: 42px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -43,7 +44,7 @@
 .branch-select-trigger.disabled {
   background: #f8fafc;
   border-color: #e2e8f0;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
 }
 
@@ -60,7 +61,7 @@
 .branch-select-trigger-icon {
   display: flex;
   align-items: center;
-  color: #64748b;
+  color: #475569;
   flex-shrink: 0;
 }
 
@@ -78,14 +79,14 @@
 }
 
 .branch-select-trigger-text.placeholder {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 400;
 }
 
 .branch-select-chevron {
   display: flex;
   align-items: center;
-  color: #64748b;
+  color: #475569;
   margin-left: 8px;
   flex-shrink: 0;
   transition: transform 0.2s ease;
@@ -147,11 +148,11 @@
   font-size: 13px;
   color: #0f172a;
   width: 100%;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
 }
 
 .branch-select-search-input::placeholder {
-  color: #94a3b8;
+  color: #475569;
 }
 
 .branch-select-clear-btn {
@@ -164,7 +165,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #64748b;
+  color: #475569;
   padding: 0;
   flex-shrink: 0;
 }
@@ -232,7 +233,7 @@
 }
 
 .branch-select-option-icon {
-  color: #94a3b8;
+  color: #475569;
   flex-shrink: 0;
 }
 
@@ -249,6 +250,6 @@
   padding: 16px;
   text-align: center;
   font-size: 12.5px;
-  color: #94a3b8;
+  color: #475569;
   font-style: italic;
 }

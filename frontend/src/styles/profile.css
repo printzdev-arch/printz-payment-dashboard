@@ -13,7 +13,7 @@
   padding: 16px 24px !important;
   box-sizing: border-box !important;
   background-color: var(--printz-bg-page, #f8fafc) !important;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .profile-modern-card {
@@ -71,13 +71,13 @@
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 .profile-avatar-placeholder span {
   font-size: 0.7rem !important;
   margin-top: 3px !important;
-  color: #94a3b8 !important;
+  color: #475569 !important;
 }
 
 .profile-avatar-upload-overlay {
@@ -141,7 +141,7 @@
 .profile-user-email-preview {
   margin: 8px 0 0 0 !important;
   font-size: 0.76rem !important;
-  color: #64748b !important;
+  color: #475569 !important;
   max-width: 210px !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -186,7 +186,7 @@
 .profile-input-icon {
   position: absolute !important;
   left: 12px !important;
-  color: #94a3b8 !important;
+  color: #475569 !important;
   font-size: 13px !important;
   pointer-events: none !important;
 }
@@ -203,12 +203,12 @@
   outline: none !important;
   box-sizing: border-box !important;
   transition: all 0.2s ease !important;
-  font-family: inherit !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .profile-input:disabled {
   background-color: #f8fafc !important;
-  color: #64748b !important;
+  color: #475569 !important;
   border-color: #e2e8f0 !important;
   cursor: not-allowed !important;
 }

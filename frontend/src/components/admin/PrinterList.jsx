@@ -914,7 +914,7 @@ const PrinterList = () => {
           {isLoading ? (
             <div className="printer-empty-state">
               <div className="stock-loading-spinner" style={{ margin: "0 auto 12px" }}></div>
-              <p style={{ color: "#64748b", margin: 0, fontSize: "14px", fontWeight: "500" }}>Loading printers...</p>
+              <p style={{ color: "#475569", margin: 0, fontSize: "14px", fontWeight: "500" }}>Loading printers...</p>
             </div>
           ) : !selectedBranch ? (
             <div className="printer-empty-state">
@@ -1003,7 +1003,7 @@ const PrinterList = () => {
                               <td
                                 style={{
                                   textAlign: "center",
-                                  color: "#64748b",
+                                  color: "#475569",
                                   fontWeight: "600",
                                 }}
                               >
@@ -1236,7 +1236,7 @@ const PrinterList = () => {
               <span
                 style={{
                   fontSize: "12.5px",
-                  color: "#64748b",
+                  color: "#475569",
                   display: "inline-block",
                   marginTop: "6px",
                 }}
@@ -1287,7 +1287,7 @@ const PrinterList = () => {
               <span
                 style={{
                   fontSize: "12.5px",
-                  color: "#64748b",
+                  color: "#475569",
                   display: "inline-block",
                   marginTop: "6px",
                 }}
@@ -1506,7 +1506,7 @@ const PrinterList = () => {
                                 <tr key={j.id || idx}>
                                   <td
                                     style={{
-                                      color: "#64748b",
+                                      color: "#475569",
                                       fontWeight: 600,
                                     }}
                                   >
@@ -1533,7 +1533,7 @@ const PrinterList = () => {
                           style={{
                             margin: 0,
                             fontSize: "12px",
-                            color: "#64748b",
+                            color: "#475569",
                             fontStyle: "italic",
                           }}
                         >
@@ -1555,7 +1555,7 @@ const PrinterList = () => {
                             <tr key={idx}>
                               <td
                                 style={{
-                                  color: "#64748b",
+                                  color: "#475569",
                                   fontWeight: 600,
                                 }}
                               >
@@ -1580,7 +1580,7 @@ const PrinterList = () => {
                         style={{
                           margin: 0,
                           fontSize: "12px",
-                          color: "#64748b",
+                          color: "#475569",
                           fontStyle: "italic",
                         }}
                       >
@@ -1749,7 +1749,7 @@ const PrinterList = () => {
                                 style={{
                                   fontSize: "12px",
                                   width: "90px",
-                                  color: "#64748b",
+                                  color: "#475569",
                                 }}
                               >
                                 {j.type}
@@ -1765,7 +1765,7 @@ const PrinterList = () => {
                                 <span
                                   style={{
                                     fontSize: "12px",
-                                    color: "#64748b",
+                                    color: "#475569",
                                     fontWeight: 600,
                                   }}
                                 >
@@ -1802,7 +1802,7 @@ const PrinterList = () => {
                           style={{
                             margin: 0,
                             fontSize: "12px",
-                            color: "#64748b",
+                            color: "#475569",
                           }}
                         >
                           No Jumbo Xerox services to edit.
@@ -1851,7 +1851,7 @@ const PrinterList = () => {
                               <span
                                 style={{
                                   fontSize: "12px",
-                                  color: "#64748b",
+                                  color: "#475569",
                                   fontWeight: 600,
                                 }}
                               >
@@ -1902,7 +1902,7 @@ const PrinterList = () => {
                         style={{
                           margin: 0,
                           fontSize: "12px",
-                          color: "#64748b",
+                          color: "#475569",
                         }}
                       >
                         No rates defined. Click "+ Add Size" above to add one.

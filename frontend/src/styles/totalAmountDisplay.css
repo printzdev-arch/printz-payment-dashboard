@@ -3,7 +3,7 @@
   width: 100%;
   margin: 0 auto;
   padding: 1rem;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Poppins', sans-serif;
   color: #333;
   background-color: #ffffff;
 }
@@ -23,7 +23,7 @@
 }
 
 .total-page-header p{
-  color: #64748b;
+  color: #475569;
   margin: 0;
   font-size: 1rem;
   margin-top: 8px;
@@ -360,7 +360,7 @@ tfoot tr td {
 }
 
 .total-error-container p {
-  color: #64748b;
+  color: #475569;
   margin: 0 0 1rem 0;
   font-size: 0.9rem;
 }
@@ -395,7 +395,7 @@ tfoot tr td {
 
 .total-no-data-message p,
 .total-select-date-message p {
-  color: #64748b;
+  color: #475569;
   margin: 0;
   font-size: 0.9rem;
 }

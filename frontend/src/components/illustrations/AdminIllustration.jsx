@@ -293,7 +293,7 @@ const AdminIllustration = ({
             x="347"
             y="192"
             textAnchor="middle"
-            fontFamily="system-ui, -apple-system, sans-serif"
+            fontFamily="'Poppins', sans-serif"
             fontSize="10"
             fontWeight="700"
             fill="#047857"
@@ -383,7 +383,7 @@ const AdminIllustration = ({
           <text
             x="650"
             y="97"
-            fontFamily="system-ui, -apple-system, sans-serif"
+            fontFamily="'Poppins', sans-serif"
             fontSize="16"
             fontWeight="700"
             fill="#FFFFFF"

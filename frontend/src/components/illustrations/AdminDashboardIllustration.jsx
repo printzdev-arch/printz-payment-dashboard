@@ -392,7 +392,7 @@ const AdminDashboardIllustration = ({
             x="250"
             y="147"
             textAnchor="middle"
-            fontFamily="Arial, sans-serif"
+            fontFamily="'Poppins', sans-serif"
             fontSize="37"
             fontWeight="700"
             fill="#FFFFFF"
@@ -513,7 +513,7 @@ const AdminDashboardIllustration = ({
           <text
             x="548"
             y="106"
-            fontFamily="Arial, sans-serif"
+            fontFamily="'Poppins', sans-serif"
             fontSize="22"
             fontWeight="700"
             fill="#FFFFFF"

@@ -1,0 +1,592 @@
+/* ==========================================================================
+   Reprint Batches Page — Dedicated Stylesheet
+   Modern, Clean, High-Fidelity UI with Comfortable Sizing & Spacing
+   ========================================================================== */
+
+@import "./production.css";
+
+/* Page Container - Comfortable padding & spacing from sidebar */
+.reprint-batches-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem 1.75rem 3rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  color: #0f172a;
+}
+
+/* Header Card */
+.reprint-batches-page .reprint-header-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.rb-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.rb-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.reprint-header-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  flex-shrink: 0;
+}
+
+.rb-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.rb-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.rb-request-no {
+  color: #008744;
+  font-weight: 700;
+}
+
+.rb-actions-group {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rb-empty-icon {
+  margin-bottom: 6px;
+  color: #64748b;
+}
+
+.rb-empty-title {
+  font-weight: 600;
+  color: #475569;
+}
+
+.rb-btn-close-sm {
+  padding: 4px !important;
+}
+
+/* Tabs */
+.rb-tabs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rb-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px 18px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rb-tab:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.rb-tab.is-active {
+  border-color: #059669;
+  background: #ecfdf5;
+  color: #065f46;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.12);
+}
+
+.rb-tab-count {
+  background: #e2e8f0;
+  color: #334155;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  line-height: 1.2;
+}
+
+.rb-tab.is-active .rb-tab-count {
+  background: #059669;
+  color: #ffffff;
+}
+
+/* Filter Card */
+.rb-filter-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.rb-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rb-search {
+  position: relative;
+  min-width: 260px;
+  flex: 1;
+  max-width: 420px;
+}
+
+.rb-search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #475569;
+  pointer-events: none;
+}
+
+.rb-search input {
+  width: 100% !important;
+  height: 38px !important;
+  padding-left: 2.35rem !important;
+  padding-right: 0.75rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  font-size: 13.5px !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+}
+
+.rb-search input:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+  outline: none !important;
+}
+
+/* Status dropdown - override 100% width! */
+.rb-filter-row select,
+select.rb-select-filter {
+  width: auto !important;
+  min-width: 180px !important;
+  max-width: 240px !important;
+  height: 38px !important;
+  padding: 0 2rem 0 0.85rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  font-size: 13.5px !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  cursor: pointer;
+}
+
+.rb-filter-row select:focus,
+select.rb-select-filter:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+  outline: none !important;
+}
+
+.rb-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rb-muted {
+  font-size: 11.5px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+/* Table Card & Scroll */
+.reprint-batches-page .reprint-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Data Table Styling */
+.reprint-batches-page .data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 13px;
+}
+
+.reprint-batches-page .data-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.reprint-batches-page .data-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.reprint-batches-page .data-table tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+.reprint-batches-page .data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Defect instructions box */
+.rb-defect-box {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-left: 3px solid #f59e0b;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.35;
+  max-width: 260px;
+}
+
+/* Quantity Pill */
+.rb-qty-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  white-space: nowrap;
+}
+
+/* Status Pills */
+.rb-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.rb-pill.rb-op-ready,
+.rb-pill.rb-requested,
+.rb-pill.rb-op-paused {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.rb-pill.rb-approved,
+.rb-pill.rb-op-in_progress {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.rb-pill.rb-in_production {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.rb-pill.rb-completed,
+.rb-pill.rb-op-completed,
+.rb-pill.rb-op-skipped {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.rb-pill.rb-rejected,
+.rb-pill.rb-op-failed {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.rb-pill.rb-op-blocked,
+.rb-pill.rb-op-on_hold {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* Action Buttons - fixing wrapping & styling */
+.reprint-batches-page .btn,
+.reprint-batches-page .btn-small {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 5px 11px !important;
+  border-radius: 7px !important;
+  border: 1px solid transparent !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+  line-height: 1.2 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.reprint-batches-page .btn:active,
+.reprint-batches-page .btn-small:active {
+  transform: scale(0.97) !important;
+}
+
+.reprint-batches-page .btn-success {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+}
+
+.reprint-batches-page .btn-success:hover:not(:disabled) {
+  background-color: #047857 !important;
+  border-color: #047857 !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3) !important;
+}
+
+.reprint-batches-page .btn-secondary {
+  background-color: #ffffff !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.reprint-batches-page .btn-secondary:hover:not(:disabled) {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #1e293b !important;
+}
+
+.reprint-batches-page .btn-danger {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+
+.reprint-batches-page .btn-danger:hover:not(:disabled) {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3) !important;
+}
+
+.reprint-batches-page .btn:disabled,
+.reprint-batches-page .btn-small:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+}
+
+/* Empty Cell state */
+.empty-cell {
+  text-align: center !important;
+  padding: 42px 20px !important;
+  color: #475569 !important;
+  font-size: 13.5px !important;
+}
+
+/* Pager */
+.rb-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 4px 4px;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.rb-pager > div {
+  display: flex;
+  gap: 8px;
+}
+
+/* Modal & Detail components */
+.rb-modal {
+  max-width: 760px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rb-modal-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rb-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  gap: 12px;
+}
+
+.rb-facts span,
+.rb-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+.rb-facts strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.rb-block p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.rb-note {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.rb-note--danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.rb-section {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.rb-cycle {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rb-cycle-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rb-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rb-op {
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.rb-op--completed,
+.rb-op--skipped {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rb-op--in_progress,
+.rb-op--running {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.rb-op--failed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rb-op--paused {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rb-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rb-col-defect {
+  max-width: 260px;
+}
+
+.rb-defect-subtitle {
+  margin-top: 4px;
+}
+
+

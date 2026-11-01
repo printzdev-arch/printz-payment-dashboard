@@ -1062,8 +1062,7 @@ const TotalAmountSection = ({
                       {isReadonlyView || isAutoCalculated ? (
                         <span
                           style={{
-                            fontFamily:
-                              "'JetBrains Mono', 'Fira Code', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: isAutoCalculated ? 700 : 600,
                             color: isAutoCalculated ? "#0f172a" : "#0f172a",
                           }}
@@ -1351,7 +1350,7 @@ const TotalAmountSection = ({
                     fontWeight: 800,
                     color: "#047857",
                     fontSize: "14px",
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "'Poppins', sans-serif",
                   }}
                 >
                   {formatCurrency(totalAmount)}

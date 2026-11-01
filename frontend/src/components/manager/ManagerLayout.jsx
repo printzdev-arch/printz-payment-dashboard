@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import "../../styles/sidebar.css";
 import "../../styles/printzTheme.css";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { PageTransition, MotionDropdown, MotionAccordion } from "../../shared/motion";
 import logo from "../../assets/logo.png";
 
 import {
+  PlusCircle,
+  FolderOpen,
   LayoutDashboard,
   FileText,
   Printer,
@@ -19,9 +22,11 @@ import {
   Menu,
   Clock,
   Calendar,
+  Banknote,
   Building2,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   DollarSign,
   Search,
   Briefcase,
@@ -30,10 +35,31 @@ import {
   ShieldCheck,
   ArrowLeftRight,
   Timer,
-  Gauge,
   FileSearch,
   Truck,
-  Receipt
+  Receipt,
+  CreditCard,
+  Activity,
+  Sliders,
+  Edit2,
+  UserCheck,
+  MessageCircle,
+  FileCheck,
+  RotateCcw,
+  Send,
+  PackageCheck,
+  CheckCircle,
+  Lock,
+  QrCode,
+  ShoppingCart,
+  ClipboardList,
+  ArrowDownLeft,
+  PlayCircle,
+  BarChart2,
+  AlertTriangle,
+  Monitor,
+  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import PrintZSidebarIllustration from "../illustrations/PrintZSidebarIllustration";
 
@@ -102,18 +128,84 @@ const PrintZLogoIcon = () => (
   </svg>
 );
 
-const getManagerPageTitle = (pathname) => {
+const getManagerPageTitle = (pathname, search = "") => {
+  if (pathname.includes("/master-settings") || pathname.includes("/jobflow/master-settings")) return "Master Defaults & Specifications";
   if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers";
   if (pathname.includes("/sla-dashboard") || pathname.includes("/sla")) return "SLA Monitoring & Designer Scorecard";
-  if (pathname.includes("/audit-logs")) return "Enterprise Audit Log Explorer";
-  if (pathname.includes("/delivery")) return "Delivery Management";
-  if (pathname.includes("/settlement")) return "Settlement & Invoicing";
-  if (pathname.includes("/qc") || pathname.includes("/quality-control")) return "Quality Control & Rework";
-  if (pathname.includes("/production")) return "Production Operations";
-  if (pathname.includes("/design")) return "Design Workflow";
+  if (pathname.includes("/attendance/setup")) return "Attendance Setup";
+  if (pathname.includes("/attendance/daily")) return "Daily Attendance";
+  if (pathname.includes("/attendance/permissions")) return "Attendance Permissions";
+  if (pathname.includes("/attendance/reports")) return "Attendance Reports";
+  if (pathname.includes("/attendance")) return "Daily Attendance";
+  if (pathname.includes("/salary/setup")) return "Salary Setup";
+  if (pathname.includes("/salary/loans-adjustments")) return "Loans & Adjustments";
+  if (pathname.includes("/salary/processing")) return "Payroll Processing";
+  if (pathname.includes("/salary/records")) return "Salary Records";
+  if (pathname.includes("/salary")) return "Salary & Payroll";
+  if (pathname.includes("/delivery") || pathname.includes("/jobflow/delivery")) {
+    const params = new URLSearchParams(search);
+    const tab = (params.get("tab") || "").toUpperCase();
+    if (tab === "REVIEW") return "Delivery - Ready for Review";
+    if (tab === "ASSIGNED") return "Delivery - Assigned Staff";
+    if (tab === "PACKED") return "Delivery - Packed & Verified";
+    if (tab === "OUT_FOR_DELIVERY") return "Delivery - Out for Delivery";
+    if (tab === "DELIVERED") return "Delivery - Delivered";
+    return "Delivery Management";
+  }
+  if (pathname.includes("/invoice") || pathname.includes("/invoices") || pathname.includes("/jobflow/invoice")) {
+    return "Commercial Tax Invoicing";
+  }
+  if (pathname.includes("/settlement") || pathname.includes("/jobflow/settlement")) {
+    const params = new URLSearchParams(search);
+    const tab = (params.get("tab") || "").toUpperCase();
+    if (tab === "OUTSTANDING_BOARD" || tab === "OUTSTANDING" || tab === "CASHIER") return "Settlement - Outstanding & Cashier";
+    if (tab === "CLOSURE_QUEUE" || tab === "CLOSURE" || tab === "FEEDBACK") return "Settlement - Job Closure & Feedback";
+    return "Payment Settlement & Job Closure";
+  }
+  if (pathname.includes("/qc") || pathname.includes("/quality-control") || pathname.includes("/jobflow/qc")) {
+    const params = new URLSearchParams(search);
+    const tab = params.get("tab");
+    if (tab === "15A" || tab === "queue" || tab === "overview") return "QC Queue & Overview";
+    if (tab === "15B" || tab === "inspection" || tab === "form") return "QC Inspection Form";
+    if (tab === "16A" || tab === "rework") return "Operation Rework";
+    if (tab === "16B" || tab === "reprints" || tab === "reprint") return "Reprint Approvals";
+    return "Quality Control & Rework";
+  }
+  if (pathname.includes("/production") || pathname.includes("/jobflow/production")) {
+    const params = new URLSearchParams(search);
+    const tab = params.get("tab");
+    if (tab === "overview" || pathname.includes("/production/dashboard")) return "Production Dashboard";
+    if (tab === "orders" || tab === "details" || pathname.includes("/production/orders")) return "Production Orders";
+    if (tab === "planning" || pathname.includes("/production/planning") || pathname.includes("production-planning")) return "Production Planning";
+    if (tab === "queue" || pathname.includes("/production/queue")) return "Operation Queue";
+    if (tab === "completed" || pathname.includes("/production/completed")) return "Completed Production";
+    if (tab === "rework" || pathname.includes("/production/rework")) return "Rework & Reprint";
+    if (tab === "reprints" || pathname.includes("/production/reprints")) return "Rework & Reprint";
+    if (tab === "machines" || pathname.includes("/production/machines")) return "Machine & Operator Tracking";
+    if (tab === "reports" || pathname.includes("/production/reports")) return "Production Reports";
+    return "Production Operations";
+  }
+  if (pathname.includes("/designer-jobs/new") || pathname.includes("/jobflow/designer-jobs/new")) {
+    return "Designer Job Create";
+  }
+  if (pathname.includes("/designer-jobs") || pathname.includes("/jobflow/designer-jobs")) {
+    return "Designer Job Orders";
+  }
+  if (pathname.includes("/design") || pathname.includes("/jobflow/design")) {
+    const params = new URLSearchParams(search);
+    const view = params.get("view") || params.get("tab");
+    if (view === "queue") return "Design Queue";
+    if (view === "workbench" || pathname.includes("/workbench") || pathname.includes("/workspace")) return "Design Workbench";
+    if (view === "my-jobs") return "Designer My Jobs";
+    if (view === "customer-proof") return "Customer Proof Review";
+    return "Design Workflow";
+  }
+  if (pathname.includes("/sale-orders/new")) return "New Sale Order";
+  if (pathname.includes("/sale-orders")) return "Sale Orders";
   if (pathname.includes("/estimates")) return "Quotations & Cost Estimates";
   if (pathname.includes("/jobs")) return "Job Orders";
-  if (pathname.includes("/customers")) return "Customer Master";
+  if (pathname.includes("/qr-request") || pathname.includes("/customer-register")) return "Branch QR Form";
+  if (pathname.includes("/customers") || pathname.includes("/jobflow/customers")) return "Customer Master";
   if (pathname === "/manager-dashboard" || pathname === "/") return "Manager Dashboard";
   if (pathname.includes("/printer-readings-manager")) return "Account Sheet Generation";
   if (pathname.includes("/pdf-generator")) return "Generate PDF Report";
@@ -131,7 +223,89 @@ const getManagerPageTitle = (pathname) => {
 };
 
 const ManagerLayout = ({ children }) => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  // On phones/tablets the sidebar is an off-canvas drawer, so it starts closed.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 1024
+  );
+  const [isAutoCollapseEnabled, setIsAutoCollapseEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar_auto_collapse") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [isHoveringLeftZone, setIsHoveringLeftZone] = useState(false);
+  const leftZoneTimerRef = useRef(null);
+  const autoCloseTimerRef = useRef(null);
+
+  const handleToggleAutoCollapse = (enabled) => {
+    setIsAutoCollapseEnabled(enabled);
+    try {
+      localStorage.setItem("sidebar_auto_collapse", String(enabled));
+    } catch (e) { }
+  };
+
+  useEffect(() => {
+    if (!isAutoCollapseEnabled) {
+      if (leftZoneTimerRef.current) {
+        clearTimeout(leftZoneTimerRef.current);
+        leftZoneTimerRef.current = null;
+      }
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = null;
+      }
+      setIsHoveringLeftZone(false);
+      return;
+    }
+
+    const handleWindowMouseMove = (e) => {
+      // 1. When sidebar is collapsed: detect if cursor is on far left edge (<= 25px) and wait 1 second
+      if (isSidebarCollapsed) {
+        if (e.clientX <= 25) {
+          if (!leftZoneTimerRef.current) {
+            setIsHoveringLeftZone(true);
+            leftZoneTimerRef.current = setTimeout(() => {
+              setIsSidebarCollapsed(false);
+              setIsHoveringLeftZone(false);
+              leftZoneTimerRef.current = null;
+            }, 1000); // 1 second hold to open automatically
+          }
+        } else {
+          if (leftZoneTimerRef.current) {
+            clearTimeout(leftZoneTimerRef.current);
+            leftZoneTimerRef.current = null;
+            setIsHoveringLeftZone(false);
+          }
+        }
+      } else {
+        // 2. When sidebar is open: detect if cursor moves out into page area (> 270px)
+        if (e.clientX > 270) {
+          if (!autoCloseTimerRef.current) {
+            autoCloseTimerRef.current = setTimeout(() => {
+              setIsSidebarCollapsed(true);
+              autoCloseTimerRef.current = null;
+            }, 100); // Smooth auto-close when entering page
+          }
+        } else {
+          // Inside sidebar: cancel any pending auto-close
+          if (autoCloseTimerRef.current) {
+            clearTimeout(autoCloseTimerRef.current);
+            autoCloseTimerRef.current = null;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      if (leftZoneTimerRef.current) clearTimeout(leftZoneTimerRef.current);
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, [isAutoCollapseEnabled, isSidebarCollapsed]);
+
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
 
@@ -162,7 +336,67 @@ const ManagerLayout = ({ children }) => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, currentUser } = useAuth();
+
+  // Close the drawer after navigating on small screens.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      setIsSidebarCollapsed(true);
+    }
+  }, [location.pathname]);
+  const { logout, currentUser, role } = useAuth();
+
+  const storedUser = (() => {
+    try {
+      const raw = localStorage.getItem("user") || localStorage.getItem("printz_user");
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  const storedRole = (localStorage.getItem("userRole") || storedUser?.role || "").toLowerCase();
+  const effectiveRole = (role || currentUser?.role || storedRole || "").toLowerCase();
+  const effectiveName = (userName || currentUser?.name || storedUser?.name || localStorage.getItem("userName") || "").toLowerCase();
+  const effectiveEmail = (currentUser?.email || storedUser?.email || localStorage.getItem("userEmail") || "").toLowerCase();
+
+  const isStudioDesigner =
+    effectiveRole === "designer" ||
+    location.pathname.startsWith("/design") ||
+    location.pathname.startsWith("/designer") ||
+    ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah"].some((name) =>
+      effectiveName.includes(name)
+    ) ||
+    ["ali.hassan", "siti.rahman", "kumar.anil", "john.lee", "nur.aisyah"].some((prefix) =>
+      effectiveEmail.includes(prefix)
+    );
+
+  const isDesigner = isStudioDesigner;
+
+  // Route lock: If designer, allow design routes
+  useEffect(() => {
+    if (isDesigner) {
+      const isAllowedDesignRoute =
+        location.pathname.startsWith("/design") ||
+        location.pathname.startsWith("/jobflow/design") ||
+        location.pathname.startsWith("/v3/design") ||
+        location.pathname.startsWith("/jobflow/designer-jobs") ||
+        location.pathname.startsWith("/designer-jobs") ||
+        location.pathname.startsWith("/jobflow/jobs/new") ||
+        location.pathname.startsWith("/jobs/new") ||
+        location.pathname.startsWith("/production") ||
+        location.pathname.startsWith("/quality-control") ||
+        location.pathname.startsWith("/delivery");
+      if (!isAllowedDesignRoute) {
+        navigate("/jobflow/design?view=my-jobs", { replace: true });
+        return;
+      }
+      const params = new URLSearchParams(location.search);
+      const view = params.get("view");
+      if (view === "queue") {
+        navigate("/jobflow/design?view=my-jobs", { replace: true });
+      }
+    }
+  }, [isDesigner, location.pathname, location.search, navigate]);
+
 
   // Dynamic user initials
   const userInitials = (() => {
@@ -242,11 +476,389 @@ const ManagerLayout = ({ children }) => {
 
   const isActiveRoute = (route) => location.pathname === route;
 
+  // Design Route & State
+  const isDesignRoute =
+    location.pathname.startsWith("/design") ||
+    location.pathname.startsWith("/jobflow/design") ||
+    location.pathname.startsWith("/v3/design") ||
+    location.pathname.startsWith("/jobflow/designer-jobs") ||
+    location.pathname.startsWith("/designer-jobs");
+
+  const [isDesignToggled, setIsDesignToggled] = useState(null);
+  const isDesignOpen = isDesigner ? (isDesignToggled !== null ? isDesignToggled : true) : (isDesignToggled !== null ? isDesignToggled : isDesignRoute);
+
+  const currentDesignTab = (() => {
+    if (!isDesignRoute) return "";
+    if (
+      location.pathname.startsWith("/jobflow/designer-jobs/new") ||
+      location.pathname.startsWith("/designer-jobs/new")
+    ) {
+      return "designer-jobs-new";
+    }
+    if (
+      location.pathname.startsWith("/jobflow/designer-jobs") ||
+      location.pathname.startsWith("/designer-jobs")
+    ) {
+      return "designer-jobs";
+    }
+    const params = new URLSearchParams(location.search);
+    const view = params.get("view") || params.get("tab");
+    if (view) {
+      if (isDesigner && view === "queue") return "my-jobs";
+      return view;
+    }
+    if (
+      location.pathname.includes("/workbench") ||
+      location.pathname.includes("/workspace")
+    ) {
+      return "workbench";
+    }
+    return isDesigner ? "my-jobs" : "queue";
+  })();
+
+  const handleDesignClick = () => {
+    if (isDesigner) {
+      navigate("/jobflow/design?view=my-jobs");
+      setIsDesignToggled(true);
+    } else if (!isDesignRoute) {
+      navigate("/jobflow/design?view=queue");
+      setIsDesignToggled(true);
+    } else {
+      setIsDesignToggled(!isDesignOpen);
+    }
+  };
+
+
+  const handleDesignToggleClick = (e) => {
+    e.stopPropagation();
+    setIsDesignToggled(!isDesignOpen);
+  };
+
+  // Production Route & State
+  const isProductionRoute =
+    location.pathname.startsWith("/production") ||
+    location.pathname.startsWith("/jobflow/production") ||
+    location.pathname.startsWith("/jobflow/production-planning") ||
+    location.pathname.startsWith("/jobflow/production/planning") ||
+    location.pathname.startsWith("/v3/production");
+
+  const [isProductionToggled, setIsProductionToggled] = useState(null);
+
+  const isProductionOpen =
+    isProductionToggled !== null ? isProductionToggled : isProductionRoute;
+
+  const currentProductionTab = (() => {
+    if (!isProductionRoute) return "";
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab === "details") return "orders";
+    if (tab) return tab;
+    if (
+      location.pathname.includes("/production/planning") ||
+      location.pathname.includes("production-planning")
+    ) {
+      return "planning";
+    }
+    if (location.pathname.includes("/production/orders")) return "orders";
+    if (location.pathname.includes("/production/queue")) return "queue";
+    if (location.pathname.includes("/production/completed")) return "completed";
+    if (location.pathname.includes("/production/rework")) return "rework";
+    if (location.pathname.includes("/production/reprints")) return "reprints";
+    if (location.pathname.includes("/production/machines")) return "machines";
+    if (location.pathname.includes("/production/reports")) return "reports";
+    return "overview";
+  })();
+
+  const handleProductionClick = (e) => {
+    if (!isProductionRoute) {
+      navigate("/jobflow/production?tab=overview");
+      setIsProductionToggled(true);
+    } else {
+      setIsProductionToggled(!isProductionOpen);
+    }
+  };
+
+  const handleProductionToggleClick = (e) => {
+    e.stopPropagation();
+    setIsProductionToggled(!isProductionOpen);
+  };
+
+  // QC Route & State
+  const isQcRoute =
+    location.pathname.startsWith("/quality-control") ||
+    location.pathname.startsWith("/jobflow/qc") ||
+    location.pathname.startsWith("/v3/quality-control");
+
+  const [isQcToggled, setIsQcToggled] = useState(null);
+  const isQcOpen = isQcToggled !== null ? isQcToggled : isQcRoute;
+
+  const currentQcTab = (() => {
+    if (!isQcRoute) return "";
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab === "15A" || tab === "queue" || tab === "overview" || tab === "dashboard") return "overview";
+    if (tab === "15B" || tab === "form" || tab === "inspection") return "inspection";
+    if (tab === "16A" || tab === "rework" || tab === "rework-requests") return "rework-requests";
+    if (tab === "16B" || tab === "reprints" || tab === "reprint" || tab === "reprint-approvals") return "reprint-approvals";
+    if (tab === "incoming") return "incoming";
+    if (tab === "passed") return "passed";
+    if (tab === "failed") return "failed";
+    if (tab === "reinspection") return "reinspection";
+    if (tab === "history") return "history";
+    if (tab === "reports") return "reports";
+    if (location.pathname.includes("/qc/incoming")) return "incoming";
+    if (location.pathname.includes("/qc/inspection")) return "inspection";
+    if (location.pathname.includes("/qc/passed")) return "passed";
+    if (location.pathname.includes("/qc/failed")) return "failed";
+    if (location.pathname.includes("/qc/rework")) return "rework-requests";
+    if (location.pathname.includes("/qc/reprint")) return "reprint-approvals";
+    if (location.pathname.includes("/qc/reinspection")) return "reinspection";
+    if (location.pathname.includes("/qc/history")) return "history";
+    if (location.pathname.includes("/qc/reports")) return "reports";
+    return tab || "overview";
+  })();
+
+  const handleQcClick = () => {
+    if (!isQcRoute) {
+      navigate("/jobflow/qc?tab=overview");
+      setIsQcToggled(true);
+    } else {
+      setIsQcToggled(!isQcOpen);
+    }
+  };
+
+  const handleQcToggleClick = (e) => {
+    e.stopPropagation();
+    setIsQcToggled(!isQcOpen);
+  };
+
+  // Delivery Route & State
+  const isDeliveryRoute =
+    location.pathname.startsWith("/delivery") ||
+    location.pathname.startsWith("/jobflow/delivery") ||
+    location.pathname.startsWith("/v3/delivery");
+
+  const [isDeliveryToggled, setIsDeliveryToggled] = useState(null);
+  const isDeliveryOpen =
+    isDeliveryToggled !== null ? isDeliveryToggled : isDeliveryRoute;
+
+  const currentDeliveryTab = (() => {
+    if (!isDeliveryRoute) return "";
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab) return tab.toUpperCase();
+    return "REVIEW";
+  })();
+
+  const handleDeliveryClick = () => {
+    if (!isDeliveryRoute) {
+      navigate("/jobflow/delivery?tab=REVIEW");
+      setIsDeliveryToggled(true);
+    } else {
+      setIsDeliveryToggled(!isDeliveryOpen);
+    }
+  };
+
+  const handleDeliveryToggleClick = (e) => {
+    e.stopPropagation();
+    setIsDeliveryToggled(!isDeliveryOpen);
+  };
+
+  // Invoice Route & State
+  const isInvoiceRoute =
+    location.pathname.startsWith("/invoice") ||
+    location.pathname.startsWith("/invoices") ||
+    location.pathname.startsWith("/jobflow/invoice") ||
+    location.pathname.startsWith("/v3/invoice");
+
+  const [isInvoiceToggled, setIsInvoiceToggled] = useState(null);
+  const isInvoiceOpen =
+    isInvoiceToggled !== null ? isInvoiceToggled : isInvoiceRoute;
+
+  const currentInvoiceTab = (() => {
+    if (!isInvoiceRoute) return "";
+    const params = new URLSearchParams(location.search);
+    const tab = (params.get("tab") || "").toUpperCase();
+    if (tab === "INVOICES_LEDGER" || tab === "LEDGER") return "INVOICES_LEDGER";
+    return "PENDING_QUEUE";
+  })();
+
+  const handleInvoiceClick = () => {
+    if (!isInvoiceRoute) {
+      navigate("/jobflow/invoice?tab=PENDING_QUEUE");
+      setIsInvoiceToggled(true);
+    } else {
+      setIsInvoiceToggled(!isInvoiceOpen);
+    }
+  };
+
+  const handleInvoiceToggleClick = (e) => {
+    e.stopPropagation();
+    setIsInvoiceToggled(!isInvoiceOpen);
+  };
+
+  // Settlement Route & State
+  const isSettlementRoute =
+    location.pathname.startsWith("/settlement") ||
+    location.pathname.startsWith("/jobflow/settlement") ||
+    location.pathname.startsWith("/v3/settlement");
+
+  const [isSettlementToggled, setIsSettlementToggled] = useState(null);
+  const isSettlementOpen =
+    isSettlementToggled !== null ? isSettlementToggled : isSettlementRoute;
+
+  // Attendance Route & State
+  const isAttendanceRoute = location.pathname.startsWith("/attendance");
+  const [isAttendanceToggled, setIsAttendanceToggled] = useState(null);
+  const isAttendanceOpen =
+    isAttendanceToggled !== null ? isAttendanceToggled : isAttendanceRoute;
+
+  const handleAttendanceClick = () => {
+    if (!isAttendanceRoute) {
+      navigate("/attendance/daily");
+      setIsAttendanceToggled(true);
+    } else {
+      setIsAttendanceToggled(!isAttendanceOpen);
+    }
+  };
+
+  const handleAttendanceToggleClick = (e) => {
+    e.stopPropagation();
+    setIsAttendanceToggled(!isAttendanceOpen);
+  };
+
+  // Salary Route & State
+  const isSalaryRoute = location.pathname.startsWith("/salary");
+  const [isSalaryToggled, setIsSalaryToggled] = useState(null);
+  const isSalaryOpen =
+    isSalaryToggled !== null ? isSalaryToggled : isSalaryRoute;
+
+  const handleSalaryClick = () => {
+    if (!isSalaryRoute) {
+      navigate("/salary/processing");
+      setIsSalaryToggled(true);
+    } else {
+      setIsSalaryToggled(!isSalaryOpen);
+    }
+  };
+
+  const handleSalaryToggleClick = (e) => {
+    e.stopPropagation();
+    setIsSalaryToggled(!isSalaryOpen);
+  };
+
+  // Sale Orders Route & State
+  const isSaleOrdersRoute = location.pathname.startsWith("/sale-orders");
+  const [isSaleOrdersToggled, setIsSaleOrdersToggled] = useState(null);
+  const isSaleOrdersOpen =
+    isSaleOrdersToggled !== null ? isSaleOrdersToggled : isSaleOrdersRoute;
+
+  const handleSaleOrdersClick = () => {
+    if (!isSaleOrdersRoute) {
+      navigate("/sale-orders");
+      setIsSaleOrdersToggled(true);
+    } else {
+      setIsSaleOrdersToggled(!isSaleOrdersOpen);
+    }
+  };
+
+  const handleSaleOrdersToggleClick = (e) => {
+    e.stopPropagation();
+    setIsSaleOrdersToggled(!isSaleOrdersOpen);
+  };
+
+  const currentSettlementTab = (() => {
+    if (!isSettlementRoute) return "";
+    const params = new URLSearchParams(location.search);
+    const tab = (params.get("tab") || "").toUpperCase();
+    if (tab === "CLOSURE_QUEUE" || tab === "CLOSURE" || tab === "FEEDBACK") return "CLOSURE_QUEUE";
+    return "OUTSTANDING_BOARD";
+  })();
+
+  const handleSettlementClick = () => {
+    if (!isSettlementRoute) {
+      navigate("/jobflow/settlement?tab=OUTSTANDING_BOARD");
+      setIsSettlementToggled(true);
+    } else {
+      setIsSettlementToggled(!isSettlementOpen);
+    }
+  };
+
+  const handleSettlementToggleClick = (e) => {
+    e.stopPropagation();
+    setIsSettlementToggled(!isSettlementOpen);
+  };
+
+  // POS Route & State
+  const isPosRoute =
+    location.pathname.startsWith("/pos") ||
+    location.pathname.startsWith("/jobflow/pos") ||
+    location.pathname.startsWith("/sales-receipts") ||
+    location.pathname.startsWith("/pos-receipts");
+
+  const [isPosToggled, setIsPosToggled] = useState(null);
+  const isPosOpen = isPosToggled !== null ? isPosToggled : isPosRoute;
+
+  const currentPosTab = (() => {
+    if (!isPosRoute) return "";
+    const params = new URLSearchParams(location.search);
+    const tab = (params.get("tab") || "").toLowerCase();
+    if (tab === "history" || tab === "ledger") return "history";
+    return "terminal";
+  })();
+
+  const handlePosClick = () => {
+    navigate("/jobflow/pos?tab=terminal");
+    setIsPosToggled(true);
+  };
+
+  const handlePosToggleClick = (e) => {
+    e.stopPropagation();
+    setIsPosToggled(!isPosOpen);
+  };
+
+  // Customers Route & State
+  const isCustomersRoute =
+    location.pathname.startsWith("/customers") ||
+    location.pathname.startsWith("/jobflow/customers") ||
+    location.pathname.startsWith("/v3/customers") ||
+    location.pathname.startsWith("/jobflow/qr-request") ||
+    location.pathname.startsWith("/customer-register");
+
+  const [isCustomersToggled, setIsCustomersToggled] = useState(null);
+  const isCustomersOpen =
+    isCustomersToggled !== null ? isCustomersToggled : isCustomersRoute;
+
+  const currentCustomersTab = (() => {
+    if (!isCustomersRoute) return "";
+    if (
+      location.pathname.includes("/qr-request") ||
+      location.pathname.includes("/customer-register")
+    ) {
+      return "qr-request";
+    }
+    return "directory";
+  })();
+
+  const handleCustomersClick = () => {
+    if (!isCustomersRoute) {
+      navigate("/customers");
+      setIsCustomersToggled(true);
+    } else {
+      setIsCustomersToggled(!isCustomersOpen);
+    }
+  };
+
+  const handleCustomersToggleClick = (e) => {
+    e.stopPropagation();
+    setIsCustomersToggled(!isCustomersOpen);
+  };
+
   const handleLogout = async () => {
     try {
       localStorage.removeItem("userBranchName");
       await logout();
-      navigate("/login");
+      navigate(isDesigner ? "/designer/login" : "/login");
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -260,341 +872,1547 @@ const ManagerLayout = ({ children }) => {
     <div className="layout">
       {/* Sidebar matching Admin aesthetic */}
       <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        {/* Brand Logo Header */}
-        <div
-          className="sidebar-logo-header"
-          onClick={() => navigate("/manager-dashboard")}
-        >
-          <img
-            src={logo}
-            alt="PrintZ Shop"
-            className="sidebar-brand-logo-img"
-          />
+        {/* Brand Logo Header with Close Arrow Button */}
+        <div className="sidebar-logo-header-row">
+          <div
+            className="sidebar-logo-header"
+            onClick={() => navigate(isStudioDesigner ? "/jobflow/design?view=my-jobs" : "/manager-dashboard")}
+            style={{ cursor: "pointer" }}
+          >
+            <img
+              src={logo}
+              alt="PrintZ Shop"
+              className="sidebar-brand-logo-img"
+            />
+          </div>
+          <button
+            type="button"
+            className="sidebar-collapse-arrow-btn"
+            onClick={() => setIsSidebarCollapsed(true)}
+            title="Close sidebar"
+            aria-label="Close sidebar"
+          >
+            <ChevronLeft size={18} />
+          </button>
         </div>
 
-        {/* Branch Identifier Badge */}
-        {branchName && (
-          <div
-            style={{
-              margin: "0 14px 14px 14px",
-              padding: "8px 12px",
-              borderRadius: "10px",
-              background: "rgba(16, 185, 129, 0.12)",
-              border: "1px solid rgba(16, 185, 129, 0.25)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            <Building2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
-            <div style={{ overflow: "hidden" }}>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "rgba(255, 255, 255, 0.6)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  lineHeight: 1.1,
-                  fontWeight: 600,
-                }}
-              >
-                Branch
-              </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "#ffffff",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {branchName}
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Navigation Items */}
         <ul className="sidebar-nav-list">
-          {/* Dashboard */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/manager-dashboard"
-              className={`sidebar-link ${isActiveRoute("/manager-dashboard") ? "active-link" : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <LayoutDashboard size={18} className="sidebar-link-icon" />
-                <span>Dashboard</span>
-              </div>
-              {isActiveRoute("/manager-dashboard") && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
+          {!isDesigner && (
+            <>
+              {/* Dashboard */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/manager-dashboard"
+                  className={`sidebar-link ${isActiveRoute("/manager-dashboard") ? "active-link" : ""
+                    }`}
+                >
+                  <div className="sidebar-link-content">
+                    <LayoutDashboard size={18} className="sidebar-link-icon" />
+                    <span>Dashboard</span>
+                  </div>
+                  {isActiveRoute("/manager-dashboard") && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
 
-          {/* Account Sheet Generation */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/printer-readings-manager"
-              className={`sidebar-link ${isActiveRoute("/printer-readings-manager") ? "active-link" : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <FileText size={18} className="sidebar-link-icon" />
-                <span>Account Sheet</span>
-              </div>
-              {isActiveRoute("/printer-readings-manager") && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
+              {/* Account Sheet Generation */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/printer-readings-manager"
+                  className={`sidebar-link ${isActiveRoute("/printer-readings-manager") ? "active-link" : ""
+                    }`}
+                >
+                  <div className="sidebar-link-content">
+                    <FileText size={18} className="sidebar-link-icon" />
+                    <span>Account Sheet</span>
+                  </div>
+                  {isActiveRoute("/printer-readings-manager") && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
 
-          {/* Generate PDF Report */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/pdf-generator"
-              className={`sidebar-link ${isActiveRoute("/pdf-generator") ? "active-link" : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <FileDown size={18} className="sidebar-link-icon" />
-                <span>Generate PDF Report</span>
-              </div>
-              {isActiveRoute("/pdf-generator") && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
+              {/* Generate PDF Report */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/pdf-generator"
+                  className={`sidebar-link ${isActiveRoute("/pdf-generator") ? "active-link" : ""
+                    }`}
+                >
+                  <div className="sidebar-link-content">
+                    <FileDown size={18} className="sidebar-link-icon" />
+                    <span>Generate PDF Report</span>
+                  </div>
+                  {isActiveRoute("/pdf-generator") && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
 
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/jobflow"
-              className={`sidebar-link ${isActiveRoute("/jobflow") ? "active-link" : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Users size={18} className="sidebar-link-icon" />
-                <span>Overview</span>
-              </div>
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow"
+                  className={`sidebar-link ${isActiveRoute("/jobflow") ? "active-link" : ""
+                    }`}
+                >
+                  <div className="sidebar-link-content">
+                    <Users size={18} className="sidebar-link-icon" />
+                    <span>Overview</span>
+                  </div>
 
-              {isActiveRoute("/jobflow") && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
+                  {isActiveRoute("/jobflow") && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
 
-          {/* JobFlow - Customer Master */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/customers"
-              className={`sidebar-link ${isActiveRoute("/customers") ||
-                  isActiveRoute("/jobflow/customers") ||
-                  isActiveRoute("/v3/customers")
-                  ? "active-link"
-                  : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Users size={18} className="sidebar-link-icon" />
-                <span>Customers</span>
-              </div>
+              {/* Sale Orders with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleSaleOrdersClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSaleOrdersClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isSaleOrdersRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isSaleOrdersRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <PackageCheck
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isSaleOrdersRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Sale Orders</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaleOrdersToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isSaleOrdersRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isSaleOrdersOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Sale Orders submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
 
-              {(isActiveRoute("/customers") ||
-                isActiveRoute("/jobflow/customers") ||
-                isActiveRoute("/v3/customers")) && (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
-            </NavLink>
-          </li>
+                <MotionAccordion isOpen={isSaleOrdersOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/sale-orders"
+                        className={`sidebar-dropdown-link ${
+                          location.pathname === "/sale-orders" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-content">
+                          <span className="sidebar-dropdown-text">All Orders</span>
+                        </div>
+                        {location.pathname === "/sale-orders" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/sale-orders/new"
+                        className={`sidebar-dropdown-link ${
+                          location.pathname === "/sale-orders/new" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-content">
+                          <span className="sidebar-dropdown-text">New Order</span>
+                        </div>
+                        {location.pathname === "/sale-orders/new" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
 
-          {/* JobFlow - Job Orders */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/jobs"
-              className={`sidebar-link ${isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs") ? "active-link" : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Briefcase size={18} className="sidebar-link-icon" />
-                <span>Job Orders</span>
-              </div>
-              {(isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
+              {/* Attendance with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleAttendanceClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleAttendanceClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isAttendanceRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isAttendanceRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <Clock
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isAttendanceRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Attendance</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAttendanceToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isAttendanceRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isAttendanceOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Attendance submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
 
-          {/* JobFlow - Estimates & Quotations */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/estimates"
-              className={`sidebar-link ${isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates") ? "active-link" : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Calculator size={18} className="sidebar-link-icon" />
-                <span>Estimates & Quotes</span>
-              </div>
-              {(isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
+                <MotionAccordion isOpen={isAttendanceOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/attendance/daily"
+                        className={`sidebar-dropdown-link ${location.pathname === "/attendance/daily" || location.pathname === "/attendance" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Clock size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Daily Attendance</span>
+                        </div>
+                        {(location.pathname === "/attendance/daily" || location.pathname === "/attendance") && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/attendance/permissions"
+                        className={`sidebar-dropdown-link ${location.pathname === "/attendance/permissions" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <CheckCircle2 size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Permissions</span>
+                        </div>
+                        {location.pathname === "/attendance/permissions" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/attendance/reports"
+                        className={`sidebar-dropdown-link ${location.pathname === "/attendance/reports" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <BarChart2 size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Reports</span>
+                        </div>
+                        {location.pathname === "/attendance/reports" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
 
-          {/* JobFlow - Design Workflow */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/design"
-              className={`sidebar-link ${isActiveRoute("/design") ||
-                  isActiveRoute("/jobflow/design") ||
-                  isActiveRoute("/v3/design") ||
-                  isActiveRoute("/design/workbench") ||
-                  isActiveRoute("/design/workspace") ||
-                  location.pathname.startsWith("/design") ||
-                  location.pathname.startsWith("/jobflow/design")
-                  ? "active-link"
-                  : ""
-                }`}
-              style={({ isActive }) =>
-                isActive ||
-                  location.pathname.startsWith("/design") ||
-                  location.pathname.startsWith("/jobflow/design")
-                  ? {
-                    backgroundColor: "rgba(22, 163, 74, 0.15)",
-                    borderLeft: "3px solid #16a34a",
-                    color: "#ffffff",
+              {/* Salary & Payroll with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleSalaryClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSalaryClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isSalaryRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isSalaryRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <Banknote
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isSalaryRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Salary & Payroll</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSalaryToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isSalaryRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isSalaryOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Salary submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isSalaryOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/salary/setup"
+                        className={`sidebar-dropdown-link ${
+                          location.pathname === "/salary/setup" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-content">
+                          <span className="sidebar-dropdown-text">Salary Setup</span>
+                        </div>
+                        {location.pathname === "/salary/setup" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/salary/loans-adjustments"
+                        className={`sidebar-dropdown-link ${
+                          location.pathname === "/salary/loans-adjustments" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-content">
+                          <span className="sidebar-dropdown-text">Loans & Adjustments</span>
+                        </div>
+                        {location.pathname === "/salary/loans-adjustments" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/salary/processing"
+                        className={`sidebar-dropdown-link ${
+                          location.pathname === "/salary/processing" || location.pathname === "/salary" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-content">
+                          <span className="sidebar-dropdown-text">Payroll Processing</span>
+                        </div>
+                        {(location.pathname === "/salary/processing" || location.pathname === "/salary") && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/salary/records"
+                        className={`sidebar-dropdown-link ${
+                          location.pathname === "/salary/records" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-content">
+                          <span className="sidebar-dropdown-text">Salary Records</span>
+                        </div>
+                        {location.pathname === "/salary/records" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* POS Counter Billing with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handlePosClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handlePosClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isPosRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isPosRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <ShoppingCart
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isPosRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>POS Billing</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePosToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isPosRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isPosOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle POS submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isPosOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/pos?tab=terminal"
+                        className={`sidebar-dropdown-link ${currentPosTab === "terminal" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <ShoppingCart size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text"> Counter Billing</span>
+                        </div>
+                        {currentPosTab === "terminal" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/pos?tab=history"
+                        className={`sidebar-dropdown-link ${currentPosTab === "history" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Receipt size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text"> Sales Receipts</span>
+                        </div>
+                        {currentPosTab === "history" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* JobFlow - Customer Master with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleCustomersClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCustomersClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isCustomersRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isCustomersRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <Users
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isCustomersRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Customers</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCustomersToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isCustomersRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isCustomersOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Customers submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isCustomersOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/customers"
+                        className={`sidebar-dropdown-link ${currentCustomersTab === "directory" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Users size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Customer Directory</span>
+                        </div>
+                        {currentCustomersTab === "directory" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qr-request"
+                        className={`sidebar-dropdown-link ${currentCustomersTab === "qr-request" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <QrCode size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Branch QR Form</span>
+                        </div>
+                        {currentCustomersTab === "qr-request" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* JobFlow - Job Orders */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobs"
+                  className={`sidebar-link ${isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs") ? "active-link" : ""
+                    }`}
+                >
+                  <div className="sidebar-link-content">
+                    <Briefcase size={18} className="sidebar-link-icon" />
+                    <span>Job Orders</span>
+                  </div>
+                  {(isActiveRoute("/jobs") || isActiveRoute("/jobflow/jobs") || isActiveRoute("/v3/jobs")) && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+
+              {/* JobFlow - Estimates & Quotations */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/estimates"
+                  className={`sidebar-link ${isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates") ? "active-link" : ""
+                    }`}
+                >
+                  <div className="sidebar-link-content">
+                    <Calculator size={18} className="sidebar-link-icon" />
+                    <span>Estimates & Quotes</span>
+                  </div>
+                  {(isActiveRoute("/estimates") || isActiveRoute("/jobflow/estimates") || isActiveRoute("/v3/estimates")) && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+
+              {/* JobFlow - Invoice Generation (Direct navigation without ledger submenu) */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow/invoice"
+                  className={({ isActive }) =>
+                    `sidebar-link ${
+                      isActive || isInvoiceRoute
+                        ? "active-link"
+                        : ""
+                    }`
                   }
-                  : {}
-              }
-            >
-              <div className="sidebar-link-content">
-                <Palette
-                  size={18}
-                  className="sidebar-link-icon"
                   style={
-                    location.pathname.startsWith("/design") ||
-                      location.pathname.startsWith("/jobflow/design")
-                      ? { color: "#16a34a" }
+                    isInvoiceRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
                       : {}
                   }
-                />
-                <span>Design</span>
-              </div>
-              {(isActiveRoute("/design") ||
-                isActiveRoute("/jobflow/design") ||
-                isActiveRoute("/v3/design") ||
-                isActiveRoute("/design/workbench") ||
-                isActiveRoute("/design/workspace") ||
-                location.pathname.startsWith("/design") ||
-                location.pathname.startsWith("/jobflow/design")) && (
-                  <ChevronRight
-                    size={15}
-                    className="sidebar-active-arrow"
-                    style={{ color: "#16a34a" }}
+                >
+                  <div className="sidebar-link-content">
+                    <Receipt
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isInvoiceRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Invoice</span>
+                  </div>
+                  {isInvoiceRoute && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+            </>
+          )}
+
+          {/* JobFlow - Design Workflow with Submenu (Shown ONLY for Managers) */}
+          {!isDesigner && (
+            <li className="sidebar-nav-item">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handleDesignClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleDesignClick();
+                  }
+                }}
+                className={`sidebar-link ${isDesignRoute ? "active-link" : ""}`}
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  ...(isDesignRoute
+                    ? {
+                      backgroundColor: "rgba(22, 163, 74, 0.15)",
+                      borderLeft: "3px solid #16a34a",
+                      color: "#ffffff",
+                    }
+                    : {}),
+                }}
+              >
+                <div className="sidebar-link-content">
+                  <Palette
+                    size={18}
+                    className="sidebar-link-icon"
+                    style={isDesignRoute ? { color: "#16a34a" } : {}}
                   />
-                )}
-            </NavLink>
-          </li>
-
-          {/* JobFlow - Production Operations */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/production"
-              className={`sidebar-link ${isActiveRoute("/production") ||
-                  isActiveRoute("/jobflow/production") ||
-                  isActiveRoute("/jobflow/production-planning") ||
-                  isActiveRoute("/jobflow/production/planning") ||
-                  isActiveRoute("/production/planning") ||
-                  isActiveRoute("/production-planning") ||
-                  isActiveRoute("/v3/production")
-                  ? "active-link"
-                  : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Layers size={18} className="sidebar-link-icon" />
-                <span>Production</span>
+                  <span>Design</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDesignToggleClick}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    padding: "4px",
+                    cursor: "pointer",
+                    color: isDesignRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "transform 0.2s ease",
+                    transform: isDesignOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                  aria-label="Toggle Design submenu"
+                >
+                  <ChevronDown size={15} className="sidebar-link-icon" />
+                </button>
               </div>
-              {(isActiveRoute("/production") ||
-                isActiveRoute("/jobflow/production") ||
-                isActiveRoute("/jobflow/production-planning") ||
-                isActiveRoute("/jobflow/production/planning") ||
-                isActiveRoute("/production/planning") ||
-                isActiveRoute("/production-planning") ||
-                isActiveRoute("/v3/production")) && (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
-            </NavLink>
-          </li>
 
-          {/* JobFlow - Quality Control */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/quality-control"
-              className={`sidebar-link ${isActiveRoute("/quality-control") ||
-                isActiveRoute("/jobflow/qc") ||
-                isActiveRoute("/v3/quality-control")
-                ? "active-link"
-                : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <ShieldCheck size={18} className="sidebar-link-icon" />
-                <span>Quality Control</span>
-              </div>
-              {(isActiveRoute("/quality-control") ||
-                isActiveRoute("/jobflow/qc") ||
-                isActiveRoute("/v3/quality-control")) && (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
-            </NavLink>
-          </li>
+              <MotionAccordion isOpen={isDesignOpen}>
+                <ul className="sidebar-dropdown-list">
+                  <li className="sidebar-dropdown-item">
+                    <Link
+                      to="/jobflow/design?view=queue"
+                      className={`sidebar-dropdown-link ${currentDesignTab === "queue" ? "active" : ""}`}
+                    >
+                      <div className="sidebar-dropdown-link-left">
+                        <Palette size={13} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Design Queue</span>
+                      </div>
+                      {currentDesignTab === "queue" && (
+                        <span className="sidebar-dropdown-active-dot" />
+                      )}
+                    </Link>
+                  </li>
+                  <li className="sidebar-dropdown-item">
+                    <Link
+                      to="/jobflow/design?view=workbench"
+                      className={`sidebar-dropdown-link ${currentDesignTab === "workbench" || currentDesignTab === "workspace" ? "active" : ""}`}
+                    >
+                      <div className="sidebar-dropdown-link-left">
+                        <Edit2 size={13} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Design Workbench</span>
+                      </div>
+                      {(currentDesignTab === "workbench" || currentDesignTab === "workspace") && (
+                        <span className="sidebar-dropdown-active-dot" />
+                      )}
+                    </Link>
+                  </li>
+                  <li className="sidebar-dropdown-item">
+                    <Link
+                      to="/jobflow/design?view=my-jobs"
+                      className={`sidebar-dropdown-link ${currentDesignTab === "my-jobs" ? "active" : ""}`}
+                    >
+                      <div className="sidebar-dropdown-link-left">
+                        <UserCheck size={13} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Designer My Jobs</span>
+                      </div>
+                      {currentDesignTab === "my-jobs" && (
+                        <span className="sidebar-dropdown-active-dot" />
+                      )}
+                    </Link>
+                  </li>
+                  <li className="sidebar-dropdown-item">
+                    <Link
+                      to="/jobflow/design?view=customer-proof"
+                      className={`sidebar-dropdown-link ${currentDesignTab === "customer-proof" ? "active" : ""}`}
+                    >
+                      <div className="sidebar-dropdown-link-left">
+                        <MessageCircle size={13} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Customer Proof Review</span>
+                      </div>
+                      {currentDesignTab === "customer-proof" && (
+                        <span className="sidebar-dropdown-active-dot" />
+                      )}
+                    </Link>
+                  </li>
+                  <li className="sidebar-dropdown-item">
+                    <Link
+                      to="/jobflow/designer-jobs"
+                      className={`sidebar-dropdown-link ${currentDesignTab === "designer-jobs" ? "active" : ""}`}
+                    >
+                      <div className="sidebar-dropdown-link-left">
+                        <FolderOpen size={13} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Designer Job Orders</span>
+                      </div>
+                      {currentDesignTab === "designer-jobs" && (
+                        <span className="sidebar-dropdown-active-dot" />
+                      )}
+                    </Link>
+                  </li>
+                </ul>
+              </MotionAccordion>
+            </li>
+          )}
 
-          {/* JobFlow - Delivery Management */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/delivery"
-              className={`sidebar-link ${isActiveRoute("/delivery") ||
-                isActiveRoute("/jobflow/delivery")
-                ? "active-link"
-                : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Truck size={18} className="sidebar-link-icon" />
-                <span>Delivery</span>
-              </div>
-              {(isActiveRoute("/delivery") ||
-                isActiveRoute("/jobflow/delivery")) && (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
-            </NavLink>
-          </li>
+          {/* Flat Designer Sidebar Navigation (No parent-child nesting) */}
+          {isDesigner && (
+            <>
+              {/* 1. Designer My Jobs */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow/design?view=my-jobs"
+                  className={`sidebar-link ${
+                    isDesignRoute && (currentDesignTab === "my-jobs" || !currentDesignTab)
+                      ? "active-link"
+                      : ""
+                  }`}
+                >
+                  <div className="sidebar-link-content">
+                    <UserCheck size={18} className="sidebar-link-icon" />
+                    <span>Designer My Jobs</span>
+                  </div>
+                  {isDesignRoute && (currentDesignTab === "my-jobs" || !currentDesignTab) && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
 
-          {/* JobFlow - Settlement */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/settlement"
-              className={`sidebar-link ${isActiveRoute("/settlement") ||
-                isActiveRoute("/jobflow/settlement")
-                ? "active-link"
-                : ""
-                }`}
-            >
-              <div className="sidebar-link-content">
-                <Receipt size={18} className="sidebar-link-icon" />
-                <span>Settlement</span>
-              </div>
-              {(isActiveRoute("/settlement") ||
-                isActiveRoute("/jobflow/settlement")) && (
-                  <ChevronRight size={15} className="sidebar-active-arrow" />
-                )}
-            </NavLink>
-          </li>
+              {/* 2. Design Workbench */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow/design?view=workbench"
+                  className={`sidebar-link ${
+                    isDesignRoute && (currentDesignTab === "workbench" || currentDesignTab === "workspace")
+                      ? "active-link"
+                      : ""
+                  }`}
+                >
+                  <div className="sidebar-link-content">
+                    <Edit2 size={18} className="sidebar-link-icon" />
+                    <span>Design Workbench</span>
+                  </div>
+                  {isDesignRoute && (currentDesignTab === "workbench" || currentDesignTab === "workspace") && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+
+              {/* 3. Customer Review */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow/design?view=customer-proof"
+                  className={`sidebar-link ${
+                    isDesignRoute && currentDesignTab === "customer-proof" ? "active-link" : ""
+                  }`}
+                >
+                  <div className="sidebar-link-content">
+                    <MessageCircle size={18} className="sidebar-link-icon" />
+                    <span>Customer Review</span>
+                  </div>
+                  {isDesignRoute && currentDesignTab === "customer-proof" && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+
+              {/* 4. Designer Job Orders */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow/designer-jobs"
+                  className={`sidebar-link ${
+                    isActiveRoute("/jobflow/designer-jobs") || isActiveRoute("/designer-jobs")
+                      ? "active-link"
+                      : ""
+                  }`}
+                >
+                  <div className="sidebar-link-content">
+                    <FolderOpen size={18} className="sidebar-link-icon" />
+                    <span>Designer Job Orders</span>
+                  </div>
+                  {(isActiveRoute("/jobflow/designer-jobs") || isActiveRoute("/designer-jobs")) && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+            </>
+          )}
+
+          {!isDesigner && (
+            <>
+              {/* JobFlow - Production Operations with Submenu */}
+              <li className="sidebar-nav-item">
+
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleProductionClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleProductionClick(e);
+                    }
+                  }}
+                  className={`sidebar-link ${isProductionRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isProductionRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <Layers
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isProductionRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Production</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleProductionToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isProductionRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isProductionOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Production submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isProductionOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    {/* OVERVIEW */}
+                    <li className="sidebar-dropdown-section-header">Overview</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/dashboard"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "overview" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <LayoutDashboard size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Production Dashboard</span>
+                        </div>
+                        {currentProductionTab === "overview" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/orders"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "orders" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <ClipboardList size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Production Orders</span>
+                        </div>
+                        {currentProductionTab === "orders" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/planning"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "planning" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Calendar size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Production Planning</span>
+                        </div>
+                        {currentProductionTab === "planning" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* EXECUTION */}
+                    <li className="sidebar-dropdown-section-header">Execution</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/queue"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "queue" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Sliders size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Operation Queue</span>
+                        </div>
+                        {currentProductionTab === "queue" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/completed"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "completed" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <CheckCircle size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Completed Production</span>
+                        </div>
+                        {currentProductionTab === "completed" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* REWORK MANAGEMENT: one page, with Rework and Reprint tabs inside */}
+                    <li className="sidebar-dropdown-section-header">Rework Management</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/rework"
+                        className={`sidebar-dropdown-link ${
+                          currentProductionTab === "rework" || currentProductionTab === "reprints" ? "active" : ""
+                        }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <RotateCcw size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Rework & Reprint</span>
+                        </div>
+                        {(currentProductionTab === "rework" || currentProductionTab === "reprints") && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* MONITORING */}
+                    <li className="sidebar-dropdown-section-header">Monitoring</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/machines"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "machines" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Monitor size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Machine & Operator Tracking</span>
+                        </div>
+                        {currentProductionTab === "machines" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/reports"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "reports" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <BarChart2 size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Production Reports</span>
+                        </div>
+                        {currentProductionTab === "reports" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* JobFlow - Quality Control with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleQcClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleQcClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isQcRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isQcRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <ShieldCheck
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isQcRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Quality Control</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleQcToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isQcRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isQcOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle QC submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isQcOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    {/* OVERVIEW */}
+                    <li className="sidebar-dropdown-section-header">Overview</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=overview"
+                        className={`sidebar-dropdown-link ${currentQcTab === "overview" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <LayoutDashboard size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">QC Dashboard</span>
+                        </div>
+                        {currentQcTab === "overview" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=incoming"
+                        className={`sidebar-dropdown-link ${currentQcTab === "incoming" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Package size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Incoming QC Queue</span>
+                        </div>
+                        {currentQcTab === "incoming" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* INSPECTION */}
+                    <li className="sidebar-dropdown-section-header">Inspection</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=inspection"
+                        className={`sidebar-dropdown-link ${currentQcTab === "inspection" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <FileCheck size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">QC Inspection</span>
+                        </div>
+                        {currentQcTab === "inspection" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=passed"
+                        className={`sidebar-dropdown-link ${currentQcTab === "passed" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <CheckCircle2 size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Passed Inspections</span>
+                        </div>
+                        {currentQcTab === "passed" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=failed"
+                        className={`sidebar-dropdown-link ${currentQcTab === "failed" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <AlertTriangle size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Failed Inspections</span>
+                        </div>
+                        {currentQcTab === "failed" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* SMART REWORK */}
+                    <li className="sidebar-dropdown-section-header">Smart Rework</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=rework-requests"
+                        className={`sidebar-dropdown-link ${currentQcTab === "rework-requests" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <RotateCcw size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Rework Requests</span>
+                        </div>
+                        {currentQcTab === "rework-requests" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=reprint-approvals"
+                        className={`sidebar-dropdown-link ${currentQcTab === "reprint-approvals" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <ShieldCheck size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Reprint Approvals</span>
+                        </div>
+                        {currentQcTab === "reprint-approvals" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=reinspection"
+                        className={`sidebar-dropdown-link ${currentQcTab === "reinspection" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <RefreshCw size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">QC Reinspection Queue</span>
+                        </div>
+                        {currentQcTab === "reinspection" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* MONITORING */}
+                    <li className="sidebar-dropdown-section-header">Monitoring</li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=history"
+                        className={`sidebar-dropdown-link ${currentQcTab === "history" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Clock size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">QC History</span>
+                        </div>
+                        {currentQcTab === "history" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/qc?tab=reports"
+                        className={`sidebar-dropdown-link ${currentQcTab === "reports" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <BarChart2 size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">QC Reports</span>
+                        </div>
+                        {currentQcTab === "reports" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* JobFlow - Delivery Management with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleDeliveryClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleDeliveryClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isDeliveryRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isDeliveryRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <Truck
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isDeliveryRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Delivery</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDeliveryToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isDeliveryRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isDeliveryOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Delivery submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isDeliveryOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/delivery?tab=REVIEW"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "REVIEW" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <ShieldCheck size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Ready for Review</span>
+                        </div>
+                        {currentDeliveryTab === "REVIEW" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/delivery?tab=ASSIGNED"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "ASSIGNED" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Send size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Assigned Staff</span>
+                        </div>
+                        {currentDeliveryTab === "ASSIGNED" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/delivery?tab=PACKED"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "PACKED" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <PackageCheck size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Packed & Verified</span>
+                        </div>
+                        {currentDeliveryTab === "PACKED" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/delivery?tab=OUT_FOR_DELIVERY"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "OUT_FOR_DELIVERY" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Truck size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Out for Delivery</span>
+                        </div>
+                        {currentDeliveryTab === "OUT_FOR_DELIVERY" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/delivery?tab=DELIVERED"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "DELIVERED" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <CheckCircle size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Delivered</span>
+                        </div>
+                        {currentDeliveryTab === "DELIVERED" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* JobFlow - Settlement with Submenu */}
+              <li className="sidebar-nav-item">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleSettlementClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSettlementClick();
+                    }
+                  }}
+                  className={`sidebar-link ${isSettlementRoute ? "active-link" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(isSettlementRoute
+                      ? {
+                        backgroundColor: "rgba(22, 163, 74, 0.15)",
+                        borderLeft: "3px solid #16a34a",
+                        color: "#ffffff",
+                      }
+                      : {}),
+                  }}
+                >
+                  <div className="sidebar-link-content">
+                    <CreditCard
+                      size={18}
+                      className="sidebar-link-icon"
+                      style={isSettlementRoute ? { color: "#16a34a" } : {}}
+                    />
+                    <span>Settlement</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSettlementToggleClick}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      cursor: "pointer",
+                      color: isSettlementRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.2s ease",
+                      transform: isSettlementOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-label="Toggle Settlement submenu"
+                  >
+                    <ChevronDown size={15} className="sidebar-link-icon" />
+                  </button>
+                </div>
+
+                <MotionAccordion isOpen={isSettlementOpen}>
+                  <ul className="sidebar-dropdown-list">
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/settlement?tab=OUTSTANDING_BOARD"
+                        className={`sidebar-dropdown-link ${currentSettlementTab === "OUTSTANDING_BOARD" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <CreditCard size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Outstanding Invoices</span>
+                        </div>
+                        {currentSettlementTab === "OUTSTANDING_BOARD" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/jobflow/settlement?tab=CLOSURE_QUEUE"
+                        className={`sidebar-dropdown-link ${currentSettlementTab === "CLOSURE_QUEUE" ? "active" : ""
+                          }`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Lock size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Job Closure</span>
+                        </div>
+                        {currentSettlementTab === "CLOSURE_QUEUE" && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </MotionAccordion>
+              </li>
+
+              {/* Master Defaults & Specifications */}
+              <li className="sidebar-nav-item">
+                <NavLink
+                  to="/jobflow/master-settings"
+                  className={`sidebar-link ${
+                    isActiveRoute("/master-settings") || isActiveRoute("/jobflow/master-settings") ? "active-link" : ""
+                  }`}
+                >
+                  <div className="sidebar-link-content">
+                    <Sliders size={18} className="sidebar-link-icon" />
+                    <span>Master Defaults</span>
+                  </div>
+                  {(isActiveRoute("/master-settings") || isActiveRoute("/jobflow/master-settings")) && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
+              </li>
+            </>
+          )}
         </ul>
+
 
 
         {/* Bottom Section: PrintZ Sidebar Illustration, Divider & Logout */}
@@ -604,6 +2422,26 @@ const ManagerLayout = ({ children }) => {
           </div>
 
           <div className="sidebar-divider" />
+
+          {/* Auto-Hide Sidebar Feature Toggle */}
+          <div className="sidebar-autohide-toggle-card">
+            <div className="sidebar-autohide-info">
+              <Sliders size={14} className="sidebar-autohide-icon" />
+              <div className="sidebar-autohide-texts">
+                <span className="sidebar-autohide-title">Auto-Hide Sidebar</span>
+              
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`sidebar-switch-toggle ${isAutoCollapseEnabled ? "active" : ""}`}
+              onClick={() => handleToggleAutoCollapse(!isAutoCollapseEnabled)}
+              title={isAutoCollapseEnabled ? "Turn OFF Auto-Hide" : "Turn ON Auto-Hide"}
+              aria-label="Toggle auto-hide sidebar mode"
+            >
+              <span className="sidebar-switch-thumb" />
+            </button>
+          </div>
 
           <button
             type="button"
@@ -615,6 +2453,22 @@ const ManagerLayout = ({ children }) => {
           </button>
         </div>
       </aside>
+
+      {/* Tap-outside backdrop; hidden by CSS above 1024px */}
+      {!isSidebarCollapsed && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setIsSidebarCollapsed(true)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* 1-Second Left Edge Hover Indicator */}
+      {isAutoCollapseEnabled && isSidebarCollapsed && (
+        <div
+          className={`sidebar-left-hover-indicator ${isHoveringLeftZone ? "active" : ""}`}
+        />
+      )}
 
       {/* Main Content Area with Modern Topbar */}
       <div className="main-content-wrap">
@@ -633,10 +2487,10 @@ const ManagerLayout = ({ children }) => {
 
             {/* Breadcrumb Navigation */}
             <div className="topbar-breadcrumb">
-              <span className="breadcrumb-root">Manager</span>
+              <span className="breadcrumb-root">{isDesigner ? "Designer" : "Manager"}</span>
               <span className="breadcrumb-separator">/</span>
               <span className="breadcrumb-current">
-                {getManagerPageTitle(location.pathname)}
+                {getManagerPageTitle(location.pathname, location.search)}
               </span>
             </div>
           </div>
@@ -685,7 +2539,7 @@ const ManagerLayout = ({ children }) => {
                 <div className="user-info-text">
                   <span className="user-info-name">{userName}</span>
                   <span className="user-info-role">
-                    Manager {branchName ? `• ${branchName}` : ""}
+                    {isDesigner ? "Creative Designer" : `Manager ${branchName ? `• ${branchName}` : ""}`}
                   </span>
                 </div>
                 <ChevronDown
@@ -697,57 +2551,63 @@ const ManagerLayout = ({ children }) => {
               </div>
 
               {/* Profile Dropdown */}
-              {isProfileDropdownOpen && (
-                <div className="topbar-dropdown-menu">
-                  <div className="dropdown-user-header">
-                    <p className="dropdown-user-name">{userName}</p>
-                    <p className="dropdown-user-email">
-                      {currentUser?.email || "Manager Account"}
-                    </p>
-                    {branchName && (
-                      <div
-                        style={{
-                          marginTop: "4px",
-                          fontSize: "0.75rem",
-                          color: "#059669",
-                          fontWeight: 600,
-                        }}
-                      >
-                        📍 {branchName} Branch
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      handleProfile();
-                    }}
-                  >
-                    <User size={15} color="#059669" />
-                    <span>My Profile</span>
-                  </button>
-                  <div className="dropdown-divider" />
-                  <button
-                    type="button"
-                    className="dropdown-item dropdown-logout"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      handleLogout();
-                    }}
-                  >
-                    <LogOut size={15} />
-                    <span>Logout</span>
-                  </button>
+              <MotionDropdown
+                isOpen={isProfileDropdownOpen}
+                className="topbar-dropdown-menu"
+              >
+                <div className="dropdown-user-header">
+                  <p className="dropdown-user-name">{userName}</p>
+                  <p className="dropdown-user-email">
+                    {currentUser?.email || (isDesigner ? "Designer Studio Account" : "Manager Account")}
+                  </p>
+
+                  {branchName && (
+                    <div
+                      style={{
+                        marginTop: "4px",
+                        fontSize: "0.75rem",
+                        color: "#059669",
+                        fontWeight: 600,
+                      }}
+                    >
+                      📍 {branchName} Branch
+                    </div>
+                  )}
                 </div>
-              )}
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false);
+                    handleProfile();
+                  }}
+                >
+                  <User size={15} color="#059669" />
+                  <span>My Profile</span>
+                </button>
+                <div className="dropdown-divider" />
+                <button
+                  type="button"
+                  className="dropdown-item dropdown-logout"
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span>Logout</span>
+                </button>
+              </MotionDropdown>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="content-body">{children}</main>
+        <main className="content-body">
+          <PageTransition routeKey={`${location.pathname}${location.search}`}>
+            {children}
+          </PageTransition>
+        </main>
       </div>
     </div>
   );

@@ -613,7 +613,7 @@ const JumboXeroxCsvVerifier = () => {
                   <tbody>
                     {verificationResults.map((result, index) => (
                       <tr key={index}>
-                        <td style={{ textAlign: "center", color: "#64748b", fontWeight: 600 }}>
+                        <td style={{ textAlign: "center", color: "#475569", fontWeight: 600 }}>
                           {index + 1}
                         </td>
                         <td>
@@ -659,7 +659,7 @@ const JumboXeroxCsvVerifier = () => {
             justifyContent: "center",
             padding: "48px 20px",
             gap: "10px",
-            color: "#64748b",
+            color: "#475569",
           }}
         >
           <div className="add-assets-spinner"></div>

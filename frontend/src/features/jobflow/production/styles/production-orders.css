@@ -1,0 +1,1114 @@
+/* ==========================================================================
+   Production Orders Page — Dedicated Stylesheet
+   ========================================================================== */
+
+@import "./production.css";
+
+.production-orders-page {
+  --po-green: #0a6b3a;
+  --po-green-dark: #07552e;
+  --po-green-soft: #e3f2ea;
+  --po-bg: #f1f7f5;
+  --po-card: #ffffff;
+  --po-border: #e3eae7;
+  --po-text: #0f1f1a;
+  --po-muted: #5f6f69;
+  --po-radius: 14px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 1.75rem 3rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  color: var(--po-text);
+  min-width: 0;
+}
+
+.production-orders-page * {
+  box-sizing: border-box;
+}
+
+/* ---------- Header ---------- */
+.production-orders-page .po-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.production-orders-page .po-header-icon {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--po-green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.production-orders-page .po-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.production-orders-page .po-header p {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--po-muted);
+}
+
+/* ---------- Buttons ---------- */
+.production-orders-page .po-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 42px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--po-green);
+  background: #fff;
+  color: var(--po-green);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.production-orders-page .po-btn:hover {
+  background: var(--po-green-soft);
+}
+
+.production-orders-page .po-btn-primary {
+  background: var(--po-green);
+  color: #fff;
+}
+
+.production-orders-page .po-btn-primary:hover {
+  background: var(--po-green-dark);
+  border-color: var(--po-green-dark);
+}
+
+.production-orders-page .po-btn-ghost {
+  border-color: var(--po-border);
+  color: var(--po-muted);
+}
+
+.production-orders-page .po-btn-sm {
+  height: 34px;
+  min-width: 72px;
+  padding: 0 0.9rem;
+  font-size: 0.8125rem;
+}
+
+.production-orders-page .po-btn.is-active {
+  background: var(--po-green-soft);
+}
+
+.production-orders-page .po-btn:focus-visible,
+.production-orders-page .po-kebab:focus-visible,
+.production-orders-page .po-pager button:focus-visible,
+.production-orders-page .po-date-btn:focus-visible {
+  outline: 2px solid var(--po-green);
+  outline-offset: 2px;
+}
+
+/* ---------- Filters ---------- */
+.production-orders-page .po-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) minmax(min(150px, 100%), 1fr) minmax(min(130px, 100%), 1fr) minmax(210px, 1.3fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  background: var(--po-card);
+  border: 1px solid var(--po-border);
+  border-radius: var(--po-radius);
+  padding: 0.9rem 1rem;
+}
+
+.production-orders-page .po-search {
+  position: relative;
+  height: 46px;
+}
+
+.production-orders-page .po-search svg {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--po-muted);
+  pointer-events: none;
+}
+
+.production-orders-page .po-search input {
+  width: 100%;
+  height: 100%;
+  padding: 0 0.9rem 0 2.5rem;
+  border: 1px solid var(--po-border);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--po-text);
+  outline: none;
+}
+
+.production-orders-page .po-search input:focus,
+.production-orders-page .po-field select:focus {
+  border-color: var(--po-green);
+  box-shadow: 0 0 0 3px rgba(10, 107, 58, 0.12);
+}
+
+/* Labelled field (label sits on the border) */
+.production-orders-page .po-field {
+  position: relative;
+  display: block;
+  height: 46px;
+  margin: 0;
+}
+
+.production-orders-page .po-field > span {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  padding: 0 4px;
+  background: #fff;
+  font-size: 0.72rem;
+  color: var(--po-muted);
+  z-index: 1;
+  line-height: 1.2;
+}
+
+.production-orders-page .po-field select {
+  width: 100%;
+  height: 100%;
+  padding: 0 2rem 0 0.85rem;
+  border: 1px solid var(--po-border);
+  border-radius: 8px;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235f6f69' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 0.8rem center;
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--po-text);
+  outline: none;
+  cursor: pointer;
+}
+
+.production-orders-page .po-date-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--po-border);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--po-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.production-orders-page .po-date-btn svg {
+  color: var(--po-muted);
+  flex: none;
+}
+
+.production-orders-page .po-date-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: #fff;
+  border: 1px solid var(--po-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 31, 26, 0.14);
+}
+
+.production-orders-page .po-date-pop label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--po-muted);
+}
+
+.production-orders-page .po-date-pop input {
+  height: 38px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--po-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--po-text);
+}
+
+.production-orders-page .po-filter-btn {
+  height: 46px;
+}
+
+.production-orders-page .po-more-filters {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--po-border);
+  margin-top: 0.25rem;
+}
+
+/* ---------- KPI cards ---------- */
+.production-orders-page .po-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.production-orders-page .po-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  background: var(--po-card);
+  border: 1px solid var(--po-border);
+  border-radius: var(--po-radius);
+  min-width: 0;
+}
+
+.production-orders-page .po-stat-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--po-green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.production-orders-page .po-stat-label {
+  font-size: 0.85rem;
+  color: var(--po-muted);
+  white-space: nowrap;
+}
+
+.production-orders-page .po-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* ---------- Table card ---------- */
+.production-orders-page .po-card {
+  background: var(--po-card);
+  border: 1px solid var(--po-border);
+  border-radius: var(--po-radius);
+  overflow: hidden;
+}
+
+.production-orders-page .po-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.production-orders-page .po-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.production-orders-page .po-card-title h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.production-orders-page .po-card-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--po-green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.production-orders-page .po-table-wrap {
+  overflow-x: auto;
+  padding: 0 1rem;
+}
+
+.production-orders-page .po-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+  min-width: 1100px;
+}
+
+.production-orders-page .po-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f4f8f6;
+  color: var(--po-text);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-align: left;
+  padding: 0.8rem 0.6rem;
+  border-top: 1px solid var(--po-border);
+  border-bottom: 1px solid var(--po-border);
+  white-space: nowrap;
+}
+
+.production-orders-page .po-table thead th:first-child {
+  border-left: 1px solid var(--po-border);
+  border-top-left-radius: 8px;
+}
+
+.production-orders-page .po-table thead th:last-child {
+  border-right: 1px solid var(--po-border);
+  border-top-right-radius: 8px;
+}
+
+.production-orders-page .po-table tbody td {
+  padding: 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--po-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.production-orders-page .po-table tbody tr:hover {
+  background: #f8fbf9;
+}
+
+.production-orders-page .po-table tbody tr.is-selected {
+  background: var(--po-green-soft);
+}
+
+.production-orders-page .po-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 1.1rem;
+}
+
+.production-orders-page .po-table .col-check {
+  width: 40px;
+  text-align: center;
+}
+
+.production-orders-page .po-table .col-actions {
+  width: 1%;
+}
+
+.production-orders-page .po-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--po-green);
+  cursor: pointer;
+}
+
+.production-orders-page .po-number {
+  font-weight: 600;
+}
+
+.production-orders-page .po-empty-row td {
+  text-align: center;
+  padding: 2.5rem 1rem !important;
+  color: var(--po-muted);
+}
+
+/* ---------- Pills ---------- */
+.production-orders-page .po-pill {
+  display: inline-block;
+  min-width: 84px;
+  padding: 0.28rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.production-orders-page .pill-planned,
+.production-orders-page .pill-status-planned {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.production-orders-page .pill-unplanned,
+.production-orders-page .pill-status-on-hold {
+  background: #fde8d2;
+  color: #c2570c;
+}
+
+.production-orders-page .pill-status-in-production,
+.production-orders-page .pill-status-completed {
+  background: #d8f0e1;
+  color: #15803d;
+}
+
+.production-orders-page .pill-status-rework-required {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.production-orders-page .pill-status-cancelled {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+/* ---------- Row actions ---------- */
+.production-orders-page .po-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.production-orders-page .po-kebab {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--po-text);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.production-orders-page .po-kebab:hover {
+  background: var(--po-green-soft);
+}
+
+/* ---------- Footer / pagination ---------- */
+.production-orders-page .po-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+}
+
+.production-orders-page .po-showing {
+  font-size: 0.85rem;
+  color: var(--po-muted);
+}
+
+.production-orders-page .po-pager {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.production-orders-page .po-pager button {
+  min-width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0 0.5rem;
+  border: 1px solid var(--po-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--po-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.production-orders-page .po-pager button:hover:not(:disabled):not(.is-active) {
+  background: var(--po-green-soft);
+}
+
+.production-orders-page .po-pager button.is-active {
+  background: var(--po-green);
+  border-color: var(--po-green);
+  color: #fff;
+}
+
+.production-orders-page .po-pager button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+/* Laptop / small desktop */
+@media (max-width: 1200px) {
+  .production-orders-page .po-filters {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .production-orders-page .po-search {
+    grid-column: 1 / -1;
+  }
+  .production-orders-page .po-filter-btn {
+    grid-column: auto;
+  }
+  .production-orders-page .po-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .production-orders-page .po-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .production-orders-page .po-filter-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+/* Mobile: table rows become cards */
+@media (max-width: 768px) {
+  .production-orders-page {
+    gap: 0.85rem;
+  }
+
+  .production-orders-page .po-header-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .production-orders-page .po-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .production-orders-page .po-header p {
+    font-size: 0.8rem;
+  }
+
+  .production-orders-page .po-filters {
+    grid-template-columns: 1fr;
+    padding: 0.85rem;
+    gap: 0.9rem;
+  }
+
+  .production-orders-page .po-date-pop {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .production-orders-page .po-more-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .production-orders-page .po-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .production-orders-page .po-stat {
+    padding: 0.8rem;
+    gap: 0.65rem;
+  }
+
+  .production-orders-page .po-stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .production-orders-page .po-stat-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .production-orders-page .po-stat-value {
+    font-size: 1.3rem;
+  }
+
+  .production-orders-page .po-card-head {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.9rem;
+  }
+
+  .production-orders-page .po-card-head .po-btn {
+    width: 100%;
+  }
+
+  .production-orders-page .po-table-wrap {
+    padding: 0 0.75rem;
+    overflow-x: visible;
+  }
+
+  .production-orders-page .po-table,
+  .production-orders-page .po-table tbody {
+    display: block;
+    min-width: 0;
+  }
+
+  .production-orders-page .po-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .production-orders-page .po-table tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.75rem;
+    padding: 0.9rem;
+    border: 1px solid var(--po-border);
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .production-orders-page .po-table tbody td {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0;
+    border: none;
+    white-space: normal;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .production-orders-page .po-table tbody td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    color: var(--po-muted);
+    font-weight: 500;
+  }
+
+  .production-orders-page .po-table tbody td[data-label=""]::before {
+    display: none;
+  }
+
+  .production-orders-page .po-table .num {
+    text-align: left;
+    padding-right: 0;
+  }
+
+  /* Card header: checkbox + PO number + index */
+  .production-orders-page .po-table .col-check {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: auto;
+  }
+
+  .production-orders-page .po-table .col-index {
+    display: none;
+  }
+
+  .production-orders-page .po-table .po-number {
+    grid-column: 1 / -1;
+    font-size: 1rem;
+    padding-right: 2rem;
+  }
+
+  .production-orders-page .po-table tbody td[data-label="Customer"],
+  .production-orders-page .po-table tbody td[data-label="Product"] {
+    grid-column: auto;
+  }
+
+  .production-orders-page .po-table .col-actions {
+    grid-column: 1 / -1;
+    width: auto;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--po-border);
+  }
+
+  .production-orders-page .po-actions {
+    width: 100%;
+  }
+
+  .production-orders-page .po-actions .po-btn {
+    flex: 1;
+    height: 40px;
+  }
+
+  .production-orders-page .po-kebab {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--po-border);
+  }
+
+  .production-orders-page .po-empty-row {
+    display: block !important;
+    border: none !important;
+  }
+
+  .production-orders-page .po-card-foot {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.9rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .production-orders-page .po-stats {
+    grid-template-columns: 1fr;
+  }
+  .production-orders-page .po-pager button {
+    min-width: 34px;
+    height: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .production-orders-page * {
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Production Orders — Order Detail Modal, Progress, and Action Menu
+   ========================================================================== */
+
+.po2-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.po2-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 880px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.po2-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.po2-modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.po2-sub {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.po2-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.po2-icon-btn {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+
+.po2-icon-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.po2-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.po2-fact span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  font-weight: 600;
+}
+
+.po2-fact div {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-top: 3px;
+}
+
+.po2-section {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.po2-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.po2-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.po2-table th,
+.po2-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.po2-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 650;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.po2-table .num {
+  text-align: right;
+}
+
+.po2-tag {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.po2-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.po2-muted {
+  color: #475569;
+  font-size: 13px;
+}
+
+.po2-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.po2-note {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.po2-note-warn {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.po2-note-danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.po2-menu-wrap {
+  position: relative;
+}
+
+.po2-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  min-width: 175px;
+  z-index: 50;
+  padding: 5px;
+}
+
+.po2-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.po2-menu button:hover {
+  background: #f1f5f9;
+}
+
+.po2-menu button.danger {
+  color: #b91c1c;
+}
+
+.po2-menu button.danger:hover {
+  background: #fef2f2;
+}
+
+.po2-menu-empty {
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.po2-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin: 0 0 14px;
+  font-size: 13.5px;
+}
+
+.po2-banner-icon {
+  vertical-align: -3px;
+  margin-right: 6px;
+}
+
+.po2-banner button {
+  border: 1px solid #fca5a5;
+  background: #ffffff;
+  color: #991b1b;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.po2-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 90px;
+}
+
+.po2-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.po2-progress-bar i {
+  display: block;
+  height: 100%;
+  background: #059669;
+}
+
+.po2-prio {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 7px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.po2-prio.high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.po2-prio.urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Status pills */
+.pill-draft { background: #e0e7ff; color: #3730a3; }
+.pill-status-unassigned { background: #f1f5f9; color: #475569; }
+.pill-status-qc { background: #ede9fe; color: #5b21b6; }
+.pill-status-qc-passed { background: #dcfce7; color: #166534; }
+.pill-status-qc-issue { background: #ffedd5; color: #c2410c; }
+.pill-status-reprint-required { background: #fee2e2; color: #b91c1c; }
+.pill-status-rework-required { background: #ffedd5; color: #c2410c; }
+.pill-status-cancelled { background: #fee2e2; color: #991b1b; }

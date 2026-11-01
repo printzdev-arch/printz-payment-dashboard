@@ -519,7 +519,7 @@ const JumboXeroxList = () => {
       <div className="add-assets-page-container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
         <div style={{ textAlign: "center" }}>
           <div className="jumbo-loading-spinner" style={{ margin: "0 auto 16px" }}></div>
-          <p style={{ color: "#64748b", fontWeight: 500 }}>Loading branch data...</p>
+          <p style={{ color: "#475569", fontWeight: 500 }}>Loading branch data...</p>
         </div>
       </div>
     )
@@ -531,7 +531,7 @@ const JumboXeroxList = () => {
         <div className="add-assets-card" style={{ textAlign: "center", padding: "40px" }}>
           <FaExclamationTriangle style={{ fontSize: "2.5rem", color: "#ef4444", marginBottom: "1rem" }} />
           <h3 style={{ color: "#1e293b", margin: "0 0 8px 0" }}>Error Loading Data</h3>
-          <p style={{ color: "#64748b", marginBottom: "20px" }}>{error}</p>
+          <p style={{ color: "#475569", marginBottom: "20px" }}>{error}</p>
           <button onClick={() => window.location.reload()} className="add-assets-btn add-assets-btn-primary">
             Retry
           </button>
@@ -562,7 +562,7 @@ const JumboXeroxList = () => {
           <h2 style={{ fontSize: "1.6rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
             Jumbo Xerox <span style={{ color: "#059669" }}>Revenue Data</span>
           </h2>
-          <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "0.95rem" }}>
+          <p style={{ margin: "4px 0 0 0", color: "#475569", fontSize: "0.95rem" }}>
             View Jumbo Xerox readings and totals across all branches (Read Only)
           </p>
         </div>
@@ -666,7 +666,7 @@ const JumboXeroxList = () => {
                 }}
               >
                 <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1e293b" }}>
-                  Total Amount Readings <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#64748b" }}>(View Only)</span>
+                  Total Amount Readings <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#475569" }}>(View Only)</span>
                 </h3>
               </div>
               <div style={{ padding: "12px 16px", overflowX: "auto" }}>
@@ -737,7 +737,7 @@ const JumboXeroxList = () => {
                   }}
                 >
                   <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1e293b" }}>
-                    Jumbo Xerox Details <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#64748b" }}>(View Only)</span>
+                    Jumbo Xerox Details <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#475569" }}>(View Only)</span>
                   </h3>
                 </div>
                 <div style={{ padding: "12px 16px", overflowX: "auto" }}>
@@ -774,7 +774,7 @@ const JumboXeroxList = () => {
                               allRows.push(
                                 <tr key={`${type}-${index}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
                                   <td style={{ padding: "9px 12px", fontSize: "0.88rem", color: "#334155" }}>{row.size}</td>
-                                  <td style={{ padding: "9px 12px", textAlign: "right", fontSize: "0.88rem", color: "#64748b" }}>₹{row.unitPrice}</td>
+                                  <td style={{ padding: "9px 12px", textAlign: "right", fontSize: "0.88rem", color: "#475569" }}>₹{row.unitPrice}</td>
                                   <td style={{ padding: "9px 12px", textAlign: "right", fontSize: "0.88rem", fontWeight: 600, color: "#1e293b" }}>{row.qty || "-"}</td>
                                   <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600, color: "#059669" }}>
                                     {row.amount ? formatCurrency(row.amount) : "-"}
@@ -798,7 +798,7 @@ const JumboXeroxList = () => {
                               allRows.push(
                                 <tr key={`${type}-${index}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
                                   <td style={{ padding: "9px 12px", fontSize: "0.88rem", color: "#334155" }}>{row.size}</td>
-                                  <td style={{ padding: "9px 12px", textAlign: "right", fontSize: "0.88rem", color: "#64748b" }}>₹{row.unitPrice}</td>
+                                  <td style={{ padding: "9px 12px", textAlign: "right", fontSize: "0.88rem", color: "#475569" }}>₹{row.unitPrice}</td>
                                   <td style={{ padding: "9px 12px", textAlign: "right", fontSize: "0.88rem", fontWeight: 600, color: "#1e293b" }}>{row.qty || "-"}</td>
                                   <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600, color: "#059669" }}>
                                     {row.amount ? formatCurrency(row.amount) : "-"}
@@ -835,13 +835,13 @@ const JumboXeroxList = () => {
                   }}
                 >
                   <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1e293b" }}>
-                    Jumbo Counter Details <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#64748b" }}>(View Only)</span>
+                    Jumbo Counter Details <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#475569" }}>(View Only)</span>
                   </h3>
                 </div>
                 <div style={{ padding: "16px 20px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px" }}>
                     <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                      <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "0.8rem", color: "#475569", fontWeight: 600, display: "block", marginBottom: "4px" }}>
                         Start Counter
                       </span>
                       <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b" }}>
@@ -849,7 +849,7 @@ const JumboXeroxList = () => {
                       </span>
                     </div>
                     <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                      <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "0.8rem", color: "#475569", fontWeight: 600, display: "block", marginBottom: "4px" }}>
                         End Counter
                       </span>
                       <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b" }}>
@@ -871,16 +871,16 @@ const JumboXeroxList = () => {
           </div>
         ) : (
           <div className="add-assets-card" style={{ textAlign: "center", padding: "48px 24px" }}>
-            <FaExclamationTriangle style={{ fontSize: "2rem", color: "#94a3b8", marginBottom: "12px" }} />
-            <p style={{ color: "#64748b", fontSize: "0.95rem", margin: 0 }}>
+            <FaExclamationTriangle style={{ fontSize: "2rem", color: "#475569", marginBottom: "12px" }} />
+            <p style={{ color: "#475569", fontSize: "0.95rem", margin: 0 }}>
               No data available for the selected branch and date.
             </p>
           </div>
         )
       ) : (
         <div className="add-assets-card" style={{ textAlign: "center", padding: "48px 24px" }}>
-          <FaCalendarAlt style={{ fontSize: "2rem", color: "#94a3b8", marginBottom: "12px" }} />
-          <p style={{ color: "#64748b", fontSize: "0.95rem", margin: 0 }}>
+          <FaCalendarAlt style={{ fontSize: "2rem", color: "#475569", marginBottom: "12px" }} />
+          <p style={{ color: "#475569", fontSize: "0.95rem", margin: 0 }}>
             Please select a branch and date to view Jumbo Xerox data.
           </p>
         </div>

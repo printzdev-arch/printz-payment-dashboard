@@ -95,7 +95,7 @@ const MODAL_HEADER_TITLE_STYLE = {
 const MODAL_HEADER_SUBTITLE_STYLE = {
   margin: "2px 0 0 0",
   fontSize: "12.5px",
-  color: "#64748b",
+  color: "#475569",
 };
 
 const MODAL_CLOSE_BTN_STYLE = {
@@ -107,7 +107,7 @@ const MODAL_CLOSE_BTN_STYLE = {
   background: "#f1f5f9",
   border: "none",
   cursor: "pointer",
-  color: "#64748b",
+  color: "#475569",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -573,7 +573,7 @@ const AddBranch = () => {
                   style={{
                     fontSize: "11.5px",
                     fontWeight: "700",
-                    color: "#9ca3af",
+                    color: "#4b5563",
                     background: "#f1f5f9",
                     padding: "2px 8px",
                     borderRadius: "9999px",
@@ -820,7 +820,7 @@ const AddBranch = () => {
               style={{
                 margin: "0 0 24px 0",
                 fontSize: "14px",
-                color: "#6b7280",
+                color: "#4b5563",
                 lineHeight: "1.5",
               }}
             >
@@ -980,7 +980,7 @@ const AddBranch = () => {
                   padding: "12px 14px",
                 }}
               >
-                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
                   Branch Name
                 </div>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>
@@ -996,7 +996,7 @@ const AddBranch = () => {
                   padding: "12px 14px",
                 }}
               >
-                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
                   Branch Code
                 </div>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#047857" }}>
@@ -1012,7 +1012,7 @@ const AddBranch = () => {
                   padding: "12px 14px",
                 }}
               >
-                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
                   Date Added
                 </div>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1030,7 +1030,7 @@ const AddBranch = () => {
                   padding: "12px 14px",
                 }}
               >
-                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
                   Full Location / Address
                 </div>
                 <div style={{ fontSize: "13.5px", color: "#334155", lineHeight: "1.5" }}>

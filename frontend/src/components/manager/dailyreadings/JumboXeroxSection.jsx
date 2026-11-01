@@ -956,7 +956,7 @@ const JumboXeroxSection = ({
                       fontWeight: 800,
                       color: "#047857",
                       fontSize: "14px",
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'Poppins', sans-serif",
                     }}
                   >
                     {formatCurrency(jumboTotals.amount)}

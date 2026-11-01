@@ -1639,7 +1639,7 @@ const PrinterReadings = () => {
                               fontSize: "24px",
                               fontWeight: "800",
                               color: "#0f172a",
-                              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                               marginBottom: "4px",
                             }}
                           >
@@ -1648,7 +1648,7 @@ const PrinterReadings = () => {
                           <div
                             style={{
                               fontSize: "12px",
-                              color: "#64748b",
+                              color: "#475569",
                               fontWeight: "600",
                               textTransform: "uppercase",
                               letterSpacing: "0.04em",
@@ -1702,12 +1702,12 @@ const PrinterReadings = () => {
                           {csvVerificationData.verificationResults.map(
                             (result, index) => (
                               <tr key={index}>
-                                <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                <td style={{ fontFamily: "'Poppins', sans-serif" }}>
                                   {result.extractedDate || "N/A"}
                                 </td>
                                 <td>{result["Media Type"]}</td>
                                 <td>{result["Printer Paper Size"]}</td>
-                                <td style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                                <td style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                                   {result["Pages"]}
                                 </td>
                                 <td>
@@ -1794,7 +1794,7 @@ const PrinterReadings = () => {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
                         Step 1: Printers
                       </div>
                       <div style={{ fontSize: "13.5px", fontWeight: 700, color: savedSteps[1] ? "#065f46" : "#9a3412", marginTop: "2px" }}>
@@ -1830,7 +1830,7 @@ const PrinterReadings = () => {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
                         Step 2: Large Format
                       </div>
                       <div style={{ fontSize: "13.5px", fontWeight: 700, color: savedSteps[2] ? "#065f46" : "#9a3412", marginTop: "2px" }}>
@@ -1866,7 +1866,7 @@ const PrinterReadings = () => {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
                         Step 3: Accounts
                       </div>
                       <div style={{ fontSize: "13.5px", fontWeight: 700, color: savedSteps[3] ? "#065f46" : "#9a3412", marginTop: "2px" }}>
@@ -1902,7 +1902,7 @@ const PrinterReadings = () => {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
                         Step 4: Stock
                       </div>
                       <div style={{ fontSize: "13.5px", fontWeight: 700, color: savedSteps[4] ? "#065f46" : "#9a3412", marginTop: "2px" }}>
@@ -1943,72 +1943,72 @@ const PrinterReadings = () => {
                           <td style={{ fontWeight: 600, color: "#1e293b" }}>
                             Printer {pid} Total
                           </td>
-                          <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                          <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                             Rs. {Number(amt || 0).toFixed(2)}
                           </td>
                         </tr>
                       ))}
                       <tr>
                         <td>Large Format / Jumbo Xerox Total</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(liveSummary.jumboTotal || 0).toFixed(2)}
                         </td>
                       </tr>
                       {liveSummary.jumboCounter?.sftPrinted && (
                         <tr style={{ background: "#f8fafc" }}>
-                          <td style={{ fontSize: "12px", color: "#64748b", paddingLeft: "24px" }}>
+                          <td style={{ fontSize: "12px", color: "#475569", paddingLeft: "24px" }}>
                             Jumbo Counter (SFT Printed)
                           </td>
-                          <td style={{ textAlign: "right", fontSize: "12px", fontFamily: "JetBrains Mono, monospace" }}>
+                          <td style={{ textAlign: "right", fontSize: "12px", fontFamily: "'Poppins', sans-serif" }}>
                             {liveSummary.jumboCounter.sftPrinted} SFT
                           </td>
                         </tr>
                       )}
                       <tr>
                         <td>Stock Items Revenue Total</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(liveSummary.stockTotal || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr style={{ background: "#f1f5f9", fontWeight: 700 }}>
                         <td style={{ color: "#0f172a" }}>TOTAL BUSINESS</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", color: "#0f172a" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#0f172a" }}>
                           Rs. {Number(liveSummary.totalBusiness || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
                         <td style={{ color: "#dc2626" }}>Discount</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", color: "#dc2626" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#dc2626" }}>
                           Rs. {Number(liveSummary.discount || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
                         <td>UPI & Card Payments</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(liveSummary.upiCardPayments || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
                         <td>Bank Transfers</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(liveSummary.bankTransfers || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr style={{ background: "#ecfdf5" }}>
                         <td style={{ fontWeight: 700, color: "#065f46" }}>CASH AS PER ACCOUNTS</td>
-                        <td style={{ textAlign: "right", fontWeight: 800, fontFamily: "JetBrains Mono, monospace", color: "#047857" }}>
+                        <td style={{ textAlign: "right", fontWeight: 800, fontFamily: "'Poppins', sans-serif", color: "#047857" }}>
                           Rs. {Number(liveSummary.cashAsPerAccounts || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
                         <td>Cash in Hand</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                           Rs. {Number(liveSummary.cashInHand || 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
                         <td>Payment to be Collected</td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(liveSummary.paymentToBeCollected || 0).toFixed(2)}
                         </td>
                       </tr>
@@ -2024,7 +2024,7 @@ const PrinterReadings = () => {
                             fontWeight: 800,
                             color: "#047857",
                             fontSize: "15px",
-                            fontFamily: "JetBrains Mono, monospace",
+                            fontFamily: "'Poppins', sans-serif",
                           }}
                         >
                           Rs. {Number(liveSummary.totalAmount || 0).toFixed(2)}

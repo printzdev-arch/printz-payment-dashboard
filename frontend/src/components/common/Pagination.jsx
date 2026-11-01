@@ -102,7 +102,7 @@ const Pagination = ({
         <span
           style={{
             fontSize: "13px",
-            color: "#64748b",
+            color: "#475569",
             fontWeight: 500,
           }}
         >
@@ -126,7 +126,7 @@ const Pagination = ({
               marginLeft: "4px",
             }}
           >
-            <span style={{ color: "#cbd5e1", fontSize: "12px" }}>—</span>
+            <span style={{ color: "#64748b", fontSize: "12px" }}>—</span>
             <div
               style={{
                 display: "inline-flex",
@@ -221,7 +221,7 @@ const Pagination = ({
                   key={`ellipsis-${idx}`}
                   style={{
                     padding: "0 4px",
-                    color: "#94a3b8",
+                    color: "#475569",
                     fontWeight: 700,
                     letterSpacing: "1px",
                     fontSize: "13px",

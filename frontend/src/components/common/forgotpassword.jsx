@@ -118,8 +118,7 @@ const ForgotPassword = () => {
         justifyContent: "center",
         backgroundColor: "#f8fafc",
         padding: "24px 16px",
-        fontFamily:
-          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "'Poppins', sans-serif",
       }}
     >
       <ToastContainer position="top-right" autoClose={4000} />
@@ -168,7 +167,7 @@ const ForgotPassword = () => {
           <p
             style={{
               margin: "6px 0 0 0",
-              color: "#64748b",
+              color: "#475569",
               fontSize: "0.9rem",
             }}
           >
@@ -197,7 +196,7 @@ const ForgotPassword = () => {
                 <h3 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>
                   Password Reset Successful!
                 </h3>
-                <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                <p style={{ color: "#475569", fontSize: "0.9rem" }}>
                   Redirecting you to the sign in page...
                 </p>
               </div>
@@ -223,7 +222,7 @@ const ForgotPassword = () => {
                         left: "14px",
                         top: "50%",
                         transform: "translateY(-50%)",
-                        color: "#94a3b8",
+                        color: "#475569",
                         fontSize: "0.95rem",
                       }}
                     />
@@ -259,7 +258,7 @@ const ForgotPassword = () => {
                         transform: "translateY(-50%)",
                         background: "none",
                         border: "none",
-                        color: "#94a3b8",
+                        color: "#475569",
                         cursor: "pointer",
                       }}
                     >
@@ -288,7 +287,7 @@ const ForgotPassword = () => {
                         left: "14px",
                         top: "50%",
                         transform: "translateY(-50%)",
-                        color: "#94a3b8",
+                        color: "#475569",
                         fontSize: "0.95rem",
                       }}
                     />
@@ -383,7 +382,7 @@ const ForgotPassword = () => {
                     left: "14px",
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#94a3b8",
+                    color: "#475569",
                     fontSize: "0.95rem",
                   }}
                 />
@@ -543,7 +542,7 @@ const ForgotPassword = () => {
             textAlign: "center",
           }}
         >
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "#94a3b8" }}>
+          <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569" }}>
             © {new Date().getFullYear()} Printz. All rights reserved.
           </p>
         </div>

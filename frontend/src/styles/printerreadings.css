@@ -6,8 +6,7 @@
   width: 100%;
   margin: 0 auto;
   padding: 8px 24px 20px 24px;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, sans-serif;
+  font-family: 'Poppins', sans-serif;
   color: #0f172a;
   background-color: var(--printz-bg-page, #f8fafc);
   box-sizing: border-box;
@@ -146,7 +145,7 @@
   font-size: 13.5px;
   font-weight: 700;
   color: #334155;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
 }
 
@@ -162,7 +161,7 @@
   font-size: 13.5px;
   font-weight: 800;
   color: #059669;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
 }
 
@@ -208,7 +207,7 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 800;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -269,7 +268,7 @@
 
 .account-bottom-next-btn:disabled {
   background: #cbd5e1;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
@@ -442,7 +441,7 @@
 
 .printer-previous-data-info {
   font-size: 12px;
-  color: #64748b;
+  color: #475569;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -541,7 +540,7 @@
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   font-size: 13.5px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-weight: 700;
   box-sizing: border-box;
   text-align: center;
@@ -563,7 +562,7 @@
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   font-size: 13.5px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
   box-sizing: border-box;
   text-align: center;
@@ -602,7 +601,7 @@
 .total-amount-input:disabled,
 .stock-input:disabled {
   background-color: #f8fafc;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
   border-color: #e2e8f0;
 }
@@ -621,14 +620,14 @@
   font-size: 12.5px;
   color: #475569;
   font-weight: 600;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .printer-amount-cell {
   text-align: right;
   font-weight: 700;
   color: #059669;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .printer-total-row td,
@@ -650,7 +649,7 @@
   font-weight: 800;
   color: #047857;
   font-size: 14px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .printer-total,
@@ -658,7 +657,7 @@
   font-weight: 700;
   color: #047857;
   text-align: right;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .total-item-col {
@@ -685,7 +684,7 @@
   border: 1px solid #bbf7d0;
   border-radius: 8px;
   text-align: right;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .total-auto-loaded-amount {
@@ -728,7 +727,7 @@
 .total-save-button:disabled,
 .stock-save-button:disabled {
   background-color: #cbd5e1;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -867,14 +866,14 @@
 
 .final-submit-button:disabled {
   background: #cbd5e1;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
 .final-submit-warning {
-  color: #64748b;
+  color: #475569;
   font-size: 13px;
   font-weight: 500;
   margin: 0;
@@ -907,7 +906,7 @@
   border: 1.5px dashed #cbd5e1;
   border-radius: 16px;
   text-align: center;
-  color: #64748b;
+  color: #475569;
   font-size: 14px;
   font-weight: 500;
 }
@@ -933,7 +932,7 @@
 }
 
 .printer-error-container p {
-  color: #64748b;
+  color: #475569;
   margin: 0 0 16px 0;
   font-size: 13.5px;
 }
@@ -982,7 +981,7 @@
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   font-size: 12.5px;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   transition: all 0.2s ease;
   background: white;
 }
@@ -1156,7 +1155,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1379,7 +1378,7 @@
 .prev-bal-label {
   font-size: 12px;
   font-weight: 700;
-  color: #64748b;
+  color: #475569;
 }
 
 .prev-bal-date-wrapper {
@@ -1412,7 +1411,7 @@
 .prev-bal-cal-icon {
   position: absolute;
   right: 12px;
-  color: #64748b;
+  color: #475569;
   pointer-events: none;
 }
 
@@ -1444,7 +1443,7 @@
   flex: 1;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: #475569;
   font-size: 13px;
   font-weight: 700;
   border-radius: 6px;
@@ -1487,14 +1486,14 @@
 .prev-bal-avail-title {
   font-size: 12.5px;
   font-weight: 600;
-  color: #64748b;
+  color: #475569;
 }
 
 .prev-bal-avail-val {
   font-size: 18px;
   font-weight: 800;
   color: #047857;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .prev-bal-avail-val.zero {
@@ -1544,7 +1543,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: #475569;
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
@@ -1567,7 +1566,7 @@
   padding: 8px 14px;
   font-size: 14.5px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Poppins', sans-serif;
   color: #047857;
 }
 
@@ -1743,7 +1742,7 @@
 
 .daily-skeleton-subtitle {
   font-size: 12.5px;
-  color: #64748b;
+  color: #475569;
   margin: 0;
   font-weight: 500;
 }

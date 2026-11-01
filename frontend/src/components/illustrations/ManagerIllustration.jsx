@@ -528,7 +528,7 @@ const ManagerIllustration = ({
             x="347"
             y="192.5"
             textAnchor="middle"
-            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            fontFamily="'Poppins', sans-serif"
             fontSize="10"
             fontWeight="700"
             fill="#047857"
@@ -685,7 +685,7 @@ const ManagerIllustration = ({
           <text
             x="650"
             y="97"
-            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            fontFamily="'Poppins', sans-serif"
             fontSize="16"
             fontWeight="700"
             fill="#FFFFFF"

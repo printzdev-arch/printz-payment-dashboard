@@ -9,9 +9,6 @@ import {
   Edit3,
   Lock,
   X,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Search,
   Package,
   CheckCircle2,
@@ -427,26 +424,8 @@ const StockSection = ({
             <thead>
               <tr>
                 <th className="th-sno">S.NO</th>
-                <th className="th-item" onClick={() => handleSort("itemName")} style={{ cursor: "pointer" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    ITEM NAME
-                    {sortField === "itemName" ? (
-                      sortOrder === "asc" ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                    ) : (
-                      <ArrowUpDown size={13} color="#94a3b8" />
-                    )}
-                  </div>
-                </th>
-                <th className="th-category" onClick={() => handleSort("category")} style={{ cursor: "pointer" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    CATEGORY
-                    {sortField === "category" ? (
-                      sortOrder === "asc" ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                    ) : (
-                      <ArrowUpDown size={13} color="#94a3b8" />
-                    )}
-                  </div>
-                </th>
+                <th className="th-item">ITEM NAME</th>
+                <th className="th-category">CATEGORY</th>
                 <th className="center th-stock">OPENING</th>
                 <th className="center th-stock">ADDED</th>
                 <th className="center th-stock">CLOSING</th>
@@ -469,12 +448,12 @@ const StockSection = ({
                     <td>
                       <span className="revenue-category-chip">{stock.category}</span>
                     </td>
-                    <td className="center" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                    <td className="center" style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                       {getDisplayValue(stock, "openingStock") || "0"}
                     </td>
                     <td className="center">
                       {!isEditing ? (
-                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                        <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                           {getDisplayValue(stock, "addedStock") || "0"}
                         </span>
                       ) : (
@@ -489,7 +468,7 @@ const StockSection = ({
                         />
                       )}
                     </td>
-                    <td className="center" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                    <td className="center" style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                       {getDisplayValue(stock, "closingStock") || "0"}
                     </td>
 
@@ -498,7 +477,7 @@ const StockSection = ({
                         <td className="center">-</td>
                         <td className="center">
                           {!isEditing ? (
-                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                               {getDisplayValue(stock, "sold") || "0"}
                             </span>
                           ) : (
@@ -513,15 +492,15 @@ const StockSection = ({
                             />
                           )}
                         </td>
-                        <td className="right" style={{ fontFamily: "'JetBrains Mono', monospace", color: "#334155" }}>
+                        <td className="right" style={{ fontFamily: "'Poppins', sans-serif", color: "#334155" }}>
                           ₹{Number(stock.amount || 0).toFixed(2)}
                         </td>
-                        <td className="right" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#059669" }}>
+                        <td className="right" style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "#059669" }}>
                           {formatCurrency((Number(getDisplayValue(stock, "sold")) || 0) * (Number(stock.amount) || 0))}
                         </td>
                       </>
                     ) : (
-                      <td colSpan="4" className="center" style={{ color: "#64748b", fontSize: "12px", fontStyle: "italic" }}>
+                      <td colSpan="4" className="center" style={{ color: "#475569", fontSize: "12px", fontStyle: "italic" }}>
                         See range tiers below
                       </td>
                     )}
@@ -530,7 +509,7 @@ const StockSection = ({
                   {stock.pageRanges && stock.pageRanges.length > 0 &&
                     stock.pageRanges.map((range, rangeIndex) => (
                       <tr key={`${stock.id}-${rangeIndex}`} style={{ backgroundColor: "#fafbfc" }}>
-                        <td colSpan="6" style={{ textAlign: "right", color: "#64748b", fontSize: "12px", fontStyle: "italic" }}>
+                        <td colSpan="6" style={{ textAlign: "right", color: "#475569", fontSize: "12px", fontStyle: "italic" }}>
                           Range Tier:
                         </td>
                         <td className="center">
@@ -538,7 +517,7 @@ const StockSection = ({
                         </td>
                         <td className="center">
                           {!isEditing ? (
-                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                               {getPageRangeDisplayValue(stock.id, rangeIndex) !== ""
                                 ? getPageRangeDisplayValue(stock.id, rangeIndex)
                                 : range.sold || "0"}
@@ -559,10 +538,10 @@ const StockSection = ({
                             />
                           )}
                         </td>
-                        <td className="right" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                        <td className="right" style={{ fontFamily: "'Poppins', sans-serif" }}>
                           ₹{Number(range.price || 0).toFixed(2)}
                         </td>
-                        <td className="right" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#059669" }}>
+                        <td className="right" style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "#059669" }}>
                           {formatCurrency(
                             ((getPageRangeDisplayValue(stock.id, rangeIndex) !== ""
                               ? Number(getPageRangeDisplayValue(stock.id, rangeIndex))
@@ -579,7 +558,7 @@ const StockSection = ({
                 <td colSpan="9" style={{ fontWeight: 700, color: "#166534" }}>
                   Grand Total Stock Amount
                 </td>
-                <td className="right" style={{ fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', monospace", fontSize: "14px" }}>
+                <td className="right" style={{ fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "14px" }}>
                   {formatCurrency(totalAmount)}
                 </td>
               </tr>
@@ -589,7 +568,7 @@ const StockSection = ({
 
         {/* Pagination */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px" }}>
-          <span style={{ fontSize: "12px", color: "#64748b" }}>
+          <span style={{ fontSize: "12px", color: "#475569" }}>
             Showing {indexOfFirstStock + 1} to {Math.min(indexOfLastStock, filteredStocks.length)} of {filteredStocks.length} items
           </span>
 

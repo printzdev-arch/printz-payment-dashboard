@@ -1494,7 +1494,7 @@ const PdfGenerator = () => {
           <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#1e293b" }}>
             No Report Date Selected
           </h3>
-          <p style={{ margin: 0, fontSize: "13.5px", color: "#64748b", maxWidth: "460px" }}>
+          <p style={{ margin: 0, fontSize: "13.5px", color: "#475569", maxWidth: "460px" }}>
             Please select an authorized date above to preview reading summaries and generate the formatted PDF report for {branchName || "your branch"}.
           </p>
         </div>

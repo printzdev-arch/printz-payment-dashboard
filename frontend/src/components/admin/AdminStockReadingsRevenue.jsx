@@ -787,7 +787,7 @@ const AdminStockReadingsRevenue = () => {
                     <td
                       colSpan="10"
                       className="center"
-                      style={{ padding: "36px 16px", color: "#64748b" }}
+                      style={{ padding: "36px 16px", color: "#475569" }}
                     >
                       <div
                         style={{

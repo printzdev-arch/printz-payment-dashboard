@@ -1,7 +1,7 @@
 .branch-app {
     width: 80%;
     margin: 20px auto;
-    font-family: 'Poppins', Arial, sans-serif;
+    font-family: 'Poppins', sans-serif;
   }
   
   input[type="text"] {
@@ -193,7 +193,7 @@
 .stock-readings-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 14px;
   background: white;
 }
@@ -297,7 +297,7 @@
 
 
 .stock-readings-table tbody td:nth-child(3) {
-  color: #6b7280;
+  color: #4b5563;
   text-align: center;
 }
 
@@ -366,7 +366,7 @@
 .stock-readings-table tbody td[colspan] {
   text-align: center;
   padding: 40px 20px;
-  color: #9ca3af;
+  color: #4b5563;
   font-style: italic;
 }
 
@@ -374,7 +374,7 @@
 .stock-readings-table tbody tr td:contains("Loading") {
   text-align: center;
   padding: 40px 20px;
-  color: #6b7280;
+  color: #4b5563;
   font-weight: 500;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }

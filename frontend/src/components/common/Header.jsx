@@ -95,7 +95,7 @@ const Header = () => {
             size={28}
             className="profile-icon"
             onClick={handleProfile}
-            style={{ cursor: "pointer", color: "#64748b" }}
+            style={{ cursor: "pointer", color: "#475569" }}
             title="Profile"
           />
         )}

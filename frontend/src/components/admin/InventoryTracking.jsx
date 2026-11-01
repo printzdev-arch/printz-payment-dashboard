@@ -369,7 +369,7 @@ const InventoryTracking = () => {
                   <td
                     style={{
                       textAlign: "right",
-                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                      fontFamily: "'Poppins', sans-serif",
                       fontWeight: 700,
                       color: "#0f172a",
                     }}
@@ -833,7 +833,7 @@ const InventoryTracking = () => {
               justifyContent: "center",
               padding: "42px 20px",
               gap: "10px",
-              color: "#64748b",
+              color: "#475569",
             }}
           >
             <div className="add-assets-spinner"></div>
@@ -882,7 +882,7 @@ const InventoryTracking = () => {
               style={{
                 margin: 0,
                 fontSize: "13px",
-                color: "#64748b",
+                color: "#475569",
                 maxWidth: "420px",
               }}
             >

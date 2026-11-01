@@ -2,7 +2,7 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
-  font-family: 'Poppins', "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .past-date-requests-container h2 {
@@ -51,7 +51,7 @@
   border: 2px solid #cbd5e0;
   border-radius: 8px;
   font-size: 14px;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   background-color: white;
   color: #2c3e50;
   cursor: pointer;
@@ -241,7 +241,7 @@
 .approve-button:disabled,
 .reject-button:disabled {
   background: linear-gradient(135deg, #ddd 0%, #ccc 100%);
-  color: #999;
+  color: #444;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -276,7 +276,7 @@
 
 .pagination-btn:disabled {
   background: linear-gradient(135deg, #ddd 0%, #ccc 100%);
-  color: #999;
+  color: #444;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -317,7 +317,7 @@
 
 .pagination-ellipsis {
   padding: 10px 8px;
-  color: #a0aec0;
+  color: #4a5568;
   font-size: 14px;
   font-weight: 600;
 }

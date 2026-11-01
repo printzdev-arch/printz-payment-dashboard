@@ -40,8 +40,7 @@ const DisplayPrinterReadings = () => {
     progress: undefined,
     style: {
       borderRadius: "4px",
-      fontFamily:
-        "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      fontFamily: "'Poppins', sans-serif",
     },
   };
 
@@ -318,7 +317,7 @@ const DisplayPrinterReadings = () => {
       <div className="display-readings-page-container">
         <div className="display-readings-empty-card">
           <div className="stock-loading-spinner" style={{ margin: "0 auto 12px" }}></div>
-          <p style={{ color: "#64748b", margin: 0, fontSize: "14px", fontWeight: "500" }}>Loading printer data...</p>
+          <p style={{ color: "#475569", margin: 0, fontSize: "14px", fontWeight: "500" }}>Loading printer data...</p>
         </div>
       </div>
     );

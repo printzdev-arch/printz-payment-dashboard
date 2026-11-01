@@ -108,7 +108,7 @@ const MODAL_HEADER_TITLE_STYLE = {
 const MODAL_HEADER_SUBTITLE_STYLE = {
   margin: "2px 0 0 0",
   fontSize: "12.5px",
-  color: "#64748b",
+  color: "#475569",
 };
 
 const MODAL_CLOSE_BTN_STYLE = {
@@ -120,7 +120,7 @@ const MODAL_CLOSE_BTN_STYLE = {
   background: "#f1f5f9",
   border: "none",
   cursor: "pointer",
-  color: "#64748b",
+  color: "#475569",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -149,7 +149,7 @@ const copyBtnStyle = {
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
   cursor: "pointer",
-  color: "#64748b",
+  color: "#475569",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -731,7 +731,7 @@ const AddManager = () => {
                   <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#111827" }}>
                     {editMode ? "Edit Manager" : "Add Manager"}
                   </h3>
-                  <p style={{ margin: "2px 0 0 0", fontSize: "13px", color: "#6b7280" }}>
+                  <p style={{ margin: "2px 0 0 0", fontSize: "13px", color: "#4b5563" }}>
                     {editMode
                       ? "Update manager information and branch assignment"
                       : "Enter manager details and assign to a branch"}
@@ -745,7 +745,7 @@ const AddManager = () => {
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#9ca3af",
+                  color: "#4b5563",
                   display: "flex",
                   padding: "4px",
                 }}
@@ -989,7 +989,7 @@ const AddManager = () => {
                         />
                         <span
                           onClick={togglePasswordVisibility}
-                          style={{ cursor: "pointer", color: "#9ca3af", display: "flex" }}
+                          style={{ cursor: "pointer", color: "#4b5563", display: "flex" }}
                         >
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </span>
@@ -1014,7 +1014,7 @@ const AddManager = () => {
                         />
                         <span
                           onClick={toggleConfirmPasswordVisibility}
-                          style={{ cursor: "pointer", color: "#9ca3af", display: "flex" }}
+                          style={{ cursor: "pointer", color: "#4b5563", display: "flex" }}
                         >
                           {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </span>
@@ -1118,7 +1118,7 @@ const AddManager = () => {
               style={{
                 margin: "0 0 24px 0",
                 fontSize: "14px",
-                color: "#6b7280",
+                color: "#4b5563",
                 lineHeight: "1.5",
               }}
             >
@@ -1346,7 +1346,7 @@ const AddManager = () => {
                       <User size={16} strokeWidth={2.3} color="#ffffff" />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
+                      <div style={{ fontSize: "11px", color: "#475569", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
                         Manager Name
                       </div>
                       <div
@@ -1407,7 +1407,7 @@ const AddManager = () => {
                       <Mail size={16} strokeWidth={2.3} color="#ffffff" />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
+                      <div style={{ fontSize: "11px", color: "#475569", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
                         Email Address
                       </div>
                       <div
@@ -1469,7 +1469,7 @@ const AddManager = () => {
                       <Phone size={16} strokeWidth={2.3} color="#ffffff" />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
+                      <div style={{ fontSize: "11px", color: "#475569", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
                         Phone Number
                       </div>
                       <div
@@ -1532,7 +1532,7 @@ const AddManager = () => {
                       <Building2 size={16} strokeWidth={2.3} color="#ffffff" />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
+                      <div style={{ fontSize: "11px", color: "#475569", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
                         Assigned Branch
                       </div>
                       <div
@@ -1594,7 +1594,7 @@ const AddManager = () => {
                       <MapPin size={16} strokeWidth={2.3} color="#ffffff" />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
+                      <div style={{ fontSize: "11px", color: "#475569", fontWeight: 600, textTransform: "uppercase", marginBottom: "3px" }}>
                         Branch Location / Address
                       </div>
                       <div

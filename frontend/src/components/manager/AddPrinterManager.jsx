@@ -2067,7 +2067,7 @@ const AddPrinterManager = () => {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#64748b" }}>
+                  <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569" }}>
                     Configured:
                   </span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
@@ -2751,7 +2751,7 @@ const AddPrinterManager = () => {
                         style={{
                           border: "none",
                           background: "transparent",
-                          color: "#94a3b8",
+                          color: "#475569",
                           cursor: "pointer",
                           padding: 0,
                           display: "flex",
@@ -2808,7 +2808,7 @@ const AddPrinterManager = () => {
                     }}
                   >
                     <div className="stock-loading-spinner"></div>
-                    <p style={{ margin: 0, fontSize: "13.5px", color: "#64748b", fontWeight: 500 }}>
+                    <p style={{ margin: 0, fontSize: "13.5px", color: "#475569", fontWeight: 500 }}>
                       Loading printers for {selectedBranch}...
                     </p>
                   </div>
@@ -2817,7 +2817,7 @@ const AddPrinterManager = () => {
                     style={{
                       padding: "40px 20px",
                       textAlign: "center",
-                      color: "#64748b",
+                      color: "#475569",
                     }}
                   >
                     <Printer size={32} color="#cbd5e1" style={{ marginBottom: "8px" }} />
@@ -2830,7 +2830,7 @@ const AddPrinterManager = () => {
                     style={{
                       padding: "36px 20px",
                       textAlign: "center",
-                      color: "#64748b",
+                      color: "#475569",
                     }}
                   >
                     <Search size={28} color="#cbd5e1" style={{ marginBottom: "8px" }} />
@@ -2958,7 +2958,7 @@ const AddPrinterManager = () => {
                                 style={{
                                   textAlign: "center",
                                   padding: "12px 14px",
-                                  color: "#64748b",
+                                  color: "#475569",
                                   fontWeight: 600,
                                   fontSize: "12.5px",
                                   verticalAlign: "middle",
@@ -2969,7 +2969,7 @@ const AddPrinterManager = () => {
                               <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
                                 <span
                                   style={{
-                                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                    fontFamily: "'Poppins', sans-serif",
                                     fontSize: "12px",
                                     fontWeight: 700,
                                     color: "#0f172a",
@@ -3095,7 +3095,7 @@ const AddPrinterManager = () => {
                                     ))}
 
                                   {!hasPrices && (!isLfp || !hasJumbo) && (
-                                    <span style={{ color: "#94a3b8", fontSize: "12px" }}>-</span>
+                                    <span style={{ color: "#475569", fontSize: "12px" }}>-</span>
                                   )}
                                 </div>
                               </td>

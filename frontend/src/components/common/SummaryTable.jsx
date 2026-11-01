@@ -92,7 +92,7 @@ const SummaryTable = ({ rows, currency = true }) => {
         <TableBody>
           {rows.map((r, idx) => (
             <TableRow key={r.branchName} hover>
-              <TableCell align="center" sx={{ color: "#94a3b8", fontWeight: 500, px: "2px !important" }}>
+              <TableCell align="center" sx={{ color: "#475569", fontWeight: 500, px: "2px !important" }}>
                 {idx + 1}
               </TableCell>
               <TableCell sx={{ color: "#475569", fontWeight: 500, wordBreak: "break-word" }}>

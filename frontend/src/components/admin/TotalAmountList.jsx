@@ -289,7 +289,7 @@ const TotalAmountList = () => {
         <div className="add-assets-card" style={{ textAlign: "center", padding: "40px" }}>
           <FaExclamationTriangle style={{ fontSize: "2.5rem", color: "#ef4444", marginBottom: "1rem" }} />
           <h3 style={{ color: "#1e293b", margin: "0 0 8px 0" }}>Error Loading Data</h3>
-          <p style={{ color: "#64748b", marginBottom: "20px" }}>{error}</p>
+          <p style={{ color: "#475569", marginBottom: "20px" }}>{error}</p>
           <button onClick={() => window.location.reload()} className="add-assets-btn add-assets-btn-primary">
             Retry
           </button>
@@ -318,9 +318,9 @@ const TotalAmountList = () => {
       >
         <div>
           <h2 style={{ fontSize: "1.6rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
-            Total Amount <span style={{ color: "#059669" }}>Readings</span> {branchName && <span style={{ fontSize: "1.2rem", fontWeight: 500, color: "#64748b" }}>({branchName})</span>}
+            Total Amount <span style={{ color: "#059669" }}>Readings</span> {branchName && <span style={{ fontSize: "1.2rem", fontWeight: 500, color: "#475569" }}>({branchName})</span>}
           </h2>
-          <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "0.95rem" }}>
+          <p style={{ margin: "4px 0 0 0", color: "#475569", fontSize: "0.95rem" }}>
             View and edit daily printer and business totals for selected date
           </p>
         </div>
@@ -579,16 +579,16 @@ const TotalAmountList = () => {
           </div>
         ) : (
           <div className="add-assets-card" style={{ textAlign: "center", padding: "48px 24px" }}>
-            <FaExclamationTriangle style={{ fontSize: "2rem", color: "#94a3b8", marginBottom: "12px" }} />
-            <p style={{ color: "#64748b", fontSize: "0.95rem", margin: 0 }}>
+            <FaExclamationTriangle style={{ fontSize: "2rem", color: "#475569", marginBottom: "12px" }} />
+            <p style={{ color: "#475569", fontSize: "0.95rem", margin: 0 }}>
               No data available for the selected date.
             </p>
           </div>
         )
       ) : (
         <div className="add-assets-card" style={{ textAlign: "center", padding: "48px 24px" }}>
-          <FaCalendarAlt style={{ fontSize: "2rem", color: "#94a3b8", marginBottom: "12px" }} />
-          <p style={{ color: "#64748b", fontSize: "0.95rem", margin: 0 }}>
+          <FaCalendarAlt style={{ fontSize: "2rem", color: "#475569", marginBottom: "12px" }} />
+          <p style={{ color: "#475569", fontSize: "0.95rem", margin: 0 }}>
             Please select a date to view or edit total amount readings.
           </p>
         </div>

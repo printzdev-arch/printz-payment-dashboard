@@ -1254,7 +1254,7 @@ const AddStock = () => {
                     </tbody>
                   </table>
                   {csvData.length > 5 && (
-                    <p style={{ textAlign: "center", color: "#64748b", margin: "8px 0", fontSize: "12px" }}>
+                    <p style={{ textAlign: "center", color: "#475569", margin: "8px 0", fontSize: "12px" }}>
                       ... and {csvData.length - 5} more items
                     </p>
                   )}
@@ -1697,12 +1697,12 @@ const AddStock = () => {
           </div>
 
           {loadingStocks ? (
-            <div style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
+            <div style={{ textAlign: "center", padding: "32px", color: "#475569" }}>
               <div className="stock-loading-spinner" style={{ margin: "0 auto 12px" }}></div>
               <p style={{ margin: 0, fontSize: "14px", fontWeight: 500 }}>Loading stock items...</p>
             </div>
           ) : filteredStockItems.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
+            <div style={{ textAlign: "center", padding: "32px", color: "#475569" }}>
               <p style={{ margin: 0, fontSize: "14px" }}>
                 {stockItems.length === 0
                   ? "No stock items found for this branch."

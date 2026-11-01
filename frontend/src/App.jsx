@@ -16,8 +16,11 @@ import "./utils/deleteRecordsByBranch";
 import AddJumboXeroxPage from "./components/admin/AddJumboXerox.jsx";
 import LoginPage from "./components/common/login.jsx";
 import ForgotPasswordPage from "./components/common/forgotpassword.jsx";
-import AdminDashboardPage from "./components/admin/admindashboard.jsx";
-import ManagerDashboardPage from "./components/manager/managerdashboard.jsx";
+import {
+  AdminDashboard as AdminDashboardPage,
+  BranchManagerDashboard as ManagerDashboardPage,
+  DesignerDashboard as DesignerDashboardPage,
+} from "./features/dashboard";
 import AddManagerPage from "./components/admin/AddManager.jsx";
 import AddAdminPage from "./components/admin/AddAdmin.jsx";
 import PastDateRequests from "./components/admin/PastDateRequests.jsx";
@@ -50,7 +53,8 @@ import StockListManagerPage from "./components/manager/StockList.jsx";
 import PdfGenerator from "./components/manager/PdfGenerator.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "./features/job-flow/shared/styles/job-flow.css";
+import { MotionToastContainer } from "./shared/motion/MotionToast";
+import "./features/jobflow/shared/styles/job-flow.css";
 import AdminDailyReadingsRevenue from "./components/admin/AdminDailyReadingsRevenue.jsx";
 import AdminStockReadingsRevenue from "./components/admin/AdminStockReadingsRevenue.jsx";
 import PreviousBalanceList from "./components/admin/PreviousBalanceList.jsx";
@@ -58,30 +62,78 @@ import PopupDemo from "./components/common/PopupDemo.jsx";
 import InventoryTracking from "./components/admin/InventoryTracking.jsx";
 import ExportData from "./components/admin/ExportData.jsx";
 import JumboXeroxCsvVerifier from "./components/admin/JumboXeroxCsvVerifier.jsx";
-import SalesOrder from "./components/manager/SalesOrder.jsx";
 import SalesInvoice from "./components/manager/SalesInvoice.jsx";
 
-// PrintZ JobFlow Enterprise Workflow Modules
+// PrintZ Feature Modules: JobFlow and POS
 import {
   JobFlowDashboard,
   CustomersPage,
   CustomerViewPage,
   JobOrdersPage,
+  DesignerJobOrdersPage,
   CreateJobOrderPage,
   EstimationPage,
   DesignWorkflowPage,
+  DesignerLoginPage,
   ProductionPage,
   QualityControlPage,
   DeliveryPage,
+  InvoicePage,
   SettlementPage,
   BranchQrCustomerForm,
-} from "./features/job-flow";
+  MasterSettingsPage,
+} from "./features/jobflow";
+import QCPage from "./features/jobflow/production/pages/QCPage";
+import {
+  ProductionDashboardPage,
+  ProductionOrdersPage,
+  ProductionPlanningPage,
+  OperationQueuePage,
+  CompletedProductionPage,
+  ReworkQueuePage,
+  ReprintBatchesPage,
+  MachineTrackingPage,
+  ProductionReportsPage,
+} from "./features/jobflow/production";
+import { PosBillingPage } from "./features/pos";
+import {
+  AttendanceSetupPage,
+  DailyAttendancePage,
+  AttendancePermissionsPage,
+  AttendanceReportsPage,
+  BranchShiftsPage,
+} from "./features/attendance";
+
+import {
+  SalarySetupPage,
+  LoansAdjustmentsPage,
+  PayrollProcessingPage,
+  SalaryRecordsPage,
+} from "./features/salary";
+
+import {
+  SaleOrdersListPage,
+  CreateSaleOrderPage,
+  SaleOrderDetailPage,
+} from "./features/sale-order";
+
+import {
+  MfgLayout,
+  MfgDashboardPage,
+  MfgOrdersPage,
+  MfgOrderPage,
+  MfgQueuePage,
+  MfgPrintDispatchPage,
+} from "./features/mfg-unit";
 
 import { AuthProvider, useAuth, AuthContext } from "./context/AuthContext.jsx";
 export { AuthProvider, useAuth, AuthContext };
 
 const pageTitleMapping = {
   "/login": "Login",
+  "/designer/login": "Designer Portal Login",
+  "/designer-login": "Designer Portal Login",
+
   "/forgot-password": "Forgot Password",
   "/admin-dashboard": "Admin Dashboard",
   "/manager-dashboard": "Manager Dashboard",
@@ -105,7 +157,6 @@ const pageTitleMapping = {
   "/inventory-tracking": "Inventory Tracking",
   "/export-data": "Export Data",
   "/jumbo-xerox-csv-verifier": "Jumbo Xerox CSV Verifier",
-  "/sales-order": "Sales Order",
   "/sales-invoice": "Sales Invoice",
   "/jobflow": "JobFlow Overview",
   "/jobflow/customers": "Customer Master",
@@ -136,9 +187,39 @@ const pageTitleMapping = {
   "/v3/quality-control": "Quality Control & Rework",
   "/jobflow/delivery": "Delivery Management",
   "/delivery": "Delivery Management",
-  "/jobflow/settlement": "Settlement & Invoicing",
-  "/settlement": "Settlement & Invoicing",
+  "/jobflow/invoice": "Commercial Tax Invoicing",
+  "/invoice": "Commercial Tax Invoicing",
+  "/invoices": "Commercial Tax Invoicing",
+  "/jobflow/settlement": "Payment Settlement & Job Closure",
+  "/settlement": "Payment Settlement & Job Closure",
+  "/jobflow/pos": "POS Counter Billing & Sales Receipts",
+  "/pos": "POS Counter Billing & Sales Receipts",
+  "/pos-receipts": "POS Counter Billing & Sales Receipts",
+  "/sales-receipts": "POS Counter Billing & Sales Receipts",
+  "/jobflow/master-settings": "Master Defaults & Specifications",
+  "/master-settings": "Master Defaults & Specifications",
+  "/attendance": "Daily Attendance",
+  "/attendance/setup": "Attendance Setup",
+  "/attendance/daily": "Daily Attendance",
+  "/attendance/permissions": "Attendance Permissions",
+  "/attendance/reports": "Attendance Reports",
+  "/salary": "Salary & Payroll",
+  "/salary/setup": "Salary Setup",
+  "/salary/loans-adjustments": "Loans & Adjustments",
+  "/salary/processing": "Payroll Processing",
+  "/salary/records": "Salary Records",
+  "/sale-orders": "Sale Orders",
+  "/sale-orders/new": "New Sale Order",
+  "/mfg/dashboard": "Manufacturing Dashboard",
+  "/mfg/orders": "Manufacturing Orders",
+  "/mfg/queue": "Waiting Queue",
+  "/mfg/print-dispatch": "Print & Dispatch",
 };
+
+// Branch users (and admins) who work with sale orders
+const SALE_ORDER_ROLES = ["admin", "super_admin", "manager", "branch_manager", "branch_manager1", "operator", "branch_staff"];
+// Manufacturing unit staff (admins may look in too)
+const MFG_PORTAL_ROLES = ["mfg_designer", "mfg_manager", "admin", "super_admin"];
 
 
 
@@ -159,8 +240,25 @@ const ProfileRouteWrapper = () => {
 };
 
 const LayoutWrapper = ({ children }) => {
-  const { role } = useAuth();
-  if (role === "admin") {
+  const { role, currentUser } = useAuth();
+  const storedRole = (() => {
+    try {
+      return localStorage.getItem("userRole") || "";
+    } catch (_) {
+      return "";
+    }
+  })();
+  const isAdmin =
+    role === "admin" ||
+    role === "SUPER_ADMIN" ||
+    currentUser?.role === "admin" ||
+    currentUser?.role === "SUPER_ADMIN" ||
+    currentUser?.roleCode === "ADMIN" ||
+    currentUser?.roleCode === "SUPER_ADMIN" ||
+    storedRole === "admin" ||
+    storedRole === "SUPER_ADMIN";
+
+  if (isAdmin) {
     return <AdminLayout>{children}</AdminLayout>;
   }
   return <ManagerLayout>{children}</ManagerLayout>;
@@ -177,21 +275,19 @@ const AppContent = () => {
 
   return (
     <>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 9999 }}
-      />
+      {/* Hidden React-Toastify container so internal store emits onChange events */}
+      <div style={{ display: "none" }} aria-hidden="true">
+        <ToastContainer />
+      </div>
+      {/* Top-Center Framer Motion Glass-Pill Notifications */}
+      <MotionToastContainer />
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/designer/login" element={<DesignerLoginPage />} />
+        <Route path="/designer-login" element={<DesignerLoginPage />} />
+        {/* The manufacturing unit signs in from the Mfg tab of the main login */}
+        <Route path="/mfg/login" element={<Navigate to="/login?tab=mfg" replace />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/popup-demo" element={<PopupDemo />} />
         <Route
@@ -268,19 +364,6 @@ const AppContent = () => {
                 <AdminLayout>
                   <AddAdminPage />
                 </AdminLayout>
-              )}
-            />
-          }
-        />
-        <Route
-          path="/sales-order"
-          element={
-            <PrivateRoute
-              roles={["manager"]}
-              component={() => (
-                <ManagerLayout>
-                  <SalesOrder />
-                </ManagerLayout>
               )}
             />
           }
@@ -471,7 +554,7 @@ const AppContent = () => {
           path="/manager-dashboard"
           element={
             <PrivateRoute
-              roles={["manager"]}
+              roles={["manager", "admin"]}
               component={() => (
                 <ManagerLayout>
                   <ManagerDashboardPage />
@@ -479,6 +562,23 @@ const AppContent = () => {
               )}
             />
           }
+        />
+        <Route
+          path="/designer-dashboard"
+          element={
+            <PrivateRoute
+              roles={["designer", "admin", "manager"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerDashboardPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/designer/dashboard"
+          element={<Navigate to="/designer-dashboard" replace />}
         />
         <Route
           path="/printer-readings-manager"
@@ -707,6 +807,62 @@ const AppContent = () => {
           }
         />
 
+        {/* POS Counter Billing & Sales Receipts */}
+        <Route path="/v3/sales-pos" element={<Navigate to="/pos" replace />} />
+        <Route path="/sales-pos" element={<Navigate to="/pos" replace />} />
+        <Route
+          path="/jobflow/pos"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <PosBillingPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/pos"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <PosBillingPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/pos-receipts"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <PosBillingPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/sales-receipts"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <PosBillingPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
         {/* 2. Customer Master & Registration */}
         <Route
           path="/jobflow/customers"
@@ -814,11 +970,64 @@ const AppContent = () => {
             />
           }
         />
+                {/* Designer Job Orders - Dedicated Listing for Designer-Created Orders */}
         <Route
+          path="/jobflow/designer-jobs"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerJobOrdersPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/designer-jobs"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerJobOrdersPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/jobflow/designer-jobs/new"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerJobOrdersPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/designer-jobs/new"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <DesignerJobOrdersPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+<Route
           path="/jobflow/jobs/new"
           element={
             <PrivateRoute
-              roles={["manager", "admin"]}
+              roles={["manager", "admin", "designer"]}
               component={() => (
                 <ManagerLayout>
                   <CreateJobOrderPage />
@@ -831,7 +1040,7 @@ const AppContent = () => {
           path="/jobs/new"
           element={
             <PrivateRoute
-              roles={["manager", "admin"]}
+              roles={["manager", "admin", "designer"]}
               component={() => (
                 <ManagerLayout>
                   <CreateJobOrderPage />
@@ -1009,7 +1218,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionDashboardPage />
                 </ManagerLayout>
               )}
             />
@@ -1022,7 +1231,20 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionDashboardPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/dashboard"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionDashboardPage />
                 </ManagerLayout>
               )}
             />
@@ -1035,7 +1257,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionDashboardPage />
                 </ManagerLayout>
               )}
             />
@@ -1048,7 +1270,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionPlanningPage />
                 </ManagerLayout>
               )}
             />
@@ -1061,7 +1283,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionPlanningPage />
                 </ManagerLayout>
               )}
             />
@@ -1074,7 +1296,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionPlanningPage />
                 </ManagerLayout>
               )}
             />
@@ -1087,7 +1309,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionPlanningPage />
                 </ManagerLayout>
               )}
             />
@@ -1100,7 +1322,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionPlanningPage />
                 </ManagerLayout>
               )}
             />
@@ -1113,7 +1335,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <ProductionOrdersPage />
                 </ManagerLayout>
               )}
             />
@@ -1126,7 +1348,85 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionPage />
+                  <OperationQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/operation-queue"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <OperationQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/completed"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <CompletedProductionPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/rework"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ReworkQueuePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/reprints"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ReprintBatchesPage initialTab="REPRINT" />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/machines"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <MachineTrackingPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/production/reports"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <ProductionReportsPage />
                 </ManagerLayout>
               )}
             />
@@ -1134,6 +1434,19 @@ const AppContent = () => {
         />
 
         {/* 7. Quality Control & Smart Rework */}
+        <Route
+          path="/production/qc"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <QCPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
         <Route
           path="/jobflow/qc"
           element={
@@ -1202,7 +1515,48 @@ const AppContent = () => {
           }
         />
 
-        {/* 9. Settlement & Invoice Generation */}
+        {/* 9. Commercial Tax Invoicing */}
+        <Route
+          path="/jobflow/invoice"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <InvoicePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/invoice"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <InvoicePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin"]}
+              component={() => (
+                <ManagerLayout>
+                  <InvoicePage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+
+        {/* 10. Payment Settlement & Job Closure */}
         <Route
           path="/jobflow/settlement"
           element={
@@ -1234,6 +1588,288 @@ const AppContent = () => {
         <Route path="/jobflow/qr-request" element={<BranchQrCustomerForm />} />
         <Route path="/customer-register" element={<BranchQrCustomerForm />} />
         <Route path="/v3/customer-register" element={<BranchQrCustomerForm />} />
+
+        {/* 13. Master Defaults & Specifications */}
+        <Route
+          path="/jobflow/master-settings"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "super_admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <MasterSettingsPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/master-settings"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "super_admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <MasterSettingsPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
+        {/* ========================================================= */}
+        {/* PrintZ Attendance Management Routes                      */}
+        {/* ========================================================= */}
+        <Route path="/attendance" element={<Navigate to="/attendance/daily" replace />} />
+        <Route
+          path="/attendance/setup"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin"]}
+              component={() => (
+                <AdminLayout>
+                  <AttendanceSetupPage />
+                </AdminLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/attendance/daily"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <DailyAttendancePage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/attendance/branch-shifts"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin"]}
+              component={() => (
+                <AdminLayout>
+                  <BranchShiftsPage />
+                </AdminLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/attendance/permissions"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <AttendancePermissionsPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/attendance/reports"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <AttendanceReportsPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
+        {/* ========================================================= */}
+        {/* PrintZ Salary & Payroll Module Routes                     */}
+        {/* ========================================================= */}
+        <Route path="/salary" element={<Navigate to="/salary/processing" replace />} />
+        <Route
+          path="/salary/setup"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <SalarySetupPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/salary/loans-adjustments"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <LoansAdjustmentsPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/salary/processing"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <PayrollProcessingPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/salary/records"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <SalaryRecordsPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
+        {/* Sale Orders (branch side). "/new" must come before "/:id". */}
+        <Route
+          path="/sale-orders"
+          element={
+            <PrivateRoute
+              roles={SALE_ORDER_ROLES}
+              component={() => (
+                <LayoutWrapper>
+                  <SaleOrdersListPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/sale-orders/new"
+          element={
+            <PrivateRoute
+              roles={SALE_ORDER_ROLES}
+              component={() => (
+                <LayoutWrapper>
+                  <CreateSaleOrderPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/sale-orders/:id/edit"
+          element={
+            <PrivateRoute
+              roles={SALE_ORDER_ROLES}
+              component={() => (
+                <LayoutWrapper>
+                  <CreateSaleOrderPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/sale-orders/:id"
+          element={
+            <PrivateRoute
+              roles={SALE_ORDER_ROLES}
+              component={() => (
+                <LayoutWrapper>
+                  <SaleOrderDetailPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
+        {/* Manufacturing Unit portal (own login and layout) */}
+        <Route path="/mfg" element={<Navigate to="/mfg/dashboard" replace />} />
+        <Route
+          path="/mfg/dashboard"
+          element={
+            <PrivateRoute
+              loginPath="/login?tab=mfg"
+              roles={MFG_PORTAL_ROLES}
+              component={() => (
+                <MfgLayout>
+                  <MfgDashboardPage />
+                </MfgLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/mfg/orders"
+          element={
+            <PrivateRoute
+              loginPath="/login?tab=mfg"
+              roles={MFG_PORTAL_ROLES}
+              component={() => (
+                <MfgLayout>
+                  <MfgOrdersPage />
+                </MfgLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/mfg/orders/:id"
+          element={
+            <PrivateRoute
+              loginPath="/login?tab=mfg"
+              roles={MFG_PORTAL_ROLES}
+              component={() => (
+                <MfgLayout>
+                  <MfgOrderPage />
+                </MfgLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/mfg/print-dispatch"
+          element={
+            <PrivateRoute
+              loginPath="/login?tab=mfg"
+              roles={MFG_PORTAL_ROLES}
+              component={() => (
+                <MfgLayout>
+                  <MfgPrintDispatchPage />
+                </MfgLayout>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/mfg/queue"
+          element={
+            <PrivateRoute
+              loginPath="/login?tab=mfg"
+              roles={["mfg_manager", "admin", "super_admin"]}
+              component={() => (
+                <MfgLayout>
+                  <MfgQueuePage />
+                </MfgLayout>
+              )}
+            />
+          }
+        />
       </Routes>
 
 

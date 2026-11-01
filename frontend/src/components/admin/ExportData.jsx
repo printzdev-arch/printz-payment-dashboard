@@ -989,7 +989,7 @@ const ExportData = () => {
               justifyContent: "center",
               padding: "48px 20px",
               gap: "10px",
-              color: "#64748b",
+              color: "#475569",
             }}
           >
             <div className="add-assets-spinner"></div>
@@ -1222,7 +1222,7 @@ const ExportData = () => {
                           <span
                             className="add-assets-id-badge"
                             style={{
-                              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                               fontSize: "11.5px",
                               padding: "2px 6px",
                             }}
@@ -1230,7 +1230,7 @@ const ExportData = () => {
                             {item.date}
                           </span>
                         </td>
-                        <td style={{ textAlign: "center", color: "#64748b", fontSize: "11.5px", whiteSpace: "nowrap" }}>
+                        <td style={{ textAlign: "center", color: "#475569", fontSize: "11.5px", whiteSpace: "nowrap" }}>
                           {item.clearDate ? (
                             <span className="add-assets-id-badge" style={{ fontSize: "11px", padding: "2px 5px" }}>
                               {item.clearDate}
@@ -1242,7 +1242,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 700,
                             fontSize: "12px",
                             color: "#0f172a",
@@ -1254,10 +1254,10 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 500,
                             fontSize: "12px",
-                            color: "#64748b",
+                            color: "#475569",
                             whiteSpace: "nowrap",
                           }}
                         >
@@ -1266,7 +1266,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 600,
                             fontSize: "12px",
                             color: "#0284c7",
@@ -1278,7 +1278,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 500,
                             fontSize: "12px",
                             color: "#334155",
@@ -1290,7 +1290,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 500,
                             fontSize: "12px",
                             color: "#334155",
@@ -1302,7 +1302,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 700,
                             fontSize: "12px",
                             color: item.balance > 0 ? "#dc2626" : "#64748b",
@@ -1314,7 +1314,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 700,
                             fontSize: "12px",
                             color: "#059669",
@@ -1326,7 +1326,7 @@ const ExportData = () => {
                         <td
                           style={{
                             textAlign: "right",
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 700,
                             fontSize: "12px",
                             color: (item.balance - item.clearBalance) > 0 ? "#dc2626" : "#059669",
@@ -1350,28 +1350,28 @@ const ExportData = () => {
                         TOTAL
                       </td>
                       <td style={{ textAlign: "center" }}></td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.totalBusiness || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.discount || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.upiCard || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.cashAsPerAccounts || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.cashInHand || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: (totals.balance || 0) > 0 ? "#dc2626" : "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: (totals.balance || 0) > 0 ? "#dc2626" : "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.balance || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.clearBalance || 0).toLocaleString("en-IN")}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: (totals.balanceAmount || 0) > 0 ? "#dc2626" : "#047857", fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", fontSize: "12.5px", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, color: (totals.balanceAmount || 0) > 0 ? "#dc2626" : "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
                         ₹{(totals.balanceAmount || 0).toLocaleString("en-IN")}
                       </td>
                     </tr>
@@ -1435,7 +1435,7 @@ const ExportData = () => {
                             </td>
                           )}
                           <td style={{ textAlign: "center" }}>
-                            <span className="add-assets-id-badge" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>
+                            <span className="add-assets-id-badge" style={{ fontFamily: "'Poppins', sans-serif", fontSize: "12px" }}>
                               {item.date}
                             </span>
                           </td>
@@ -1447,7 +1447,7 @@ const ExportData = () => {
                               textAlign: "right",
                               fontWeight: 700,
                               color: "#059669",
-                              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                               fontSize: "13px",
                             }}
                           >
@@ -1460,7 +1460,7 @@ const ExportData = () => {
                         <td colSpan={!selectedBranch ? 3 : 2} style={{ fontWeight: 800, color: "#b45309", fontSize: "13px", textAlign: "right", paddingRight: "12px" }}>
                           Total Expenses
                         </td>
-                        <td style={{ textAlign: "right", fontWeight: 800, color: "#b45309", fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: "13.5px" }}>
+                        <td style={{ textAlign: "right", fontWeight: 800, color: "#b45309", fontFamily: "'Poppins', sans-serif", fontSize: "13.5px" }}>
                           ₹{expenseData.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString("en-IN")}
                         </td>
                       </tr>

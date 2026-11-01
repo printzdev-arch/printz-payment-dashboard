@@ -4,7 +4,7 @@
   margin: 0 auto;
   background-color: #f8f9fa;
   min-height: 100vh;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .export-data-header {
@@ -101,7 +101,7 @@
 }
 
 .loading-container p {
-  color: #6b7280;
+  color: #4b5563;
   font-size: 1.1rem;
   margin: 0;
 }
@@ -274,13 +274,13 @@
 }
 
 .no-data-content h3 {
-  color: #6b7280;
+  color: #4b5563;
   margin: 0 0 12px 0;
   font-size: 1.5rem;
 }
 
 .no-data-content p {
-  color: #9ca3af;
+  color: #4b5563;
   margin: 0;
   font-size: 1rem;
 }

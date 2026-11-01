@@ -417,7 +417,7 @@ const PastDateRequests = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "12.5px", color: "#64748b", fontWeight: 500 }}>
+            <span style={{ fontSize: "12.5px", color: "#475569", fontWeight: 500 }}>
               Showing {filteredRequests.length === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, filteredRequests.length)} of {filteredRequests.length} requests
             </span>
           </div>
@@ -540,7 +540,7 @@ const PastDateRequests = () => {
                 justifyContent: "center",
                 padding: "48px 20px",
                 gap: "10px",
-                color: "#64748b",
+                color: "#475569",
               }}
             >
               <div className="add-assets-spinner"></div>
@@ -596,7 +596,7 @@ const PastDateRequests = () => {
 
                       return (
                         <tr key={request.id}>
-                          <td style={{ textAlign: "center", color: "#64748b", fontWeight: 600 }}>
+                          <td style={{ textAlign: "center", color: "#475569", fontWeight: 600 }}>
                             {startIndex + index + 1}
                           </td>
                           <td>
@@ -636,7 +636,7 @@ const PastDateRequests = () => {
                                   <span
                                     style={{
                                       fontSize: "11.5px",
-                                      color: "#64748b",
+                                      color: "#475569",
                                       lineHeight: "1.2",
                                       whiteSpace: "nowrap",
                                       overflow: "hidden",
@@ -655,7 +655,7 @@ const PastDateRequests = () => {
                               {request.requestedDate ? request.requestedDate.split(" ")[0] : "N/A"}
                             </span>
                           </td>
-                          <td style={{ textAlign: "center", color: "#64748b", fontSize: "12.5px", fontWeight: 500 }}>
+                          <td style={{ textAlign: "center", color: "#475569", fontSize: "12.5px", fontWeight: 500 }}>
                             {request.requestedDate ? request.requestedDate.split(" ")[1] : "N/A"}
                           </td>
                           <td>
@@ -805,7 +805,7 @@ const PastDateRequests = () => {
                   <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#0f172a" }}>
                     Allow Past Date(s)
                   </h3>
-                  <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#64748b" }}>
+                  <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#475569" }}>
                     Branch: <strong>{branchFilter || "All Branches"}</strong>
                   </p>
                 </div>
@@ -817,7 +817,7 @@ const PastDateRequests = () => {
                 style={{
                   border: "none",
                   background: "transparent",
-                  color: "#94a3b8",
+                  color: "#475569",
                   cursor: "pointer",
                   padding: "4px",
                   borderRadius: "6px",
@@ -840,7 +840,7 @@ const PastDateRequests = () => {
               />
             </div>
 
-            <p style={{ margin: "0 0 16px 0", fontSize: "12px", color: "#64748b", textAlign: "center" }}>
+            <p style={{ margin: "0 0 16px 0", fontSize: "12px", color: "#475569", textAlign: "center" }}>
               Click dates to toggle selection. {selectedDates.length} date{selectedDates.length !== 1 ? "s" : ""} selected.
             </p>
 

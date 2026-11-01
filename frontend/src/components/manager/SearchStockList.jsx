@@ -1249,7 +1249,7 @@ const StockList = () => {
                                 </td>
                               </>
                             ) : (
-                              <td colSpan="4" style={{ textAlign: "center", color: "#64748b", fontStyle: "italic", fontSize: "12px" }}>
+                              <td colSpan="4" style={{ textAlign: "center", color: "#475569", fontStyle: "italic", fontSize: "12px" }}>
                                 See range tiers below
                               </td>
                             )}

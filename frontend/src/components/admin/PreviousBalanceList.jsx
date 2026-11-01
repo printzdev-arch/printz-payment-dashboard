@@ -281,7 +281,7 @@ const PreviousBalanceList = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "12.5px", color: "#64748b", fontWeight: 500 }}>
+            <span style={{ fontSize: "12.5px", color: "#475569", fontWeight: 500 }}>
               Showing {filteredData.length === 0 ? 0 : indexOfFirstItem + 1}–
               {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length.toLocaleString()} entries
             </span>
@@ -402,7 +402,7 @@ const PreviousBalanceList = () => {
                 justifyContent: "center",
                 padding: "48px 20px",
                 gap: "10px",
-                color: "#64748b",
+                color: "#475569",
               }}
             >
               <div className="add-assets-spinner"></div>
@@ -414,7 +414,7 @@ const PreviousBalanceList = () => {
               <h4 style={{ fontSize: "16px", fontWeight: 700, color: "#1e293b", margin: "8px 0 4px 0" }}>
                 No balance records found
               </h4>
-              <p style={{ margin: "0 0 16px 0", color: "#64748b", fontSize: "13px" }}>
+              <p style={{ margin: "0 0 16px 0", color: "#475569", fontSize: "13px" }}>
                 {searchQuery || selectedBranch || selectedStatus
                   ? "No previous balance records match your filter or search criteria."
                   : "There are currently no balance records in the database."}
@@ -453,9 +453,9 @@ const PreviousBalanceList = () => {
                           <td style={{ textAlign: "center" }}>
                             <span
                               style={{
-                                color: "#64748b",
+                                color: "#475569",
                                 fontWeight: 600,
-                                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                                fontFamily: "'Poppins', sans-serif",
                                 fontSize: "12.5px",
                               }}
                             >
@@ -495,7 +495,7 @@ const PreviousBalanceList = () => {
                           <td
                             style={{
                               textAlign: "right",
-                              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                               fontWeight: 700,
                               fontSize: "13.5px",
                               color: "#0f172a",
@@ -506,7 +506,7 @@ const PreviousBalanceList = () => {
                           <td
                             style={{
                               textAlign: "right",
-                              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                               fontWeight: 700,
                               fontSize: "13.5px",
                               color: "#047857",
@@ -517,7 +517,7 @@ const PreviousBalanceList = () => {
                           <td
                             style={{
                               textAlign: "right",
-                              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                               fontWeight: 700,
                               fontSize: "13.5px",
                               color: item.paymentToBeCollected > 0 ? "#dc2626" : "#64748b",

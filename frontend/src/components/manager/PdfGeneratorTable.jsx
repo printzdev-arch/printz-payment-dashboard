@@ -449,35 +449,35 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                             STARTING
                           </td>
                           {sizeTypes.map((size, idx) => (
-                            <td key={`start-${idx}`} style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                            <td key={`start-${idx}`} style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                               {readings[size]?.STARTING || "0"}
                             </td>
                           ))}
-                          <td style={{ textAlign: "right", color: "#94a3b8" }}>—</td>
+                          <td style={{ textAlign: "right", color: "#475569" }}>—</td>
                         </tr>
                         <tr>
                           <td style={{ fontWeight: 600, color: "#1e293b", background: "#f8fafc" }}>
                             FINAL READING
                           </td>
                           {sizeTypes.map((size, idx) => (
-                            <td key={`final-${idx}`} style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                            <td key={`final-${idx}`} style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                               {readings[size]?.FINAL_READING ||
                                 readings[size]?.["FINAL READING"] ||
                                 "0"}
                             </td>
                           ))}
-                          <td style={{ textAlign: "right", color: "#94a3b8" }}>—</td>
+                          <td style={{ textAlign: "right", color: "#475569" }}>—</td>
                         </tr>
                         <tr>
                           <td style={{ fontWeight: 600, color: "#1e293b", background: "#f8fafc" }}>
                             NO OF COPIES
                           </td>
                           {sizeTypes.map((size, idx) => (
-                            <td key={`copies-${idx}`} style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                            <td key={`copies-${idx}`} style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                               {readings[size]?.noOfCopies || "0"}
                             </td>
                           ))}
-                          <td style={{ textAlign: "right", color: "#64748b", fontWeight: 600 }}>Total</td>
+                          <td style={{ textAlign: "right", color: "#475569", fontWeight: 600 }}>Total</td>
                         </tr>
                         <tr style={{ background: "#f0fdf4", borderTop: "2px solid #bbf7d0" }}>
                           <td style={{ fontWeight: 700, color: "#065f46" }}>TOTAL AMOUNT</td>
@@ -488,7 +488,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                                 textAlign: "center",
                                 fontWeight: 600,
                                 color: "#047857",
-                                fontFamily: "JetBrains Mono, monospace",
+                                fontFamily: "'Poppins', sans-serif",
                               }}
                             >
                               {(() => {
@@ -513,7 +513,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                               textAlign: "right",
                               fontWeight: 700,
                               color: "#047857",
-                              fontFamily: "JetBrains Mono, monospace",
+                              fontFamily: "'Poppins', sans-serif",
                             }}
                           >
                             {formatCurrency(printerGrandTotal)}
@@ -526,7 +526,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
               );
             })
           ) : (
-            <div style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+            <div style={{ textAlign: "center", padding: "24px", color: "#475569" }}>
               <p style={{ margin: 0 }}>No printer data available for this date</p>
             </div>
           )}
@@ -564,7 +564,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                     <td style={{ fontWeight: 600, color: "#1e293b" }}>
                       TOTAL {printer.printerName || `PRINTER ${printer.printerId}`}
                     </td>
-                    <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600, color: "#065f46" }}>
+                    <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600, color: "#065f46" }}>
                       {formatCurrency(
                         getTotalAmountValue(`printer_${printer.printerId}`)
                       )}
@@ -575,37 +575,37 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                 {/* Static Account Rows */}
                 <tr>
                   <td>JUMBO XEROX</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(getTotalAmountValue("jumboXerox"))}
                   </td>
                 </tr>
                 <tr>
                   <td>ITEMS (STOCK)</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(getTotalAmountValue("items"))}
                   </td>
                 </tr>
                 <tr>
                   <td>DIGITAL BUSINESS</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(getTotalAmountValue("digitalBusiness"))}
                   </td>
                 </tr>
                 <tr>
                   <td>GIFT BUSINESS</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(getTotalAmountValue("giftBusiness"))}
                   </td>
                 </tr>
                 <tr style={{ background: "#f1f5f9", fontWeight: 700 }}>
                   <td style={{ color: "#0f172a" }}>TOTAL BUSINESS</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", color: "#0f172a" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#0f172a" }}>
                     {formatCurrency(getTotalAmountValue("totalBusiness"))}
                   </td>
                 </tr>
                 <tr>
                   <td style={{ color: "#dc2626" }}>DISCOUNT</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", color: "#dc2626" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#dc2626" }}>
                     {formatCurrency(getTotalAmountValue("discount"))}
                   </td>
                 </tr>
@@ -618,19 +618,19 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                       </div>
                     )}
                   </td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(getTotalAmountValue("upiCardPayments"))}
                   </td>
                 </tr>
                 <tr>
                   <td>BANK TRANSFERS</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(getTotalAmountValue("bankTransfers"))}
                   </td>
                 </tr>
                 <tr style={{ background: "#f8fafc", fontWeight: 600 }}>
                   <td>CASH AS PER ACCOUNTS</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", color: "#047857" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#047857" }}>
                     {formatCurrency(getTotalAmountValue("cashAsPerAccounts"))}
                   </td>
                 </tr>
@@ -643,13 +643,13 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                       </div>
                     )}
                   </td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                     {formatCurrency(getTotalAmountValue("cashInHand"))}
                   </td>
                 </tr>
                 <tr>
                   <td>PAYMENT TO BE COLLECTED</td>
-                  <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                  <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(
                       getTotalAmountValue("paymentToBeCollected")
                     )}
@@ -688,7 +688,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                               <td style={{ fontSize: "11.5px", paddingLeft: "18px", color: "#475569" }}>
                                 Previous {paymentMethod.toUpperCase()} ({formattedDate})
                               </td>
-                              <td style={{ textAlign: "right", fontSize: "11.5px", fontFamily: "JetBrains Mono, monospace" }}>
+                              <td style={{ textAlign: "right", fontSize: "11.5px", fontFamily: "'Poppins', sans-serif" }}>
                                 {formatCurrency(balanceRow.amount || 0)}
                               </td>
                             </tr>
@@ -709,7 +709,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                       fontWeight: 800,
                       color: "#047857",
                       fontSize: "15px",
-                      fontFamily: "JetBrains Mono, monospace",
+                      fontFamily: "'Poppins', sans-serif",
                     }}
                   >
                     {formatCurrency(totalAmountData.totalAmount)}
@@ -766,10 +766,10 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                         {items.map((item, idx) => (
                           <tr key={`${type}-${item.size}-${idx}`}>
                             <td style={{ paddingLeft: "18px", color: "#334155" }}>{item.size}</td>
-                            <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                            <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                               {item.qty || "0"}
                             </td>
-                            <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>
+                            <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                               {formatCurrency(item.amount || 0)}
                             </td>
                           </tr>
@@ -779,10 +779,10 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                   )}
                   <tr style={{ background: "#f0fdf4", borderTop: "2px solid #bbf7d0" }}>
                     <td style={{ fontWeight: 700, color: "#065f46" }}>TOTAL</td>
-                    <td style={{ textAlign: "center", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#065f46" }}>
+                    <td style={{ textAlign: "center", fontWeight: 700, fontFamily: "'Poppins', sans-serif", color: "#065f46" }}>
                       {jumboXeroxData.totalQty || "0"}
                     </td>
-                    <td style={{ textAlign: "right", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#047857" }}>
+                    <td style={{ textAlign: "right", fontWeight: 700, fontFamily: "'Poppins', sans-serif", color: "#047857" }}>
                       {formatCurrency(jumboXeroxData.totalAmount || 0)}
                     </td>
                   </tr>
@@ -811,19 +811,19 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                 <tbody>
                   <tr>
                     <td style={{ fontWeight: 600, color: "#1e293b" }}>START</td>
-                    <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
+                    <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                       {jumboXeroxData.jumboCounter?.start || "0"}
                     </td>
                   </tr>
                   <tr>
                     <td style={{ fontWeight: 600, color: "#1e293b" }}>END</td>
-                    <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
+                    <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                       {jumboXeroxData.jumboCounter?.end || "0"}
                     </td>
                   </tr>
                   <tr style={{ background: "#f0fdf4" }}>
                     <td style={{ fontWeight: 700, color: "#065f46" }}>SFT PRINTED</td>
-                    <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 700, color: "#047857" }}>
+                    <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "#047857" }}>
                       {jumboXeroxData.jumboCounter?.sftPrinted || "0"}
                     </td>
                   </tr>
@@ -868,28 +868,28 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                   if (stock.pageRanges && stock.pageRanges.length > 0) {
                     return stock.pageRanges.map((range, rangeIndex) => (
                       <tr key={`stock-range-${stock.id || stock.itemName || index}-${rangeIndex}-${index}`}>
-                        <td style={{ textAlign: "center", color: "#64748b" }}>
+                        <td style={{ textAlign: "center", color: "#475569" }}>
                           {rangeIndex === 0 ? index + 1 : ""}
                         </td>
                         <td style={{ fontWeight: rangeIndex === 0 ? 600 : 400, color: "#1e293b" }}>
                           {rangeIndex === 0 ? stock.itemName : ""}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {rangeIndex === 0 ? (stock.openingStock !== undefined && stock.openingStock !== null && stock.openingStock !== "" ? stock.openingStock : 0) : ""}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {rangeIndex === 0 ? (stock.addedStock !== undefined && stock.addedStock !== null && stock.addedStock !== "" ? stock.addedStock : 0) : ""}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {rangeIndex === 0 ? (stock.closingStock !== undefined && stock.closingStock !== null && stock.closingStock !== "" ? stock.closingStock : 0) : ""}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {(range.sold !== undefined && range.sold !== null && range.sold !== "" ? range.sold : 0)}
                         </td>
                         <td style={{ textAlign: "center", fontSize: "12px", color: "#475569" }}>
                           {range.range} — Rs.{range.price}
                         </td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                           {formatCurrency(
                             (Number(range.sold) || 0) * range.price
                           )}
@@ -899,24 +899,24 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                   } else {
                     return (
                       <tr key={`stock-item-${stock.id || stock.itemName || index}-${index}`}>
-                        <td style={{ textAlign: "center", color: "#64748b" }}>{index + 1}</td>
+                        <td style={{ textAlign: "center", color: "#475569" }}>{index + 1}</td>
                         <td style={{ fontWeight: 600, color: "#1e293b" }}>{stock.itemName}</td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {(stock.openingStock !== undefined && stock.openingStock !== null && stock.openingStock !== "" ? stock.openingStock : 0)}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {(stock.addedStock !== undefined && stock.addedStock !== null && stock.addedStock !== "" ? stock.addedStock : 0)}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {(stock.closingStock !== undefined && stock.closingStock !== null && stock.closingStock !== "" ? stock.closingStock : 0)}
                         </td>
-                        <td style={{ textAlign: "center", fontFamily: "JetBrains Mono, monospace" }}>
+                        <td style={{ textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
                           {(stock.sold !== undefined && stock.sold !== null && stock.sold !== "" ? stock.sold : 0)}
                         </td>
                         <td style={{ textAlign: "center", fontSize: "12px", color: "#475569" }}>
                           Rs.{stock.amount || 0}
                         </td>
-                        <td style={{ textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                           {formatCurrency(
                             (Number(stock.sold) || 0) * (stock.amount || 0)
                           )}
@@ -927,7 +927,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                  <td colSpan="8" style={{ textAlign: "center", padding: "24px", color: "#475569" }}>
                     No stock data available for this date
                   </td>
                 </tr>
@@ -944,7 +944,7 @@ const PdfGeneratorTable = forwardRef((props, ref) => {
                     fontWeight: 800,
                     color: "#047857",
                     fontSize: "14.5px",
-                    fontFamily: "JetBrains Mono, monospace",
+                    fontFamily: "'Poppins', sans-serif",
                   }}
                 >
                   {formatCurrency(

@@ -1,0 +1,208 @@
+/* ==========================================================================
+   Production Reports Page — Dedicated Stylesheet
+   Modern, Clean, High-Fidelity UI with Comfortable Sizing & Spacing
+   ========================================================================== */
+
+@import "./production.css";
+
+.production-reports-page,
+.pr2-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem 1.75rem 3rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  color: #0f172a;
+}
+
+.pr2-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.pr2-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pr2-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.pr2-subtitle {
+  font-size: 0.85rem;
+  color: #475569;
+  margin-top: 2px;
+  display: block;
+}
+
+.pr2-report-header {
+  margin-bottom: 1rem;
+}
+
+.pr2-report-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.pr2-report-desc {
+  font-size: 0.8rem;
+  color: #475569;
+  display: block;
+  margin-top: 2px;
+}
+
+.pr2-actions-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pr2-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+}
+
+.pr2-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid #f1f5f9;
+  align-items: end;
+}
+
+.pr2-select-bold {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.pr2-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.pr2-tile {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  transition: all 0.15s ease;
+}
+
+.pr2-tile:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.pr2-tile-label {
+  font-size: 0.72rem;
+  color: #475569;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pr2-tile-value {
+  font-size: 1.35rem;
+  font-weight: 750;
+  margin-top: 3px;
+  word-break: break-word;
+}
+
+.pr2-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pr2-right {
+  text-align: right;
+}
+
+.pr2-note {
+  font-size: 0.8rem;
+  color: #475569;
+  margin: 0.85rem 0 0;
+  line-height: 1.4;
+}
+
+.pr2-empty {
+  padding: 2.5rem;
+  text-align: center;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.pr2-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.pr2-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pr2-job {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pr2-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.pr2-print-title {
+  display: none;
+}
+
+@media print {
+  .pr2-no-print {
+    display: none !important;
+  }
+  .pr2-print-title {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+}

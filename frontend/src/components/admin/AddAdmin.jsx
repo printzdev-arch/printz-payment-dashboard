@@ -118,7 +118,7 @@ const MODAL_HEADER_TITLE_STYLE = {
 const MODAL_HEADER_SUBTITLE_STYLE = {
   margin: "2px 0 0 0",
   fontSize: "12.5px",
-  color: "#64748b",
+  color: "#475569",
 };
 
 const MODAL_CLOSE_BTN_STYLE = {
@@ -130,7 +130,7 @@ const MODAL_CLOSE_BTN_STYLE = {
   background: "#f1f5f9",
   border: "none",
   cursor: "pointer",
-  color: "#64748b",
+  color: "#475569",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1095,7 +1095,7 @@ const AddAdmin = () => {
                           <h4 style={{ margin: "0 0 2px 0", fontSize: "13.5px", fontWeight: 700, color: "#0f172a" }}>
                             Send Password Reset Email
                           </h4>
-                          <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+                          <p style={{ margin: 0, fontSize: "12px", color: "#475569" }}>
                             A password reset link will be sent to the admin's email address
                           </p>
                         </div>
@@ -1170,7 +1170,7 @@ const AddAdmin = () => {
                         />
                         <span
                           onClick={togglePasswordVisibility}
-                          style={{ cursor: "pointer", color: "#9ca3af", display: "flex", padding: "4px", marginLeft: "auto" }}
+                          style={{ cursor: "pointer", color: "#4b5563", display: "flex", padding: "4px", marginLeft: "auto" }}
                         >
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </span>
@@ -1208,7 +1208,7 @@ const AddAdmin = () => {
                         />
                         <span
                           onClick={toggleConfirmPasswordVisibility}
-                          style={{ cursor: "pointer", color: "#9ca3af", display: "flex", padding: "4px", marginLeft: "auto" }}
+                          style={{ cursor: "pointer", color: "#4b5563", display: "flex", padding: "4px", marginLeft: "auto" }}
                         >
                           {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </span>
@@ -1307,7 +1307,7 @@ const AddAdmin = () => {
               style={{
                 margin: "0 0 24px 0",
                 fontSize: "14px",
-                color: "#6b7280",
+                color: "#4b5563",
                 lineHeight: "1.5",
               }}
             >
@@ -1557,7 +1557,7 @@ const AddAdmin = () => {
                     <Mail size={17} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "11.5px", color: "#64748b", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: "11.5px", color: "#475569", marginBottom: "2px", whiteSpace: "nowrap" }}>
                       Email Address
                     </div>
                     <div
@@ -1588,7 +1588,7 @@ const AddAdmin = () => {
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                     cursor: "pointer",
-                    color: "#64748b",
+                    color: "#475569",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1650,7 +1650,7 @@ const AddAdmin = () => {
                     <Phone size={17} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "11.5px", color: "#64748b", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: "11.5px", color: "#475569", marginBottom: "2px", whiteSpace: "nowrap" }}>
                       Phone Number
                     </div>
                     <div
@@ -1680,7 +1680,7 @@ const AddAdmin = () => {
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                     cursor: "pointer",
-                    color: "#64748b",
+                    color: "#475569",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1742,7 +1742,7 @@ const AddAdmin = () => {
                     <Building2 size={17} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "11.5px", color: "#64748b", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: "11.5px", color: "#475569", marginBottom: "2px", whiteSpace: "nowrap" }}>
                       Branch Assigned
                     </div>
                     <div
@@ -1772,7 +1772,7 @@ const AddAdmin = () => {
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                     cursor: "pointer",
-                    color: "#64748b",
+                    color: "#475569",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1834,7 +1834,7 @@ const AddAdmin = () => {
                     <MapPin size={17} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "11.5px", color: "#64748b", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: "11.5px", color: "#475569", marginBottom: "2px", whiteSpace: "nowrap" }}>
                       Location
                     </div>
                     <div
@@ -1865,7 +1865,7 @@ const AddAdmin = () => {
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                     cursor: "pointer",
-                    color: "#64748b",
+                    color: "#475569",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1924,7 +1924,7 @@ const AddAdmin = () => {
                     <h4 style={{ margin: 0, fontSize: "14.5px", fontWeight: 700, color: "#0f172a", lineHeight: 1.2 }}>
                       Capabilities & Permissions
                     </h4>
-                    <p style={{ margin: "2px 0 0 0", fontSize: "11.5px", color: "#64748b" }}>
+                    <p style={{ margin: "2px 0 0 0", fontSize: "11.5px", color: "#475569" }}>
                       Modules and features accessible by this admin
                     </p>
                   </div>
@@ -1988,7 +1988,7 @@ const AddAdmin = () => {
                     </div>
                   ))
                 ) : (
-                  <span style={{ color: "#94a3b8", fontSize: "12px", fontStyle: "italic" }}>
+                  <span style={{ color: "#475569", fontSize: "12px", fontStyle: "italic" }}>
                     No specific capabilities assigned
                   </span>
                 )}

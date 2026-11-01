@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Poppins', sans-serif;
   color: #0f172a;
   box-sizing: border-box;
   width: 100%;
@@ -45,7 +45,7 @@
 .printz-header-title-area p {
   margin: 0;
   font-size: 12.5px;
-  color: #64748b;
+  color: #475569;
 }
 
 /* Modern Filter Card */
@@ -101,12 +101,12 @@
 .revenue-filter-subtitle {
   margin: 2px 0 0 0;
   font-size: 12px;
-  color: #64748b;
+  color: #475569;
 }
 
 .revenue-filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -154,7 +154,7 @@
   width: 100%;
   font-size: 13.5px;
   color: #0f172a;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   font-weight: 500;
   cursor: pointer;
 }
@@ -181,7 +181,7 @@
   width: 100% !important;
   font-size: 13.5px !important;
   color: #0f172a !important;
-  font-family: inherit !important;
+  font-family: 'Poppins', sans-serif !important;
   font-weight: 500 !important;
   padding: 0 !important;
   cursor: pointer !important;
@@ -324,19 +324,19 @@
   width: 100%;
   font-size: 12.5px;
   color: #0f172a;
-  font-family: inherit;
+  font-family: 'Poppins', sans-serif;
   font-weight: 500;
 }
 
 .revenue-search-input::placeholder {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 400;
 }
 
 .revenue-search-clear {
   border: none;
   background: #f1f5f9;
-  color: #64748b;
+  color: #475569;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -381,13 +381,13 @@
 }
 
 .revenue-stat-pill .stat-label {
-  color: #64748b;
+  color: #475569;
   font-weight: 500;
   font-size: 11.5px;
 }
 
 .revenue-stat-pill .stat-val {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-weight: 700;
   color: #0f172a;
   font-size: 12px;
@@ -494,10 +494,10 @@
 }
 
 .revenue-id-badge {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 11px;
   background: #f1f5f9;
-  color: #64748b;
+  color: #475569;
   padding: 3px 8px;
   border-radius: 6px;
   font-weight: 700;
@@ -623,10 +623,10 @@
 
 /* Row & Cell Styling */
 .revenue-stock-table td.td-sno {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: #475569;
 }
 
 .revenue-stock-item-info {
@@ -646,7 +646,7 @@
 .revenue-stock-id-tag {
   display: inline-flex;
   align-items: center;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   color: #059669;
@@ -676,7 +676,7 @@
 
 /* Numerical Cells */
 .revenue-stock-table td.td-num {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 12.5px;
 }
 
@@ -686,7 +686,7 @@
 }
 
 .revenue-num-muted {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 400;
 }
 
@@ -700,7 +700,7 @@
   font-size: 11.5px;
   font-weight: 700;
   min-width: 32px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 .stock-qty-badge.in-stock {
@@ -723,12 +723,12 @@
 
 /* Pages / Ranges */
 .stock-pages-dash {
-  color: #cbd5e1;
+  color: #64748b;
   font-weight: 500;
 }
 
 .stock-pages-text {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 11px;
   font-weight: 600;
   color: #475569;
@@ -742,7 +742,7 @@
 
 /* Sold Quantities */
 .revenue-stock-table td.td-sold-qty {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 12.5px;
 }
 
@@ -752,20 +752,20 @@
 }
 
 .revenue-sold-zero {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 500;
 }
 
 /* Prices and Amounts */
 .revenue-stock-table td.td-price {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 12.5px;
   color: #334155;
   font-weight: 500;
 }
 
 .revenue-stock-table td.td-amount {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 13px;
 }
 
@@ -775,7 +775,7 @@
 }
 
 .revenue-amount-zero {
-  color: #94a3b8;
+  color: #475569;
   font-weight: 500;
 }
 
@@ -808,7 +808,7 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   white-space: nowrap;
 }
 
@@ -816,7 +816,7 @@
   font-size: 15px !important;
   font-weight: 800 !important;
   color: #047857 !important;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Two Column Grid */
@@ -920,13 +920,13 @@
 .revenue-counter-label {
   font-size: 11.5px;
   font-weight: 700;
-  color: #64748b;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .revenue-counter-value {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'Poppins', sans-serif;
   font-size: 16px;
   font-weight: 800;
   color: #0f172a;
@@ -959,7 +959,7 @@
 
 .revenue-pagination-info {
   font-size: 13px;
-  color: #64748b;
+  color: #475569;
   font-weight: 500;
 }
 
@@ -1008,7 +1008,7 @@
   justify-content: center;
   text-align: center;
   gap: 10px;
-  color: #64748b;
+  color: #475569;
 }
 
 .revenue-prompt-state h3 {

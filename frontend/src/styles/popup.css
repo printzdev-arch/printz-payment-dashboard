@@ -19,7 +19,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .popup-overlay-visible {
@@ -159,7 +159,7 @@
   border-radius: 50% !important;
   background: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  color: #64748b !important;
+  color: #475569 !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
@@ -248,7 +248,7 @@
 .popup-countdown span {
   font-size: 12px !important;
   font-weight: 500 !important;
-  color: #94a3b8 !important;
+  color: #475569 !important;
   text-align: center !important;
   letter-spacing: 0.01em !important;
 }

@@ -13,9 +13,6 @@ import {
   Check,
   X,
   Plus,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   PackageSearch,
   Package,
   Eye,
@@ -789,7 +786,7 @@ const StockList = () => {
                 style={{
                   border: "none",
                   background: "transparent",
-                  color: "#94a3b8",
+                  color: "#475569",
                   cursor: "pointer",
                 }}
                 onClick={() => setSearchQuery("")}
@@ -867,42 +864,8 @@ const StockList = () => {
                   <th style={{ width: "60px", textAlign: "center" }}>
                     S.No
                   </th>
-                  <th
-                    style={{ width: "140px" }}
-                    className="stock-sort-th"
-                    onClick={() => handleSort("stockId")}
-                  >
-                    <span className="stock-sort-header-inner">
-                      <span>Item ID</span>
-                      {sortField === "stockId" ? (
-                        sortOrder === "asc" ? (
-                          <ArrowUp size={13} color="#047857" />
-                        ) : (
-                          <ArrowDown size={13} color="#047857" />
-                        )
-                      ) : (
-                        <ArrowUpDown size={13} color="#6ee7b7" />
-                      )}
-                    </span>
-                  </th>
-                  <th
-                    style={{ minWidth: "220px" }}
-                    className="stock-sort-th"
-                    onClick={() => handleSort("itemName")}
-                  >
-                    <span className="stock-sort-header-inner">
-                      <span>Items</span>
-                      {sortField === "itemName" ? (
-                        sortOrder === "asc" ? (
-                          <ArrowUp size={13} color="#047857" />
-                        ) : (
-                          <ArrowDown size={13} color="#047857" />
-                        )
-                      ) : (
-                        <ArrowUpDown size={13} color="#6ee7b7" />
-                      )}
-                    </span>
-                  </th>
+                  <th style={{ width: "140px" }}>Item ID</th>
+                  <th style={{ minWidth: "220px" }}>Items</th>
                   <th style={{ width: "160px", textAlign: "center" }}>
                     Pages
                   </th>
@@ -937,7 +900,7 @@ const StockList = () => {
                         <td
                           style={{
                             textAlign: "center",
-                            color: "#64748b",
+                            color: "#475569",
                             fontWeight: "600",
                             width: "60px",
                           }}
@@ -1029,7 +992,7 @@ const StockList = () => {
                       <p
                         style={{
                           margin: 0,
-                          color: "#64748b",
+                          color: "#475569",
                           fontSize: "14px",
                         }}
                       >
@@ -1085,7 +1048,7 @@ const StockList = () => {
               <span
                 style={{
                   fontSize: "12.5px",
-                  color: "#64748b",
+                  color: "#475569",
                   display: "inline-block",
                   marginTop: "6px",
                 }}
@@ -1129,7 +1092,7 @@ const StockList = () => {
               <span
                 style={{
                   fontSize: "12.5px",
-                  color: "#64748b",
+                  color: "#475569",
                   display: "inline-block",
                   marginTop: "6px",
                 }}
@@ -1322,7 +1285,7 @@ const StockList = () => {
                                 <tr key={rIdx}>
                                   <td
                                     style={{
-                                      color: "#64748b",
+                                      color: "#475569",
                                       fontWeight: "600",
                                     }}
                                   >
@@ -1564,7 +1527,7 @@ const StockList = () => {
                         value={modalFormData.branchName}
                         disabled
                         className="stock-modal-input"
-                        style={{ background: "#f8fafc", color: "#64748b" }}
+                        style={{ background: "#f8fafc", color: "#475569" }}
                       />
                     </div>
                   </div>
@@ -1640,7 +1603,7 @@ const StockList = () => {
                           style={{
                             fontSize: "12px",
                             fontWeight: 600,
-                            color: "#64748b",
+                            color: "#475569",
                           }}
                         >
                           Configure tiers and per-unit prices for page brackets:
@@ -1671,7 +1634,7 @@ const StockList = () => {
                             >
                               <span
                                 style={{
-                                  color: "#64748b",
+                                  color: "#475569",
                                   fontWeight: 600,
                                   fontSize: "13px",
                                 }}

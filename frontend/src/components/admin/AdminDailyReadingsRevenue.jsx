@@ -1350,7 +1350,7 @@ const AdminDailyReadingsRevenue = () => {
                         <td style={{ fontWeight: 600, color: "#1e293b" }}>
                           Printer {pInfo.name || pid} Total
                         </td>
-                        <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(pInfo.amount || 0).toFixed(2)}
                         </td>
                       </tr>
@@ -1358,17 +1358,17 @@ const AdminDailyReadingsRevenue = () => {
 
                     <tr>
                       <td>Large Format / Jumbo Xerox Total</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                         Rs. {Number(accountMetrics.jumboTotal || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     {jumboCounter?.sftPrinted && (
                       <tr style={{ background: "#f8fafc" }}>
-                        <td style={{ fontSize: "12px", color: "#64748b", paddingLeft: "24px" }}>
+                        <td style={{ fontSize: "12px", color: "#475569", paddingLeft: "24px" }}>
                           Jumbo Counter (SFT Printed)
                         </td>
-                        <td style={{ textAlign: "right", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }}>
+                        <td style={{ textAlign: "right", fontSize: "12px", fontFamily: "'Poppins', sans-serif" }}>
                           {jumboCounter.sftPrinted} SFT
                         </td>
                       </tr>
@@ -1376,7 +1376,7 @@ const AdminDailyReadingsRevenue = () => {
 
                     <tr>
                       <td>Stock Items Revenue Total</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                         Rs. {Number(accountMetrics.stockTotal || 0).toFixed(2)}
                       </td>
                     </tr>
@@ -1384,7 +1384,7 @@ const AdminDailyReadingsRevenue = () => {
                     {accountMetrics.digitalBusiness > 0 && (
                       <tr>
                         <td>Digital Business</td>
-                        <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(accountMetrics.digitalBusiness).toFixed(2)}
                         </td>
                       </tr>
@@ -1393,7 +1393,7 @@ const AdminDailyReadingsRevenue = () => {
                     {accountMetrics.giftBusiness > 0 && (
                       <tr>
                         <td>Gift Business</td>
-                        <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(accountMetrics.giftBusiness).toFixed(2)}
                         </td>
                       </tr>
@@ -1401,59 +1401,59 @@ const AdminDailyReadingsRevenue = () => {
 
                     <tr style={{ background: "#f1f5f9", fontWeight: 700 }}>
                       <td style={{ color: "#0f172a" }}>TOTAL BUSINESS</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#0f172a" }}>
                         Rs. {Number(accountMetrics.totalBusiness || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     <tr>
                       <td style={{ color: "#dc2626" }}>Discount</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: "#dc2626" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", color: "#dc2626" }}>
                         Rs. {Number(accountMetrics.discount || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     <tr>
                       <td>UPI & Card Payments</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                         Rs. {Number(accountMetrics.upiCardPayments || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     <tr>
                       <td>Bank Transfers</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                         Rs. {Number(accountMetrics.bankTransfers || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     <tr style={{ background: "#ecfdf5" }}>
                       <td style={{ fontWeight: 700, color: "#065f46" }}>CASH AS PER ACCOUNTS</td>
-                      <td style={{ textAlign: "right", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#047857" }}>
+                      <td style={{ textAlign: "right", fontWeight: 800, fontFamily: "'Poppins', sans-serif", color: "#047857" }}>
                         Rs. {Number(accountMetrics.cashAsPerAccounts || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     <tr>
                       <td>Cash in Hand</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}>
                         Rs. {Number(accountMetrics.cashInHand || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     <tr>
                       <td>Payment to be Collected</td>
-                      <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                         Rs. {Number(accountMetrics.paymentToBeCollected || 0).toFixed(2)}
                       </td>
                     </tr>
 
                     {previousBalanceRows.map((row) => (
                       <tr key={row.id || row.date}>
-                        <td style={{ color: "#64748b" }}>
+                        <td style={{ color: "#475569" }}>
                           Previous Balance ({row.date ? new Date(row.date).toLocaleDateString("en-GB") : "No Date"}) — {row.paymentMethod?.toUpperCase() || "CASH"}
                         </td>
-                        <td style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                        <td style={{ textAlign: "right", fontFamily: "'Poppins', sans-serif" }}>
                           Rs. {Number(row.amount || 0).toFixed(2)}
                         </td>
                       </tr>
@@ -1470,7 +1470,7 @@ const AdminDailyReadingsRevenue = () => {
                           fontWeight: 800,
                           color: "#047857",
                           fontSize: "15px",
-                          fontFamily: "'JetBrains Mono', monospace",
+                          fontFamily: "'Poppins', sans-serif",
                         }}
                       >
                         Rs. {Number(totalAmount || 0).toFixed(2)}
@@ -1608,8 +1608,7 @@ const AdminDailyReadingsRevenue = () => {
                                   <td
                                     className="center"
                                     style={{
-                                      fontFamily:
-                                        "'JetBrains Mono', 'Fira Code', monospace",
+                                      fontFamily: "'Poppins', sans-serif",
                                     }}
                                   >
                                     {sizeData.STARTING || "0"}
@@ -1617,8 +1616,7 @@ const AdminDailyReadingsRevenue = () => {
                                   <td
                                     className="center"
                                     style={{
-                                      fontFamily:
-                                        "'JetBrains Mono', 'Fira Code', monospace",
+                                      fontFamily: "'Poppins', sans-serif",
                                     }}
                                   >
                                     {sizeData["FINAL READING"] || "0"}
@@ -1627,8 +1625,7 @@ const AdminDailyReadingsRevenue = () => {
                                     className="center"
                                     style={{
                                       fontWeight: 600,
-                                      fontFamily:
-                                        "'JetBrains Mono', 'Fira Code', monospace",
+                                      fontFamily: "'Poppins', sans-serif",
                                     }}
                                   >
                                     {copies > 0
@@ -1724,8 +1721,7 @@ const AdminDailyReadingsRevenue = () => {
                               <td
                                 className="center"
                                 style={{
-                                  fontFamily:
-                                    "'JetBrains Mono', 'Fira Code', monospace",
+                                  fontFamily: "'Poppins', sans-serif",
                                 }}
                               >
                                 {item.qty || "0"}
@@ -1760,8 +1756,7 @@ const AdminDailyReadingsRevenue = () => {
                               <td
                                 className="center"
                                 style={{
-                                  fontFamily:
-                                    "'JetBrains Mono', 'Fira Code', monospace",
+                                  fontFamily: "'Poppins', sans-serif",
                                 }}
                               >
                                 {item.qty || "0"}
@@ -1865,8 +1860,7 @@ const AdminDailyReadingsRevenue = () => {
                             className="right"
                             style={{
                               fontWeight: 600,
-                              fontFamily:
-                                "'JetBrains Mono', 'Fira Code', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                             }}
                           >
                             {formatCurrency(row.amount)}
@@ -1890,7 +1884,7 @@ const AdminDailyReadingsRevenue = () => {
                               <span
                                 style={{
                                   fontSize: "11px",
-                                  color: "#64748b",
+                                  color: "#475569",
                                   background: "#f1f5f9",
                                   padding: "2px 6px",
                                   borderRadius: "4px",
@@ -1910,8 +1904,7 @@ const AdminDailyReadingsRevenue = () => {
                             className="right"
                             style={{
                               fontWeight: 600,
-                              fontFamily:
-                                "'JetBrains Mono', 'Fira Code', monospace",
+                              fontFamily: "'Poppins', sans-serif",
                             }}
                           >
                             {formatCurrency(row.amount)}
@@ -1980,11 +1973,11 @@ const AdminDailyReadingsRevenue = () => {
                     <h4 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
                       Total Stock Items Revenue
                     </h4>
-                    <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+                    <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
                       Calculated stock revenue for {branchName} on {date}
                     </p>
                   </div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#059669", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#059669", fontFamily: "'Poppins', sans-serif" }}>
                     {formatCurrency(stockAmount)}
                   </div>
                 </div>
