@@ -3,13 +3,13 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 require("dotenv").config();
 
 const app = require("./app");
-const connectDB = require("./infrastructure/database/mongoose/connection");
-const env = require("./infrastructure/config/env");
+const connectDB = require("./config/database");
+const env = require("./config/env");
 
 const startServer = async () => {
   try {
     // Connect to Database
-    await connectDB();  
+    await connectDB();
 
     const server = app.listen(env.PORT, () => {
       console.log(` Printz Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
@@ -31,4 +31,3 @@ const startServer = async () => {
 };
 
 startServer();
-

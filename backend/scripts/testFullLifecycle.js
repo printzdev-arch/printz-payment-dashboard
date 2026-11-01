@@ -1,4 +1,4 @@
-async function testFullLifecycle() {
+﻿async function testFullLifecycle() {
   const baseURL = "http://localhost:5000/api";
   console.log("Starting Full Job Flow to Settlement Validation...");
 
@@ -12,7 +12,7 @@ async function testFullLifecycle() {
     }),
   });
   const loginData = await loginRes.json();
-  const token = loginData?.data?.token || loginData?.token;
+  const token = loginData?.data?.accessToken || loginData?.data?.token;
   const authHeaders = {
     headers: {
       Authorization: `Bearer ${token}`,

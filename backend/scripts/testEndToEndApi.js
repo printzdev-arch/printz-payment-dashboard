@@ -1,4 +1,4 @@
-async function testApi() {
+﻿async function testApi() {
   const baseURL = "http://localhost:5000/api";
   console.log("Testing API at:", baseURL);
 
@@ -14,7 +14,7 @@ async function testApi() {
       }),
     });
     const loginData = await loginRes.json();
-    token = loginData?.data?.token || loginData?.token;
+    token = loginData?.data?.accessToken || loginData?.data?.token;
     if (!token) {
       throw new Error(`Login failed with status ${loginRes.status}: ${JSON.stringify(loginData)}`);
     }

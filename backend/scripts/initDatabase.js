@@ -2,7 +2,7 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const fs = require("fs");
 const mongoose = require("mongoose");
-const env = require("../src/infrastructure/config/env");
+const env = require("../src/config/env");
 
 /**
  * Recursively find all model .js files in the models directory
@@ -32,14 +32,18 @@ async function initDatabase() {
 
   // Load centralized models first
   try {
-    require("../src/infrastructure/database/mongoose/models");
+    require("../src/modules/models");
   } catch (err) {
     console.warn("Notice loading index barrel:", err.message);
   }
 
-  // Load all individual model files
-  const modelsDir = path.join(__dirname, "../src/infrastructure/database/mongoose/models");
-  const modelFiles = getModelFiles(modelsDir);
+  // Load all individual model files (each module keeps its own models/ folder)
+  const modulesDir = path.join(__dirname, "../src/modules");
+  const modelFiles = [];
+  for (const moduleName of fs.readdirSync(modulesDir)) {
+    const modelsDir = path.join(modulesDir, moduleName, "models");
+    if (fs.existsSync(modelsDir) && fs.statSync(modelsDir).isDirectory()) getModelFiles(modelsDir, modelFiles);
+  }
   for (const file of modelFiles) {
     try {
       require(file);
