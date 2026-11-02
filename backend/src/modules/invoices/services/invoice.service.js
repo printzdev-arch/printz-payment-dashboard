@@ -101,6 +101,22 @@ class InvoiceService {
       const isAlreadyFinalized = existing && [INVOICE_STATUS.FINALIZED, INVOICE_STATUS.PARTIALLY_PAID, INVOICE_STATUS.PAID].includes(existing.status);
       const hasDraft = existing && existing.status === INVOICE_STATUS.DRAFT;
 
+      const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
+      const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
+      const hasPendingBalance = (Number(job.balanceDue ?? existing?.balanceDue ?? 0) > 0) || job.paymentStatus !== "PAID";
+      const isEligible = isDesignOnly
+        ? (!isAlreadyFinalized || (hasPendingBalance && job.designStatus === "COMPLETED"))
+        : !isAlreadyFinalized;
+
+      const existingAdv = Number(existing?.advanceApplied || existing?.advancePaid || existing?.paidAmount || 0);
+      const jobAdv = Number(job.advancePaid || 0);
+      const resolvedAdv = Math.max(jobAdv, existingAdv);
+      const jobTotal = Number(job.grandTotal || job.estimatedPrice || job.subtotal || 0);
+      const existingBal = existing?.balanceDue != null ? Number(existing.balanceDue) : null;
+      const jobBal = job.balanceDue != null ? Number(job.balanceDue) : null;
+      const finalBal = existingBal ?? jobBal ?? Math.max(0, jobTotal - resolvedAdv);
+      const finalAdv = resolvedAdv > 0 ? resolvedAdv : (jobTotal > 0 && finalBal < jobTotal ? Math.max(0, jobTotal - finalBal) : 0);
+
       return {
         _id: job._id,
         id: job._id,
@@ -118,8 +134,11 @@ class InvoiceService {
         currentStage: job.currentStage,
         stage: job.stage || job.currentStage,
         status: job.status,
+        designStatus: job.designStatus,
         quantity: job.quantity || job.specs?.quantity || 1,
-        advancePaid: Number(job.advancePaid || 0),
+        advancePaid: finalAdv,
+        balanceDue: finalBal,
+        paymentStatus: job.paymentStatus || (finalBal <= 0 ? "PAID" : finalAdv > 0 ? "PARTIAL" : "UNPAID"),
         estimatedPrice: job.estimatedPrice || job.grandTotal || 0,
         subtotal: job.subtotal || 0,
         taxAmount: job.taxAmount || 0,
@@ -127,9 +146,19 @@ class InvoiceService {
         itemCount: (job.items || []).length,
         items: job.items || [],
         finishingServices: job.finishingServices || [],
-        eligible: !isAlreadyFinalized,
-        ineligibilityReason: isAlreadyFinalized ? "ALREADY_FINALIZED" : null,
-        existingInvoice: existing ? { id: existing._id, invoiceNumber: existing.invoiceNumber, status: existing.status } : null,
+        eligible: isEligible,
+        ineligibilityReason: !isEligible ? "ALREADY_FINALIZED" : null,
+        existingInvoice: existing
+          ? {
+              id: existing._id,
+              invoiceNumber: existing.invoiceNumber,
+              status: existing.status,
+              balanceDue: existing.balanceDue,
+              advancePaid: existing.advancePaid || existing.advanceApplied,
+              advanceApplied: existing.advanceApplied || existing.advancePaid,
+              paidAmount: existing.paidAmount || existing.amountPaid,
+            }
+          : null,
       };
     });
 
@@ -175,12 +204,12 @@ class InvoiceService {
       unit: it.unit || "pcs",
       unitPrice: it.unitRate || it.unitPrice || 0,
       unitRate: it.unitRate || it.unitPrice || 0,
-      taxRate: it.taxRate || 18,
+      taxRate: Number(it.taxRate) || 0,
       amount: it.amount || it.totalPrice || 0,
     }));
 
     const specs = job.specs || {};
-    const q = Math.max(1, Number(job.quantity || specs.quantity || 500));
+    const q = Math.max(1, Number(job.quantity || specs.quantity || 1));
     const specParts = [
       specs.paperType ? `Paper: ${specs.paperType}` : null,
       specs.paperGsm ? `${specs.paperGsm}` : null,
@@ -192,15 +221,15 @@ class InvoiceService {
 
     const finishingList = Array.isArray(job.finishingServices) && job.finishingServices.length > 0
       ? job.finishingServices
-      : [
-          ...(specs.lamination && specs.lamination !== "None"
-            ? [{ name: "Lamination", config: specs.lamination, unitPrice: 0.50, quantity: q }]
-            : [{ name: "Lamination", config: "Matte", unitPrice: 0.50, quantity: q }]),
-          ...(specs.finishing && specs.finishing !== "None"
-            ? [{ name: specs.finishing, config: "Standard", unitPrice: 0.25, quantity: q }]
-            : [{ name: "Cutting", config: "Trim to 90 x 54 mm", unitPrice: 0.10, quantity: q }]),
-          { name: "Packing", config: "Shrink Wrap", unitPrice: 0.20, quantity: 5 },
-        ];
+      : (Array.isArray(job.items?.[0]?.finishing) && job.items[0].finishing.length > 0
+          ? job.items[0].finishing.map((f) => ({
+              name: f.name || f.code || "Finishing",
+              config: f.notes || f.config || "Standard",
+              unitPrice: Number(f.unitPrice || 0),
+              quantity: Number(f.quantity || q),
+              total: Number(f.unitPrice || 0) * Number(f.quantity || q),
+            }))
+          : []);
 
     if (resolvedItems.length === 0) {
       const tot = Number(job.grandTotal || job.estimatedPrice || job.subtotal || 0);
@@ -217,25 +246,27 @@ class InvoiceService {
         unit: "PCS",
         unitPrice: baseRate,
         unitRate: baseRate,
-        taxRate: 18,
+        taxRate: 0,
         amount: baseAmt > 0 ? baseAmt : tot,
       };
       resolvedItems = [baseItem];
-      finishingList.forEach((f) => {
-        const fQty = Number(f.quantity || q);
-        const fRate = Number(f.unitPrice || 0);
-        const fTot = Number(f.total || (fQty * fRate));
-        resolvedItems.push({
-          itemName: `Finishing: ${f.name || "Finishing Service"}`,
-          description: f.config || f.notes || "Standard",
-          quantity: fQty,
-          unit: (f.unit || "PCS").toUpperCase(),
-          unitPrice: fRate,
-          unitRate: fRate,
-          taxRate: 18,
-          amount: fTot,
+      if (finishingList.length > 0) {
+        finishingList.forEach((f) => {
+          const fQty = Number(f.quantity || q);
+          const fRate = Number(f.unitPrice || 0);
+          const fTot = Number(f.total || (fQty * fRate));
+          resolvedItems.push({
+            itemName: `Finishing: ${f.name || "Finishing Service"}`,
+            description: f.config || f.notes || "Standard",
+            quantity: fQty,
+            unit: (f.unit || "PCS").toUpperCase(),
+            unitPrice: fRate,
+            unitRate: fRate,
+            taxRate: 0,
+            amount: fTot,
+          });
         });
-      });
+      }
     } else {
       if (specDesc && !resolvedItems[0].description) {
         resolvedItems[0].description = specDesc;
@@ -253,7 +284,7 @@ class InvoiceService {
             unit: (f.unit || "PCS").toUpperCase(),
             unitPrice: fRate,
             unitRate: fRate,
-            taxRate: 18,
+            taxRate: 0,
             amount: fTot,
           });
         });
@@ -746,18 +777,27 @@ class InvoiceService {
 
     this.assertBranchAccess(invoice.branchId, authContext);
 
-    if ([INVOICE_STATUS.FINALIZED, INVOICE_STATUS.PARTIALLY_PAID, INVOICE_STATUS.PAID].includes(invoice.status)) {
-      throw ErrorHelper.conflict(`Invoice is already finalized with number: ${invoice.invoiceNumber}`);
-    }
-
-    if (invoice.status === INVOICE_STATUS.PENDING_APPROVAL) {
-      throw ErrorHelper.conflict("Cannot finalize invoice: Pending variance approval must be approved first.");
-    }
-
     // Re-verify Job Order
     const job = await JobOrder.findById(invoice.jobOrderId);
     if (!job || job.status === "CANCELLED") {
       throw ErrorHelper.conflict("Cannot finalize invoice: Job Order is invalid or cancelled.");
+    }
+
+    const jobTypeStr = String(job.jobType || "").toUpperCase();
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+    const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
+
+    if ([INVOICE_STATUS.FINALIZED, INVOICE_STATUS.PARTIALLY_PAID, INVOICE_STATUS.PAID].includes(invoice.status)) {
+      if (isDesignOnly && (Number(invoice.balanceDue || 0) > 0 || job.paymentStatus !== "PAID")) {
+        // Allow collecting the remaining balance and finalizing the paid status
+        invoice.status = INVOICE_STATUS.DRAFT;
+      } else {
+        throw ErrorHelper.conflict(`Invoice is already finalized with number: ${invoice.invoiceNumber}`);
+      }
+    }
+
+    if (invoice.status === INVOICE_STATUS.PENDING_APPROVAL) {
+      throw ErrorHelper.conflict("Cannot finalize invoice: Pending variance approval must be approved first.");
     }
 
     // Concurrency-safe atomic number generation using numberSequenceService
@@ -770,9 +810,6 @@ class InvoiceService {
     await invoice.save();
 
     // Link invoice number back to JobOrder, save advance paid and remaining balance due for settlement
-    const jobTypeStr = String(job.jobType || "").toUpperCase();
-    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-
     // Flow 1: Print Only winds up directly after invoice (COMPLETED & DELIVERED), does NOT enter production
     // Flow 2 & 3: Standard design pipeline advances to Designer Queue
     const nextJobStage = isPrintOnly
@@ -846,6 +883,30 @@ class InvoiceService {
         updateFields.stage = "COMPLETED";
         updateFields.status = "DELIVERED";
         updateFields.completionDate = new Date();
+      } else if (isDesignOnly) {
+        const isBalanceCleared = Number(invoice.balanceDue || 0) <= 0;
+        if (isBalanceCleared) {
+          updateFields.currentStage = "COMPLETED";
+          updateFields.stage = "COMPLETED";
+          updateFields.status = "COMPLETED";
+          updateFields.paymentStatus = "PAID";
+          updateFields.balanceDue = 0;
+          updateFields.completionDate = new Date();
+          try {
+            const JobWorkflowService = require("../../job-orders/services/jobWorkflow.service");
+            await JobWorkflowService.transition(job._id, "COMPLETED", {
+              actorId: user?._id,
+              notes: `Final balance collected on invoice ${invoiceNumber}. Design Only order completed.`,
+              patch: updateFields,
+              user,
+            });
+          } catch (e) {}
+        } else {
+          updateFields.currentStage = "READY";
+          updateFields.stage = "READY";
+          updateFields.status = "READY";
+          updateFields.paymentStatus = "PARTIAL";
+        }
       }
       await JobOrder.findByIdAndUpdate(job._id, { $set: updateFields });
       if (isPrintOnly) {

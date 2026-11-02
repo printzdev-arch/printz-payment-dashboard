@@ -105,13 +105,12 @@ export const estimationApi = {
       const qty = Number(data.quantity) || 1;
       const rate = Number(data.unitRate) || 0.5;
       const subtotal = qty * rate;
-      const tax = subtotal * 0.06;
       return {
         success: true,
         data: {
           subtotal,
-          tax,
-          total: subtotal + tax,
+          tax: 0,
+          total: subtotal,
         },
       };
     }

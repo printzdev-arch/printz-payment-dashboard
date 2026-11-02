@@ -1,3 +1,8 @@
+const dns = require("dns");
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {}
+
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 require("dotenv").config();
@@ -10,6 +15,21 @@ const startServer = async () => {
   try {
     // Connect to Database
     await connectDB();
+
+    // Ensure default Central Manufacturing Unit exists and retail branches are linked
+    try {
+      const { ensureManufacturingUnit } = require("./modules/sale-orders/services/saleOrder.service");
+      await ensureManufacturingUnit();
+    } catch (e) {
+      console.warn("[Server] ensureManufacturingUnit notice:", e.message);
+    }
+
+    // Start background schedulers after DB connection is established
+    if (env.NODE_ENV !== "test") {
+      const { slaSchedulerService } = require("./modules/services");
+      slaSchedulerService.startScheduler();
+      require("./modules/sale-orders/services").saleOrderSchedulerService.startScheduler();
+    }
 
     const server = app.listen(env.PORT, () => {
       console.log(` Printz Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);

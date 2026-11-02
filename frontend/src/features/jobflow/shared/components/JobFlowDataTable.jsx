@@ -37,7 +37,7 @@ export const JobFlowDataTable = ({
   defaultSortKey = "",
   defaultSortDir = "asc",
   initialPageSize = 10,
-  pageSizeOptions = [5, 10, 25, 50],
+  pageSizeOptions = [5, 10, 20, 25, 50, 100],
   emptyMessage = "No records found matching criteria.",
   onRowClick = null,
   selectedRowId = null,
@@ -152,24 +152,21 @@ export const JobFlowDataTable = ({
     });
   };
 
-  // Generate numbered page buttons (e.g. 1, 2, 3 ... N)
+  // Generate numbered page buttons with smart ellipsis (e.g. 1, 2, 3 ... N)
   const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
     const pages = [];
-    const maxButtons = 5;
+    const showLeftEllipsis = validPage > 4;
+    const showRightEllipsis = validPage < totalPages - 3;
 
-    if (totalPages <= maxButtons) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    if (!showLeftEllipsis && showRightEllipsis) {
+      pages.push(1, 2, 3, 4, 5, "...", totalPages);
+    } else if (showLeftEllipsis && !showRightEllipsis) {
+      pages.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
     } else {
-      let start = Math.max(1, validPage - 2);
-      let end = Math.min(totalPages, start + maxButtons - 1);
-
-      if (end - start < maxButtons - 1) {
-        start = Math.max(1, end - maxButtons + 1);
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
+      pages.push(1, "...", validPage - 1, validPage, validPage + 1, "...", totalPages);
     }
     return pages;
   };
@@ -446,8 +443,23 @@ export const JobFlowDataTable = ({
             </button>
 
             {/* Page number buttons */}
-            <div style={{ display: "flex", gap: "0.25rem", margin: "0 0.25rem" }}>
-              {getPageNumbers().map((num) => {
+            <div style={{ display: "flex", gap: "0.25rem", margin: "0 0.25rem", alignItems: "center" }}>
+              {getPageNumbers().map((num, idx) => {
+                if (num === "...") {
+                  return (
+                    <span
+                      key={`ellipsis-${idx}`}
+                      style={{
+                        padding: "0 0.35rem",
+                        color: "#94a3b8",
+                        fontWeight: 600,
+                        userSelect: "none",
+                      }}
+                    >
+                      ...
+                    </span>
+                  );
+                }
                 const isActive = num === validPage;
                 return (
                   <button
@@ -496,6 +508,56 @@ export const JobFlowDataTable = ({
             >
               <ChevronsRight size={14} />
             </button>
+
+            {/* Direct Page Jump */}
+            {totalPages > 1 && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  marginLeft: "0.5rem",
+                  fontSize: "0.8125rem",
+                  color: "#475569",
+                }}
+              >
+                <span>Go to:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  defaultValue={validPage}
+                  key={validPage}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                        setCurrentPage(val);
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                      setCurrentPage(val);
+                    }
+                  }}
+                  style={{
+                    width: "44px",
+                    height: "30px",
+                    padding: "0 0.35rem",
+                    textAlign: "center",
+                    border: "1px solid var(--jf-border, #e2e8f0)",
+                    borderRadius: "4px",
+                    fontSize: "0.8125rem",
+                    color: "#0f172a",
+                    fontWeight: 600,
+                  }}
+                  title="Press enter to go to page"
+                />
+                <span>/ {totalPages}</span>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -74,7 +74,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
     const itemsRowsHtml = items.map((it, idx) => {
       const lineQty = Number(it.quantity || 1);
       const linePrice = Number(it.unitPrice || 0);
-      const lineTaxRate = Number(it.taxRate !== undefined ? it.taxRate : 18);
+      const lineTaxRate = Number(it.taxRate !== undefined ? it.taxRate : (doc.taxRate || 0));
       const lineTotal = Number(it.lineTotal || (lineQty * linePrice));
       return `
         <tr>
@@ -619,7 +619,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                   items.map((it, idx) => {
                     const lineQty = Number(it.quantity || 1);
                     const linePrice = Number(it.unitPrice || 0);
-                    const lineTaxRate = Number(it.taxRate !== undefined ? it.taxRate : 18);
+                    const lineTaxRate = Number(it.taxRate !== undefined ? it.taxRate : (doc.taxRate || 0));
                     const lineTotal = Number(it.lineTotal || (lineQty * linePrice));
                     return (
                       <tr key={idx} style={{ borderBottom: "1px solid #e2e8f0" }}>
@@ -770,4 +770,5 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
 };
 
 export default InvoiceBillModal;
+
 

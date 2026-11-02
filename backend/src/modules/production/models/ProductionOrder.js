@@ -355,8 +355,9 @@ productionOrderSchema.statics.findActiveOrders = async function (branchId = null
   if (branchId) orderQuery.branchId = branchId;
 
   return this.find(orderQuery)
+    .sort({ createdAt: -1 })
     .select(
-      "_id productionNo jobOrderId jobItemId branchId priority status plannedQty plannedStart plannedEnd cycleNo cycleType approvedSample specificationsSnapshot"
+      "_id productionNo jobOrderId jobItemId branchId priority status plannedQty plannedStart plannedEnd cycleNo cycleType approvedSample specificationsSnapshot createdAt updatedAt"
     )
     .populate("jobOrderId", "jobNo title customerName customerPhone dueDate priority stage")
     .populate("branchId", "name code")

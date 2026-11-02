@@ -136,6 +136,8 @@ class ProductionQueueService {
           isReprint: Boolean(op.isReprint),
           cycleType: op.cycleType || "ORIGINAL",
           cycleNo: op.cycleNo || 0,
+          createdAt: op.createdAt || order?.createdAt || null,
+          updatedAt: op.updatedAt || order?.updatedAt || null,
         });
       }
     }
@@ -196,15 +198,23 @@ class ProductionQueueService {
       );
     }
 
-    // Urgent first, then earliest planned start, then by order and sequence
+    // Urgent first, then recent first (newest createdAt / productionNo descending), and sequence within same order
     rows.sort((a, b) => {
       const pr = (PRIORITY_RANK[a.priority] ?? 2) - (PRIORITY_RANK[b.priority] ?? 2);
       if (pr !== 0) return pr;
-      const as = a.plannedStart ? new Date(a.plannedStart).getTime() : Infinity;
-      const bs = b.plannedStart ? new Date(b.plannedStart).getTime() : Infinity;
-      if (as !== bs) return as - bs;
-      if (a.productionNo !== b.productionNo) return a.productionNo < b.productionNo ? -1 : 1;
-      return a.sequenceNo - b.sequenceNo;
+
+      // Recent first: compare createdAt descending
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+
+      // Fallback: newest productionNo descending (e.g. PO-20261102-0002 before PO-20261017-0004)
+      if (a.productionNo !== b.productionNo) {
+        return String(b.productionNo || "").localeCompare(String(a.productionNo || ""));
+      }
+
+      // Within the same production order, keep operations in step sequence
+      return (a.sequenceNo || 0) - (b.sequenceNo || 0);
     });
 
     const pageNo = Math.max(1, parseInt(page, 10) || 1);

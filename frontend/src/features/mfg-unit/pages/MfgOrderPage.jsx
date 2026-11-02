@@ -92,7 +92,7 @@ export default function MfgOrderPage() {
   const canDispatch = canWorkPrint && status === "PRINTING" && printFinished;
   const canDownloadPrintFile =
     (isAssignee || me.isManager) && ["APPROVED", "PRINTING"].includes(status) && Boolean(approvedDesign?.hasPrintFile);
-  const canAssign = me.isManager && ["PLACED", "WAITING_FOR_DESIGNER"].includes(status);
+  const canAssign = me.isManager && ["DRAFT", "PLACED", "WAITING_FOR_DESIGNER"].includes(status);
   const canReassign = me.isManager && REASSIGNABLE.includes(status);
 
   const start = async () => {

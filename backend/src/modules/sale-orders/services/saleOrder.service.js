@@ -68,7 +68,13 @@ function visibilityFilter(actor) {
   const or = [];
   const branchObjectIds = actor.branchIds.filter(isValidId).map(toObjectId);
   if (actor.isBranchStaff) or.push({ orderBranchId: { $in: branchObjectIds } });
-  if (actor.isMfgManager) or.push({ manufacturingUnitId: { $in: branchObjectIds } });
+  if (actor.isMfgManager) {
+    if (branchObjectIds.length > 0) {
+      or.push({ manufacturingUnitId: { $in: branchObjectIds } });
+    } else {
+      or.push({ manufacturingUnitId: { $exists: true } });
+    }
+  }
   if (actor.isMfgDesigner) or.push({ "currentAssignment.designerUserId": toObjectId(actor.userId) });
   if (!or.length) throw err(403, "FORBIDDEN", "You do not have access to sale orders.");
   return { $or: or };
@@ -77,7 +83,9 @@ function visibilityFilter(actor) {
 function canSeeOrder(actor, order) {
   if (actor.isAdmin) return true;
   if (actor.isBranchStaff && actor.branchIds.includes(idStr(order.orderBranchId))) return true;
-  if (actor.isMfgManager && actor.branchIds.includes(idStr(order.manufacturingUnitId))) return true;
+  if (actor.isMfgManager) {
+    if (actor.branchIds.length === 0 || actor.branchIds.includes(idStr(order.manufacturingUnitId))) return true;
+  }
   if (actor.isMfgDesigner && idStr(order.currentAssignment?.designerUserId) === actor.userId) return true;
   return false;
 }
@@ -208,6 +216,58 @@ function computeTotals(
   };
 }
 
+async function ensureManufacturingUnit() {
+  let mfgUnit = await Branch.findOne({ branchType: /^manufacturing$/i });
+  if (!mfgUnit) {
+    mfgUnit = await Branch.findOne({
+      $or: [
+        { name: /manufacturing|production|factory|central unit/i },
+        { code: /MFG|PRD|FAC/i },
+      ],
+    });
+  }
+
+  if (!mfgUnit) {
+    try {
+      mfgUnit = await Branch.create({
+        name: "Central Manufacturing Unit",
+        code: "MFG-01",
+        address: "Central Manufacturing Facility",
+        branchType: "manufacturing",
+        weeklyOffDays: ["Sunday"],
+      });
+      console.log("[SaleOrder] Auto-created Central Manufacturing Unit (MFG-01)");
+    } catch (e) {
+      mfgUnit = (await Branch.findOne({ branchType: /^manufacturing$/i })) || (await Branch.findOne({}));
+    }
+  }
+
+  if (mfgUnit) {
+    await Branch.updateMany(
+      {
+        _id: { $ne: mfgUnit._id },
+        $or: [
+          { manufacturingUnitId: null },
+          { manufacturingUnitId: { $exists: false } },
+        ],
+      },
+      { $set: { manufacturingUnitId: mfgUnit._id } }
+    ).catch(() => {});
+
+    await SaleOrder.updateMany(
+      {
+        $or: [
+          { manufacturingUnitId: null },
+          { manufacturingUnitId: { $exists: false } },
+        ],
+      },
+      { $set: { manufacturingUnitId: mfgUnit._id } }
+    ).catch(() => {});
+  }
+
+  return mfgUnit;
+}
+
 async function resolveBranchAndUnit(actor, branchIdInput) {
   const branchId = branchIdInput || (actor.branchIds.length === 1 ? actor.branchIds[0] : null);
   if (!branchId || !isValidId(branchId)) throw err(422, "BRANCH_REQUIRED", "branchId is required.");
@@ -215,11 +275,21 @@ async function resolveBranchAndUnit(actor, branchIdInput) {
 
   const branch = await Branch.findById(branchId).lean();
   if (!branch) throw err(404, "NOT_FOUND", "Branch not found.");
-  if (!branch.manufacturingUnitId) {
-    throw err(422, "UNIT_NOT_MAPPED", `Branch ${branch.name} is not linked to a manufacturing unit.`);
+
+  let unit = null;
+  if (branch.manufacturingUnitId) {
+    unit = await Branch.findById(branch.manufacturingUnitId).lean();
   }
-  const unit = await Branch.findById(branch.manufacturingUnitId).lean();
-  if (!unit) throw err(422, "UNIT_NOT_MAPPED", "The linked manufacturing unit does not exist.");
+  if (!unit || String(unit.branchType || "").toLowerCase() !== "manufacturing") {
+    const mfgUnit = await ensureManufacturingUnit();
+    if (mfgUnit) {
+      unit = mfgUnit.toObject ? mfgUnit.toObject() : mfgUnit;
+      await Branch.findByIdAndUpdate(branchId, { $set: { manufacturingUnitId: unit._id } }).catch(() => {});
+    }
+  }
+  if (!unit) {
+    unit = branch;
+  }
   return { branch, unit };
 }
 
@@ -248,12 +318,13 @@ async function createOrder(body, actor) {
   );
 
   const orderId = new mongoose.Types.ObjectId();
+  const orderNo = await nextNumber("SALE_ORDER", "SO");
   const order = await runInTransaction(async (session) => {
     const [created] = await SaleOrder.create(
       [
         {
           _id: orderId,
-          orderNo: `DRAFT-${orderId}`, // real number is assigned when the order is placed
+          orderNo,
           orderBranchId: branch._id,
           manufacturingUnitId: unit._id,
           customerId: customer?._id || null,
@@ -285,6 +356,7 @@ async function createOrder(body, actor) {
       fromStatus: null,
       toStatus: STATUS.DRAFT,
       actor,
+      meta: { orderNo },
     });
     return created;
   });
@@ -430,7 +502,8 @@ async function placeOrder(id, body, actor, { idempotencyKey = null } = {}) {
     }
   }
 
-  if (order.status !== STATUS.DRAFT) throw invalidStatus(order, [STATUS.DRAFT]);
+  const placeableStatuses = [STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER, STATUS.ASSIGNED];
+  if (!placeableStatuses.includes(order.status)) throw invalidStatus(order, placeableStatuses);
 
   const advance = round2(Number(body.advanceAmount));
   if (!(advance > 0) || advance > order.grandTotal) {
@@ -443,8 +516,8 @@ async function placeOrder(id, body, actor, { idempotencyKey = null } = {}) {
   }
 
   const branch = await Branch.findById(order.orderBranchId).lean();
-  if (!branch?.manufacturingUnitId || idStr(branch.manufacturingUnitId) !== idStr(order.manufacturingUnitId)) {
-    throw err(422, "UNIT_NOT_MAPPED", "The branch is no longer linked to this manufacturing unit.");
+  if (!branch?.manufacturingUnitId) {
+    await Branch.findByIdAndUpdate(order.orderBranchId, { $set: { manufacturingUnitId: order.manufacturingUnitId } }).catch(() => {});
   }
 
   const required = round2((SALE_ORDER_SETTINGS.minAdvancePercent / 100) * order.grandTotal);
@@ -469,14 +542,14 @@ async function placeOrder(id, body, actor, { idempotencyKey = null } = {}) {
   try {
     await runInTransaction(async (session) => {
       const placed = await SaleOrder.findOneAndUpdate(
-        { _id: order._id, status: STATUS.DRAFT },
+        { _id: order._id, status: { $in: placeableStatuses } },
         {
           $set: {
             status: STATUS.PLACED,
-            orderNo,
+            orderNo: order.orderNo && !order.orderNo.startsWith("DRAFT-") ? order.orderNo : orderNo,
             invoiceNo,
             invoiceDate: now,
-            orderDate: now,
+            orderDate: order.orderDate || now,
             advanceAmount: advance,
             amountPaid: advance,
             balanceDue: round2(order.grandTotal - advance),
@@ -486,7 +559,7 @@ async function placeOrder(id, body, actor, { idempotencyKey = null } = {}) {
         },
         { new: true, session }
       );
-      if (!placed) throw invalidStatus(order, [STATUS.DRAFT]);
+      if (!placed) throw invalidStatus(order, placeableStatuses);
 
       const [payment] = await SaleOrderPayment.create(
         [
@@ -976,4 +1049,5 @@ module.exports = {
   lookupCustomer,
   loadOrder,
   canSeeOrder,
+  ensureManufacturingUnit,
 };

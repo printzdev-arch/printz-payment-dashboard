@@ -52,28 +52,20 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(uri, {
       autoIndex: true,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 15000,
     });
     console.log(` MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
     return conn;
   } catch (error) {
-    console.error(` MongoDB Connection Error: ${error.message}`);
+    console.error(`\n❌ MongoDB Connection Error: ${error.message}`);
     if (uri.includes("mongodb.net")) {
-      console.warn(" Attempting fallback to local MongoDB on 127.0.0.1:27017/newprintz_db...");
-      try {
-        const localConn = await mongoose.connect("mongodb://127.0.0.1:27017/newprintz_db", {
-          autoIndex: true,
-          serverSelectionTimeoutMS: 5000,
-        });
-        console.log(` Connected to local MongoDB fallback: ${localConn.connection.host}/${localConn.connection.name}`);
-        return localConn;
-      } catch (localErr) {
-        console.error(` Local MongoDB fallback failed: ${localErr.message}`);
-      }
+      console.warn(
+        `\n⚠️  MongoDB Atlas Connection Failed (IP Whitelist / Network):\n` +
+        `Your current IP address must be added to your MongoDB Atlas cluster whitelist.\n` +
+        `Please check Atlas Network Access: https://cloud.mongodb.com -> Network Access -> Add IP Address (0.0.0.0/0).\n`
+      );
     }
-    if (env.NODE_ENV === "production") {
-      process.exit(1);
-    }
+    throw error;
   }
 };
 
