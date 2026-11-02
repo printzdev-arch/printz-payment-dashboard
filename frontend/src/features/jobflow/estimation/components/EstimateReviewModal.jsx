@@ -40,41 +40,13 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
         id: f.id || i + 1,
         name: f.name || f.option || f.code || "Finishing",
         config: f.notes || f.config || f.option || "Standard",
-        unitPrice: Number(f.unitPrice || 0.50),
+        unitPrice: Number(f.unitPrice || 0),
         quantity: Number(f.quantity || defaultQty),
-        total: Number(f.total || (Number(f.quantity || defaultQty) * Number(f.unitPrice || 0.50))),
+        total: Number(f.total || (Number(f.quantity || defaultQty) * Number(f.unitPrice || 0))),
         unit: f.unit || "sheets",
       }));
     }
-    const derived = [];
-    if (specs.lamination && specs.lamination !== "None") {
-      derived.push({
-        id: 1,
-        name: "Lamination",
-        config: specs.lamination,
-        unitPrice: 0.50,
-        quantity: defaultQty,
-        total: Math.round(defaultQty * 0.50 * 100) / 100,
-        unit: "sheets",
-      });
-    }
-    if (specs.finishing && specs.finishing !== "None") {
-      derived.push({
-        id: 2,
-        name: specs.finishing,
-        config: "Standard",
-        unitPrice: 0.25,
-        quantity: defaultQty,
-        total: Math.round(defaultQty * 0.25 * 100) / 100,
-        unit: "sheets",
-      });
-    }
-    if (derived.length > 0) return derived;
-    return [
-      { id: 1, name: "Lamination", config: "Matte", unitPrice: 0.50, quantity: defaultQty, total: defaultQty * 0.50, unit: "sheets" },
-      { id: 2, name: "Cutting", config: "Trim to 90 x 54 mm", unitPrice: 0.10, quantity: defaultQty, total: defaultQty * 0.10, unit: "sheets" },
-      { id: 3, name: "Packing", config: "Shrink Wrap", unitPrice: 0.20, quantity: 5, total: 1.00, unit: "packs" },
-    ];
+    return [];
   })();
 
   const finishingTotal = finishingServicesList.reduce(
@@ -88,16 +60,16 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
     ? rawJob.items
     : [];
 
-  const defaultAmount = Number(currentEstimate.subtotal || rawJob.subtotal || currentEstimate.totalAmount || rawJob.totalAmount || rawJob.estimatedCost || 250);
-  const defaultRate = Math.round((defaultAmount / defaultQty) * 100) / 100;
+  const defaultAmount = Number(currentEstimate.subtotal || rawJob.subtotal || currentEstimate.totalAmount || rawJob.totalAmount || rawJob.estimatedCost || 0);
+  const defaultRate = defaultQty > 0 ? Math.round((defaultAmount / defaultQty) * 100) / 100 : 0;
 
   // Prepare full breakdown showing base print job + all finishing services
   const items = (() => {
-    if (rawItems.length > 1) {
+    if (rawItems.length > 0) {
       return rawItems.map((it) => {
-        const q = Number(it.qty || it.quantity || defaultQty);
-        const a = Number(it.amount || it.totalPrice || (q * Number(it.rate || it.unitRate || it.unitPrice || defaultRate)));
-        const r = Number(it.rate || it.unitRate || it.unitPrice || (q > 0 ? a / q : defaultRate));
+        const q = Number(it.qty || it.quantity || defaultQty || 1);
+        const r = Number(it.rate || it.unitRate || it.unitPrice || (defaultAmount > 0 && q > 0 ? defaultAmount / q : defaultRate));
+        const a = Number(it.amount || it.totalPrice || (q * r));
         return {
           name: it.itemName || it.name || it.item || rawJob.title || rawJob.jobTitle || "Print Job Order",
           spec: it.description || it.spec || it.specification || specs.paperType || "Standard Print Specifications",
@@ -106,14 +78,15 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
           rate: r,
           amount: a,
         };
+        
       });
     }
 
-    const baseRate = 0.40;
+    const baseRate = Number(specs.unitPrice || defaultRate || 0);
     const baseAmount = Math.round(defaultQty * baseRate * 100) / 100;
     const baseItem = {
-      name: rawJob.title || rawJob.jobTitle || estimate.title || "Business Cards - Base Printing",
-      spec: `${specs.paperType || "Art Card"} ${specs.paperGsm || "260 gsm"} (${specs.size || "90 x 54 mm"})`,
+      name: rawJob.title || rawJob.jobTitle || currentEstimate.title || "Print Job Order",
+      spec: `${specs.paperType || "Standard Paper"} ${specs.paperGsm || ""} (${specs.size || "Standard"})`.trim(),
       qty: defaultQty,
       unit: "PCS",
       rate: baseRate,
@@ -133,6 +106,11 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
   })();
 
   const subtotal = items.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const taxRate = 0;
+  const rawTax = 0;
+  const calculatedTax = 0;
+  const grandTotal = subtotal;
+  const finalTax = 0;
 
   // Sync remarks when estimate opens
   React.useEffect(() => {
@@ -141,7 +119,7 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
     }
   }, [estimate, isOpen]);
 
-  const total = subtotal;
+  const total = grandTotal;
 
   const handleApprove = async () => {
     setLoading(true);
@@ -159,11 +137,11 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
           amount: it.amount,
         })),
         subtotal,
-        discountAmount: 0,
-        discountPercent: 0,
-        taxRate: 0,
-        taxAmount: 0,
-        grandTotal: total,
+        discountAmount: Number(currentEstimate.discountAmount || rawJob.discountAmount || 0),
+        discountPercent: Number(currentEstimate.discountPercent || rawJob.discountPercent || 0),
+        taxRate,
+        taxAmount: finalTax,
+        grandTotal,
       });
       toast.success("Estimate approved! Redirecting to create Invoice & record advance payment...");
       onClose();
@@ -374,9 +352,13 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
                 boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.25rem", color: "var(--jf-primary)", fontWeight: 700 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", color: "#475569", marginBottom: "0.4rem" }}>
+                <span>Subtotal:</span>
+                <span style={{ fontWeight: 600 }}>RM {subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.25rem", color: "var(--jf-primary)", fontWeight: 700, borderTop: "1px dashed var(--jf-border)", paddingTop: "0.5rem" }}>
                 <span>Grand Total:</span>
-                <span>RM {subtotal.toFixed(2)}</span>
+                <span>RM {grandTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>

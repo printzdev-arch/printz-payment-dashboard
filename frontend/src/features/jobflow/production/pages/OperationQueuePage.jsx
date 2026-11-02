@@ -51,6 +51,7 @@ const PRIORITY_OPTIONS = ["URGENT", "HIGH", "NORMAL", "LOW"];
 // status: sent to the server (matches the row's availability status or status)
 // keys: which counts from /queue/counts belong to this tab
 const STATUS_TABS = [
+  { id: "ALL", label: "All", icon: Layers, status: "", keys: null },
   { id: "AVAILABLE", label: "Available", icon: Clock, status: "READY", keys: ["READY"] },
   // Operations that cannot start yet because an earlier step is not finished
   { id: "WAITING", label: "Waiting", icon: Hourglass, status: "BLOCKED", keys: ["BLOCKED"] },
@@ -58,7 +59,6 @@ const STATUS_TABS = [
   { id: "PAUSED", label: "Paused", icon: Pause, status: "PAUSED,ON_HOLD", keys: ["PAUSED", "ON_HOLD"] },
   { id: "FAILED", label: "Failed", icon: AlertTriangle, status: "FAILED", keys: ["FAILED"] },
   { id: "COMPLETED", label: "Completed", icon: CheckCircle2, status: "COMPLETED,SKIPPED", keys: ["COMPLETED", "SKIPPED"] },
-  { id: "ALL", label: "All", icon: Layers, status: "", keys: null },
 ];
 
 const STATUS_LABEL = {
@@ -86,6 +86,7 @@ const STATUS_TONE = {
 };
 
 const PRIORITY_TONE = { URGENT: "high", RUSH: "high", HIGH: "high", NORMAL: "normal", LOW: "low" };
+const PRIORITY_RANK = { URGENT: 0, RUSH: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
 
 const DETAIL_TABS = [
   { id: "EXECUTION", label: "Execution" },
@@ -654,7 +655,7 @@ export default function OperationQueuePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [tab, setTab] = useState("AVAILABLE");
+  const [tab, setTab] = useState("ALL");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -699,8 +700,22 @@ export default function OperationQueuePage() {
     try {
       const res = await productionApi.getOperationQueue(queueParams);
       const list = Array.isArray(res?.data) ? res.data : res?.items || [];
-      setRows(list);
-      setTotal(res?.total ?? res?.meta?.total ?? list.length);
+      const sorted = [...list].sort((a, b) => {
+        const pr = (PRIORITY_RANK[a.priority] ?? 2) - (PRIORITY_RANK[b.priority] ?? 2);
+        if (pr !== 0) return pr;
+
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (aTime !== bTime) return bTime - aTime;
+
+        if (a.productionNo !== b.productionNo) {
+          return String(b.productionNo || "").localeCompare(String(a.productionNo || ""));
+        }
+
+        return (a.sequenceNo || 0) - (b.sequenceNo || 0);
+      });
+      setRows(sorted);
+      setTotal(res?.total ?? res?.meta?.total ?? sorted.length);
     } catch (e) {
       setRows([]);
       setTotal(0);

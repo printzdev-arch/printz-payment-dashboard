@@ -76,9 +76,12 @@ export const EstimationPage = () => {
 
       const mappedList = list.map((job) => {
         const qty = Number(job.specs?.quantity || job.quantity || 500);
-        const totalAmt = Number(job.grandTotal || job.totalAmount || job.estimatedPrice || job.estimatedCost || 250);
-        const subtotalAmt = Number(job.subtotal || totalAmt || 250);
-        const grandAmt = totalAmt > 0 ? totalAmt : subtotalAmt;
+        const subtotalAmt = Number(
+          job.subtotal !== undefined && job.subtotal !== null
+            ? job.subtotal
+            : (job.grandTotal || job.totalAmount || job.estimatedPrice || job.estimatedCost || 250)
+        );
+        const grandAmt = subtotalAmt;
         const unitRate = Math.round((subtotalAmt / qty) * 100) / 100;
 
         const isApproved = job.estimationStatus === "APPROVED" || [
@@ -108,16 +111,12 @@ export const EstimationPage = () => {
               id: f.id || i + 1,
               name: f.name || f.option || f.code || "Finishing",
               config: f.notes || f.config || f.option || "Standard",
-              unitPrice: Number(f.unitPrice || 0.50),
+              unitPrice: Number(f.unitPrice || 0),
               quantity: Number(f.quantity || qty),
-              total: Number(f.total || (Number(f.quantity || qty) * Number(f.unitPrice || 0.50))),
+              total: Number(f.total || (Number(f.quantity || qty) * Number(f.unitPrice || 0))),
               unit: f.unit || "sheets",
             }))
-          : [
-              { id: 1, name: "Lamination", config: job.specs?.lamination || "Matte", unitPrice: 0.50, quantity: qty, total: qty * 0.50, unit: "sheets" },
-              { id: 2, name: "Cutting", config: "Trim to 90 x 54 mm", unitPrice: 0.10, quantity: qty, total: qty * 0.10, unit: "sheets" },
-              { id: 3, name: "Packing", config: "Shrink Wrap", unitPrice: 0.20, quantity: 5, total: 1.00, unit: "packs" },
-            ];
+          : [];
 
         return {
           _id: job._id || job.id,

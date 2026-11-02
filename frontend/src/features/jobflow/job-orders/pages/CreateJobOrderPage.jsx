@@ -34,6 +34,39 @@ const getManagerBranch = () => {
   return "Main Branch";
 };
 
+export const DEFAULT_PRODUCT_PRICES = {
+  "Business Cards": 0.40,
+  "Flyers / Leaflets": 0.50,
+  "Brochures": 2.50,
+  "Booklets / Catalogues": 8.00,
+  "Posters (A3/A2/A1)": 15.00,
+  "Banners (Roll-up / Tarpaulin)": 35.00,
+  "Stickers / Labels": 0.35,
+  "Letterheads": 0.60,
+  "Envelopes": 0.80,
+  "Presentation Folders": 4.50,
+  "Money Packets": 1.20,
+  "Notepads": 3.00,
+};
+
+export const getProductDefaultPrice = (productType, size = "", masterList = []) => {
+  if (!productType) return 0;
+  const match = (masterList || []).find(
+    (it) => it.name && it.name.toLowerCase() === productType.toLowerCase()
+  );
+  if (match && Number(match.defaultPrice) > 0) {
+    return Number(match.defaultPrice);
+  }
+  if (productType.includes("Poster")) {
+    const s = String(size || "").toUpperCase();
+    if (s.includes("A1")) return 25.00;
+    if (s.includes("A2")) return 18.00;
+    if (s.includes("A3")) return 10.00;
+    return 15.00;
+  }
+  return DEFAULT_PRODUCT_PRICES[productType] || 0.40;
+};
+
 export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,6 +142,8 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
     productType: "",
     quantity: "",
+    unitPrice: "",
+    unitPriceManuallyEdited: false,
     paperType: "",
     paperGsm: "",
     size: "",
@@ -193,7 +228,21 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   });
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (field === "productType" || field === "size") {
+        const pType = field === "productType" ? value : prev.productType;
+        const pSize = field === "size" ? value : prev.size;
+        if (!prev.unitPriceManuallyEdited) {
+          const autoRate = getProductDefaultPrice(pType, pSize, masterDefaults.productTypes);
+          if (autoRate > 0) updated.unitPrice = autoRate;
+        }
+      }
+      if (field === "unitPrice") {
+        updated.unitPriceManuallyEdited = true;
+      }
+      return updated;
+    });
   };
 
   const addQuickFinishing = (name, defaultPrice = 0.50, unit = "sheets") => {
@@ -202,10 +251,18 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
       toast.info(`${name} is already in the list.`);
       return;
     }
+    const defaultConf =
+      name.toLowerCase().includes("lamination") ? "Matte" :
+      name.toLowerCase().includes("foil") ? "Gold Foil Stamping" :
+      name.toLowerCase().includes("uv") ? "Spot UV (Front)" :
+      name.toLowerCase().includes("pack") ? "Shrink Wrap" :
+      name.toLowerCase().includes("bind") ? "Spiral (Black)" :
+      "Standard";
+
     const newService = {
       id: Date.now(),
       name,
-      config: "Standard",
+      config: defaultConf,
       unitPrice: defaultPrice,
       quantity: formData.quantity || 500,
       total: (formData.quantity || 500) * defaultPrice,
@@ -225,10 +282,18 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     }));
   };
 
+  const currentQuantity = Number(formData.quantity) > 0 ? Number(formData.quantity) : 1;
+  const currentUnitPrice = Number(formData.unitPrice) > 0
+    ? Number(formData.unitPrice)
+    : getProductDefaultPrice(formData.productType, formData.size, masterDefaults.productTypes);
+  const productCost = Math.round((Number(formData.quantity) > 0 ? Number(formData.quantity) : 1) * currentUnitPrice * 100) / 100;
+
   const finishingTotal = formData.finishingServices.reduce(
     (sum, s) => sum + (Number(s.total) || (Number(s.quantity || 0) * Number(s.unitPrice || 0))),
     0
   );
+
+  const grandTotal = Math.round((productCost + finishingTotal) * 100) / 100;
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
@@ -297,11 +362,18 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         notes: formData.remarks,
         specialInstructions: formData.specialInstructions,
         status: isDraft ? "DRAFT" : "SUBMITTED",
+        subtotal: grandTotal,
+        grandTotal: grandTotal,
+        estimatedPrice: grandTotal,
+        totalAmount: grandTotal,
         items: [
           {
-            itemName: formData.jobTitle || "Custom Print Order",
+            itemName: formData.jobTitle || `${formData.productType || "Custom Print Order"} - ${Number(formData.quantity) || 1} pcs`,
             quantity: Number(formData.quantity) || 1,
-            unitPrice: 0,
+            unitPrice: currentUnitPrice,
+            unitRate: currentUnitPrice,
+            amount: productCost,
+            totalPrice: productCost,
             specifications: {
               productType: formData.productType,
               paperType: formData.paperType,
@@ -309,14 +381,14 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               size: formData.size,
               color: formData.color,
               printingSide: formData.printingSide,
-              lamination: formData.lamination,
-              finishing: formData.finishing,
+              lamination: (formData.finishingServices.find((s) => s.name?.toLowerCase().includes("lamination"))?.config) || formData.lamination || "",
+              finishing: formData.finishingServices.map((s) => s.name).join(", ") || formData.finishing || "",
             },
             finishing: (formData.finishingServices || []).map((s, idx) => ({
               code: (s.code || s.name || "FINISHING").toUpperCase().replace(/\s+/g, "_"),
               name: s.name,
               config: s.config || "Standard",
-              quantity: Number(s.quantity) || Number(formData.quantity) || 500,
+              quantity: Number(s.quantity) || Number(formData.quantity) || 1,
               unitPrice: Number(s.unitPrice) || 0,
               sequence: idx + 1,
               notes: s.notes || "",
@@ -327,14 +399,16 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         specs: {
           jobType: formData.jobType || "Print Only",
           productType: formData.productType,
-          quantity: Number(formData.quantity),
+          quantity: Number(formData.quantity) || 1,
+          unitPrice: currentUnitPrice,
+          productCost: productCost,
           paperType: formData.paperType,
           paperGsm: formData.paperGsm,
           size: formData.size,
           color: formData.color,
           printingSide: formData.printingSide,
-          lamination: formData.lamination,
-          finishing: formData.finishing,
+          lamination: (formData.finishingServices.find((s) => s.name?.toLowerCase().includes("lamination"))?.config) || formData.lamination || "",
+          finishing: formData.finishingServices.map((s) => s.name).join(", ") || formData.finishing || "",
         },
         finishingServices: formData.finishingServices,
         additionalServices: formData.additionalServices,
@@ -354,8 +428,8 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
       } else {
         if (newId) {
           try {
-            const qty = Number(formData.quantity) || 500;
-            const baseRate = 0.40;
+            const qty = Number(formData.quantity) || 1;
+            const baseRate = currentUnitPrice;
             const estimateItems = [
               {
                 lineNo: 1,
@@ -364,8 +438,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 unitRate: baseRate,
                 unitPrice: baseRate,
                 quantity: qty,
+                amount: productCost,
                 unit: "PCS",
-                taxRate: 8,
+                taxRate: 0,
               },
               ...(formData.finishingServices || []).map((svc, idx) => ({
                 lineNo: idx + 2,
@@ -375,13 +450,15 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 unitPrice: Number(svc.unitPrice) || 0,
                 quantity: Number(svc.quantity) || qty,
                 unit: (svc.unit || "PCS").toUpperCase(),
-                taxRate: 8,
+                taxRate: 0,
               })),
             ];
             await jobFlowApi.submitEstimate(newId, {
               items: estimateItems,
               finishingServices: formData.finishingServices || [],
               discountAmount: 0,
+              taxRate: 0,
+              taxAmount: 0,
             });
           } catch (e) {
             console.warn("Auto submit estimate:", e);
@@ -873,7 +950,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 </select>
               </div>
 
-              {/* Row 4: Printing Side & Lamination */}
+              {/* Row 4: Printing Side & Unit Price */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Printing Side</label>
                 <select
@@ -894,61 +971,38 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               </div>
 
               <div className="jf-form-group">
-                <label className="jf-label">Lamination (If any)</label>
-                <select
-                  className="jf-select"
-                  value={formData.lamination}
-                  onChange={(e) => handleInputChange("lamination", e.target.value)}
-                >
-                  <option value="">None / Select Lamination</option>
-                  {(masterDefaults.laminationTypes.length > 0
-                    ? masterDefaults.laminationTypes
-                    : [{ name: "Matte" }, { name: "Gloss" }, { name: "None" }]
-                  ).map((it) => (
-                    <option key={it.name} value={it.name}>
-                      {it.name}
-                    </option>
-                  ))}
-                </select>
+                <label className="jf-label">Unit Price (RM)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="jf-input"
+                  placeholder="e.g. 15.00"
+                  value={formData.unitPrice !== "" ? formData.unitPrice : (currentUnitPrice > 0 ? currentUnitPrice : "")}
+                  onChange={(e) => handleInputChange("unitPrice", e.target.value === "" ? "" : Number(e.target.value))}
+                />
               </div>
 
-              {/* Row 5: Finishing Effect & Proof Requirement */}
-              <div className="jf-form-group">
-                <label className="jf-label">Finishing Effect</label>
-                <select
-                  className="jf-select"
-                  value={formData.finishing}
-                  onChange={(e) => handleInputChange("finishing", e.target.value)}
+              {/* Row 5: Base Product Cost (Full Width) */}
+              <div className="jf-form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="jf-label">Base Product Cost</label>
+                <div
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: "6px",
+                    padding: "0.5rem 0.75rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    minHeight: "38px",
+                  }}
                 >
-                  <option value="">None / Select Finishing</option>
-                  {(masterDefaults.finishingEffects.length > 0
-                    ? masterDefaults.finishingEffects
-                    : [{ name: "None" }, { name: "Die-Cut Round Corners" }]
-                  ).map((it) => (
-                    <option key={it.name} value={it.name}>
-                      {it.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="jf-form-group">
-                <label className="jf-label">Proof Requirement</label>
-                <select
-                  className="jf-select"
-                  value={formData.proofRequirement}
-                  onChange={(e) => handleInputChange("proofRequirement", e.target.value)}
-                >
-                  <option value="">Select Proof Requirement</option>
-                  {(masterDefaults.proofRequirements.length > 0
-                    ? masterDefaults.proofRequirements
-                    : [{ name: "Digital PDF Proof" }, { name: "Hardcopy Digital Proof" }]
-                  ).map((it) => (
-                    <option key={it.name} value={it.name}>
-                      {it.name}
-                    </option>
-                  ))}
-                </select>
+                  <span style={{ fontSize: "0.8125rem", color: "#166534" }}>
+                    {formData.quantity || 1} pcs × RM {currentUnitPrice.toFixed(2)}
+                  </span>
+                  <strong style={{ fontSize: "1rem", color: "#15803d" }}>RM {productCost.toFixed(2)}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -1019,7 +1073,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       <td style={{ padding: "0.35rem 0.5rem" }}>
                         <select
                           className="jf-select"
-                          style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "28px", width: "auto", minWidth: "105px" }}
+                          style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "28px", width: "auto", minWidth: "125px" }}
                           value={svc.config}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -1029,11 +1083,61 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                             }));
                           }}
                         >
-                          <option value="Matte">Matte</option>
-                          <option value="Gloss">Gloss</option>
-                          <option value="Trim to 90 x 54 mm">Trim to 90 x 54 mm</option>
-                          <option value="Spiral (Black)">Spiral (Black)</option>
-                          <option value="Shrink Wrap">Shrink Wrap</option>
+                          {String(svc.name || "").toLowerCase().includes("lamination") ? (
+                            <>
+                              <option value="Matte">Matte</option>
+                              <option value="Gloss">Gloss</option>
+                              <option value="Velvet Soft Touch">Velvet Soft Touch</option>
+                              <option value="Holographic Rainbow">Holographic Rainbow</option>
+                              <option value="Thermal Matte">Thermal Matte</option>
+                              <option value="Thermal Gloss">Thermal Gloss</option>
+                            </>
+                          ) : String(svc.name || "").toLowerCase().includes("foil") ? (
+                            <>
+                              <option value="Gold Foil Stamping">Gold Foil Stamping</option>
+                              <option value="Silver Foil Stamping">Silver Foil Stamping</option>
+                              <option value="Rose Gold Foil">Rose Gold Foil</option>
+                              <option value="Holographic Foil">Holographic Foil</option>
+                            </>
+                          ) : String(svc.name || "").toLowerCase().includes("uv") ? (
+                            <>
+                              <option value="Spot UV (Front)">Spot UV (Front)</option>
+                              <option value="Spot UV (Both Sides)">Spot UV (Both Sides)</option>
+                              <option value="Raised Spot UV">Raised Spot UV</option>
+                            </>
+                          ) : String(svc.name || "").toLowerCase().includes("cut") || String(svc.name || "").toLowerCase().includes("trim") ? (
+                            <>
+                              <option value="Trim to 90 x 54 mm">Trim to 90 x 54 mm</option>
+                              <option value="Die-Cut Round Corners">Die-Cut Round Corners</option>
+                              <option value="Custom Die-Cut">Custom Die-Cut</option>
+                              <option value="Straight Cut">Straight Cut</option>
+                            </>
+                          ) : String(svc.name || "").toLowerCase().includes("bind") ? (
+                            <>
+                              <option value="Spiral (Black)">Spiral (Black)</option>
+                              <option value="Wire-O Binding">Wire-O Binding</option>
+                              <option value="Saddle Stitching">Saddle Stitching</option>
+                              <option value="Perfect Binding">Perfect Binding</option>
+                            </>
+                          ) : String(svc.name || "").toLowerCase().includes("fold") || String(svc.name || "").toLowerCase().includes("creas") ? (
+                            <>
+                              <option value="Half Fold">Half Fold</option>
+                              <option value="Tri-Fold (Letter)">Tri-Fold (Letter)</option>
+                              <option value="Z-Fold">Z-Fold</option>
+                              <option value="Creasing Line">Creasing Line</option>
+                            </>
+                          ) : String(svc.name || "").toLowerCase().includes("pack") ? (
+                            <>
+                              <option value="Shrink Wrap">Shrink Wrap</option>
+                              <option value="Carton Packaging">Carton Packaging</option>
+                              <option value="Bundle Packing">Bundle Packing</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Standard">Standard</option>
+                              <option value="Custom Specification">Custom Specification</option>
+                            </>
+                          )}
                         </select>
                       </td>
                       <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>RM {svc.unitPrice.toFixed(2)}</td>
@@ -1064,8 +1168,13 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
             {/* Total Bar pinned to bottom */}
             <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f0fdf4", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-              <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Estimated Finishing & Services Total:</span>
-              <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>RM {finishingTotal.toFixed(2)}</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Total Estimated Cost:</span>
+                <span style={{ fontSize: "0.75rem", color: "#15803d" }}>
+                  Product: RM {productCost.toFixed(2)} {finishingTotal > 0 ? `+ Finishing: RM ${finishingTotal.toFixed(2)}` : "(Finishing: RM 0.00)"}
+                </span>
+              </div>
+              <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>RM {grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -1184,8 +1293,12 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               <div style={{ background: "#f8fafc", padding: "0.875rem", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.8125rem", color: "#475569", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
                 <div><strong>Specs:</strong> {[formData.paperGsm, formData.paperType].filter(Boolean).join(" ") || "-"}</div>
                 <div><strong>Color:</strong> {formData.color ? `${formData.color}${formData.printingSide ? ` (${formData.printingSide})` : ""}` : "-"}</div>
-                <div><strong>Lamination:</strong> {formData.lamination || "-"}</div>
+                <div><strong>Finishing:</strong> {formData.finishingServices.length > 0 ? formData.finishingServices.map((s) => s.name).join(", ") : "None"}</div>
                 <div><strong>Quantity:</strong> {formData.quantity ? `${formData.quantity} pcs` : "-"}</div>
+                <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.4rem", display: "flex", justifyContent: "space-between" }}>
+                  <strong>Product Cost:</strong>
+                  <strong style={{ color: "#15803d" }}>RM {productCost.toFixed(2)}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -1207,9 +1320,19 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               <div><span style={{ color: "#475569" }}>Job Type:</span> {formData.jobType || "-"}</div>
               <div><span style={{ color: "#475569" }}>Specs:</span> {formData.quantity ? `${formData.quantity} pcs (${formData.productType || "Print"})` : "-"}</div>
               <div><span style={{ color: "#475569" }}>Due Date:</span> {formData.targetDueDate || "-"}</div>
-              <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.5rem", marginTop: "0.25rem", display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#475569" }}>Finishing Total:</span>
-                <strong style={{ color: "#15803d" }}>RM {finishingTotal.toFixed(2)}</strong>
+              <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.5rem", marginTop: "0.25rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
+                  <span style={{ color: "#475569" }}>Product Cost ({formData.quantity || 1} pcs @ RM {currentUnitPrice.toFixed(2)}):</span>
+                  <strong style={{ color: "#0f172a" }}>RM {productCost.toFixed(2)}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
+                  <span style={{ color: "#475569" }}>Finishing Services Total:</span>
+                  <span style={{ color: "#475569" }}>RM {finishingTotal.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #cbd5e1", paddingTop: "0.4rem", marginTop: "0.15rem" }}>
+                  <strong style={{ color: "#0f172a", fontSize: "0.875rem" }}>Estimated Order Total:</strong>
+                  <strong style={{ color: "#15803d", fontSize: "1.125rem" }}>RM {grandTotal.toFixed(2)}</strong>
+                </div>
               </div>
             </div>
 

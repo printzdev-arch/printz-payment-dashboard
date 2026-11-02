@@ -496,28 +496,27 @@ class DesignSampleService {
         { status: "COMPLETED", releasedAt: now, currentAssignment: false }
       );
 
-      // Transition job stage -> COMPLETED (Design Only) or PRODUCTION_PLANNING (Print & Design)
+      // Transition job stage -> READY (Design Only: ready for invoice & balance collection) or PRODUCTION_PLANNING (Print & Design)
       const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
       const isDesignOnly =
         jobTypeStr.includes("DESIGN") &&
         !jobTypeStr.includes("PRINT");
 
       if (isDesignOnly) {
-        // Flow 2 (Design Only): Once design sample gets approved, job order closes and completes
+        // Flow 2 (Design Only): Once design sample gets approved, transition to READY for balance invoicing
         try {
-          await JobWorkflowService.transition(job._id, "COMPLETED", {
+          await JobWorkflowService.transition(job._id, "READY", {
             actorId: user._id,
             relatedSampleId: sample._id,
-            notes: decisionData.customerFeedback || "Sample approved - Design Only job order completed and closed.",
+            notes: decisionData.customerFeedback || "Sample approved - Design approved. Ready for invoice & remaining balance collection.",
             user,
             patch: {
-              currentStage: "COMPLETED",
-              stage: "COMPLETED",
+              currentStage: "READY",
+              stage: "READY",
               designStatus: "COMPLETED",
-              status: "DELIVERED",
+              status: "READY",
               approvedSampleId: sample._id,
               approvedVersionNo: sample.versionNo,
-              completionDate: now,
             },
           });
         } catch (transErr) {
@@ -525,13 +524,12 @@ class DesignSampleService {
             { _id: job._id },
             {
               $set: {
-                currentStage: "COMPLETED",
-                stage: "COMPLETED",
+                currentStage: "READY",
+                stage: "READY",
                 designStatus: "COMPLETED",
-                status: "DELIVERED",
+                status: "READY",
                 approvedSampleId: sample._id,
                 approvedVersionNo: sample.versionNo,
-                completionDate: now,
               },
             }
           );
@@ -544,6 +542,14 @@ class DesignSampleService {
             await ProductionOrder.deleteMany({ jobOrderId: job._id });
           }
         } catch (e) {}
+
+        // Auto-create or refresh draft invoice so it immediately appears in the Pending Invoicing Queue to collect remaining balance
+        try {
+          const InvoiceService = require("../../invoices/services/invoice.service");
+          await InvoiceService.createDraft({ jobOrderId: job._id, regenerate: true }, user);
+        } catch (invErr) {
+          console.warn("[DesignSample] Auto invoice update notice:", invErr.message);
+        }
       } else {
         // Flow 3 (Print & Design): Standard pipeline -> proceed to PRODUCTION_PLANNING
         await JobWorkflowService.transition(job._id, "PRODUCTION_PLANNING", {
@@ -726,18 +732,17 @@ class DesignSampleService {
     let createdOrders = [];
 
     if (isDesignOnly) {
-      // Flow 2 (Design Only): Once design sample is approved, job order closes and completes immediately
+      // Flow 2 (Design Only): Once design sample is approved, transition to READY for balance invoicing
       try {
-        await JobWorkflowService.transition(job._id, "COMPLETED", {
+        await JobWorkflowService.transition(job._id, "READY", {
           actorId: user?._id,
           relatedSampleId: latestSample?._id,
-          notes: data.notes || effectiveFeedback || "Sample approved - Design Only job order completed and closed.",
+          notes: data.notes || effectiveFeedback || "Sample approved - Design approved. Ready for invoice & remaining balance collection.",
           patch: {
-            currentStage: "COMPLETED",
-            stage: "COMPLETED",
-            status: "DELIVERED",
+            currentStage: "READY",
+            stage: "READY",
+            status: "READY",
             designStatus: "COMPLETED",
-            completionDate: now,
             customerFeedback: effectiveFeedback,
             customerApprovalName: customerName,
             approvedSampleId: latestSample?._id,
@@ -750,11 +755,10 @@ class DesignSampleService {
           { _id: job._id },
           {
             $set: {
-              currentStage: "COMPLETED",
-              stage: "COMPLETED",
-              status: "DELIVERED",
+              currentStage: "READY",
+              stage: "READY",
+              status: "READY",
               designStatus: "COMPLETED",
-              completionDate: now,
               customerFeedback: effectiveFeedback,
               customerApprovalName: customerName,
               approvedSampleId: latestSample?._id,
@@ -764,18 +768,26 @@ class DesignSampleService {
         );
       }
 
-      // Explicitly guarantee designStatus and COMPLETED stage on JobOrder
+      // Explicitly guarantee designStatus and READY stage on JobOrder
       await jobOrderRepository.findOneAndUpdate(
         { _id: job._id },
         {
           $set: {
-            currentStage: "COMPLETED",
-            stage: "COMPLETED",
-            status: "DELIVERED",
+            currentStage: "READY",
+            stage: "READY",
+            status: "READY",
             designStatus: "COMPLETED",
           },
         }
       );
+
+      // Auto-create or refresh draft invoice so it immediately appears in the Pending Invoicing Queue to collect remaining balance
+      try {
+        const InvoiceService = require("../../invoices/services/invoice.service");
+        await InvoiceService.createDraft({ jobOrderId: job._id, regenerate: true }, user);
+      } catch (invErr) {
+        console.warn("[DesignSample] Auto invoice update notice:", invErr.message);
+      }
 
       // Clean up any accidentally created production orders for Design Only jobs
       try {
@@ -856,19 +868,25 @@ class DesignSampleService {
     emitJobEvent("job.stage.changed", {
       jobId: String(job._id),
       fromStage: job.currentStage,
-      toStage: isDesignOnly ? "COMPLETED" : "PRODUCTION_PLANNING",
-      status: isDesignOnly ? "DELIVERED" : "PRODUCTION",
+      toStage: isDesignOnly ? "READY" : "PRODUCTION_PLANNING",
+      status: isDesignOnly ? "READY" : "PRODUCTION",
       branchId: String(job.branchId),
     });
+
+    const freshJob = await jobOrderRepository.findById(job._id);
+    const balanceDue = Number(freshJob?.balanceDue != null ? freshJob.balanceDue : (job.balanceDue || 0));
 
     return {
       success: true,
       message: isDesignOnly
-        ? "Customer approved artwork! Design Only job order completed and closed."
+        ? `Customer approved artwork! Balance in Invoice: RM ${balanceDue.toFixed(2)} — please collect remaining balance in Invoice.`
         : "Customer approved artwork! Proceeding to Production.",
       jobId: String(job._id),
-      stage: isDesignOnly ? "COMPLETED" : "PRODUCTION_PLANNING",
-      status: isDesignOnly ? "DELIVERED" : "PRODUCTION",
+      jobNo: job.jobNo,
+      isDesignOnly,
+      balanceDue,
+      stage: isDesignOnly ? "READY" : "PRODUCTION_PLANNING",
+      status: isDesignOnly ? "READY" : "PRODUCTION",
       productionOrders: createdOrders,
     };
   }

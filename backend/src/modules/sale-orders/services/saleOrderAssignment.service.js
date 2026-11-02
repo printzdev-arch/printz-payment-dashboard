@@ -34,7 +34,7 @@ const AVAILABILITY = ["AVAILABLE", "BUSY", "ON_BREAK", "OFF_DUTY"];
 class SlotTakenError extends Error {}
 
 const canManageUnit = (actor, unitId) =>
-  actor.isAdmin || (actor.isMfgManager && actor.branchIds.includes(idStr(unitId)));
+  actor.isAdmin || (actor.isMfgManager && (actor.branchIds.length === 0 || actor.branchIds.includes(idStr(unitId))));
 
 /** Designer absent or on leave today (from the attendance module). */
 async function isAbsentToday(profile) {
@@ -93,7 +93,7 @@ async function claimAndAssign(order, profile, { method, assignedBy = null, reaso
     const now = new Date();
 
     const claimed = await SaleOrder.findOneAndUpdate(
-      { _id: order._id, status: { $in: [STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER] } },
+      { _id: order._id, status: { $in: [STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER] } },
       {
         $set: {
           status: STATUS.ASSIGNED,
@@ -108,7 +108,7 @@ async function claimAndAssign(order, profile, { method, assignedBy = null, reaso
       },
       { new: true, session }
     );
-    if (!claimed) throw invalidStatus(order, [STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER]);
+    if (!claimed) throw invalidStatus(order, [STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER]);
 
     const slotFilter = { _id: profile._id, isActive: true };
     if (enforceCapacity) {
@@ -177,7 +177,7 @@ async function notifyAssigned(order, profile) {
 async function assignDesigner(orderId) {
   const order = await SaleOrder.findById(orderId).lean();
   if (!order) throw err(404, "NOT_FOUND", "Sale order not found.");
-  if (![STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER].includes(order.status)) {
+  if (![STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER].includes(order.status)) {
     return { assigned: false, order };
   }
 
@@ -200,11 +200,11 @@ async function assignDesigner(orderId) {
     }
   }
 
-  // Nobody is free: queue the order and tell the unit managers (once, on the PLACED -> WAITING move)
-  if (order.status === STATUS.PLACED) {
+  // Nobody is free: queue the order and tell the unit managers (once, on the move to WAITING)
+  if ([STATUS.DRAFT, STATUS.PLACED].includes(order.status)) {
     const waiting = await runInTransaction(async (session) => {
       const moved = await SaleOrder.findOneAndUpdate(
-        { _id: order._id, status: STATUS.PLACED },
+        { _id: order._id, status: { $in: [STATUS.DRAFT, STATUS.PLACED] } },
         { $set: { status: STATUS.WAITING_FOR_DESIGNER } },
         { new: true, session }
       );
@@ -212,7 +212,7 @@ async function assignDesigner(orderId) {
         await addEvent(session, {
           order,
           action: "WAITING_FOR_DESIGNER",
-          fromStatus: STATUS.PLACED,
+          fromStatus: order.status,
           toStatus: STATUS.WAITING_FOR_DESIGNER,
           actor: null,
           notes: "No designer available",
@@ -282,8 +282,8 @@ async function manualAssign(orderId, body, actor) {
   if (!canManageUnit(actor, order.manufacturingUnitId)) {
     throw err(403, "FORBIDDEN", "Only the manufacturing unit manager or an admin can assign orders.");
   }
-  if (![STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER].includes(order.status)) {
-    throw invalidStatus(order, [STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER]);
+  if (![STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER].includes(order.status)) {
+    throw invalidStatus(order, [STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER]);
   }
 
   const profile = isValidId(body.designerUserId)
@@ -457,7 +457,9 @@ async function setAvailability(actor, body) {
 async function getDashboard(actor, query = {}) {
   const unitFilter = (() => {
     if (actor.isAdmin) return query.unitId && isValidId(query.unitId) ? { manufacturingUnitId: toObjectId(query.unitId) } : {};
-    return { manufacturingUnitId: { $in: actor.branchIds.filter(isValidId).map(toObjectId) } };
+    const validBranchIds = actor.branchIds.filter(isValidId).map(toObjectId);
+    if (validBranchIds.length > 0) return { manufacturingUnitId: { $in: validBranchIds } };
+    return {};
   })();
 
   const notifications = await Notification.find({
@@ -487,7 +489,7 @@ async function getDashboard(actor, query = {}) {
   }
 
   const byStatus = await SaleOrder.aggregate([
-    { $match: { ...unitFilter, status: { $nin: [STATUS.DRAFT, STATUS.DELIVERED, STATUS.CANCELLED] } } },
+    { $match: { ...unitFilter, status: { $nin: [STATUS.DELIVERED, STATUS.CANCELLED] } } },
     { $group: { _id: "$status", count: { $sum: 1 } } },
   ]);
   const counts = Object.fromEntries(byStatus.map((r) => [r._id, r.count]));
@@ -498,9 +500,13 @@ async function getDashboard(actor, query = {}) {
 /** Waiting queue for the unit manager: URGENT first, then oldest, with minutes waiting. */
 async function getQueue(actor, query = {}) {
   if (!actor.isMfgManager && !actor.isAdmin) throw err(403, "FORBIDDEN", "Only unit managers or admins can view the queue.");
-  const filter = { status: { $in: [STATUS.WAITING_FOR_DESIGNER, STATUS.PLACED] } };
-  if (!actor.isAdmin) filter.manufacturingUnitId = { $in: actor.branchIds.filter(isValidId).map(toObjectId) };
-  else if (query.unitId && isValidId(query.unitId)) filter.manufacturingUnitId = toObjectId(query.unitId);
+  const filter = { status: { $in: [STATUS.DRAFT, STATUS.WAITING_FOR_DESIGNER, STATUS.PLACED] } };
+  if (!actor.isAdmin) {
+    const validBranchIds = actor.branchIds.filter(isValidId).map(toObjectId);
+    if (validBranchIds.length > 0) filter.manufacturingUnitId = { $in: validBranchIds };
+  } else if (query.unitId && isValidId(query.unitId)) {
+    filter.manufacturingUnitId = toObjectId(query.unitId);
+  }
 
   const orders = await SaleOrder.find(filter)
     .sort({ priority: -1, orderDate: 1 })
@@ -514,8 +520,12 @@ async function getQueue(actor, query = {}) {
 async function listDesigners(actor, query = {}) {
   if (!actor.isMfgManager && !actor.isAdmin) throw err(403, "FORBIDDEN", "Only unit managers or admins can list designers.");
   const filter = { isActive: true };
-  if (!actor.isAdmin) filter.manufacturingUnitId = { $in: actor.branchIds.filter(isValidId).map(toObjectId) };
-  else if (query.unitId && isValidId(query.unitId)) filter.manufacturingUnitId = toObjectId(query.unitId);
+  if (!actor.isAdmin) {
+    const validBranchIds = actor.branchIds.filter(isValidId).map(toObjectId);
+    if (validBranchIds.length > 0) filter.manufacturingUnitId = { $in: validBranchIds };
+  } else if (query.unitId && isValidId(query.unitId)) {
+    filter.manufacturingUnitId = toObjectId(query.unitId);
+  }
   return MfgDesignerProfile.find(filter).sort({ displayName: 1 }).lean();
 }
 

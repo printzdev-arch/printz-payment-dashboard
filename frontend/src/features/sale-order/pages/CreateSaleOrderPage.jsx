@@ -117,7 +117,7 @@ export default function CreateSaleOrderPage() {
     }
   }, [form.expectedDeliveryDate]);
   const branchName = branches.find((b) => String(b._id) === String(form.branchId))?.name || "";
-  const eligibleBranches = branches.filter((b) => b.manufacturingUnitId);
+  const eligibleBranches = branches.length > 0 ? (branches.filter((b) => b.manufacturingUnitId).length > 0 ? branches.filter((b) => b.manufacturingUnitId) : branches) : [];
 
   const findCustomer = async () => {
     setLookupNote(null);
@@ -358,8 +358,8 @@ export default function CreateSaleOrderPage() {
                 ) : (
                   <input className="so-input" value={branchName || "Your branch"} disabled />
                 )}
-                {scope.isAdmin && eligibleBranches.length === 0 && (
-                  <span className="so-field-error">No branch is linked to a manufacturing unit yet.</span>
+                {scope.isAdmin && branches.length === 0 && (
+                  <span className="so-field-error">No active branches found.</span>
                 )}
               </div>
               <div className="so-field">

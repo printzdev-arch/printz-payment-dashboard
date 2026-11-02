@@ -17,12 +17,8 @@ const { designAllocationService, slaSchedulerService } = require("./modules/serv
 // Initialize design event listeners (auto-allocate on DESIGN_QUEUE, auto-release on cancel)
 setupDesignEventListeners(designAllocationService);
 
-// Initialize SLA event listeners & scheduler
+// Initialize SLA event listeners
 setupSlaEventListeners();
-if (env.NODE_ENV !== "test") {
-  slaSchedulerService.startScheduler();
-  require("./modules/sale-orders/services").saleOrderSchedulerService.startScheduler();
-}
 
 const app = express();
 

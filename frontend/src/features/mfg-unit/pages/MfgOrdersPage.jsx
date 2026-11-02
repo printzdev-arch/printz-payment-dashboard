@@ -9,13 +9,13 @@ import { getMfgRole } from "../utils/mfgRole";
 import "../../sale-order/styles/sale-order.css";
 import "../styles/mfg-unit.css";
 
-// Drafts belong to the branch; the unit only sees orders from "placed" onwards
 const UNIT_STATUSES =
-  "PLACED,WAITING_FOR_DESIGNER,ASSIGNED,IN_DESIGN,SENT_FOR_APPROVAL,CHANGES_REQUESTED,APPROVED,PRINTING,DISPATCHED,RECEIVED_AT_BRANCH,DELIVERED,CANCELLED";
+  "DRAFT,PLACED,WAITING_FOR_DESIGNER,ASSIGNED,IN_DESIGN,SENT_FOR_APPROVAL,CHANGES_REQUESTED,APPROVED,PRINTING,DISPATCHED,RECEIVED_AT_BRANCH,DELIVERED,CANCELLED";
 
 const FILTERS = [
   { value: "", label: "All Status" },
-  { value: "PLACED,WAITING_FOR_DESIGNER", label: "Waiting for Designer" },
+  { value: "DRAFT,PLACED,WAITING_FOR_DESIGNER", label: "New & Waiting for Designer" },
+  { value: "DRAFT", label: "Drafts" },
   { value: "ASSIGNED", label: "Assigned" },
   { value: "IN_DESIGN,CHANGES_REQUESTED", label: "In Design" },
   { value: "SENT_FOR_APPROVAL", label: "Awaiting Customer" },

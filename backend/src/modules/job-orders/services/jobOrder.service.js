@@ -683,18 +683,22 @@ class JobOrderService {
       ["COMPLETED", "DELIVERED"].includes(jobObj.status);
 
     if (isDesignOnly && hasCompletedDesign) {
-      jobObj.currentStage = "COMPLETED";
-      jobObj.stage = "COMPLETED";
-      jobObj.status = "DELIVERED";
+      const isPaidInFull = (jobObj.balanceDue !== undefined && jobObj.balanceDue !== null && Number(jobObj.balanceDue) <= 0) || jobObj.paymentStatus === "PAID";
+      const targetStage = isPaidInFull ? "COMPLETED" : "READY";
+      const targetStatus = isPaidInFull ? "COMPLETED" : "READY";
+
+      jobObj.currentStage = targetStage;
+      jobObj.stage = targetStage;
+      jobObj.status = targetStatus;
       jobObj.designStatus = "COMPLETED";
 
       jobOrderRepository.updateOne(
         { _id: job._id },
         {
           $set: {
-            currentStage: "COMPLETED",
-            stage: "COMPLETED",
-            status: "DELIVERED",
+            currentStage: targetStage,
+            stage: targetStage,
+            status: targetStatus,
             designStatus: "COMPLETED",
           },
         }

@@ -899,7 +899,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                         onClick={handleCreateDraft}
                         disabled={loading}
                       >
-                        Create Draft Invoice
+                        Create Invoice
                       </button>
                     ) : (
                       <button

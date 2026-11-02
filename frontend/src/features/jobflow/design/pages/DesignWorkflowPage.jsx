@@ -1560,7 +1560,7 @@ export const DesignWorkflowPage = () => {
           ? `Approved by Customer (${customerName})`
           : `Approved by Manager (${mgrName})`;
 
-        await jobFlowApi.approveSampleDesign(targetJobId, {
+        const approvalRes = await jobFlowApi.approveSampleDesign(targetJobId, {
           customerName,
           isCustomerApproval: isCust,
           isManagerApproval: !isCust,
@@ -1579,9 +1579,9 @@ export const DesignWorkflowPage = () => {
               const jobIsDesignOnly = isDesignOnly || (String(j.jobType || "").toUpperCase().includes("DESIGN") && !String(j.jobType || "").toUpperCase().includes("PRINT"));
               return {
                 ...j,
-                status: jobIsDesignOnly ? "DELIVERED" : "Approved",
-                stage: jobIsDesignOnly ? "COMPLETED" : "PRODUCTION_PLANNING",
-                currentStage: jobIsDesignOnly ? "COMPLETED" : "PRODUCTION_PLANNING",
+                status: jobIsDesignOnly ? "READY" : "Approved",
+                stage: jobIsDesignOnly ? "READY" : "PRODUCTION_PLANNING",
+                currentStage: jobIsDesignOnly ? "READY" : "PRODUCTION_PLANNING",
                 designStatus: "COMPLETED",
                 customerFeedback: feedback,
                 isManagerApproval: !isCust,
@@ -1610,7 +1610,20 @@ export const DesignWorkflowPage = () => {
           })
         );
 
-        toast.success(`Sample design approved successfully! (${feedback})`);
+        if (isDesignOnly) {
+          const bal = approvalRes?.balanceDue != null
+            ? Number(approvalRes.balanceDue)
+            : (selectedSampleForDecision.balanceDue != null
+                ? Number(selectedSampleForDecision.balanceDue)
+                : Number(selectedSampleForDecision?.jobOrder?.balanceDue || 0));
+
+          toast.success(
+            `Customer approved design for #${selectedSampleForDecision.jobNo || targetJobId}! Balance in Invoice: RM ${bal.toFixed(2)} — please collect remaining balance in Invoice.`,
+            { autoClose: 9000 }
+          );
+        } else {
+          toast.success(`Sample design approved successfully! (${feedback})`);
+        }
       } else {
         if (!decisionNotes.trim()) {
           toast.error("Please enter revision requirements / reason for rejection.");
@@ -5355,7 +5368,7 @@ export const DesignWorkflowPage = () => {
                         <Check size={14} /> {(() => {
                           const rawType = String(selectedSampleForDecision?.jobType || selectedSampleForDecision?.jobOrder?.jobType || "").toUpperCase();
                           return rawType.includes("DESIGN") && !rawType.includes("PRINT")
-                            ? "Approve & Complete Job Order (Design Only) →"
+                            ? "Approve Sample (Send to Invoice to Collect Balance) →"
                             : "Confirm & Approve Sample";
                         })()}
                       </>

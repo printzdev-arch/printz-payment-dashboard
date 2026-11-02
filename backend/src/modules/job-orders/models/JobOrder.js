@@ -390,33 +390,36 @@ jobOrderSchema.statics.findAll = async function (query = {}) {
     this.countDocuments(filter),
   ]);
 
-  // Self-heal any Design Only jobs that were incorrectly set to PRODUCTION_PLANNING or have completed design approval
+  // Ensure Design Only jobs that have completed design approval move to READY for balance invoicing,
+  // and only change to COMPLETED once balance due is cleared (balanceDue <= 0 or paymentStatus === 'PAID')
   items.forEach((item) => {
     const jobTypeStr = String(item.jobType || item.specs?.jobType || "").toUpperCase();
     const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
-    const hasCompletedDesign =
-      item.designStatus === "COMPLETED" ||
-      ["PRODUCTION_PLANNING", "COMPLETED", "DELIVERED"].includes(item.currentStage) ||
-      ["PRODUCTION_PLANNING", "COMPLETED", "DELIVERED"].includes(item.stage) ||
-      ["COMPLETED", "DELIVERED"].includes(item.status);
+    const hasCompletedDesign = item.designStatus === "COMPLETED";
 
     if (isDesignOnly && hasCompletedDesign) {
-      item.currentStage = "COMPLETED";
-      item.stage = "COMPLETED";
-      item.status = "DELIVERED";
-      item.designStatus = "COMPLETED";
+      const isPaidInFull = (item.balanceDue !== undefined && item.balanceDue !== null && Number(item.balanceDue) <= 0) || item.paymentStatus === "PAID";
+      const targetStage = isPaidInFull ? "COMPLETED" : "READY";
+      const targetStatus = isPaidInFull ? "COMPLETED" : "READY";
 
-      this.updateOne(
-        { _id: item._id },
-        {
-          $set: {
-            currentStage: "COMPLETED",
-            stage: "COMPLETED",
-            status: "DELIVERED",
-            designStatus: "COMPLETED",
-          },
-        }
-      ).catch(() => {});
+      if (item.currentStage !== targetStage || item.status !== targetStatus) {
+        item.currentStage = targetStage;
+        item.stage = targetStage;
+        item.status = targetStatus;
+        item.designStatus = "COMPLETED";
+
+        this.updateOne(
+          { _id: item._id },
+          {
+            $set: {
+              currentStage: targetStage,
+              stage: targetStage,
+              status: targetStatus,
+              designStatus: "COMPLETED",
+            },
+          }
+        ).catch(() => {});
+      }
 
       try {
         const ProductionOrder = mongoose.models.ProductionOrder || mongoose.model("ProductionOrder");
