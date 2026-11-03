@@ -31,7 +31,7 @@ export const OperationPauseModal = ({
   if (!isOpen || !operation) return null;
 
   const opName = operation.operationName || operation.operation || operation.operationCode;
-  const poNumber = productionOrder?.productionNo || productionOrder?.orderNumber || "—";
+  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || productionOrder?.productionNo || "—";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,7 +67,7 @@ export const OperationPauseModal = ({
             <div>
               <h3 className="jf-modal-title">Pause Operation</h3>
               <span className="prod-modal-subtitle">
-                {poNumber} · Step #{operation.sequenceNo || operation.sequence || "—"}: {opName}
+                {jobNumber} · Step #{operation.sequenceNo || operation.sequence || "—"}: {opName}
               </span>
             </div>
           </div>

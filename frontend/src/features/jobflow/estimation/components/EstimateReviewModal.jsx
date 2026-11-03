@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, CheckCircle, AlertCircle } from "lucide-react";
+import { X, CheckCircle, AlertCircle, Printer } from "lucide-react";
 import { toast } from "react-toastify";
+import { printQuotation } from "../utils/printQuotation";
 
 export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) => {
   const navigate = useNavigate();
@@ -61,15 +62,38 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
     : [];
 
   const defaultAmount = Number(currentEstimate.subtotal || rawJob.subtotal || currentEstimate.totalAmount || rawJob.totalAmount || rawJob.estimatedCost || 0);
-  const defaultRate = defaultQty > 0 ? Math.round((defaultAmount / defaultQty) * 100) / 100 : 0;
+
+  // Exact base product rate (prioritize specs.unitPrice, then item rate/unitPrice, then specs.productCost / defaultQty)
+  const productUnitRate = Number(
+    specs.unitPrice ||
+    currentEstimate.items?.[0]?.rate ||
+    currentEstimate.items?.[0]?.unitRate ||
+    rawJob.items?.[0]?.unitRate ||
+    rawJob.items?.[0]?.unitPrice ||
+    (specs.productCost && defaultQty > 0 ? Number(specs.productCost) / defaultQty : 0) ||
+    (defaultAmount > finishingTotal && defaultQty > 0 ? (defaultAmount - finishingTotal) / defaultQty : 0) ||
+    (defaultQty > 0 ? Math.round((defaultAmount / defaultQty) * 100) / 100 : 0)
+  );
+
+  const productBaseCost = Number(
+    specs.productCost ||
+    (productUnitRate > 0 ? Math.round(defaultQty * productUnitRate * 100) / 100 : 0) ||
+    (defaultAmount > finishingTotal ? defaultAmount - finishingTotal : defaultAmount)
+  );
 
   // Prepare full breakdown showing base print job + all finishing services
-  const items = (() => {
-    if (rawItems.length > 0) {
-      return rawItems.map((it) => {
+  const baseItems = rawItems.length > 0
+    ? rawItems.map((it) => {
+        const isFinishing = it.itemName?.toLowerCase().includes("finishing") || it.name?.toLowerCase().includes("finishing") || it.itemType === "FINISHING";
         const q = Number(it.qty || it.quantity || defaultQty || 1);
-        const r = Number(it.rate || it.unitRate || it.unitPrice || (defaultAmount > 0 && q > 0 ? defaultAmount / q : defaultRate));
-        const a = Number(it.amount || it.totalPrice || (q * r));
+        const r = isFinishing
+          ? Number(it.rate || it.unitRate || it.unitPrice || 0)
+          : Number(it.rate || it.unitRate || it.unitPrice || productUnitRate);
+        const a = isFinishing
+          ? Number(it.amount || it.totalPrice || (q * r))
+          : (Number(it.amount) > 0 && Number(it.amount) !== Number(rawJob.grandTotal)
+              ? Number(it.amount)
+              : Math.round(q * r * 100) / 100 || productBaseCost);
         return {
           name: it.itemName || it.name || it.item || rawJob.title || rawJob.jobTitle || "Print Job Order",
           spec: it.description || it.spec || it.specification || specs.paperType || "Standard Print Specifications",
@@ -78,38 +102,47 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
           rate: r,
           amount: a,
         };
-        
-      });
-    }
+      })
+    : [
+        {
+          name: rawJob.title || rawJob.jobTitle || currentEstimate.title || "Print Job Order",
+          spec: `${specs.paperType || "Standard Paper"} ${specs.paperGsm || ""} (${specs.size || "Standard"})`.trim(),
+          qty: defaultQty,
+          unit: "PCS",
+          rate: productUnitRate,
+          amount: productBaseCost,
+        },
+      ];
 
-    const baseRate = Number(specs.unitPrice || defaultRate || 0);
-    const baseAmount = Math.round(defaultQty * baseRate * 100) / 100;
-    const baseItem = {
-      name: rawJob.title || rawJob.jobTitle || currentEstimate.title || "Print Job Order",
-      spec: `${specs.paperType || "Standard Paper"} ${specs.paperGsm || ""} (${specs.size || "Standard"})`.trim(),
-      qty: defaultQty,
-      unit: "PCS",
-      rate: baseRate,
-      amount: baseAmount,
-    };
+  const hasFinishingInBase = baseItems.some(
+    (it) => it.name?.toLowerCase().includes("finishing") || it.spec?.toLowerCase().includes("finishing")
+  );
 
-    const finishingItems = finishingServicesList.map((svc) => ({
-      name: `Finishing: ${svc.name}`,
-      spec: `${svc.config || "Standard"} (${svc.quantity || defaultQty} ${svc.unit || "sheets"})`,
-      qty: Number(svc.quantity || defaultQty),
-      unit: (svc.unit || "PCS").toUpperCase(),
-      rate: Number(svc.unitPrice || 0),
-      amount: Number(svc.total || (Number(svc.quantity || defaultQty) * Number(svc.unitPrice || 0))),
-    }));
+  const finishingItems = finishingServicesList.map((svc) => ({
+    name: `Finishing: ${svc.name}`,
+    spec: `${svc.config || "Standard"} (${svc.quantity || defaultQty} ${svc.unit || "sheets"})`,
+    qty: Number(svc.quantity || defaultQty),
+    unit: (svc.unit || "PCS").toUpperCase(),
+    rate: Number(svc.unitPrice || 0),
+    amount: Number(svc.total || (Number(svc.quantity || defaultQty) * Number(svc.unitPrice || 0))),
+  }));
 
-    return [baseItem, ...finishingItems];
-  })();
+  const items = hasFinishingInBase ? baseItems : [...baseItems, ...finishingItems];
 
-  const subtotal = items.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const itemsSubtotal = items.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const fullFinalCost = itemsSubtotal > 0 ? itemsSubtotal : Math.max(
+    Number(currentEstimate.amount || 0),
+    Number(currentEstimate.total || 0),
+    Number(rawJob.grandTotal || 0),
+    Number(rawJob.totalAmount || 0),
+    Number(rawJob.estimatedPrice || 0)
+  );
+
+  const subtotal = fullFinalCost;
   const taxRate = 0;
   const rawTax = 0;
   const calculatedTax = 0;
-  const grandTotal = subtotal;
+  const grandTotal = fullFinalCost;
   const finalTax = 0;
 
   // Sync remarks when estimate opens
@@ -121,12 +154,28 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
 
   const total = grandTotal;
 
+  const handlePrint = () => {
+    printQuotation({
+      ...currentEstimate,
+      items,
+      subtotal,
+      grandTotal,
+      finishingServices: finishingServicesList,
+      specs,
+      quantity: defaultQty,
+    });
+  };
+
   const handleApprove = async () => {
     setLoading(true);
     try {
       localStorage.removeItem("printz_active_job_id");
+      const jobTypeStr = String(rawJob?.jobType || rawJob?.specs?.jobType || currentEstimate?.jobType || "").toUpperCase();
+      const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+
       await onApprove(estimate._id || estimate.id, {
         remarks: managerRemarks,
+        skipDesign: isPrintOnly,
         items: items.map((it) => ({
           itemName: it.name,
           description: it.spec || "",
@@ -189,122 +238,78 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
               </p>
             </div>
           </div>
-          <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="jf-btn jf-btn-secondary jf-btn-sm"
+              onClick={handlePrint}
+              title="Print Official Quotation"
+            >
+              <Printer size={15} /> Print Quotation
+            </button>
+            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose} title="Close">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="jf-modal-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
-          {/* Top Info Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.25rem", marginBottom: "1.25rem" }}>
-            <div className="jf-card" style={{ marginBottom: 0, padding: "1rem" }}>
-              <h3 className="jf-card-title" style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
-                Job & Customer Information
-              </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                <div><span style={{ color: "#475569" }}>Job No:</span> <strong>{jobNo}</strong></div>
-                <div><span style={{ color: "#475569" }}>Estimate No:</span> <strong>{estimateNo}</strong></div>
-                <div><span style={{ color: "#475569" }}>Customer:</span> <strong>{customerName}</strong></div>
-                <div><span style={{ color: "#475569" }}>Phone:</span> {phone}</div>
-                <div><span style={{ color: "#475569" }}>Job Type:</span> {jobType}</div>
-                <div><span style={{ color: "#475569" }}>Branch:</span> {branch}</div>
-              </div>
-            </div>
-
-            <div className="jf-card" style={{ marginBottom: 0, padding: "1rem" }}>
-              <h3 className="jf-card-title" style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
-                Remarks & Notes
-              </h3>
-              <p style={{ fontSize: "0.8125rem", color: "#475569", margin: "0 0 0.5rem 0" }}>
-                <strong>Staff Remarks:</strong> {estimate.staffRemarks || "Please review and approve the negotiated pricing."}
-              </p>
-              {!isApproved ? (
-                <div className="jf-form-group">
-                  <label className="jf-label">Manager Remarks (Optional)</label>
-                  <textarea
-                    className="jf-textarea"
-                    style={{ minHeight: "60px" }}
-                    placeholder="Enter approval notes or remarks..."
-                    value={managerRemarks}
-                    onChange={(e) => setManagerRemarks(e.target.value)}
-                  />
-                </div>
-              ) : (
-                (rawJob.remarks || estimate.managerRemarks) && (
-                  <p style={{ fontSize: "0.8125rem", color: "#166534", margin: "0.5rem 0 0 0", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "6px 10px", borderRadius: "4px" }}>
-                    <strong>Approval Notes:</strong> {rawJob.remarks || estimate.managerRemarks}
-                  </p>
-                )
-              )}
+          {/* Job & Customer Information */}
+          <div className="jf-card" style={{ marginBottom: "1.25rem", padding: "1rem" }}>
+            <h3 className="jf-card-title" style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+              Job & Customer Information
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", fontSize: "0.8125rem" }}>
+              <div><span style={{ color: "#475569" }}>Job No:</span> <strong>{jobNo}</strong></div>
+              <div><span style={{ color: "#475569" }}>Estimate No:</span> <strong>{estimateNo}</strong></div>
+              <div><span style={{ color: "#475569" }}>Customer:</span> <strong>{customerName}</strong></div>
+              <div><span style={{ color: "#475569" }}>Phone:</span> {phone}</div>
+              <div><span style={{ color: "#475569" }}>Job Type:</span> {jobType}</div>
+              <div><span style={{ color: "#475569" }}>Branch:</span> {branch}</div>
             </div>
           </div>
 
-          {/* Job Order Specifications & Finishing Requirements */}
+          {/* Job Order Specifications Bar (Clean specs without price duplication) */}
           <div className="jf-card" style={{ marginBottom: "1.25rem", padding: "1rem", border: "1px solid #cbd5e1" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
               <h3 className="jf-card-title" style={{ fontSize: "0.95rem", margin: 0 }}>
-                Job Order Requirements & Finishing Services
+                Job Specifications
               </h3>
-              <span className="jf-badge jf-badge-green" style={{ fontSize: "0.75rem" }}>
-                {finishingServicesList.length} Finishing Service(s) Required
-              </span>
+              {finishingServicesList.length > 0 && (
+                <span className="jf-badge jf-badge-green" style={{ fontSize: "0.75rem" }}>
+                  {finishingServicesList.length} Finishing Service(s) Required
+                </span>
+              )}
             </div>
 
-            {/* Print Specifications Summary Bar */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "0.5rem", background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)", marginBottom: "0.875rem", fontSize: "0.75rem" }}>
-              <div><span style={{ color: "#475569" }}>Product:</span> <strong>{specs.productType || rawJob.productType || "Business Cards"}</strong></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "0.75rem", background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)", fontSize: "0.8125rem" }}>
+              <div><span style={{ color: "#475569" }}>Product:</span> <strong>{specs.productType || rawJob.productType || "Brochures"}</strong></div>
               <div><span style={{ color: "#475569" }}>Paper:</span> <strong>{specs.paperType || "Art Card"} {specs.paperGsm || "260 gsm"}</strong></div>
-              <div><span style={{ color: "#475569" }}>Size:</span> <strong>{specs.size || "90 x 54 mm"}</strong></div>
+              <div><span style={{ color: "#475569" }}>Size:</span> <strong>{specs.size || "A4 (210 x 297 mm)"}</strong></div>
               <div><span style={{ color: "#475569" }}>Color & Sides:</span> <strong>{specs.color || "Full Color"} ({specs.printingSide || "Double Sided"})</strong></div>
             </div>
 
-            {/* Finishing Services Table */}
-            <div className="jf-table-wrap" style={{ overflowX: "auto" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "30px", padding: "0.5rem" }}>#</th>
-                    <th style={{ padding: "0.5rem" }}>Finishing Service</th>
-                    <th style={{ padding: "0.5rem" }}>Configuration / Requirement</th>
-                    <th style={{ padding: "0.5rem" }}>Quantity</th>
-                    <th style={{ padding: "0.5rem" }}>Unit Rate</th>
-                    <th style={{ padding: "0.5rem", textAlign: "right" }}>Total (RM)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {finishingServicesList.map((svc, idx) => (
-                    <tr key={svc.id || idx}>
-                      <td style={{ padding: "0.45rem 0.5rem" }}>{idx + 1}</td>
-                      <td style={{ padding: "0.45rem 0.5rem" }}>
-                        <span style={{ fontWeight: 600, color: "#0f172a" }}>{svc.name}</span>
-                      </td>
-                      <td style={{ padding: "0.45rem 0.5rem" }}>
-                        <span style={{ background: "#e2e8f0", padding: "2px 6px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 500 }}>
-                          {svc.config || svc.notes || "Standard"}
-                        </span>
-                      </td>
-                      <td style={{ padding: "0.45rem 0.5rem" }}>{svc.quantity} {svc.unit || "sheets"}</td>
-                      <td style={{ padding: "0.45rem 0.5rem" }}>RM {Number(svc.unitPrice || 0).toFixed(2)}</td>
-                      <td style={{ padding: "0.45rem 0.5rem", textAlign: "right" }}>
-                        <strong>RM {Number(svc.total || (Number(svc.quantity) * Number(svc.unitPrice || 0))).toFixed(2)}</strong>
-                      </td>
-                    </tr>
-                  ))}
-                  {finishingServicesList.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: "center", color: "#475569", padding: "1rem" }}>
-                        No special finishing services required for this job order.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.75rem", background: "#f0fdf4", padding: "0.6rem 0.875rem", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
-              <span style={{ fontSize: "0.8125rem", color: "#166534", fontWeight: 600 }}>Estimated Finishing Total Requirement:</span>
-              <strong style={{ fontSize: "0.95rem", color: "#15803d" }}>RM {finishingTotal.toFixed(2)}</strong>
-            </div>
+            {finishingServicesList.length > 0 && (
+              <div style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", fontSize: "0.8125rem" }}>
+                <span style={{ color: "#475569", fontWeight: 600 }}>Finishing Required:</span>
+                {finishingServicesList.map((svc, idx) => (
+                  <span
+                    key={svc.id || idx}
+                    style={{
+                      background: "#e0f2fe",
+                      color: "#0369a1",
+                      border: "1px solid #bae6fd",
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {svc.name} {svc.config ? `(${svc.config})` : ""}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Items Table */}
@@ -365,6 +370,14 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
         </div>
 
         <div className="jf-modal-footer">
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary"
+            onClick={handlePrint}
+            style={{ marginRight: "auto" }}
+          >
+            <Printer size={16} /> Print Quotation
+          </button>
           {isApproved ? (
             <button
               type="button"

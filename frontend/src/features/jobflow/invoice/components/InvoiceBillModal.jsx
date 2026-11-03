@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
-import { Printer, X, CheckCircle, Clock, ShieldCheck, Receipt } from "lucide-react";
+import { Printer, X, CheckCircle, Clock, ShieldCheck, Receipt, CreditCard } from "lucide-react";
 
-export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }) => {
+export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, onSettle }) => {
   useEffect(() => {
     if (!isOpen) return undefined;
     const handleKeyDown = (e) => {
@@ -57,12 +57,24 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
   const cgstTotal = Number(doc.cgstTotal || 0);
   const sgstTotal = Number(doc.sgstTotal || 0);
   const grandTotal = Number(doc.grandTotal || 0);
-  const advancePaid = Number(doc.advancePaid || doc.advanceApplied || doc.paidAmount || 0);
-  const balanceDue = Number(doc.balanceDue !== undefined ? doc.balanceDue : Math.max(0, grandTotal - advancePaid));
+  const advancePaid = Number(doc.advancePaid || doc.advanceApplied || 0);
+  const totalPaid = doc.status === "PAID"
+    ? grandTotal
+    : Math.max(advancePaid, Number(doc.paidAmount || 0));
+  const additionalPaid = Math.max(0, totalPaid - advancePaid);
+  const paidAmount = additionalPaid;
+  const computedBalance = Math.max(0, Math.round((grandTotal - totalPaid) * 100) / 100);
+  const balanceDue = Number(
+    doc.status === "PAID"
+      ? 0
+      : (doc.balanceDue !== undefined && doc.balanceDue !== null && Number(doc.balanceDue) <= computedBalance
+          ? doc.balanceDue
+          : computedBalance)
+  );
 
   const jobTypeStr = String(doc.jobType || doc.raw?.jobType || doc.jobOrderId?.jobType || "").toUpperCase();
   const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-  const isPaid = isPrintOnly || balanceDue === 0 || doc.status === "PAID" || doc.paymentStatus === "PAID";
+  const isPaid = isPrintOnly || balanceDue <= 0 || doc.status === "PAID" || doc.paymentStatus === "PAID";
 
   const handlePrint = () => {
     const printWin = window.open("", "_blank", "width=850,height=950");
@@ -84,9 +96,9 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
             ${it.description ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">${it.description}</div>` : ""}
           </td>
           <td style="padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-weight: 600;">${lineQty} ${it.unit || "PCS"}</td>
-          <td style="padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${linePrice.toFixed(2)}</td>
+          <td style="padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹ ${linePrice.toFixed(2)}</td>
           <td style="padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${lineTaxRate}%</td>
-          <td style="padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">₹${lineTotal.toFixed(2)}</td>
+          <td style="padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">₹ ${lineTotal.toFixed(2)}</td>
         </tr>
       `;
     }).join("");
@@ -97,7 +109,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
           ${ch.description || "Additional Service"}:
         </td>
         <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">
-          ₹${Number(ch.amount || 0).toFixed(2)}
+          ₹ ${Number(ch.amount || 0).toFixed(2)}
         </td>
       </tr>
     `).join("");
@@ -291,7 +303,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                 <th style="text-align: left;">Item Description & Specifications</th>
                 <th style="width: 75px; text-align: center;">Qty</th>
                 <th style="width: 90px; text-align: right;">Rate (₹)</th>
-                <th style="width: 65px; text-align: center;">GST</th>
+                <th style="width: 65px; text-align: center;">Tax</th>
                 <th style="width: 100px; text-align: right;">Total (₹)</th>
               </tr>
             </thead>
@@ -315,52 +327,61 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
             <div>
               <table class="totals-table">
                 <tr>
-                  <td style="color: #64748b;">Subtotal (Before Tax):</td>
-                  <td style="text-align: right; font-weight: 600;">₹${subtotal.toFixed(2)}</td>
+                  <td style="color: #64748b;">Subtotal:</td>
+                  <td style="text-align: right; font-weight: 600;">₹ ${subtotal.toFixed(2)}</td>
                 </tr>
                 ${discountTotal > 0 ? `
                   <tr>
                     <td style="color: #15803d;">Commercial Discount:</td>
-                    <td style="text-align: right; font-weight: 600; color: #15803d;">- ₹${discountTotal.toFixed(2)}</td>
+                    <td style="text-align: right; font-weight: 600; color: #15803d;">- ₹ ${discountTotal.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td style="color: #475569;">Net Taxable Subtotal:</td>
-                    <td style="text-align: right; font-weight: 600;">₹${taxableAmount.toFixed(2)}</td>
+                    <td style="text-align: right; font-weight: 600;">₹ ${taxableAmount.toFixed(2)}</td>
                   </tr>
                 ` : ""}
-                ${cgstTotal > 0 ? `
+                ${(cgstTotal + sgstTotal) > 0 ? `
                   <tr>
-                    <td style="color: #64748b;">CGST:</td>
-                    <td style="text-align: right;">₹${cgstTotal.toFixed(2)}</td>
-                  </tr>
-                ` : ""}
-                ${sgstTotal > 0 ? `
-                  <tr>
-                    <td style="color: #64748b;">SGST:</td>
-                    <td style="text-align: right;">₹${sgstTotal.toFixed(2)}</td>
+                    <td style="color: #64748b;">SST / Tax:</td>
+                    <td style="text-align: right;">₹ ${(cgstTotal + sgstTotal).toFixed(2)}</td>
                   </tr>
                 ` : ""}
                 <tr class="total-highlight">
                   <td>Grand Total:</td>
-                  <td style="text-align: right;">₹${grandTotal.toFixed(2)}</td>
+                  <td style="text-align: right;">₹ ${grandTotal.toFixed(2)}</td>
                 </tr>
                 ${isPrintOnly ? `
                 <tr>
                   <td style="color: #6b21a8; font-weight: 700;">Full Payment Collected:</td>
-                  <td style="text-align: right; font-weight: 700; color: #6b21a8;">- ₹${grandTotal.toFixed(2)}</td>
+                  <td style="text-align: right; font-weight: 700; color: #6b21a8;">- ₹ ${grandTotal.toFixed(2)}</td>
                 </tr>
                 <tr class="balance-row">
                   <td>Balance Due:</td>
-                  <td style="text-align: right;">₹0.00 (Fully Settled)</td>
+                  <td style="text-align: right; font-weight: 800; color: #059669;">₹ 0.00 (Fully Settled)</td>
+                </tr>
+                ` : isPaid || balanceDue <= 0 ? `
+                <tr>
+                  <td style="color: #059669; font-weight: 700;">Initial Advance Paid:</td>
+                  <td style="text-align: right; font-weight: 700; color: #059669;">- ₹ ${advancePaid.toFixed(2)}</td>
+                </tr>
+                ${paidAmount > 0 ? `
+                <tr>
+                  <td style="color: #059669; font-weight: 700;">Balance Collected:</td>
+                  <td style="text-align: right; font-weight: 700; color: #059669;">- ₹ ${paidAmount.toFixed(2)}</td>
+                </tr>
+                ` : ""}
+                <tr class="balance-row">
+                  <td>Balance Due:</td>
+                  <td style="text-align: right; font-weight: 800; color: #059669;">₹ 0.00 (Fully Settled)</td>
                 </tr>
                 ` : `
                 <tr>
                   <td style="color: #059669; font-weight: 700;">Less: Initial Advance Paid:</td>
-                  <td style="text-align: right; font-weight: 700; color: #059669;">- ₹${advancePaid.toFixed(2)}</td>
+                  <td style="text-align: right; font-weight: 700; color: #059669;">- ₹ ${advancePaid.toFixed(2)}</td>
                 </tr>
                 <tr class="balance-row">
-                  <td>Balance Due at Delivery:</td>
-                  <td style="text-align: right;">₹${balanceDue.toFixed(2)}</td>
+                  <td>Balance Due at Settlement:</td>
+                  <td style="text-align: right; font-weight: 800; color: #b45309;">₹ ${balanceDue.toFixed(2)}</td>
                 </tr>
                 `}
               </table>
@@ -440,6 +461,29 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {!isPaid && balanceDue > 0 && onSettle && (
+              <button
+                type="button"
+                onClick={() => onSettle(doc)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 14px",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  background: "#059669",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(5,150,105,0.2)"
+                }}
+                title="Collect Outstanding Balance via Cashier"
+              >
+                <CreditCard size={15} /> Collect Balance (₹{balanceDue.toFixed(2)})
+              </button>
+            )}
             <button
               type="button"
               onClick={handlePrint}
@@ -450,7 +494,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                 padding: "6px 14px",
                 fontSize: "0.8rem",
                 fontWeight: 700,
-                background: "#059669",
+                background: "#0284c7",
                 color: "#ffffff",
                 border: "none",
                 borderRadius: "6px",
@@ -604,7 +648,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                   <th style={{ padding: "8px 10px", textAlign: "left", color: "#334155" }}>Item Description & Specifications</th>
                   <th style={{ padding: "8px 10px", textAlign: "center", width: "75px", color: "#334155" }}>Qty</th>
                   <th style={{ padding: "8px 10px", textAlign: "right", width: "90px", color: "#334155" }}>Rate (₹)</th>
-                  <th style={{ padding: "8px 10px", textAlign: "center", width: "65px", color: "#334155" }}>GST</th>
+                  <th style={{ padding: "8px 10px", textAlign: "center", width: "65px", color: "#334155" }}>Tax</th>
                   <th style={{ padding: "8px 10px", textAlign: "right", width: "105px", color: "#334155" }}>Total (₹)</th>
                 </tr>
               </thead>
@@ -631,9 +675,9 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                           )}
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 600 }}>{lineQty} {it.unit || "PCS"}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right" }}>₹{linePrice.toFixed(2)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right" }}>₹ {linePrice.toFixed(2)}</td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>{lineTaxRate}%</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>₹{lineTotal.toFixed(2)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>₹ {lineTotal.toFixed(2)}</td>
                       </tr>
                     );
                   })
@@ -644,7 +688,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                       {ch.description || "Additional Service"}:
                     </td>
                     <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700 }}>
-                      ₹{Number(ch.amount || 0).toFixed(2)}
+                      ₹ {Number(ch.amount || 0).toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -673,42 +717,36 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                 <table style={{ width: "100%", fontSize: "0.82rem", borderCollapse: "collapse" }}>
                   <tbody>
                     <tr>
-                      <td style={{ padding: "4px 6px", color: "#64748b" }}>Subtotal (Before Tax):</td>
-                      <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600 }}>₹{subtotal.toFixed(2)}</td>
+                      <td style={{ padding: "4px 6px", color: "#64748b" }}>Subtotal:</td>
+                      <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600 }}>₹ {subtotal.toFixed(2)}</td>
                     </tr>
                     {discountTotal > 0 && (
                       <>
                         <tr>
                           <td style={{ padding: "4px 6px", color: "#15803d" }}>Commercial Discount:</td>
-                          <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600, color: "#15803d" }}>- ₹{discountTotal.toFixed(2)}</td>
+                          <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600, color: "#15803d" }}>- ₹ {discountTotal.toFixed(2)}</td>
                         </tr>
                         <tr>
                           <td style={{ padding: "4px 6px", color: "#475569" }}>Net Taxable Subtotal:</td>
-                          <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600 }}>₹{taxableAmount.toFixed(2)}</td>
+                          <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600 }}>₹ {taxableAmount.toFixed(2)}</td>
                         </tr>
                       </>
                     )}
-                    {cgstTotal > 0 && (
+                    {(cgstTotal + sgstTotal) > 0 && (
                       <tr>
-                        <td style={{ padding: "4px 6px", color: "#64748b" }}>CGST:</td>
-                        <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{cgstTotal.toFixed(2)}</td>
-                      </tr>
-                    )}
-                    {sgstTotal > 0 && (
-                      <tr>
-                        <td style={{ padding: "4px 6px", color: "#64748b" }}>SGST:</td>
-                        <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{sgstTotal.toFixed(2)}</td>
+                        <td style={{ padding: "4px 6px", color: "#64748b" }}>SST / Tax:</td>
+                        <td style={{ padding: "4px 6px", textAlign: "right" }}>₹ {(cgstTotal + sgstTotal).toFixed(2)}</td>
                       </tr>
                     )}
                     <tr style={{ borderTop: "1.5px solid #0f172a", borderBottom: "1.5px solid #0f172a" }}>
                       <td style={{ padding: "6px", fontWeight: 800, fontSize: "0.95rem" }}>Grand Total:</td>
-                      <td style={{ padding: "6px", textAlign: "right", fontWeight: 800, fontSize: "0.95rem", color: "#065f46" }}>₹{grandTotal.toFixed(2)}</td>
+                      <td style={{ padding: "6px", textAlign: "right", fontWeight: 800, fontSize: "0.95rem", color: "#065f46" }}>₹ {grandTotal.toFixed(2)}</td>
                     </tr>
                     {isPrintOnly ? (
                       <>
                         <tr>
                           <td style={{ padding: "5px 6px", color: "#6b21a8", fontWeight: 700 }}>Full Payment Collected:</td>
-                          <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#6b21a8" }}>- ₹{grandTotal.toFixed(2)}</td>
+                          <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#6b21a8" }}>- ₹ {grandTotal.toFixed(2)}</td>
                         </tr>
                         <tr style={{
                           background: "#f0fdf4",
@@ -718,7 +756,31 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                             Balance Due:
                           </td>
                           <td style={{ padding: "6px", textAlign: "right", fontWeight: 800, color: "#166534" }}>
-                            ₹0.00 (Fully Settled)
+                            ₹ 0.00 (Fully Settled)
+                          </td>
+                        </tr>
+                      </>
+                    ) : isPaid || balanceDue <= 0 ? (
+                      <>
+                        <tr>
+                          <td style={{ padding: "5px 6px", color: "#059669", fontWeight: 700 }}>Initial Advance Paid:</td>
+                          <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669" }}>- ₹ {advancePaid.toFixed(2)}</td>
+                        </tr>
+                        {paidAmount > 0 && (
+                          <tr>
+                            <td style={{ padding: "5px 6px", color: "#059669", fontWeight: 700 }}>Balance Collected:</td>
+                            <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669" }}>- ₹ {paidAmount.toFixed(2)}</td>
+                          </tr>
+                        )}
+                        <tr style={{
+                          background: "#f0fdf4",
+                          borderRadius: "6px"
+                        }}>
+                          <td style={{ padding: "6px", fontWeight: 800, color: "#166534" }}>
+                            Balance Due:
+                          </td>
+                          <td style={{ padding: "6px", textAlign: "right", fontWeight: 800, color: "#166534" }}>
+                            ₹ 0.00 (Fully Settled)
                           </td>
                         </tr>
                       </>
@@ -726,7 +788,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                       <>
                         <tr>
                           <td style={{ padding: "5px 6px", color: "#059669", fontWeight: 700 }}>Less: Initial Advance Paid:</td>
-                          <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669" }}>- ₹{advancePaid.toFixed(2)}</td>
+                          <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669" }}>- ₹ {advancePaid.toFixed(2)}</td>
                         </tr>
                         <tr style={{
                           background: balanceDue > 0 ? "#fffbeb" : "#f0fdf4",
@@ -736,13 +798,37 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false }
                             Balance Due at Settlement:
                           </td>
                           <td style={{ padding: "6px", textAlign: "right", fontWeight: 800, color: balanceDue > 0 ? "#b45309" : "#166534" }}>
-                            ₹{balanceDue.toFixed(2)}
+                            ₹ {balanceDue.toFixed(2)}
                           </td>
                         </tr>
                       </>
                     )}
                   </tbody>
                 </table>
+                {!isPaid && balanceDue > 0 && onSettle && (
+                  <div style={{ marginTop: "0.75rem", textAlign: "right" }}>
+                    <button
+                      type="button"
+                      onClick={() => onSettle(doc)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "7px 16px",
+                        fontSize: "0.82rem",
+                        fontWeight: 700,
+                        background: "#059669",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 4px rgba(5,150,105,0.25)"
+                      }}
+                    >
+                      <CreditCard size={14} /> Settle Remaining Balance Now (₹{balanceDue.toFixed(2)})
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

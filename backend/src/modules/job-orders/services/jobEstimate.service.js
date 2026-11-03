@@ -83,6 +83,43 @@ class JobEstimateService {
       }
     }
 
+    // Persist additional line items passed from frontend (e.g. finishing services lineNo 2, 3, etc.)
+    for (const dtoItem of dtoItems) {
+      const lineNo = Number(dtoItem.lineNo || 1);
+      const exists = currentItems.some((it) => it.lineNo === lineNo);
+      if (!exists) {
+        const qty = Number(dtoItem.quantity || dtoItem.qty || 1);
+        const rate = Number(dtoItem.unitRate || dtoItem.unitPrice || dtoItem.rate || 0);
+        const itemAmount = Number(dtoItem.amount || (qty * rate));
+        const createdLine = await jobItemRepository.create({
+          jobOrderId: job._id,
+          lineNo,
+          itemType: "FINISHING",
+          itemName: dtoItem.itemName || dtoItem.name || "Finishing Service",
+          description: dtoItem.description || dtoItem.spec || "",
+          quantity: qty,
+          unit: dtoItem.unit || "PCS",
+          unitRate: rate,
+          unitPrice: rate,
+          taxRate: Number(dtoItem.taxRate || 0),
+          amount: itemAmount,
+          totalPrice: itemAmount,
+          needsProduction: true,
+        });
+        currentItems.push(createdLine);
+      }
+    }
+
+    // Calculate finishing services total from job or payload
+    const finishingList = (Array.isArray(estimateData.finishingServices) && estimateData.finishingServices.length > 0)
+      ? estimateData.finishingServices
+      : (Array.isArray(job.finishingServices) ? job.finishingServices : []);
+
+    const finishingTotal = finishingList.reduce(
+      (sum, f) => sum + Number(f.total || (Number(f.unitPrice || 0) * Number(f.quantity || job.quantity || 1))),
+      0
+    );
+
     const c = this.calculateTotals(
       currentItems,
       estimateData.discountAmount !== undefined ? estimateData.discountAmount : job.discountAmount
@@ -90,12 +127,21 @@ class JobEstimateService {
 
     this.assertDiscountAllowed(c.subtotal, c.discount, user);
 
+    const hasFinishingInItems = currentItems.some(
+      (it) => it.itemName?.toLowerCase().includes("finishing") || it.itemType === "FINISHING"
+    );
+
+    const finalGrandTotal = Math.max(
+      c.grandTotal + (hasFinishingInItems ? 0 : finishingTotal),
+      Number(estimateData.total || estimateData.grandTotal || 0)
+    );
+
     job.subtotal = c.subtotal;
     job.taxAmount = c.taxAmount;
     job.discountAmount = c.discount;
-    job.grandTotal = c.grandTotal;
-    job.totalAmount = c.grandTotal;
-    job.estimatedPrice = c.grandTotal;
+    job.grandTotal = finalGrandTotal;
+    job.totalAmount = finalGrandTotal;
+    job.estimatedPrice = finalGrandTotal;
     await job.save();
 
     // Expire older pending estimate approvals
@@ -298,27 +344,25 @@ class JobEstimateService {
       console.warn("Could not sync approval to Estimate collections:", apprSyncErr.message);
     }
 
+    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+    const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
+
     let nextStage = "DESIGN_QUEUE";
-    if (job.source === "DESIGNER") {
+    if (isPrintOnly) {
+      nextStage = "PRODUCTION_PLANNING";
+    } else if (job.source === "DESIGNER") {
       nextStage = "DESIGN_IN_PROGRESS";
     }
     if (approveData.skipDesign) {
-      const countPrintReady = await jobFileRepository.countDocuments({
-        jobOrderId: job._id,
-        fileCategory: "PRINT_READY",
-      });
-      if (countPrintReady < 1) {
-        throw ErrorHelper.unprocessableEntity(
-          "PRINT_READY_FILE_REQUIRED: Please upload a PRINT_READY file before skipping design."
-        );
-      }
       nextStage = "PRODUCTION_PLANNING";
     }
 
     const patch = {
       estimationStatus: "APPROVED",
-      currentStage: "ESTIMATE_APPROVAL",
-      stage: "ESTIMATE_APPROVAL",
+      currentStage: isPrintOnly ? "PRODUCTION_PLANNING" : "ESTIMATE_APPROVAL",
+      stage: isPrintOnly ? "PRODUCTION_PLANNING" : "ESTIMATE_APPROVAL",
+      designStatus: isPrintOnly ? "NOT_REQUIRED" : (isDesigner ? "ASSIGNED" : "UNASSIGNED"),
       ...(pricing.subtotal !== undefined ? { subtotal: pricing.subtotal } : {}),
       ...(pricing.discountAmount !== undefined ? { discountAmount: pricing.discountAmount } : {}),
       ...(pricing.discountPercent !== undefined ? { discountPercent: pricing.discountPercent } : {}),
@@ -372,6 +416,15 @@ class JobEstimateService {
 
     // Ensure all pricing fields are persisted on the job
     await jobOrderRepository.update(job._id, patch);
+
+    if (isPrintOnly) {
+      try {
+        const ProductionPlanningService = require("../../production/services/productionPlanning.service");
+        await ProductionPlanningService.createUnassignedOrder(job._id, user);
+      } catch (poErr) {
+        // non-blocking
+      }
+    }
 
     await ProductionStateService.logAudit({
       action: "APPROVE",

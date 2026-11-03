@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Truck,
+  CreditCard,
   PackageCheck,
   Send,
   CheckCircle,
@@ -17,6 +18,10 @@ import {
   Wallet,
   Receipt,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
+  Star,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -24,6 +29,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import deliveryApi from "../api/deliveryApi";
+import settlementApi from "../../settlement/api/settlementApi";
 import "../styles/delivery.css";
 
 // Phase 1 Modals
@@ -31,13 +37,19 @@ import CreateDeliveryOrderModal from "../components/CreateDeliveryOrderModal";
 import AssignDeliveryModal from "../components/AssignDeliveryModal";
 import PackDeliveryModal from "../components/PackDeliveryModal";
 import HandoverProofModal from "../components/HandoverProofModal";
+import ViewDeliveryProofModal from "../components/ViewDeliveryProofModal";
+
+// Phase 3 Settlement & Closure Modals
+import CashierSettlementModal from "../../settlement/components/CashierSettlementModal";
+import JobClosureModal from "../../settlement/components/JobClosureModal";
+import CustomerFeedbackModal from "../../settlement/components/CustomerFeedbackModal";
 
 const TABS = [
-  { key: "REVIEW", label: "Manager Review", icon: ShieldCheck },
-  { key: "ASSIGNED", label: "Assigned", icon: Send },
-  { key: "PACKED", label: "Packed", icon: PackageCheck },
-  { key: "OUT_FOR_DELIVERY", label: "In Transit", icon: Truck },
-  { key: "DELIVERED", label: "Delivered", icon: CheckCircle },
+  { key: "REVIEW", label: "PENDING REVIEW", icon: ShieldCheck },
+  { key: "ASSIGNED", label: "ASSIGNED", icon: Send },
+  { key: "OUT_FOR_DELIVERY", label: "OUT FOR DELIVERY", icon: Truck },
+  { key: "DELIVERED", label: "DELIVERED & PAID", icon: CheckCircle },
+  { key: "CLOSURE", label: "JOB CLOSURE", icon: Lock },
 ];
 
 const getInitials = (name = "") =>
@@ -61,24 +73,45 @@ export const DeliveryPage = ({ embedded = false }) => {
   const preselectedJobId = searchParams.get("jobId");
   const tabParam = searchParams.get("tab");
 
-  // Tab State: "REVIEW" | "ASSIGNED" | "PACKED" | "OUT_FOR_DELIVERY" | "DELIVERED"
-  const [activeTab, setActiveTab] = useState(
-    tabParam && ["REVIEW", "ASSIGNED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(tabParam.toUpperCase())
-      ? tabParam.toUpperCase()
-      : "REVIEW"
-  );
+  // Tab State: "REVIEW" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CLOSURE"
+  const [activeTab, setActiveTab] = useState(() => {
+    if (tabParam) {
+      const up = tabParam.toUpperCase();
+      if (up === "PACKED") return "ASSIGNED";
+      if (["REVIEW", "PENDING_REVIEW"].includes(up)) return "REVIEW";
+      if (["CLOSURE", "JOB_CLOSURE", "CLOSURE_QUEUE"].includes(up)) return "CLOSURE";
+      if (["ASSIGNED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(up)) return up;
+    }
+    const saved = sessionStorage.getItem("delivery_active_tab");
+    if (saved && ["REVIEW", "ASSIGNED", "OUT_FOR_DELIVERY", "DELIVERED", "CLOSURE"].includes(saved)) {
+      return saved;
+    }
+    return "REVIEW";
+  });
 
   useEffect(() => {
     if (tabParam) {
       const upper = tabParam.toUpperCase();
-      if (["REVIEW", "ASSIGNED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(upper)) {
-        setActiveTab(upper);
+      let targetTab = null;
+      if (upper === "PACKED") targetTab = "ASSIGNED";
+      else if (["REVIEW", "PENDING_REVIEW"].includes(upper)) targetTab = "REVIEW";
+      else if (["CLOSURE", "JOB_CLOSURE", "CLOSURE_QUEUE"].includes(upper)) targetTab = "CLOSURE";
+      else if (["ASSIGNED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(upper)) targetTab = upper;
+
+      if (targetTab && targetTab !== activeTab) {
+        setActiveTab(targetTab);
+        try {
+          sessionStorage.setItem("delivery_active_tab", targetTab);
+        } catch {}
       }
     }
   }, [tabParam]);
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
+    try {
+      sessionStorage.setItem("delivery_active_tab", newTab);
+    } catch {}
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -95,40 +128,81 @@ export const DeliveryPage = ({ embedded = false }) => {
   // Data collections
   const [readyJobs, setReadyJobs] = useState([]);
   const [deliveryOrders, setDeliveryOrders] = useState([]);
+  const [allJobOrders, setAllJobOrders] = useState([]);
 
   // Modal controls
   const [selectedJobForDO, setSelectedJobForDO] = useState(null);
   const [selectedDOForAssign, setSelectedDOForAssign] = useState(null);
   const [selectedDOForPack, setSelectedDOForPack] = useState(null);
   const [selectedDOForHandover, setSelectedDOForHandover] = useState(null);
+  const [selectedDOForProofView, setSelectedDOForProofView] = useState(null);
+
+  // Settlement & Closure controls
+  const [selectedInvoiceForCashier, setSelectedInvoiceForCashier] = useState(null);
+  const [selectedJobForClosure, setSelectedJobForClosure] = useState(null);
+  const [selectedJobForFeedback, setSelectedJobForFeedback] = useState(null);
 
   useEffect(() => {
     loadAllData();
-  }, [preselectedJobId]);
+    if (searchParams.get("jobId")) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("jobId");
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, []);
 
   const loadAllData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch ready jobs for review (completed in production)
-      const [resReadyJobs, resOrders] = await Promise.all([
+      // 1. Fetch ready jobs for review, delivery orders, and all recent job orders
+      const [resReadyJobs, resOrders, resAllJobs] = await Promise.all([
         deliveryApi.getReadyJobsForDelivery().catch(() => null),
         deliveryApi.getDeliveryOrders({ limit: 100 }).catch(() => null),
+        deliveryApi.getJobOrders({ limit: 100 }).catch(() => null),
       ]);
 
-      // Map ready jobs
+      // Collect ready jobs from endpoint
       let readyItems = resReadyJobs?.data?.items || resReadyJobs?.data || (Array.isArray(resReadyJobs) ? resReadyJobs : []);
-      if (!Array.isArray(readyItems) || readyItems.length === 0) {
-        // Fallback: fetch job orders in READY / DELIVERY stage
-        try {
-          const fallbackRes = await deliveryApi.getJobOrders({ currentStage: "READY,DELIVERY,READY_FOR_DELIVERY", limit: 50 });
-          readyItems = fallbackRes?.data?.items || fallbackRes?.data || [];
-        } catch {}
+
+      // Complement with recent job orders that are approved / QC passed / ready for delivery
+      const rawAllJobs = resAllJobs?.data?.items || resAllJobs?.data || (Array.isArray(resAllJobs) ? resAllJobs : []);
+      const readyJobIds = new Set(readyItems.map((j) => String(j._id || j.id || j.jobNo || "")));
+
+      if (Array.isArray(rawAllJobs)) {
+        rawAllJobs.forEach((job) => {
+          const jId = String(job._id || job.id || "");
+          const jNo = String(job.jobNo || job.orderNumber || "");
+          if (readyJobIds.has(jId) || readyJobIds.has(jNo)) return;
+
+          const stageUpper = String(job.currentStage || job.stage || "").toUpperCase();
+          const statusUpper = String(job.status || "").toUpperCase();
+          const isEligible =
+            ["READY", "READY_FOR_DELIVERY", "DELIVERY", "QC_PASSED", "QC", "APPROVED"].includes(stageUpper) ||
+            ["READY", "READY_FOR_DELIVERY", "QC_PASSED", "APPROVED"].includes(statusUpper) ||
+            (preselectedJobId && (jId === preselectedJobId || jNo === preselectedJobId));
+
+          if (isEligible && statusUpper !== "CANCELLED" && statusUpper !== "DELIVERED") {
+            readyJobIds.add(jId);
+            readyJobIds.add(jNo);
+            readyItems.push(job);
+          }
+        });
       }
 
       // Map delivery orders
       const orderItems = resOrders?.data?.items || resOrders?.data || (Array.isArray(resOrders) ? resOrders : []);
       const formattedDOs = (Array.isArray(orderItems) ? orderItems : []).map((d) => {
         const jObj = d.jobOrderId && typeof d.jobOrderId === "object" ? d.jobOrderId : null;
+        const total = Number(d.grandTotal || jObj?.grandTotal || jObj?.totalAmount || 0);
+        const adv = Number(d.advancePaid || jObj?.advancePaid || 0);
+        const isPaid = d.paymentStatus === "PAID" || jObj?.paymentStatus === "PAID" || (d.balanceDue !== undefined && Number(d.balanceDue) <= 0);
+        const balance = isPaid ? 0 : (typeof d.balanceDue !== "undefined" ? Number(d.balanceDue) : Math.max(0, total - adv));
+
         return {
           _id: d._id || d.id,
           deliveryNo: d.deliveryNo || `DO-${String(d._id || "").slice(-6)}`,
@@ -143,6 +217,10 @@ export const DeliveryPage = ({ embedded = false }) => {
           vehicle: d.vehicle || d.vehicleNumber || "",
           expectedDeliveryDate: d.expectedDeliveryDate,
           status: d.status || "READY",
+          grandTotal: total,
+          advancePaid: adv,
+          balanceDue: balance,
+          paymentStatus: isPaid ? "PAID" : (d.paymentStatus || (balance === 0 ? "PAID" : "UNPAID")),
           otpVerified: Boolean(d.otpVerified),
           proofSubmitted: Boolean(d.proofSubmitted || d.signatureUrl),
           raw: d,
@@ -154,6 +232,30 @@ export const DeliveryPage = ({ embedded = false }) => {
       const formattedReady = (Array.isArray(readyItems) ? readyItems : []).map((j) => {
         const jId = String(j._id || j.id || "");
         const matchedDO = j.deliveryOrder || formattedDOs.find((d) => String(d.jobOrderId) === jId || (d.jobNo && d.jobNo === j.jobNo));
+        const inv = j.invoice || j.existingInvoice || null;
+        const jobTotal = Number(
+          inv?.grandTotal ||
+          j.grandTotal ||
+          (j.discountTotal ? (Number(j.estimatedPrice || 0) - Number(j.discountTotal || 0)) : 0) ||
+          j.totalAmount ||
+          j.estimatedPrice ||
+          0
+        );
+        const isJobPaid =
+          j.paymentStatus === "PAID" ||
+          j.status === "COMPLETED" ||
+          inv?.status === "PAID" ||
+          inv?.paymentStatus === "PAID" ||
+          (j.balanceDue !== undefined && Number(j.balanceDue) <= 0);
+        const resolvedBal = isJobPaid
+          ? 0
+          : (inv && inv.balanceDue !== undefined
+              ? Number(inv.balanceDue)
+              : (j.balanceDue != null
+                  ? Number(j.balanceDue)
+                  : Math.max(0, Math.round((jobTotal - Number(j.advancePaid || 0)) * 100) / 100)));
+        const resolvedAdv = isJobPaid ? jobTotal : Number(inv?.advancePaid || inv?.advanceApplied || j.advancePaid || 0);
+
         return {
           _id: j._id || j.id,
           jobNo: j.jobNo || j.orderNumber || `JO-${jId.slice(-6)}`,
@@ -162,9 +264,9 @@ export const DeliveryPage = ({ embedded = false }) => {
           deliveryAddress: j.deliveryAddress || j.customerSnapshot?.address || "Counter Pickup",
           title: j.title || j.productType || "Print Order",
           quantity: j.quantity || 500,
-          grandTotal: Number(j.grandTotal || j.totalAmount || 0),
-          advancePaid: Number(j.advancePaid || 0),
-          balanceDue: Math.max(0, Number(j.grandTotal || j.totalAmount || 0) - Number(j.advancePaid || 0)),
+          grandTotal: jobTotal,
+          advancePaid: resolvedAdv,
+          balanceDue: resolvedBal,
           currentStage: j.currentStage || "READY_FOR_DELIVERY",
           reviewedByManager: Boolean(j.reviewedByManager || matchedDO),
           deliveryOrder: matchedDO || null,
@@ -172,24 +274,37 @@ export const DeliveryPage = ({ embedded = false }) => {
           raw: j,
         };
       });
+
+      // Sort newest jobs first (today's jobs at top)
+      formattedReady.sort((a, b) => {
+        const timeA = new Date(a.raw?.createdAt || a.raw?.orderDate || a.raw?.updatedAt || 0).getTime();
+        const timeB = new Date(b.raw?.createdAt || b.raw?.orderDate || b.raw?.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
+
       setReadyJobs(formattedReady);
 
-      // Auto-focus preselected job
-      if (preselectedJobId) {
-        const matchReady = formattedReady.find((j) => j._id === preselectedJobId || j.jobNo === preselectedJobId);
-        if (matchReady) {
-          setActiveTab("REVIEW");
-          setSelectedJobForDO(matchReady);
-        } else {
-          const matchDO = formattedDOs.find((d) => d._id === preselectedJobId || d.jobNo === preselectedJobId);
-          if (matchDO) {
-            if (matchDO.status === "DELIVERED") setActiveTab("DELIVERED");
-            else if (matchDO.status === "OUT_FOR_DELIVERY") setActiveTab("OUT_FOR_DELIVERY");
-            else if (matchDO.status === "PACKED") setActiveTab("PACKED");
-            else setActiveTab("ASSIGNED");
-          }
-        }
-      }
+      // Format all jobs for Closure queue
+      const formattedClosure = (Array.isArray(rawAllJobs) ? rawAllJobs : []).map((j) => {
+        const id = j._id || j.id;
+        return {
+          _id: id,
+          jobNo: j.jobNo || j.orderNumber || `JO-${String(id || "").slice(-6)}`,
+          customerName: j.customerName || j.customerSnapshot?.name || j.customer?.name || "Customer",
+          customerPhone: j.customerPhone || j.customerSnapshot?.mobile || "N/A",
+          title: j.title || j.productType || "Print Material",
+          totalAmount: Number(j.grandTotal || j.totalAmount || j.estimatedPrice || 0),
+          closureStatus: j.closureStatus || (j.status === "COMPLETED" ? "CLOSED" : "OPEN"),
+          status: j.currentStage || j.stage || j.status || "DELIVERED",
+          raw: j,
+        };
+      });
+      formattedClosure.sort((a, b) => {
+        const timeA = new Date(a.raw?.createdAt || a.raw?.orderDate || a.raw?.updatedAt || 0).getTime();
+        const timeB = new Date(b.raw?.createdAt || b.raw?.orderDate || b.raw?.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
+      setAllJobOrders(formattedClosure);
     } catch (err) {
       console.warn("Failed loading delivery data:", err);
     } finally {
@@ -207,11 +322,11 @@ export const DeliveryPage = ({ embedded = false }) => {
       // Also generate handover OTP immediately
       try {
         await deliveryApi.generateOtp(deliveryOrder._id || deliveryOrder.id);
-      } catch {}
+      } catch { }
 
       toast.success(`Delivery Order ${deliveryOrder.deliveryNo} is DISPATCHED & Handover OTP sent!`);
       await loadAllData();
-      setActiveTab("OUT_FOR_DELIVERY");
+      handleTabChange("OUT_FOR_DELIVERY");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to dispatch order");
     } finally {
@@ -219,19 +334,49 @@ export const DeliveryPage = ({ embedded = false }) => {
     }
   };
 
-  // Counters for tabs
+  // Open Settlement for a delivery order
+  const handleOpenSettlement = async (d) => {
+    const directInv = d.raw?.invoiceId || d.raw?.invoice?._id || d.raw?.invoice?.id;
+    if (directInv) {
+      setSelectedInvoiceForCashier(directInv);
+      return;
+    }
+    // Query invoice by jobOrderId or jobNo
+    try {
+      const res = await settlementApi.getJobInvoice(d.jobOrderId || d._id);
+      const invId = res?.data?._id || res?.data?.id;
+      if (invId) {
+        setSelectedInvoiceForCashier(invId);
+        return;
+      }
+    } catch {}
+    // Fallback to jobOrderId
+    setSelectedInvoiceForCashier(d.jobOrderId || d._id);
+  };
+
+  // Helper: check if a DO has actually been assigned to a delivery staff member
+  const isActuallyAssigned = (d) => {
+    if (!d) return false;
+    if (d.status === "READY" || d.status === "CANCELLED") return false;
+    const staff = String(d.deliveryPersonName || "").trim();
+    const hasStaff = Boolean(staff && staff !== "Unassigned" && staff !== "-" && staff !== "undefined");
+    const hasEmpId = Boolean(d.assignedEmployeeId);
+    return (d.status === "ASSIGNED" || d.status === "PACKED") && (hasStaff || hasEmpId);
+  };
+
+  // Counters for workflow stages
   const countReview = readyJobs.length;
-  const countAssigned = deliveryOrders.filter((d) => d.status === "READY" || d.status === "ASSIGNED").length;
-  const countPacked = deliveryOrders.filter((d) => d.status === "PACKED").length;
+  const countAssigned = deliveryOrders.filter(isActuallyAssigned).length;
   const countOutForDelivery = deliveryOrders.filter((d) => d.status === "OUT_FOR_DELIVERY").length;
   const countDelivered = deliveryOrders.filter((d) => d.status === "DELIVERED").length;
+  const countClosure = allJobOrders.length;
 
   const tabCounts = {
     REVIEW: countReview,
     ASSIGNED: countAssigned,
-    PACKED: countPacked,
     OUT_FOR_DELIVERY: countOutForDelivery,
     DELIVERED: countDelivered,
+    CLOSURE: countClosure,
   };
 
   // Filtered lists
@@ -244,21 +389,68 @@ export const DeliveryPage = ({ embedded = false }) => {
         (item.deliveryNo && item.deliveryNo.toLowerCase().includes(q)) ||
         (item.customerName && item.customerName.toLowerCase().includes(q)) ||
         (item.deliveryPersonName && item.deliveryPersonName.toLowerCase().includes(q)) ||
-        (item.deliveryAddress && item.deliveryAddress.toLowerCase().includes(q))
+        (item.deliveryAddress && item.deliveryAddress.toLowerCase().includes(q)) ||
+        (item.title && item.title.toLowerCase().includes(q))
     );
   };
 
   const getActiveList = () => {
     if (activeTab === "REVIEW") return filterList(readyJobs);
-    if (activeTab === "ASSIGNED") return filterList(deliveryOrders.filter((d) => d.status === "READY" || d.status === "ASSIGNED"));
-    if (activeTab === "PACKED") return filterList(deliveryOrders.filter((d) => d.status === "PACKED"));
+    if (activeTab === "ASSIGNED") return filterList(deliveryOrders.filter(isActuallyAssigned));
     if (activeTab === "OUT_FOR_DELIVERY") return filterList(deliveryOrders.filter((d) => d.status === "OUT_FOR_DELIVERY"));
-    if (activeTab === "DELIVERED") return filterList(deliveryOrders.filter((d) => d.status === "DELIVERED"));
+    if (activeTab === "DELIVERED") return filterList(deliveryOrders.filter((d) => d.status === "DELIVERED" && d.balanceDue === 0));
+    if (activeTab === "CLOSURE") return filterList(allJobOrders);
     return [];
   };
 
   const activeList = getActiveList();
   const activeTabMeta = TABS.find((t) => t.key === activeTab);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(activeList.length / rowsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIdx = (safeCurrentPage - 1) * rowsPerPage;
+  const pagedList = activeList.slice(startIdx, startIdx + rowsPerPage);
+
+  const renderPagination = () => {
+    if (activeList.length === 0) return null;
+    return (
+      <footer style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", borderTop: "1px solid #f1f5f9" }}>
+        <span style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+          Showing {startIdx + 1} to {Math.min(startIdx + rowsPerPage, activeList.length)} of {activeList.length} records
+        </span>
+        <nav style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary jf-btn-sm"
+            style={{ padding: "0.25rem 0.5rem" }}
+            disabled={safeCurrentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <span style={{ fontSize: "0.8125rem", padding: "0 0.5rem", color: "#334155", fontWeight: 600 }}>
+            Page {safeCurrentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary jf-btn-sm"
+            style={{ padding: "0.25rem 0.5rem" }}
+            disabled={safeCurrentPage >= totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          >
+            <ChevronRight size={15} />
+          </button>
+        </nav>
+      </footer>
+    );
+  };
 
   // KPI values derived from data already loaded above
   const maxStageCount = Math.max(1, ...Object.values(tabCounts));
@@ -272,7 +464,13 @@ export const DeliveryPage = ({ embedded = false }) => {
 
   return (
     <JobFlowLayout
-      title="Delivery & Fulfillment Workflow"
+      title={
+        activeTab === "DELIVERED"
+          ? "Delivered Orders & Settlement"
+          : activeTab === "CLOSURE"
+          ? "Job Closure & Final Verification"
+          : "Delivery Dispatch Queue"
+      }
       activeStep={5}
       actions={
         <button
@@ -288,7 +486,28 @@ export const DeliveryPage = ({ embedded = false }) => {
       }
     >
       <div className="dlv-page delivery-feature-container">
-      
+        {/* ── Delivery Pipeline Stage Navigation ── */}
+        <nav className="dlv-tabs" aria-label="Delivery workflow tabs">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const count = tabCounts[tab.key] || 0;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                className={`dlv-tab ${isActive ? "is-active" : ""}`}
+                onClick={() => handleTabChange(tab.key)}
+              >
+                <span className="dlv-tab-icon">
+                  <Icon size={16} />
+                </span>
+                <span>{tab.label}</span>
+                <span className="dlv-tab-count">{count}</span>
+              </button>
+            );
+          })}
+        </nav>
 
         {/* ── Toolbar ── */}
         <div className="dlv-toolbar">
@@ -327,7 +546,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </span>
                 <div>
                   <h3>Manager Review & Delivery Order Creation</h3>
-                  <p>Completed jobs waiting for delivery review</p>
+
                 </div>
               </div>
               <span className="dlv-pill">
@@ -359,7 +578,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                       </td>
                     </tr>
                   ) : (
-                    activeList.map((job) => (
+                    pagedList.map((job) => (
                       <tr key={job._id}>
                         <td data-label="Job Order">
                           <div className="dlv-primary">{job.jobNo}</div>
@@ -393,14 +612,30 @@ export const DeliveryPage = ({ embedded = false }) => {
                           </div>
                         </td>
                         <td data-label="Status">
-                          {job.isDeliveryPrepared ? (
-                            <span className="dlv-chip-success">✓ DO Created ({job.deliveryOrder?.deliveryNo || "Ready"})</span>
+                          {job.deliveryOrder ? (
+                            isActuallyAssigned(job.deliveryOrder) ? (
+                              <span className="dlv-chip-success">✓ DO Created & Assigned ({job.deliveryOrder.deliveryNo})</span>
+                            ) : (
+                              <span style={{
+                                background: "#fef3c7",
+                                color: "#92400e",
+                                padding: "0.25rem 0.6rem",
+                                borderRadius: "9999px",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.3rem"
+                              }}>
+                                ⚠️ DO Created ({job.deliveryOrder.deliveryNo}) - Staff Pending
+                              </span>
+                            )
                           ) : (
                             <StatusBadge status="READY" domain="delivery" />
                           )}
                         </td>
                         <td className="dlv-right dlv-actions-cell">
-                          {job.isDeliveryPrepared ? (
+                          {job.deliveryOrder && isActuallyAssigned(job.deliveryOrder) ? (
                             <button
                               type="button"
                               className="dlv-btn dlv-btn-ghost"
@@ -408,6 +643,15 @@ export const DeliveryPage = ({ embedded = false }) => {
                               title="View Delivery Order (Read Only)"
                             >
                               <Eye size={14} /> View
+                            </button>
+                          ) : job.deliveryOrder ? (
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-primary"
+                              onClick={() => setSelectedJobForDO({ ...job, readOnly: false })}
+                              title="Assign Delivery Staff Member"
+                            >
+                              <Truck size={14} /> Assign Staff
                             </button>
                           ) : (
                             <button
@@ -425,6 +669,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </tbody>
               </table>
             </div>
+            {renderPagination()}
           </section>
         )}
 
@@ -438,7 +683,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </span>
                 <div>
                   <h3>Assigned Delivery Orders</h3>
-                  <p>Orders ready to be packed or reassigned</p>
+
                 </div>
               </div>
               <span className="dlv-pill">
@@ -470,7 +715,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                       </td>
                     </tr>
                   ) : (
-                    activeList.map((d) => (
+                    pagedList.map((d) => (
                       <tr key={d._id}>
                         <td data-label="DO No">
                           <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
@@ -509,14 +754,16 @@ export const DeliveryPage = ({ embedded = false }) => {
                               className="dlv-btn dlv-btn-ghost"
                               onClick={() => setSelectedDOForAssign(d)}
                             >
-                              {d.status === "ASSIGNED" ? "Re-assign" : "Assign Staff"}
+                              Re-assign
                             </button>
                             <button
                               type="button"
                               className="dlv-btn dlv-btn-primary"
-                              onClick={() => setSelectedDOForPack(d)}
+                              onClick={() => handleDispatchOrder(d)}
+                              disabled={loading}
+                              title="Dispatch order and mark Out for Delivery"
                             >
-                              Pack Goods
+                              <Truck size={14} /> Dispatch (Out for Delivery)
                             </button>
                           </div>
                         </td>
@@ -526,94 +773,11 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </tbody>
               </table>
             </div>
+            {renderPagination()}
           </section>
         )}
 
-        {/* ── TAB 3: PACKED GOODS (DO Status: PACKED) ── */}
-        {activeTab === "PACKED" && (
-          <section className="dlv-card">
-            <header className="dlv-card-head">
-              <div className="dlv-card-title">
-                <span className="dlv-card-icon">
-                  <PackageCheck size={18} />
-                </span>
-                <div>
-                  <h3>Packed Goods</h3>
-                  <p>Parcels ready to be dispatched</p>
-                </div>
-              </div>
-              <span className="dlv-pill">
-                Total: <strong>{activeList.length}</strong> parcels
-              </span>
-            </header>
 
-            <div className="dlv-table-wrap">
-              <table className="jf-table dlv-table">
-                <thead>
-                  <tr>
-                    <th>DO Number</th>
-                    <th>Linked Job</th>
-                    <th>Recipient</th>
-                    <th>Rider / Vehicle</th>
-                    <th>Packing Status</th>
-                    <th className="dlv-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeList.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="dlv-empty">
-                        <div className="dlv-empty-state">
-                          <Package size={28} />
-                          <span>No packed parcels pending dispatch.</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    activeList.map((d) => (
-                      <tr key={d._id}>
-                        <td data-label="DO No">
-                          <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
-                        </td>
-                        <td data-label="Job">
-                          <div className="dlv-primary">{d.jobNo}</div>
-                        </td>
-                        <td data-label="Recipient">
-                          <div className="dlv-person">
-                            <Avatar name={d.customerName} />
-                            <div>
-                              <div className="dlv-primary">{d.customerName}</div>
-                              <div className="dlv-sub dlv-ellipsis">{d.deliveryAddress}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td data-label="Rider">
-                          <div className="dlv-primary dlv-inline">
-                            <UserCheck size={14} className="dlv-muted-icon" /> {d.deliveryPersonName}
-                          </div>
-                          <div className="dlv-sub">{d.vehicle}</div>
-                        </td>
-                        <td data-label="Status">
-                          <StatusBadge status="PACKED" domain="delivery" />
-                        </td>
-                        <td className="dlv-right dlv-actions-cell">
-                          <button
-                            type="button"
-                            className="dlv-btn dlv-btn-accent"
-                            onClick={() => handleDispatchOrder(d)}
-                            disabled={loading}
-                          >
-                            <Truck size={14} /> Dispatch & Send OTP
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
 
         {/* ── TAB 4: OUT FOR DELIVERY (DO Status: OUT_FOR_DELIVERY) ── */}
         {activeTab === "OUT_FOR_DELIVERY" && (
@@ -625,7 +789,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </span>
                 <div>
                   <h3>Active Deliveries in Transit</h3>
-                  <p>Riders on the road, awaiting OTP handover</p>
+
                 </div>
               </div>
               <span className="dlv-pill">
@@ -642,14 +806,15 @@ export const DeliveryPage = ({ embedded = false }) => {
                     <th>Customer Name & Phone</th>
                     <th>Destination</th>
                     <th>Rider Info</th>
+                    <th>Balance to Collect</th>
                     <th>Status</th>
-                    <th className="dlv-right">Handover Actions</th>
+                    <th className="dlv-right">Handover & Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {activeList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="dlv-empty">
+                      <td colSpan={8} className="dlv-empty">
                         <div className="dlv-empty-state">
                           <Truck size={28} />
                           <span>No deliveries currently out for delivery.</span>
@@ -657,7 +822,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                       </td>
                     </tr>
                   ) : (
-                    activeList.map((d) => (
+                    pagedList.map((d) => (
                       <tr key={d._id}>
                         <td data-label="DO No">
                           <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
@@ -686,6 +851,13 @@ export const DeliveryPage = ({ embedded = false }) => {
                           <div className="dlv-primary">{d.deliveryPersonName}</div>
                           <div className="dlv-sub">{d.vehicle}</div>
                         </td>
+                        <td data-label="Balance">
+                          {d.balanceDue > 0 ? (
+                            <span style={{ color: "#dc2626", fontWeight: 700 }}>₹{d.balanceDue.toFixed(2)} Due</span>
+                          ) : (
+                            <span style={{ color: "#059669", fontWeight: 700 }}>✓ Fully Paid</span>
+                          )}
+                        </td>
                         <td data-label="Status">
                           <StatusBadge status="OUT_FOR_DELIVERY" domain="delivery" />
                         </td>
@@ -694,8 +866,9 @@ export const DeliveryPage = ({ embedded = false }) => {
                             type="button"
                             className="dlv-btn dlv-btn-success"
                             onClick={() => setSelectedDOForHandover(d)}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
                           >
-                            Verify OTP & Handover
+                            <CreditCard size={14} /> Collect Payment & Handover
                           </button>
                         </td>
                       </tr>
@@ -704,6 +877,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </tbody>
               </table>
             </div>
+            {renderPagination()}
           </section>
         )}
 
@@ -717,7 +891,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </span>
                 <div>
                   <h3>Delivered Orders</h3>
-                  <p>Completed handovers with proof of delivery</p>
+                  <p></p>
                 </div>
               </div>
               <span className="dlv-pill">
@@ -735,7 +909,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                     <th>Delivery Type</th>
                     <th>Proof Status</th>
                     <th>Delivery Status</th>
-                    <th className="dlv-right">Next Action</th>
+                    <th className="dlv-right">Settlement & Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -749,7 +923,7 @@ export const DeliveryPage = ({ embedded = false }) => {
                       </td>
                     </tr>
                   ) : (
-                    activeList.map((d) => (
+                    pagedList.map((d) => (
                       <tr key={d._id}>
                         <td data-label="DO No">
                           <div className="dlv-primary dlv-mono">{d.deliveryNo}</div>
@@ -772,19 +946,60 @@ export const DeliveryPage = ({ embedded = false }) => {
                           </span>
                         </td>
                         <td data-label="Proof">
-                          <span className="dlv-chip-success">✓ POD Uploaded</span>
-                        </td>
-                        <td data-label="Status">
-                          <StatusBadge status="DELIVERED" domain="delivery" />
-                        </td>
-                        <td className="dlv-right dlv-actions-cell">
                           <button
                             type="button"
-                            className="dlv-btn dlv-btn-primary"
-                            onClick={() => navigate(`/jobflow/invoice?jobId=${d.jobOrderId || d.jobNo}`)}
+                            className="dlv-btn dlv-btn-ghost"
+                            style={{
+                              padding: "0.25rem 0.65rem",
+                              fontSize: "0.78rem",
+                              color: "#059669",
+                              borderColor: "#a7f3d0",
+                              background: "#ecfdf5",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.35rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => setSelectedDOForProofView(d)}
+                            title="View Handover Proof (Signature & Photo)"
                           >
-                            View / Generate Tax Invoice <ArrowRight size={14} />
+                            <Eye size={13} /> View Proof
                           </button>
+                        </td>
+                        <td data-label="Status">
+                          <StatusBadge status="DELIVERED & PAID" domain="delivery" />
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          <div style={{ display: "inline-flex", gap: "0.4rem", justifyContent: "flex-end", alignItems: "center" }}>
+                            {d.balanceDue > 0 ? (
+                              <button
+                                type="button"
+                                className="dlv-btn dlv-btn-primary"
+                                style={{
+                                  background: "#059669",
+                                  borderColor: "#059669",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                }}
+                                onClick={() => handleOpenSettlement(d)}
+                                title="Collect remaining balance & settle invoice"
+                              >
+                                <Wallet size={14} /> Settle Payment (₹{d.balanceDue.toFixed(2)})
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="dlv-btn dlv-btn-secondary"
+                                style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+                                onClick={() => handleOpenSettlement(d)}
+                                title="View Settlement Ledger & Receipts"
+                              >
+                                <Receipt size={14} /> View Settlement
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -792,6 +1007,109 @@ export const DeliveryPage = ({ embedded = false }) => {
                 </tbody>
               </table>
             </div>
+            {renderPagination()}
+          </section>
+        )}
+
+        {/* ── TAB 5: JOB CLOSURE ── */}
+        {activeTab === "CLOSURE" && (
+          <section className="dlv-card">
+            <header className="dlv-card-head">
+              <div className="dlv-card-title">
+                <span className="dlv-card-icon">
+                  <Lock size={18} />
+                </span>
+                <div>
+                  <h3>Job Closure & Verification</h3>
+                  <p></p>
+                </div>
+              </div>
+              <span className="dlv-pill">
+                Total: <strong>{activeList.length}</strong> jobs
+              </span>
+            </header>
+
+            <div className="dlv-table-wrap">
+              <table className="jf-table dlv-table">
+                <thead>
+                  <tr>
+                    <th>Job Order No</th>
+                    <th>Customer Name</th>
+                    <th>Order Value</th>
+                    <th>Fulfillment Stage</th>
+                    <th>Closure Status</th>
+                    <th className="dlv-right">Admin Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="dlv-empty">
+                        <div className="dlv-empty-state">
+                          <Lock size={28} />
+                          <span>No job orders found for closure.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedList.map((job) => (
+                      <tr key={job._id}>
+                        <td data-label="Job Order No">
+                          <div className="dlv-primary dlv-mono">{job.jobNo}</div>
+                          <div className="dlv-sub">{job.title}</div>
+                        </td>
+                        <td data-label="Customer Name">
+                          <div className="dlv-person">
+                            <Avatar name={job.customerName} />
+                            <div>
+                              <div className="dlv-primary">{job.customerName}</div>
+                              <div className="dlv-sub">{job.customerPhone}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Order Value">
+                          <span style={{ fontWeight: 600 }}>₹{job.totalAmount.toFixed(2)}</span>
+                        </td>
+                        <td data-label="Fulfillment Stage">
+                          <StatusBadge status={job.status} domain="delivery" />
+                        </td>
+                        <td data-label="Closure Status">
+                          <StatusBadge status={job.closureStatus} domain="closure" />
+                        </td>
+                        <td className="dlv-right dlv-actions-cell">
+                          <div style={{ display: "inline-flex", gap: "0.4rem", justifyContent: "flex-end" }}>
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-secondary"
+                              style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                              onClick={() => setSelectedJobForFeedback({ id: job._id, jobNo: job.jobNo })}
+                              title="Collect Feedback & Designer Rating"
+                            >
+                              <Star size={13} style={{ color: "#eab308" }} /> Rating
+                            </button>
+                            <button
+                              type="button"
+                              className="dlv-btn dlv-btn-primary"
+                              onClick={() => setSelectedJobForClosure(job._id)}
+                              style={{
+                                background: job.closureStatus === "CLOSED" ? "#334155" : "#0f172a",
+                                borderColor: "#0f172a",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Lock size={13} /> {job.closureStatus === "CLOSED" ? "View Closure 🔒" : "Verify & Close"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {renderPagination()}
           </section>
         )}
       </div>
@@ -799,7 +1117,17 @@ export const DeliveryPage = ({ embedded = false }) => {
       {/* ── MODALS ── */}
       <CreateDeliveryOrderModal
         isOpen={Boolean(selectedJobForDO)}
-        onClose={() => setSelectedJobForDO(null)}
+        onClose={() => {
+          setSelectedJobForDO(null);
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete("jobId");
+              return next;
+            },
+            { replace: true }
+          );
+        }}
         job={selectedJobForDO}
         readOnly={Boolean(selectedJobForDO?.readOnly)}
         onCreated={() => {
@@ -833,6 +1161,40 @@ export const DeliveryPage = ({ embedded = false }) => {
         onDelivered={() => {
           loadAllData();
           handleTabChange("DELIVERED");
+        }}
+      />
+
+      <ViewDeliveryProofModal
+        isOpen={Boolean(selectedDOForProofView)}
+        onClose={() => setSelectedDOForProofView(null)}
+        deliveryOrder={selectedDOForProofView}
+      />
+
+      <CashierSettlementModal
+        isOpen={Boolean(selectedInvoiceForCashier)}
+        onClose={() => setSelectedInvoiceForCashier(null)}
+        invoiceId={selectedInvoiceForCashier}
+        onPaymentComplete={() => {
+          loadAllData();
+        }}
+      />
+
+      <JobClosureModal
+        isOpen={Boolean(selectedJobForClosure)}
+        onClose={() => setSelectedJobForClosure(null)}
+        jobId={selectedJobForClosure}
+        onClosed={() => {
+          loadAllData();
+        }}
+      />
+
+      <CustomerFeedbackModal
+        isOpen={Boolean(selectedJobForFeedback)}
+        onClose={() => setSelectedJobForFeedback(null)}
+        jobId={selectedJobForFeedback?.id}
+        jobNo={selectedJobForFeedback?.jobNo}
+        onFeedbackSaved={() => {
+          loadAllData();
         }}
       />
     </JobFlowLayout>

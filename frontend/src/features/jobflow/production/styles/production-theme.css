@@ -1,35 +1,35 @@
 /* ==========================================================================
-   Production module theme
-   Brings every production page in line with the Salary module look:
-   same page background, headings, filter cards, tables, tabs, buttons,
-   badges and pagination. Loaded after each page's own stylesheet.
+   Production Module Theme — JobFlow Emerald Design System
+   Harmonizes Production Orders, Operation Queue, Rework & Reprint, and
+   Production Reports with the rest of the JobFlow suite (Estimation,
+   Job Orders, Invoicing, Design, Quality Control).
    ========================================================================== */
 
-/* ─── Shared palette (re-points each page's own tokens at the salary palette) ─ */
+/* ─── Shared Theme Tokens ────────────────────────────────────────────── */
 .oq-page,
-.pp-page,
-.mt-page,
-.pdb-container,
-.completed-production-page,
 .production-orders-page,
 .reprint-batches-page,
 .production-reports-page,
 .pr2-page,
 .production-feature-container {
-  --pt-green: #107548;
-  --pt-green-dark: #0d5f3a;
-  --pt-green-soft: #dcfce7;
+  --pt-green: #059669;
+  --pt-green-hover: #047857;
+  --pt-green-dark: #047857;
+  --pt-green-deep: #065f46;
+  --pt-green-soft: #ecfdf5;
+  --pt-green-border: #a7f3d0;
   --pt-text: #1e293b;
   --pt-heading: #0f172a;
   --pt-muted: #64748b;
   --pt-border: #e2e8f0;
   --pt-border-soft: #f1f5f9;
   --pt-head-bg: #f8fafc;
+  --pt-bg: #f6faf8;
 
   --oq-accent: var(--pt-green);
-  --oq-accent-hover: var(--pt-green-dark);
-  --oq-accent-soft: #ecfdf5;
-  --oq-accent-border: #bbf7d0;
+  --oq-accent-hover: var(--pt-green-hover);
+  --oq-accent-soft: var(--pt-green-soft);
+  --oq-accent-border: var(--pt-green-border);
   --oq-text: var(--pt-text);
   --oq-heading: var(--pt-heading);
   --oq-muted: var(--pt-muted);
@@ -38,105 +38,70 @@
   --oq-subtle: var(--pt-head-bg);
   --oq-radius: 12px;
   --oq-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-
-  --pp-primary: var(--pt-green);
-  --pp-primary-hover: var(--pt-green-dark);
-  --pp-accent: var(--pt-green);
-  --pp-heading: var(--pt-heading);
-  --pp-muted: var(--pt-muted);
-  --pp-border: var(--pt-border);
-  --pp-radius: 12px;
-  --pp-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-
-  --mt-accent: var(--pt-green);
-  --mt-accent-hover: var(--pt-green-dark);
-  --mt-accent-soft: var(--pt-green-soft);
-  --mt-text: var(--pt-text);
-  --mt-muted: var(--pt-muted);
-  --mt-border: var(--pt-border);
-  --mt-border-soft: var(--pt-border-soft);
-  --mt-subtle: var(--pt-head-bg);
-  --mt-radius: 12px;
-  --mt-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-
-  --cp-green: var(--pt-green);
-  --cp-green-dark: var(--pt-green-dark);
-  --cp-green-soft: #ecfdf5;
-  --cp-green-tint: #f0fdf4;
-  --cp-border: var(--pt-border);
-  --cp-text: var(--pt-text);
-  --cp-muted: var(--pt-muted);
-  --cp-radius: 12px;
+  --oq-ring: 0 0 0 3px rgba(5, 150, 105, 0.16);
 
   --po-green: var(--pt-green);
-  --po-green-dark: var(--pt-green-dark);
-  --po-green-soft: #ecfdf5;
+  --po-green-dark: var(--pt-green-hover);
+  --po-green-soft: var(--pt-green-soft);
   --po-border: var(--pt-border);
   --po-text: var(--pt-text);
   --po-muted: var(--pt-muted);
   --po-radius: 12px;
 }
 
-/* ─── Page shell ──────────────────────────────────────────────────────── */
+/* ─── Page Shell & Background ─────────────────────────────────────────── */
 .oq-page,
-.pp-page,
-.mt-page,
-.pdb-container,
-.completed-production-page,
 .production-orders-page,
 .reprint-batches-page,
 .production-reports-page,
 .pr2-page {
-  background-color: #f8fafc !important;
+  background-color: var(--pt-bg) !important;
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   color: var(--pt-text) !important;
-  padding: 16px 28px 36px 28px !important;
-  max-width: none !important;
-  margin: 0 !important;
-  min-height: 100vh;
-  gap: 18px !important;
+  padding: 18px 28px 36px 28px !important;
+  max-width: 1600px !important;
+  margin: 0 auto !important;
+  min-height: calc(100vh - 70px);
+  gap: 1.25rem !important;
 }
 
-/* ─── Page titles ─────────────────────────────────────────────────────── */
+/* ─── Page Headings ───────────────────────────────────────────────────── */
 .oq-title,
-.pp-title,
-.mt-title,
-.pdb-title,
 .rb-title,
 .pr2-title,
-.completed-production-page .cp-header h1,
 .production-orders-page .po-header h1 {
-  font-size: 24px !important;
-  font-weight: 700 !important;
+  font-size: 1.55rem !important;
+  font-weight: 800 !important;
   color: var(--pt-heading) !important;
   letter-spacing: -0.02em !important;
-  margin: 0 0 4px 0 !important;
+  margin: 0 0 3px 0 !important;
 }
 
 .oq-subtitle,
-.pp-subtitle,
-.mt-subtitle,
-.pdb-subtitle,
 .rb-subtitle,
 .pr2-subtitle,
-.completed-production-page .cp-header p,
 .production-orders-page .po-header p {
-  font-size: 13.5px !important;
-  color: #475569 !important;
+  font-size: 0.85rem !important;
+  color: #64748b !important;
+  margin: 0 !important;
 }
 
-/* Salary titles have no icon badge */
+/* ─── Header Icon Badges (Emerald Green theme) ────────────────────────── */
 .oq-title-icon,
-.pp-title-icon,
-.mt-title-icon,
-.pdb-header-icon,
 .reprint-header-icon-wrap,
-.completed-production-page .cp-header-icon,
 .production-orders-page .po-header-icon {
-  display: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: var(--pt-green-soft) !important;
+  color: var(--pt-green) !important;
+  border: 1px solid var(--pt-green-border) !important;
+  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.1) !important;
 }
 
-/* Reprint / reports headers were boxed cards; salary headers sit on the page */
 .reprint-batches-page .reprint-header-card {
   background: transparent !important;
   border: none !important;
@@ -144,73 +109,59 @@
   padding: 0 !important;
 }
 
-/* ─── Buttons ─────────────────────────────────────────────────────────── */
+/* ─── Buttons (Emerald Green Primary & Clean Secondary) ───────────────── */
 .oq-btn,
-.pp-btn,
-.mt-btn,
 .pr2-btn,
-.completed-production-page .cp-btn,
-.cp-overlay .cp-btn,
 .production-orders-page .po-btn {
   border-radius: 8px !important;
   font-size: 13.5px !important;
   font-weight: 600 !important;
   height: 38px !important;
+  transition: all 0.15s ease !important;
 }
 
 .oq-btn--primary,
-.pp-btn--primary,
-.mt-btn--primary,
-.completed-production-page .cp-btn-primary,
-.cp-overlay .cp-btn-primary,
 .production-orders-page .po-btn-primary,
-.reprint-batches-page .btn-success {
+.reprint-batches-page .btn-success,
+.pr2-btn--primary {
   background: var(--pt-green) !important;
   border-color: var(--pt-green) !important;
   color: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(16, 117, 72, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2) !important;
 }
 
 .oq-btn--primary:hover:not(:disabled),
-.pp-btn--primary:hover:not(:disabled),
-.mt-btn--primary:hover:not(:disabled),
-.completed-production-page .cp-btn-primary:hover:not(:disabled),
-.cp-overlay .cp-btn-primary:hover:not(:disabled),
 .production-orders-page .po-btn-primary:hover:not(:disabled),
-.reprint-batches-page .btn-success:hover:not(:disabled) {
-  background: var(--pt-green-dark) !important;
-  border-color: var(--pt-green-dark) !important;
+.reprint-batches-page .btn-success:hover:not(:disabled),
+.pr2-btn--primary:hover:not(:disabled) {
+  background: var(--pt-green-hover) !important;
+  border-color: var(--pt-green-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(16, 117, 72, 0.25) !important;
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25) !important;
 }
 
 .oq-btn--outline,
-.pp-btn--outline,
-.mt-btn--outline,
-.completed-production-page .cp-btn-ghost,
-.production-orders-page .po-btn-ghost {
+.production-orders-page .po-btn-ghost,
+.pr2-btn--secondary {
   background: #ffffff !important;
   color: #334155 !important;
   border: 1px solid #cbd5e1 !important;
 }
 
 .oq-btn--outline:hover:not(:disabled),
-.pp-btn--outline:hover:not(:disabled),
-.mt-btn--outline:hover:not(:disabled),
-.completed-production-page .cp-btn-ghost:hover:not(:disabled),
-.production-orders-page .po-btn-ghost:hover:not(:disabled) {
-  background: #f1f5f9 !important;
+.production-orders-page .po-btn-ghost:hover:not(:disabled),
+.pr2-btn--secondary:hover:not(:disabled) {
+  background: #f8fafc !important;
   border-color: #94a3b8 !important;
+  color: var(--pt-heading) !important;
 }
 
-/* ─── Tabs (salary uses an underline bar) ─────────────────────────────── */
+/* ─── Tabs (Clean emerald-active indicator) ───────────────────────────── */
 .oq-tabs,
-.mt-tabs,
-.rb-tabs,
-.completed-production-page .cp-tabs {
+.rb-tabs {
   display: flex;
   align-items: center;
-  gap: 12px !important;
+  gap: 10px !important;
   border-bottom: 1px solid var(--pt-border);
   margin-bottom: 4px;
   overflow-x: auto;
@@ -218,9 +169,7 @@
 }
 
 .oq-tab,
-.mt-tab,
-.rb-tab,
-.completed-production-page .cp-tabs button {
+.rb-tab {
   height: auto !important;
   padding: 10px 18px !important;
   background: transparent !important;
@@ -229,181 +178,141 @@
   border-radius: 0 !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-  color: var(--pt-text) !important;
+  color: #64748b !important;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 
 .oq-tab:hover,
-.mt-tab:hover,
-.rb-tab:hover,
-.completed-production-page .cp-tabs button:hover:not(.is-active) {
-  color: #0d6245 !important;
+.rb-tab:hover {
+  color: var(--pt-green) !important;
   background: transparent !important;
 }
 
 .oq-tab--active,
 .oq-tab--active:hover,
-.mt-tab--active,
-.mt-tab--active:hover,
 .rb-tab.active,
 .rb-tab.is-active,
-.rb-tab[aria-selected="true"],
-.completed-production-page .cp-tabs button.is-active {
+.rb-tab[aria-selected="true"] {
   background: transparent !important;
-  color: #0d6245 !important;
-  border-bottom-color: #0d6245 !important;
+  color: var(--pt-green) !important;
+  border-bottom-color: var(--pt-green) !important;
+  font-weight: 700 !important;
 }
 
-/* ─── Filter bars (white card, 12px radius, 8px inputs) ────────────────── */
+/* ─── Filter Cards & Search Strips ────────────────────────────────────── */
 .oq-filters,
-.mt-filters,
 .rb-filter-card,
 .pr2-filters,
-.completed-production-page .cp-filters,
 .production-orders-page .po-filters {
   background: #ffffff !important;
   border: 1px solid var(--pt-border) !important;
   border-radius: 12px !important;
-  padding: 10px 16px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  padding: 12px 18px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }
 
-.pp-select,
-.mt-select,
-.mt-input,
 .jf-input,
-.pdb-control-pill,
-.completed-production-page .cp-field select,
-.completed-production-page .cp-search input,
-.completed-production-page .cp-date-btn,
+.oq-search input,
 .production-orders-page .po-field select,
 .production-orders-page .po-search input,
-.production-orders-page .po-date-btn {
+.production-orders-page .po-date-btn,
+.rb-filter-card input,
+.rb-filter-card select,
+.pr2-filters select,
+.pr2-filters input {
   border: 1px solid #cbd5e1 !important;
   border-radius: 8px !important;
   font-size: 13px !important;
   color: var(--pt-text) !important;
-}
-
-.pp-select,
-.mt-select,
-.mt-input,
-.completed-production-page .cp-field select,
-.completed-production-page .cp-search,
-.completed-production-page .cp-date-btn,
-.production-orders-page .po-field select,
-.production-orders-page .po-search,
-.production-orders-page .po-date-btn {
   height: 38px !important;
 }
 
-.completed-production-page .cp-field,
-.completed-production-page .cp-reset,
-.production-orders-page .po-field,
-.production-orders-page .po-filter-btn {
-  height: 38px !important;
-}
-
-.pp-select:focus,
-.mt-select:focus,
-.mt-input:focus,
-.completed-production-page .cp-field select:focus,
-.completed-production-page .cp-search input:focus,
+.oq-search input:focus,
 .production-orders-page .po-field select:focus,
-.production-orders-page .po-search input:focus {
+.production-orders-page .po-search input:focus,
+.rb-filter-card input:focus,
+.rb-filter-card select:focus,
+.pr2-filters select:focus,
+.pr2-filters input:focus {
   border-color: var(--pt-green) !important;
-  box-shadow: none !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.16) !important;
+  outline: none !important;
 }
 
-.pdb-control-pill {
-  padding: 7px 12px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-}
-
-/* ─── Summary / KPI cards ─────────────────────────────────────────────── */
-.pdb-kpi-card,
-.mt-stat,
-.completed-production-page .cp-stat,
+/* ─── Stat / KPI Cards ────────────────────────────────────────────────── */
 .production-orders-page .po-stat,
 .pr2-tile {
   background: #ffffff !important;
   border: 1px solid var(--pt-border) !important;
   border-radius: 12px !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease !important;
 }
 
-.pdb-kpi-value,
-.mt-stat-value,
-.completed-production-page .cp-stat-value,
+.production-orders-page .po-stat:hover,
+.pr2-tile:hover {
+  border-color: var(--pt-green-border) !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.12) !important;
+}
+
 .production-orders-page .po-stat-value,
 .pr2-tile-value {
-  font-size: 20px !important;
-  font-weight: 700 !important;
+  font-size: 1.45rem !important;
+  font-weight: 800 !important;
   color: var(--pt-heading) !important;
 }
 
-.pdb-kpi-label,
-.mt-stat-label,
-.completed-production-page .cp-stat-label,
 .production-orders-page .po-stat-label,
 .pr2-tile-label {
-  font-size: 12px !important;
-  font-weight: 500 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
   color: var(--pt-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
 }
 
 .production-orders-page .po-stat-icon {
-  border-radius: 10px !important;
-  background: #dcfce7 !important;
-  color: #15803d !important;
+  border-radius: 12px !important;
+  background: var(--pt-green-soft) !important;
+  color: var(--pt-green) !important;
+  border: 1px solid var(--pt-green-border) !important;
 }
 
-/* ─── Content cards ───────────────────────────────────────────────────── */
+/* ─── Content Cards ───────────────────────────────────────────────────── */
 .oq-card,
-.pp-card,
-.mt-card,
-.pdb-card,
 .pr2-card,
-.completed-production-page .cp-card,
 .production-orders-page .po-card,
 .reprint-batches-page .reprint-table-card {
   background: #ffffff !important;
   border: 1px solid var(--pt-border) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }
 
 /* ─── Tables ──────────────────────────────────────────────────────────── */
 .oq-table,
-.mt-table,
-.pdb-table,
 .jf-table,
 .po2-table,
-.cp-mat,
-.completed-production-page .cp-table,
 .production-orders-page .po-table,
 .reprint-batches-page .data-table {
   border-collapse: separate !important;
   border-spacing: 0 !important;
   font-size: 13px !important;
+  width: 100% !important;
 }
 
 .oq-table th,
-.mt-table th,
-.pdb-table th,
 .jf-table th,
 .po2-table th,
-.cp-mat th,
-.pp-table th,
-.completed-production-page .cp-table thead th,
 .production-orders-page .po-table thead th,
 .reprint-batches-page .data-table thead th {
   background: #f8fafc !important;
   color: #475569 !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   font-size: 12px !important;
-  text-transform: none !important;
-  letter-spacing: 0.01em !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
   padding: 12px 16px !important;
   border: none !important;
   border-bottom: 1px solid var(--pt-border) !important;
@@ -412,13 +321,8 @@
 }
 
 .oq-table td,
-.mt-table td,
-.pdb-table td,
 .jf-table td,
 .po2-table td,
-.cp-mat td,
-.pp-table td,
-.completed-production-page .cp-table tbody td,
 .production-orders-page .po-table tbody td,
 .reprint-batches-page .data-table tbody td {
   padding: 13px 16px !important;
@@ -429,39 +333,27 @@
 }
 
 .oq-table tbody tr:hover,
-.mt-table tbody tr:hover,
-.pdb-table tbody tr:hover,
-.completed-production-page .cp-table tbody tr:hover,
-.production-orders-page .po-table tbody tr:hover {
+.production-orders-page .po-table tbody tr:hover,
+.reprint-batches-page .data-table tbody tr:hover {
   background: #f8fafc !important;
 }
 
 .oq-table tbody tr.is-selected,
-.completed-production-page .cp-table tbody tr.is-selected,
 .production-orders-page .po-table tbody tr.is-selected {
-  background: #f0fdf4 !important;
+  background: #f0fdf6 !important;
 }
 
 .oq-table tbody tr:last-child td,
-.mt-table tbody tr:last-child td,
-.pdb-table tbody tr:last-child td,
-.completed-production-page .cp-table tbody tr:last-child td,
 .production-orders-page .po-table tbody tr:last-child td,
 .reprint-batches-page .data-table tbody tr:last-child td {
   border-bottom: none !important;
 }
 
-/* ─── Status badges (rounded pill with border, like salary) ───────────── */
+/* ─── Status Badges / Pills (Clean emerald JobFlow theme) ─────────────── */
 .oq-badge,
-.mt-badge,
-.pdb-badge,
-.pp-badge,
 .rb-pill,
 .pr2-badge,
 .po-pill,
-.cp-pill,
-.completed-production-page .cp-pill,
-.production-orders-page .po-pill,
 .oq-status-pill {
   border-radius: 9999px !important;
   font-size: 11.5px !important;
@@ -472,56 +364,61 @@
   border: 1px solid transparent;
 }
 
-.completed-production-page .cp-pill {
-  background: #dcfce7 !important;
-  color: #15803d !important;
-  border-color: #bbf7d0 !important;
+.oq-status-pill--completed,
+.po-pill--completed,
+.po-pill.completed,
+.rb-pill--completed {
+  background: var(--pt-green-soft) !important;
+  color: var(--pt-green-dark) !important;
+  border-color: var(--pt-green-border) !important;
 }
 
-/* ─── Action icon buttons ─────────────────────────────────────────────── */
-.mt-icon-btn,
-.pp-icon-btn,
+/* ─── Action Icon Buttons ─────────────────────────────────────────────── */
 .po2-icon-btn,
-.completed-production-page .cp-icon-btn,
 .production-orders-page .po-kebab {
   border-radius: 6px !important;
   color: var(--pt-muted);
 }
 
-.mt-icon-btn:hover,
-.pp-icon-btn:hover,
 .po2-icon-btn:hover,
-.completed-production-page .cp-icon-btn:hover,
 .production-orders-page .po-kebab:hover {
   background: #f1f5f9 !important;
   color: var(--pt-heading) !important;
 }
 
 /* ─── Pagination ──────────────────────────────────────────────────────── */
-.completed-production-page .cp-foot,
 .production-orders-page .po-card-foot,
-.rb-pager {
+.rb-pager,
+.oq-foot {
   padding: 12px 18px !important;
   border-top: 1px solid var(--pt-border) !important;
   font-size: 13px;
   color: var(--pt-muted);
 }
 
-.completed-production-page .cp-pager button,
-.production-orders-page .po-pager button {
+.production-orders-page .po-pager button,
+.rb-pager button {
   min-width: 32px !important;
-  height: auto !important;
-  padding: 5px 10px !important;
+  height: 32px !important;
+  padding: 4px 10px !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 6px !important;
   font-size: 12.5px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: #334155 !important;
   background: #ffffff;
+  transition: all 0.15s ease;
 }
 
-.completed-production-page .cp-pager button.is-active,
-.production-orders-page .po-pager button.is-active {
+.production-orders-page .po-pager button:hover,
+.rb-pager button:hover {
+  border-color: var(--pt-green);
+  color: var(--pt-green);
+}
+
+.production-orders-page .po-pager button.is-active,
+.rb-pager button.is-active,
+.rb-pager .is-active {
   background: var(--pt-green) !important;
   border-color: var(--pt-green) !important;
   color: #ffffff !important;

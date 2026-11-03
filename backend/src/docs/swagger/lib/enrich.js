@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Keeps the API reference complete: every route that exists in Express but is not described by hand in
  * docs/swagger/modules gets an operation generated from the code itself (path and query parameters, and
  * the request body fields declared with express-validator). Hand-written docs always win, and generated
@@ -210,17 +210,11 @@ const buildOperation = ({ method, path, builders }, docPath) => {
   const op = {
     tags: [tag],
     operationId: `${method}${docPath.split(/[/{}]+/).filter(Boolean).map((s) => humanize(s).replace(/ /g, "")).join("")}`,
-    summary: summaryFor(method, docPath),
-    description: `${summaryFor(method, docPath)}. Needs a signed-in user${PUBLIC_PREFIXES.some((p) => docPath.startsWith(p)) ? " (this one is public)" : ""}. Generated from the route definition: parameters and request fields come from the validation rules.`,
     "x-generated": true,
-    security: PUBLIC_PREFIXES.some((p) => docPath.startsWith(p)) ? [] : [{ bearerAuth: [] }],
+    security: PUBLIC_PREFIXES.some((p) => docPath.startsWith(p)) ? [] : [{ accessToken: [] }],
     ...(parameters.length ? { parameters } : {}),
     responses: {
-      "2XX": { description: "Success", content: { "application/json": { schema: successSchema(method, docPath) } } },
-      400: { $ref: "#/components/responses/BadRequest" },
-      401: { $ref: "#/components/responses/Unauthorized" },
-      403: { $ref: "#/components/responses/Forbidden" },
-      404: { $ref: "#/components/responses/NotFound" },
+      200: { description: "Success", content: { "application/json": { schema: successSchema(method, docPath) } } },
     },
   };
   if (!["get", "delete"].includes(method)) {

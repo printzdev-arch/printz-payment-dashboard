@@ -10,7 +10,10 @@ import {
   Printer,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
+  BarChart2,
 } from "lucide-react";
+import { QcReportsTab } from "./QcReportsTab";
 
 const INITIAL_QC_HISTORY = [
   {
@@ -72,54 +75,110 @@ const INITIAL_QC_HISTORY = [
 ];
 
 export const QcHistoryTab = () => {
+  const [subTab, setSubTab] = useState("audit");
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedJobId, setExpandedJobId] = useState("hist-1025");
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   const filtered = INITIAL_QC_HISTORY.filter((item) => {
     const q = searchTerm.toLowerCase();
     return item.jobNo.toLowerCase().includes(q) || item.customerName.toLowerCase().includes(q);
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * pageSize;
+  const pagedItems = filtered.slice(startIdx, startIdx + pageSize);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      {/* Header */}
+      {/* Header & Sub-tab navigation */}
       <div className="jf-card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
-              Quality Control Audit History
+              QC History & Reports
             </h2>
-            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#475569" }}>
-              Complete chronological inspection audit trail, defect logs, rework attempts, and final delivery clearance sign-offs.
-            </p>
+            
           </div>
 
-          <div style={{ position: "relative", maxWidth: "340px", width: "100%" }}>
-            <Search
-              size={14}
-              style={{
-                position: "absolute",
-                left: "10px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "#475569",
-              }}
-            />
-            <input
-              type="text"
-              className="jf-input jf-input-sm"
-              placeholder="Search history by job# or customer..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: "32px", width: "100%", height: "36px", borderRadius: "6px" }}
-            />
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", background: "#f1f5f9", padding: "3px", borderRadius: "8px" }}>
+              <button
+                type="button"
+                style={{
+                  padding: "6px 14px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: subTab === "audit" ? "#ffffff" : "transparent",
+                  color: subTab === "audit" ? "#059669" : "#64748b",
+                  boxShadow: subTab === "audit" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => setSubTab("audit")}
+              >
+                Inspection Audit Trail
+              </button>
+              <button
+                type="button"
+                style={{
+                  padding: "6px 14px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: subTab === "reports" ? "#ffffff" : "transparent",
+                  color: subTab === "reports" ? "#059669" : "#64748b",
+                  boxShadow: subTab === "reports" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => setSubTab("reports")}
+              >
+                Defect Analytics & Reports
+              </button>
+            </div>
+
+            {subTab === "audit" && (
+              <div style={{ position: "relative", minWidth: "260px" }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: "absolute",
+                    left: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#475569",
+                  }}
+                />
+                <input
+                  type="text"
+                  className="jf-input jf-input-sm"
+                  placeholder="Search history by job# or customer..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
+                  style={{ paddingLeft: "32px", width: "100%", height: "36px", borderRadius: "6px" }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Audit Log Cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        {filtered.map((item) => {
+      {subTab === "reports" ? (
+        <QcReportsTab />
+      ) : (
+        <>
+          {/* Audit Log Cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {pagedItems.map((item) => {
           const isExpanded = expandedJobId === item.id;
 
           return (
@@ -245,8 +304,54 @@ export const QcHistoryTab = () => {
           );
         })}
       </div>
-    </div>
-  );
+
+      {/* Audit Log Pagination */}
+      <div
+        className="jf-card"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "0.85rem 1.25rem",
+          fontSize: "0.85rem",
+          color: "#64748b",
+          flexWrap: "wrap",
+          gap: "0.5rem",
+        }}
+      >
+        <span>
+          {filtered.length === 0
+            ? "Showing 0 audit records"
+            : `Showing ${startIdx + 1} to ${Math.min(startIdx + pageSize, filtered.length)} of ${filtered.length} audit records`}
+        </span>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary jf-btn-sm"
+            disabled={currentPage <= 1}
+            onClick={() => setPage(currentPage - 1)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+          >
+            <ChevronLeft size={14} /> Previous
+          </button>
+          <span style={{ fontWeight: 600, color: "#1e293b", margin: "0 0.25rem" }}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary jf-btn-sm"
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage(currentPage + 1)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+          >
+            Next <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </>
+  )}
+</div>
+);
 };
 
 export default QcHistoryTab;

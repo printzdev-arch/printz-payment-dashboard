@@ -1,15 +1,15 @@
 /* ==========================================================================
-   Production Planning — stylesheet
+   Production Planning ΓÇö stylesheet
    Scoped under .pp-page / .pp-overlay so nothing leaks into the host app.
-   Breakpoints:  ≤1180px  two-column blocks collapse
-                 ≤900px   data tables turn into stacked cards
-                 ≤640px   single-column forms, full-width actions, bottom-sheet modals
+   Breakpoints:  Γëñ1180px  two-column blocks collapse
+                 Γëñ900px   data tables turn into stacked cards
+                 Γëñ640px   single-column forms, full-width actions, bottom-sheet modals
    ========================================================================== */
 
 .pp-page,
 .pp-overlay {
-  --pp-primary: #0b6b4d;
-  --pp-primary-hover: #095a41;
+  --pp-primary: #059669;
+  --pp-primary-hover: #047857;
   --pp-accent: #059669;
   --pp-accent-soft: #ecfdf5;
   --pp-accent-line: #a7f3d0;
@@ -938,7 +938,7 @@
   .pp-side-column > .pp-card { flex: 1 1 280px; }
 }
 
-/* Tables → stacked cards */
+/* Tables ΓåÆ stacked cards */
 @media (max-width: 900px) {
   .pp-table-wrap { border: 0; overflow: visible; }
   .pp-card--flush .pp-table-wrap { padding: 12px; }
@@ -1044,7 +1044,7 @@
   .pp-textarea { transition: none; }
 }
 
-/* ── Production Planning V2 Extensions ── */
+/* ΓöÇΓöÇ Production Planning V2 Extensions ΓöÇΓöÇ */
 .pp2-locked td { background: #f8fafc; }
 .pp2-lock { display: inline-flex; align-items: center; gap: 4px; color: #475569; font-size: 0.75rem; }
 .pp2-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }

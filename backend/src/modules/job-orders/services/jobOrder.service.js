@@ -181,6 +181,17 @@ class JobOrderService {
     const orderSource = isDesigner ? "DESIGNER" : "MANAGER";
     const orderCreatedByRole = isDesigner ? "DESIGNER" : (user.role || "MANAGER").toUpperCase();
 
+    const finishingTotal = (Array.isArray(dto.finishingServices) ? dto.finishingServices : []).reduce(
+      (sum, f) => sum + Number(f.total || (Number(f.unitPrice || 0) * Number(f.quantity || dto.quantity || 1))),
+      0
+    );
+    const finalGrandTotal = Math.max(
+      Number(dto.grandTotal || 0),
+      Number(dto.totalAmount || 0),
+      Number(dto.estimatedPrice || 0),
+      totals.grandTotal + finishingTotal
+    );
+
     const job = await jobOrderRepository.create({
       jobNo,
       branchId: dto.branchId || user.branchId,
@@ -210,19 +221,19 @@ class JobOrderService {
       attachments: Array.isArray(dto.attachments) ? dto.attachments : [],
       advancePaid: Number(dto.advancePaid) || 0,
       paidAmount: Number(dto.advancePaid) || 0,
-      balanceDue: Math.max(0, totals.grandTotal - (Number(dto.advancePaid) || 0)),
+      balanceDue: Math.max(0, finalGrandTotal - (Number(dto.advancePaid) || 0)),
       status: dto.status === "SUBMITTED" ? "ACTIVE" : (dto.status || "DRAFT"),
       currentStage: "ENQUIRY",
       stage: "ENQUIRY",
       designStatus: isDesigner ? "ASSIGNED" : "UNASSIGNED",
       designerId: isDesigner ? user._id : (dto.designerId || null),
       designerName: isDesigner ? (user.name || "Designer") : (dto.designerName || ""),
-      subtotal: totals.subtotal,
+      subtotal: dto.subtotal !== undefined && Number(dto.subtotal) > 0 ? Number(dto.subtotal) : totals.subtotal,
       taxAmount: totals.taxAmount,
       discountAmount: totals.discount,
-      grandTotal: totals.grandTotal,
-      estimatedPrice: totals.grandTotal,
-      totalAmount: totals.grandTotal,
+      grandTotal: finalGrandTotal,
+      estimatedPrice: finalGrandTotal,
+      totalAmount: finalGrandTotal,
       source: orderSource,
       createdByRole: orderCreatedByRole,
       createdBy: user._id,
@@ -313,6 +324,8 @@ class JobOrderService {
     }));
 
     await jobItemRepository.insertMany(itemDocsToCreate);
+    job.items = itemDocsToCreate;
+    await job.save();
 
     // Record creation in workflow & audit
     await JobWorkflowService.recordCreated(job, user._id);
@@ -481,6 +494,8 @@ class JobOrderService {
     }));
 
     await jobItemRepository.insertMany(itemDocsToCreate);
+    job.items = itemDocsToCreate;
+    await job.save();
 
     job.subtotal = totals.subtotal;
     job.taxAmount = totals.taxAmount;
@@ -649,11 +664,31 @@ class JobOrderService {
       ];
     }
 
-    return jobOrderRepository.findAll({
+    const result = await jobOrderRepository.findAll({
       ...filter,
       page: query.page,
       limit: query.limit,
     });
+
+    if (Array.isArray(result.items)) {
+      result.items = result.items.map((job) => {
+        const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
+        const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+        if (isPrintOnly && ["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "REVISION", "SAMPLE_APPROVAL"].includes(job.currentStage)) {
+          job.currentStage = "PRODUCTION_PLANNING";
+          job.stage = "PRODUCTION_PLANNING";
+          job.status = "IN_PROGRESS";
+          job.designStatus = "NOT_REQUIRED";
+          jobOrderRepository.updateOne(
+            { _id: job._id },
+            { $set: { currentStage: "PRODUCTION_PLANNING", stage: "PRODUCTION_PLANNING", status: "IN_PROGRESS", designStatus: "NOT_REQUIRED" } }
+          ).catch(() => {});
+        }
+        return job;
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -676,6 +711,28 @@ class JobOrderService {
 
     const jobTypeStr = String(jobObj.jobType || jobObj.specs?.jobType || "").toUpperCase();
     const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+
+    // Flow Routing: Print Only jobs bypass Design Queue completely and route straight to Production
+    if (isPrintOnly && ["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "REVISION", "SAMPLE_APPROVAL"].includes(jobObj.currentStage)) {
+      jobObj.currentStage = "PRODUCTION_PLANNING";
+      jobObj.stage = "PRODUCTION_PLANNING";
+      jobObj.status = "IN_PROGRESS";
+      jobObj.designStatus = "NOT_REQUIRED";
+
+      jobOrderRepository.updateOne(
+        { _id: job._id },
+        {
+          $set: {
+            currentStage: "PRODUCTION_PLANNING",
+            stage: "PRODUCTION_PLANNING",
+            status: "IN_PROGRESS",
+            designStatus: "NOT_REQUIRED",
+          },
+        }
+      ).catch(() => {});
+    }
+
     const hasCompletedDesign =
       jobObj.designStatus === "COMPLETED" ||
       ["PRODUCTION_PLANNING", "COMPLETED", "DELIVERED"].includes(jobObj.currentStage) ||

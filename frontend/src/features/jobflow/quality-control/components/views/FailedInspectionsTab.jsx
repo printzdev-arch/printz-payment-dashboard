@@ -179,7 +179,7 @@ export const FailedInspectionsTab = ({
           <table className="jf-table" style={{ margin: 0, width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                <th style={{ width: "150px", padding: "12px 14px" }}>Job & PO #</th>
+                <th style={{ width: "150px", padding: "12px 14px" }}>Job Order No</th>
                 <th style={{ minWidth: "180px", padding: "12px 14px" }}>Customer & Product</th>
                 <th style={{ minWidth: "240px", padding: "12px 14px" }}>Defect Summary</th>
                 <th style={{ width: "120px", padding: "12px 14px", textAlign: "center" }}>Defective Qty</th>
@@ -207,14 +207,11 @@ export const FailedInspectionsTab = ({
 
                   return (
                     <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      {/* 1. Job & PO # */}
+                      {/* 1. Job Order No */}
                       <td style={{ verticalAlign: "middle", padding: "12px 14px" }}>
                         <strong style={{ color: "#0f172a", fontSize: "0.875rem", display: "block" }}>
                           {item.jobNo}
                         </strong>
-                        <span style={{ fontSize: "0.75rem", color: "#475569" }}>
-                          {item.orderNumber}
-                        </span>
                       </td>
 
                       {/* 2. Customer & Product */}

@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
 import {
-  Calculator,
-  Search,
-  Plus,
   Printer,
-  Download,
-  Send,
   CheckCircle,
-  FileText,
-  RotateCcw,
   Eye,
-  Trash2,
-  Receipt,
 } from "lucide-react";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
@@ -20,39 +10,16 @@ import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import EstimateReviewModal from "../components/EstimateReviewModal";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import estimationApi from "../api/estimationApi";
+import { printQuotation } from "../utils/printQuotation";
 import "../styles/estimation.css";
 import { toast } from "react-toastify";
 
 export const EstimationPage = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const preselectedJobId = searchParams.get("jobId");
-
-  const [activeTab, setActiveTab] = useState("queue"); // "create", "preview", "queue"
   const [statusFilter, setStatusFilter] = useState("all"); // "all", "pending", "approved"
   const [loading, setLoading] = useState(false);
   const [estimates, setEstimates] = useState([]);
   const [selectedEstimate, setSelectedEstimate] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
-  const [estimateForm, setEstimateForm] = useState({
-    jobNo: "JO-202610-0042",
-    customerName: "ABC Marketing Sdn Bhd",
-    jobType: "Print & Design",
-    targetDate: "15 Apr 2024",
-    branch: "Main Branch",
-    items: [
-      { id: 1, name: "Business Cards", spec: "Art Card 260 gsm, 90 x 54 mm, Full Color, Double Sided", qty: 500, unit: "sheets", rate: 0.20, amount: 100.00 },
-      { id: 2, name: "Lamination", spec: "Matte (Both Sides)", qty: 500, unit: "sheets", rate: 0.10, amount: 50.00 },
-      { id: 3, name: "Cutting", spec: "Trim to A5 (148 x 210 mm)", qty: 500, unit: "sheets", rate: 0.05, amount: 25.00 },
-      { id: 4, name: "Packing", spec: "Shrink Wrap", qty: 500, unit: "packs", rate: 0.04, amount: 20.00 },
-    ],
-    additionalCharges: 0.00,
-    discount: 0.00,
-    taxRate: 0,
-    notes: "Technical job costing estimate completed.",
-    staffRemarks: "Please review and approve pricing as per manager quota.",
-  });
 
   useEffect(() => {
     fetchEstimates();
@@ -76,13 +43,56 @@ export const EstimationPage = () => {
 
       const mappedList = list.map((job) => {
         const qty = Number(job.specs?.quantity || job.quantity || 500);
-        const subtotalAmt = Number(
-          job.subtotal !== undefined && job.subtotal !== null
-            ? job.subtotal
-            : (job.grandTotal || job.totalAmount || job.estimatedPrice || job.estimatedCost || 250)
+
+        // Extract finishing services from all possible locations
+        const finishingServices = (Array.isArray(job.finishingServices) && job.finishingServices.length > 0)
+          ? job.finishingServices
+          : (Array.isArray(job.items?.[0]?.finishing) && job.items[0].finishing.length > 0)
+          ? job.items[0].finishing.map((f, i) => ({
+              id: f.id || i + 1,
+              name: f.name || f.option || f.code || "Finishing",
+              config: f.notes || f.config || f.option || "Standard",
+              unitPrice: Number(f.unitPrice || 0),
+              quantity: Number(f.quantity || qty),
+              total: Number(f.total || (Number(f.quantity || qty) * Number(f.unitPrice || 0))),
+              unit: f.unit || "sheets",
+            }))
+          : [];
+
+        const finishingTotal = finishingServices.reduce(
+          (sum, f) => sum + Number(f.total || (Number(f.unitPrice || 0) * Number(f.quantity || qty))),
+          0
         );
-        const grandAmt = subtotalAmt;
-        const unitRate = Math.round((subtotalAmt / qty) * 100) / 100;
+
+        // Base product unit price & cost
+        const productUnitRate = Number(
+          job.specs?.unitPrice ||
+          job.items?.[0]?.unitRate ||
+          job.items?.[0]?.unitPrice ||
+          (job.specs?.productCost && qty > 0 ? Number(job.specs.productCost) / qty : 0) ||
+          (Number(job.subtotal || 0) > finishingTotal && qty > 0 ? (Number(job.subtotal) - finishingTotal) / qty : 0) ||
+          (Number(job.grandTotal || 0) > finishingTotal && qty > 0 ? (Number(job.grandTotal) - finishingTotal) / qty : 0) ||
+          (qty > 0 && job.subtotal ? Number(job.subtotal) / qty : 1)
+        );
+
+        const productBaseCost = Number(
+          job.specs?.productCost ||
+          (productUnitRate > 0 ? Math.round(qty * productUnitRate * 100) / 100 : 0) ||
+          (Number(job.subtotal || 0) > finishingTotal ? Number(job.subtotal) - finishingTotal : Number(job.subtotal || 0))
+        );
+
+        const subtotalAmt = productBaseCost;
+
+        // Full final cost must include base product cost plus all finishing services
+        const fullFinalCost = Math.max(
+          Number(job.grandTotal || 0),
+          Number(job.totalAmount || 0),
+          Number(job.estimatedPrice || 0),
+          productBaseCost + finishingTotal
+        );
+
+        const grandAmt = fullFinalCost > 0 ? fullFinalCost : (productBaseCost + finishingTotal);
+        const unitRate = productUnitRate;
 
         const isApproved = job.estimationStatus === "APPROVED" || [
           "DESIGN_QUEUE",
@@ -104,20 +114,6 @@ export const EstimationPage = () => {
 
         const displayStatus = isApproved ? "Approved" : "Pending";
 
-        const finishingServices = (Array.isArray(job.finishingServices) && job.finishingServices.length > 0)
-          ? job.finishingServices
-          : (Array.isArray(job.items?.[0]?.finishing) && job.items[0].finishing.length > 0)
-          ? job.items[0].finishing.map((f, i) => ({
-              id: f.id || i + 1,
-              name: f.name || f.option || f.code || "Finishing",
-              config: f.notes || f.config || f.option || "Standard",
-              unitPrice: Number(f.unitPrice || 0),
-              quantity: Number(f.quantity || qty),
-              total: Number(f.total || (Number(f.quantity || qty) * Number(f.unitPrice || 0))),
-              unit: f.unit || "sheets",
-            }))
-          : [];
-
         return {
           _id: job._id || job.id,
           estimateNo: `EST-${job.jobNo || job.orderNumber || (job._id || "").slice(-6)}`,
@@ -135,15 +131,25 @@ export const EstimationPage = () => {
           finishingServices,
           specs: job.specs || {},
           items: (job.items && job.items.length > 0)
-            ? job.items.map((it) => ({
-                name: it.itemName || it.name || job.title || "Print Job Order",
-                itemName: it.itemName || it.name || job.title || "Print Job Order",
-                spec: it.description || it.spec || job.specs?.paperType || "Standard Print Specifications",
-                qty: it.quantity || it.qty || qty,
-                unit: it.unit || "PCS",
-                rate: Number(it.unitRate || it.unitPrice || unitRate),
-                amount: Number(it.amount || it.totalPrice || (Number(it.quantity || qty) * Number(it.unitRate || unitRate)) || subtotalAmt),
-              }))
+            ? job.items.map((it) => {
+                const isFinishingLine = it.itemName?.toLowerCase().includes("finishing") || it.itemType === "FINISHING";
+                const lineRate = isFinishingLine
+                  ? Number(it.unitRate || it.unitPrice || 0)
+                  : Number(job.specs?.unitPrice || it.unitRate || it.unitPrice || productUnitRate);
+                const lineQty = Number(it.quantity || it.qty || qty);
+                const lineAmount = isFinishingLine
+                  ? Number(it.amount || it.totalPrice || (lineQty * lineRate))
+                  : Number(job.specs?.productCost || (lineQty * lineRate) || productBaseCost);
+                return {
+                  name: it.itemName || it.name || job.title || "Print Job Order",
+                  itemName: it.itemName || it.name || job.title || "Print Job Order",
+                  spec: it.description || it.spec || job.specs?.paperType || "Standard Print Specifications",
+                  qty: lineQty,
+                  unit: it.unit || "PCS",
+                  rate: lineRate,
+                  amount: lineAmount,
+                };
+              })
             : [
                 {
                   name: job.title || "Print Job Order",
@@ -151,11 +157,12 @@ export const EstimationPage = () => {
                   spec: job.specs?.paperType || "Standard Print Specifications",
                   qty: qty,
                   unit: "PCS",
-                  rate: unitRate,
-                  amount: subtotalAmt,
+                  rate: productUnitRate,
+                  amount: productBaseCost,
                 },
               ],
           subtotal: subtotalAmt,
+          finishingTotal,
           tax: 0,
           total: grandAmt,
           raw: job,
@@ -175,57 +182,6 @@ export const EstimationPage = () => {
   useEffect(() => {
     localStorage.removeItem("printz_active_job_id");
   }, []);
-
-  // Calculations
-  const subtotal = estimateForm.items.reduce((acc, it) => acc + (it.amount || (it.qty * it.rate)), 0);
-  const totalEstimate = subtotal + (estimateForm.additionalCharges || 0);
-
-  const handleAddItem = () => {
-    const newItem = {
-      id: Date.now(),
-      name: "New Finishing / Service",
-      spec: "Custom specification",
-      qty: 100,
-      unit: "sheets",
-      rate: 0.15,
-      amount: 15.00,
-    };
-    setEstimateForm((prev) => ({
-      ...prev,
-      items: [...prev.items, newItem],
-    }));
-  };
-
-  const removeItem = (id) => {
-    setEstimateForm((prev) => ({
-      ...prev,
-      items: prev.items.filter((it) => it.id !== id),
-    }));
-  };
-
-  const handleSubmitEstimate = async () => {
-    setLoading(true);
-    try {
-      const payload = {
-        items: estimateForm.items,
-        subtotal,
-        tax: 0,
-        total: totalEstimate,
-        notes: estimateForm.notes,
-        staffRemarks: estimateForm.staffRemarks,
-      };
-
-      await estimationApi.submitEstimate(preselectedJobId || "dummy-job-id", payload);
-      toast.success("Estimate submitted for Manager Approval!");
-      setActiveTab("queue");
-      fetchEstimates();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to submit estimate");
-      setActiveTab("queue");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleApproveEstimate = async (id, approvalData = {}) => {
     try {
@@ -268,284 +224,187 @@ export const EstimationPage = () => {
   const approvedCount = estimates.filter((e) => e.status === "Approved").length;
 
   return (
-    <JobFlowLayout
-      title="Estimation & Pricing"
-    >
-      {/* ──────────────── TAB 1: MANAGER APPROVAL QUEUE (Image 3 Screen 3) ──────────────── */}
-      {activeTab === "queue" && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
-            <div>
-              <h3 className="jf-card-title" style={{ fontSize: "1.125rem", margin: 0 }}>
-                {statusFilter === "pending"
-                  ? "Pending Estimates (Manager Approval Only)"
-                  : statusFilter === "approved"
-                  ? "Approved Estimates"
-                  : "All Quotations & Cost Estimates"}
-              </h3>
-            </div>
-
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button
-                type="button"
-                className={`jf-btn ${statusFilter === "all" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                onClick={() => setStatusFilter("all")}
-              >
-                All ({estimates.length})
-              </button>
-              <button
-                type="button"
-                className={`jf-btn ${statusFilter === "pending" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                onClick={() => setStatusFilter("pending")}
-              >
-                Pending ({pendingCount})
-              </button>
-              <button
-                type="button"
-                className={`jf-btn ${statusFilter === "approved" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                onClick={() => setStatusFilter("approved")}
-              >
-                Approved ({approvedCount})
-              </button>
-            </div>
-          </div>
-
-          <JobFlowDataTable
-            columns={[
-              {
-                key: "estimateNo",
-                label: "Estimate No",
-                sortable: true,
-                width: "150px",
-                render: (val, row) => (
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: "var(--jf-primary, #15803d)",
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "2px",
-                    }}
-                    onClick={() => {
-                      setSelectedEstimate(row);
-                      setIsReviewModalOpen(true);
-                    }}
-                    title="Click to view estimate details"
-                  >
-                    {val || "-"}
-                  </span>
-                ),
-              },
-              {
-                key: "jobNo",
-                label: "Job No",
-                sortable: true,
-                width: "150px",
-                render: (val, row) => (
-                  <div>
-                    <span style={{ fontWeight: 600, color: "#1e293b", display: "block" }}>{val || "-"}</span>
-                    <div style={{ marginTop: "4px" }}>
-                      <JobTypeBadge jobType={row.jobType || "Print & Design"} size="sm" />
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                key: "customerName",
-                label: "Customer",
-                sortable: true,
-                render: (val, row) => (
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{val || row.customerSnapshot?.name || "Client"}</div>
-                    {row.phone && row.phone !== "-" && (
-                      <span style={{ fontSize: "0.75rem", color: "#475569" }}>{row.phone}</span>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                key: "branchName",
-                label: "Branch",
-                sortable: true,
-                render: (val) => val || "Main Branch",
-              },
-              {
-                key: "submittedBy",
-                label: "Submitted By",
-                sortable: true,
-                render: (val) => val || "Staff",
-              },
-              {
-                key: "submittedOn",
-                label: "Submitted On",
-                sortable: true,
-                render: (val) => val || "-",
-              },
-              {
-                key: "amount",
-                label: "Amount (RM)",
-                sortable: true,
-                render: (val) => <strong>RM {(Number(val) || 0).toFixed(2)}</strong>,
-              },
-              {
-                key: "status",
-                label: "Status",
-                sortable: true,
-                render: (val, row) => <StatusBadge status={row.isApproved ? "Approved" : (val || "Pending")} />,
-              },
-              {
-                key: "action",
-                label: "Action",
-                sortable: false,
-                align: "right",
-                render: (_, est) => (
-                  <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end", alignItems: "center" }}>
-                    {est.isApproved ? (
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-secondary jf-btn-sm"
-                        onClick={() => {
-                          setSelectedEstimate(est);
-                          setIsReviewModalOpen(true);
-                        }}
-                        title="View Estimate"
-                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.35rem 0.55rem" }}
-                      >
-                        <Eye size={16} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-primary jf-btn-sm"
-                        onClick={() => {
-                          setSelectedEstimate(est);
-                          setIsReviewModalOpen(true);
-                        }}
-                      >
-                        <CheckCircle size={14} /> Review
-                      </button>
-                    )}
-                  </div>
-                ),
-              },
-            ]}
-            data={filteredEstimates}
-            loading={loading}
-            searchable={true}
-            searchPlaceholder="Search estimates by job, customer or estimate #..."
-            initialPageSize={10}
-            pageSizeOptions={[5, 10, 25, 50]}
-            emptyMessage={
-              statusFilter === "pending"
-                ? "No pending estimates requiring approval."
+    <JobFlowLayout title="Estimation & Pricing">
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
+          <div>
+            <h3 className="jf-card-title" style={{ fontSize: "1.125rem", margin: 0 }}>
+              {statusFilter === "pending"
+                ? "Pending Estimates (Manager Approval Only)"
                 : statusFilter === "approved"
-                ? "No approved estimates found."
-                : "No estimates found in this queue."
-            }
-          />
-        </div>
-      )}
-
-      {/* ──────────────── TAB 2: CREATE ESTIMATE (Image 3 Screen 1) ──────────────── */}
-      {activeTab === "create" && (
-        <div className="jf-card">
-          <div className="jf-card-header">
-            <div>
-              <h3 className="jf-card-title">Create Estimate</h3>
-              <p className="jf-header-subtitle" style={{ margin: 0 }}>
-                Job No: <strong>{estimateForm.jobNo}</strong> • Customer: {estimateForm.customerName} • Branch: {estimateForm.branch}
-              </p>
-            </div>
-            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={handleAddItem}>
-              <Plus size={14} /> Add Item
-            </button>
+                ? "Approved Estimates"
+                : "All Quotations & Cost Estimates"}
+            </h3>
           </div>
 
-          {/* Items & Services Table */}
-          <div className="jf-table-wrap" style={{ marginBottom: "1.5rem" }}>
-            <table className="jf-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "30px" }}>#</th>
-                  <th>Item / Service</th>
-                  <th>Specification</th>
-                  <th>Qty</th>
-                  <th>Unit</th>
-                  <th>Rate (RM)</th>
-                  <th>Amount (RM)</th>
-                  <th style={{ textAlign: "right" }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {estimateForm.items.map((it, idx) => (
-                  <tr key={it.id || idx}>
-                    <td>{idx + 1}</td>
-                    <td><strong>{it.name}</strong></td>
-                    <td style={{ fontSize: "0.8125rem", color: "#475569" }}>{it.spec}</td>
-                    <td>{it.qty}</td>
-                    <td>{it.unit}</td>
-                    <td>RM {it.rate.toFixed(2)}</td>
-                    <td><strong>RM {it.amount.toFixed(2)}</strong></td>
-                    <td style={{ textAlign: "right" }}>
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-danger-outline jf-btn-sm"
-                        onClick={() => removeItem(it.id)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Bottom Grid: Notes on Left, Summary on Right */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-            <div className="jf-card" style={{ marginBottom: 0 }}>
-              <h4 style={{ margin: "0 0 0.5rem 0", fontSize: "0.95rem" }}>Internal Estimation Notes</h4>
-              <textarea
-                className="jf-textarea"
-                rows={4}
-                value={estimateForm.notes}
-                onChange={(e) => setEstimateForm((prev) => ({ ...prev, notes: e.target.value }))}
-                placeholder="Add internal notes for calculation / machine rates..."
-              />
-            </div>
-
-            {/* Estimate Summary Box (Image 3 Screen 1) */}
-            <div className="jf-card" style={{ marginBottom: 0, background: "#f8fafc" }}>
-              <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem" }}>Estimate Summary</h4>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem", fontSize: "0.875rem" }}>
-                <span style={{ color: "#475569" }}>Subtotal:</span>
-                <strong>RM {subtotal.toFixed(2)}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem", fontSize: "0.875rem" }}>
-                <span style={{ color: "#475569" }}>Additional Charges:</span>
-                <span>RM {estimateForm.additionalCharges.toFixed(2)}</span>
-              </div>
-              <div style={{ height: "1px", background: "#e2e8f0", margin: "0.5rem 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.25rem", color: "var(--jf-primary)", fontWeight: 700 }}>
-                <span>Total Estimate:</span>
-                <span>RM {totalEstimate.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               type="button"
-              className="jf-btn jf-btn-primary"
-              onClick={handleSubmitEstimate}
-              disabled={loading}
+              className={`jf-btn ${statusFilter === "all" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+              onClick={() => setStatusFilter("all")}
             >
-              <Send size={16} /> Submit for Approval
+              All ({estimates.length})
+            </button>
+            <button
+              type="button"
+              className={`jf-btn ${statusFilter === "pending" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+              onClick={() => setStatusFilter("pending")}
+            >
+              Pending ({pendingCount})
+            </button>
+            <button
+              type="button"
+              className={`jf-btn ${statusFilter === "approved" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
+              onClick={() => setStatusFilter("approved")}
+            >
+              Approved ({approvedCount})
             </button>
           </div>
         </div>
-      )}
+
+        <JobFlowDataTable
+          columns={[
+            {
+              key: "estimateNo",
+              label: "Estimate No",
+              sortable: true,
+              width: "150px",
+              render: (val, row) => (
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: "var(--jf-primary, #15803d)",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "2px",
+                  }}
+                  onClick={() => {
+                    setSelectedEstimate(row);
+                    setIsReviewModalOpen(true);
+                  }}
+                  title="Click to view estimate details"
+                >
+                  {val || "-"}
+                </span>
+              ),
+            },
+            {
+              key: "jobNo",
+              label: "Job No",
+              sortable: true,
+              width: "150px",
+              render: (val, row) => (
+                <div>
+                  <span style={{ fontWeight: 600, color: "#1e293b", display: "block" }}>{val || "-"}</span>
+                  <div style={{ marginTop: "4px" }}>
+                    <JobTypeBadge jobType={row.jobType || "Print & Design"} size="sm" />
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "customerName",
+              label: "Customer",
+              sortable: true,
+              render: (val, row) => (
+                <div>
+                  <div style={{ fontWeight: 600 }}>{val || row.customerSnapshot?.name || "Client"}</div>
+                  {row.phone && row.phone !== "-" && (
+                    <span style={{ fontSize: "0.75rem", color: "#475569" }}>{row.phone}</span>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "branchName",
+              label: "Branch",
+              sortable: true,
+              render: (val) => val || "Main Branch",
+            },
+            {
+              key: "submittedBy",
+              label: "Submitted By",
+              sortable: true,
+              render: (val) => val || "Staff",
+            },
+            {
+              key: "submittedOn",
+              label: "Submitted On",
+              sortable: true,
+              render: (val) => val || "-",
+            },
+            {
+              key: "amount",
+              label: "Amount (RM)",
+              sortable: true,
+              render: (val) => <strong>RM {(Number(val) || 0).toFixed(2)}</strong>,
+            },
+            {
+              key: "status",
+              label: "Status",
+              sortable: true,
+              render: (val, row) => <StatusBadge status={row.isApproved ? "Approved" : (val || "Pending")} />,
+            },
+            {
+              key: "action",
+              label: "Action",
+              sortable: false,
+              align: "right",
+              render: (_, est) => (
+                <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-secondary jf-btn-sm"
+                    onClick={() => printQuotation(est)}
+                    title="Print Quotation"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.35rem 0.55rem" }}
+                  >
+                    <Printer size={15} />
+                  </button>
+                  {est.isApproved ? (
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-secondary jf-btn-sm"
+                      onClick={() => {
+                        setSelectedEstimate(est);
+                        setIsReviewModalOpen(true);
+                      }}
+                      title="View Estimate"
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.35rem 0.55rem" }}
+                    >
+                      <Eye size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="jf-btn jf-btn-primary jf-btn-sm"
+                      onClick={() => {
+                        setSelectedEstimate(est);
+                        setIsReviewModalOpen(true);
+                      }}
+                    >
+                      <CheckCircle size={14} /> Review
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]}
+          data={filteredEstimates}
+          loading={loading}
+          searchable={true}
+          searchPlaceholder="Search estimates by job, customer or estimate #..."
+          initialPageSize={10}
+          pageSizeOptions={[5, 10, 25, 50]}
+          emptyMessage={
+            statusFilter === "pending"
+              ? "No pending estimates requiring approval."
+              : statusFilter === "approved"
+              ? "No approved estimates found."
+              : "No estimates found in this queue."
+          }
+        />
+      </div>
 
       {/* Review Modal (Manager Approval) */}
       {isReviewModalOpen && selectedEstimate && (

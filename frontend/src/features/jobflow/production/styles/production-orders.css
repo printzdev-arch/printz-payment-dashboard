@@ -5,14 +5,14 @@
 @import "./production.css";
 
 .production-orders-page {
-  --po-green: #0a6b3a;
-  --po-green-dark: #07552e;
-  --po-green-soft: #e3f2ea;
-  --po-bg: #f1f7f5;
+  --po-green: #059669;
+  --po-green-dark: #047857;
+  --po-green-soft: #ecfdf5;
+  --po-bg: #f6faf8;
   --po-card: #ffffff;
-  --po-border: #e3eae7;
-  --po-text: #0f1f1a;
-  --po-muted: #5f6f69;
+  --po-border: #e6ece9;
+  --po-text: #0f172a;
+  --po-muted: #64748b;
   --po-radius: 14px;
 
   display: flex;

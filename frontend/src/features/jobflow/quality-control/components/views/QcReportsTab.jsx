@@ -37,9 +37,7 @@ export const QcReportsTab = () => {
             <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
               Quality Control Analytics & Defect Intelligence
             </h2>
-            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#475569" }}>
-              First-Pass Yield (FPY), rejection rates, Pareto defect distribution, and inspector audit metrics.
-            </p>
+          
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

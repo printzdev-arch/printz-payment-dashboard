@@ -1,21 +1,21 @@
 import "../styles/production-reports.css";
 import "../styles/production-theme.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileDown, FileText, Printer, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileDown, FileText, Printer, RefreshCw, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import productionApi from "../api/productionApi";
 
 const REPORT_TYPES = [
-  { id: "SUMMARY", label: "1. Production Summary", desc: "Created, completed, active and delayed orders overview" },
-  { id: "OP_PERFORMANCE", label: "2. Operation Performance", desc: "Planned vs actual time per operation" },
-  { id: "MACHINE_UTILIZATION", label: "3. Machine Utilization", desc: "Running hours, downtime and idle capacity per machine" },
-  { id: "OPERATOR_PRODUCTIVITY", label: "4. Operator Productivity", desc: "Completed operations and good output per operator" },
-  { id: "PRODUCTION_WASTAGE", label: "5. Production Wastage", desc: "Waste quantities and failure reasons by operation" },
-  { id: "REWORK_ANALYSIS", label: "6. Rework Analysis", desc: "Rework operations, recovered output and labor hours" },
-  { id: "REPRINT_ANALYSIS", label: "7. Reprint Analysis", desc: "Reprint requests, defects and decisions" },
-  { id: "DELIVERY_DELAYS", label: "8. Delivery Delay Analysis", desc: "Late orders and where they are held up" },
-  { id: "MATERIAL_CONSUMPTION", label: "9. Material Consumption", desc: "Planned vs consumed materials" },
-  { id: "JOB_HISTORY", label: "10. Job Production History", desc: "Chronological timeline of every stage on a job" },
+  { id: "SUMMARY", label: "1. Production Summary" },
+  { id: "OP_PERFORMANCE", label: "2. Operation Performance" },
+  { id: "MACHINE_UTILIZATION", label: "3. Machine Utilization"},
+  { id: "OPERATOR_PRODUCTIVITY", label: "4. Operator Productivity" },
+  { id: "PRODUCTION_WASTAGE", label: "5. Production Wastage" },
+  { id: "REWORK_ANALYSIS", label: "6. Rework Analysis"},
+  { id: "REPRINT_ANALYSIS", label: "7. Reprint Analysis"},
+  { id: "DELIVERY_DELAYS", label: "8. Delivery Delay Analysis"},
+  { id: "MATERIAL_CONSUMPTION", label: "9. Material Consumption" },
+  { id: "JOB_HISTORY", label: "10. Job Production History"},
 ];
 
 const DATE_PRESETS = [
@@ -178,6 +178,7 @@ export const ProductionReportsPage = () => {
     const requestId = ++requestRef.current;
     setLoading(true);
     setError("");
+    setPage(1);
     try {
       const res = await productionApi.getReport(selectedReport, params);
       if (requestId !== requestRef.current) return;
@@ -232,10 +233,48 @@ export const ProductionReportsPage = () => {
   const submitJob = (e) => {
     e.preventDefault();
     setJobNo(jobInput.trim());
+    setPage(1);
   };
 
-  const columns = report?.columns || [];
-  const rows = report?.rows || [];
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
+
+  const rawColumns = report?.columns || [];
+  const columns = useMemo(() => {
+    return rawColumns
+      .filter((c) => c.key !== "productionNo" && !/production\s*order/i.test(c.label || ""))
+      .map((c) => {
+        if (c.key === "jobNo") {
+          return { ...c, label: "Job Order No" };
+        }
+        return c;
+      });
+  }, [rawColumns]);
+
+  const rows = useMemo(() => {
+    const rawRows = report?.rows || [];
+    return rawRows.map((r) => ({
+      ...r,
+      jobNo: r.jobNo || r.productionNo || "-",
+    }));
+  }, [report?.rows]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * rowsPerPage;
+  const pagedRows = rows.slice(startIdx, startIdx + rowsPerPage);
+
+  const pageNumbers = useMemo(() => {
+    const list = [];
+    const maxButtons = 5;
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    if (end - start + 1 < maxButtons) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+    for (let i = start; i <= end; i++) list.push(i);
+    return list;
+  }, [currentPage, totalPages]);
 
   return (
     <div className="pr2-page">
@@ -344,9 +383,9 @@ export const ProductionReportsPage = () => {
 
           {support.job && (
             <form onSubmit={submitJob}>
-              <label className="pr2-label">Job / Production Number</label>
+              <label className="pr2-label">Job Order No</label>
               <div className="pr2-job">
-                <input className="jf-input jf-input-sm" placeholder="e.g. JOB-1025 or PO-202610-0014" value={jobInput} onChange={(e) => setJobInput(e.target.value)} />
+                <input className="jf-input jf-input-sm" placeholder="e.g. JOB-20261103-0001" value={jobInput} onChange={(e) => setJobInput(e.target.value)} />
                 <button type="submit" className="jf-btn jf-btn-secondary jf-btn-sm pr2-btn">
                   <Search size={14} /> Find
                 </button>
@@ -372,17 +411,6 @@ export const ProductionReportsPage = () => {
           </div>
         )}
 
-        {report?.summary?.length > 0 && (
-          <div className="pr2-tiles">
-            {report.summary.map((s) => (
-              <div key={s.label} className="pr2-tile">
-                <div className="pr2-tile-label">{s.label}</div>
-                <div className="pr2-tile-value" style={{ color: TONE_COLORS[s.tone] || TONE_COLORS.neutral }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="pr2-table-wrap">
           <table className="jf-table">
             <thead>
@@ -402,8 +430,8 @@ export const ProductionReportsPage = () => {
                   </td>
                 </tr>
               ) : (
-                rows.map((row, i) => (
-                  <tr key={`${selectedReport}-${i}`}>
+                pagedRows.map((row, i) => (
+                  <tr key={`${selectedReport}-${startIdx + i}`}>
                     {columns.map((c, ci) => (
                       <td key={c.key} className={c.align === "right" ? "pr2-right" : undefined}>
                         {ci === 0 ? <strong><Cell column={c} value={row[c.key]} /></strong> : <Cell column={c} value={row[c.key]} />}
@@ -415,6 +443,43 @@ export const ProductionReportsPage = () => {
             </tbody>
           </table>
         </div>
+
+        <footer className="pr2-card-foot">
+          <span className="pr2-showing">
+            {rows.length === 0
+              ? "Showing 0 records"
+              : `Showing ${startIdx + 1} to ${Math.min(startIdx + rowsPerPage, rows.length)} of ${rows.length} records`}
+          </span>
+          <nav className="pr2-pager" aria-label="Pagination">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setPage(currentPage - 1)}
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {pageNumbers.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={n === currentPage ? "is-active" : ""}
+                onClick={() => setPage(n)}
+                aria-current={n === currentPage ? "page" : undefined}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage(currentPage + 1)}
+              aria-label="Next page"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </nav>
+        </footer>
 
         {report?.truncated && <p className="pr2-note">Showing the first {rows.length} rows. Narrow the date range to see the rest.</p>}
         {report?.note && rows.length > 0 && <p className="pr2-note">{report.note}</p>}

@@ -108,14 +108,16 @@ class InvoiceService {
         ? (!isAlreadyFinalized || (hasPendingBalance && job.designStatus === "COMPLETED"))
         : !isAlreadyFinalized;
 
-      const existingAdv = Number(existing?.advanceApplied || existing?.advancePaid || existing?.paidAmount || 0);
+      const existingAdv = Number(existing?.advanceApplied || existing?.advancePaid || 0);
       const jobAdv = Number(job.advancePaid || 0);
       const resolvedAdv = Math.max(jobAdv, existingAdv);
-      const jobTotal = Number(job.grandTotal || job.estimatedPrice || job.subtotal || 0);
-      const existingBal = existing?.balanceDue != null ? Number(existing.balanceDue) : null;
-      const jobBal = job.balanceDue != null ? Number(job.balanceDue) : null;
-      const finalBal = existingBal ?? jobBal ?? Math.max(0, jobTotal - resolvedAdv);
-      const finalAdv = resolvedAdv > 0 ? resolvedAdv : (jobTotal > 0 && finalBal < jobTotal ? Math.max(0, jobTotal - finalBal) : 0);
+      const effectiveGrandTotal = existing && Number(existing.grandTotal) > 0
+        ? Number(existing.grandTotal)
+        : Number(job.grandTotal || job.estimatedPrice || job.subtotal || 0);
+      const finalBal = existing && existing.balanceDue != null
+        ? Number(existing.balanceDue)
+        : Math.max(0, Math.round((effectiveGrandTotal - resolvedAdv) * 100) / 100);
+      const finalAdv = resolvedAdv > 0 ? resolvedAdv : Math.max(0, Math.round((effectiveGrandTotal - finalBal) * 100) / 100);
 
       return {
         _id: job._id,
@@ -139,10 +141,11 @@ class InvoiceService {
         advancePaid: finalAdv,
         balanceDue: finalBal,
         paymentStatus: job.paymentStatus || (finalBal <= 0 ? "PAID" : finalAdv > 0 ? "PARTIAL" : "UNPAID"),
-        estimatedPrice: job.estimatedPrice || job.grandTotal || 0,
-        subtotal: job.subtotal || 0,
+        estimatedPrice: effectiveGrandTotal,
+        subtotal: existing && Number(existing.subtotal) > 0 ? Number(existing.subtotal) : (job.subtotal || effectiveGrandTotal),
         taxAmount: job.taxAmount || 0,
-        grandTotal: job.grandTotal || 0,
+        grandTotal: effectiveGrandTotal,
+        discountTotal: existing ? Number(existing.discountTotal || 0) : Number(job.discountTotal || 0),
         itemCount: (job.items || []).length,
         items: job.items || [],
         finishingServices: job.finishingServices || [],
@@ -153,6 +156,8 @@ class InvoiceService {
               id: existing._id,
               invoiceNumber: existing.invoiceNumber,
               status: existing.status,
+              grandTotal: existing.grandTotal,
+              discountTotal: existing.discountTotal,
               balanceDue: existing.balanceDue,
               advancePaid: existing.advancePaid || existing.advanceApplied,
               advanceApplied: existing.advanceApplied || existing.advancePaid,
@@ -624,6 +629,20 @@ class InvoiceService {
 
     const updated = await invoiceRepository.updateById(invoice._id, updateData);
 
+    if (invoice.jobOrderId) {
+      await JobOrder.findByIdAndUpdate(invoice.jobOrderId, {
+        $set: {
+          grandTotal: calc.grandTotal,
+          totalAmount: calc.grandTotal,
+          discountTotal: calc.discountTotal,
+          balanceDue: calc.balanceDue,
+          advancePaid: calc.advanceApplied,
+          invoiceNo: invoice.invoiceNumber,
+          invoiceId: invoice._id,
+        },
+      });
+    }
+
     await auditLogService.log({
       action: "INVOICE_DRAFT_UPDATE",
       resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
@@ -874,6 +893,9 @@ class InvoiceService {
       const updateFields = {
         invoiceNo: invoiceNumber,
         invoiceId: invoice._id,
+        grandTotal: Number(invoice.grandTotal || 0),
+        totalAmount: Number(invoice.grandTotal || 0),
+        discountTotal: Number(invoice.discountTotal || 0),
         advancePaid: isPrintOnly ? Number(invoice.grandTotal || invoice.advanceApplied || 0) : Number(invoice.advanceApplied || 0),
         balanceDue: isPrintOnly ? 0 : Number(invoice.balanceDue || 0),
         paymentStatus: isPrintOnly ? "PAID" : (invoice.balanceDue === 0 ? "PAID" : (invoice.advanceApplied > 0 ? "PARTIAL" : "UNPAID")),

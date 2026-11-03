@@ -25,10 +25,10 @@ const schemas = {
     password: "AdminPassword123!",
   },
   RefreshTokenRequest: {
-    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWNmN2YzMjMxMjI0MmUzYmRlMjJiZjMiLCJpYXQiOjE3MjkxNTAwMDAsImV4cCI6MTczMTc0MjAwMH0.sampleValidSignature",
+    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJlbWFpbCI6ImFkbWluQHByaW50ei5zaG9wIiwiaWF0IjoxNzkzNjgxODMwLCJleHAiOjE3OTQyODY2MzB9.at8qZnq-rXx9xY0orw7vOTH2N-hfr_eH75kABjZjY3w",
   },
   LogoutRequest: {
-    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWNmN2YzMjMxMjI0MmUzYmRlMjJiZjMiLCJpYXQiOjE3MjkxNTAwMDAsImV4cCI6MTczMTc0MjAwMH0.sampleValidSignature",
+    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJlbWFpbCI6ImFkbWluQHByaW50ei5zaG9wIiwiaWF0IjoxNzkzNjgxODMwLCJleHAiOjE3OTQyODY2MzB9.at8qZnq-rXx9xY0orw7vOTH2N-hfr_eH75kABjZjY3w",
   },
   ForgotPasswordRequest: {
     email: "admin@printz.shop",

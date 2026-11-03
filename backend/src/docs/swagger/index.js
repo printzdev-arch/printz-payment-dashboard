@@ -64,31 +64,40 @@ const withExamples = (requestBody, method, path) => {
 };
 
 /**
- * Ensure every response has a description (OpenAPI requires one), and add the standard error responses
- * every call can return: 401/403 for secured calls, 404 when the path has an id or a body, 400 when it
- * takes a body or query, 409 for writes. Responses written by hand are never replaced.
+ * Ensures only a single success response (2xx) is documented for each endpoint.
  */
-const normalizeResponses = (responsesIn, { secured, hasPathParam, hasInput, isWrite }) => {
-  const base = responsesIn && Object.keys(responsesIn).length
-    ? responsesIn
-    : { 200: { description: "Success", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } } } };
-  const fallback = { 200: "Success", 201: "Created" };
-  const out = Object.fromEntries(
-    Object.entries(base).map(([code, r]) => [code, r?.$ref ? r : { ...r, description: r?.description || fallback[code] || "Response" }])
-  );
-  const add = (code, name) => {
-    if (!out[code]) out[code] = { $ref: `#/components/responses/${name}` };
-  };
-  if (secured) {
-    add(401, "Unauthorized");
-    add(403, "Forbidden");
+const normalizeResponses = (responsesIn) => {
+  if (responsesIn && typeof responsesIn === "object") {
+    const successEntry = Object.entries(responsesIn).find(([code]) => String(code).startsWith("2"));
+    if (successEntry) {
+      const [code, resp] = successEntry;
+      return {
+        [code]: resp?.$ref ? resp : { ...resp, description: resp?.description || (code === "201" ? "Created" : "Success") },
+      };
+    }
   }
-  if (hasInput) add(400, "BadRequest");
-  // A body can point at records that no longer exist, and any write can meet a duplicate or a status rule
-  if (hasPathParam || hasInput) add(404, "NotFound");
-  if (isWrite) add(409, "Conflict");
-  add(500, "ServerError");
-  return out;
+
+  return {
+    200: {
+      description: "Success",
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/ApiSuccessResponse" },
+        },
+      },
+    },
+  };
+};
+
+const normalizeSecurity = (sec) => {
+  if (Array.isArray(sec) && sec.length === 0) return [];
+  if (!sec) return [{ accessToken: [] }];
+  return sec.map((item) => {
+    if ("bearerAuth" in item) {
+      return { accessToken: item.bearerAuth };
+    }
+    return item;
+  });
 };
 
 const buildSwaggerDocument = () => {
@@ -114,20 +123,16 @@ const buildSwaggerDocument = () => {
         // Hand-written tags win for modules that opt in, otherwise the URL prefix decides the group.
         const tag = (mod.explicitTags && def.tags?.[0]) || tagForPath(path) || cleanTagName(def.tags?.[0]) || "General";
         usedTags.add(tag);
-        const summary = def.summary || fallbackSummary(def.operationId, method, path);
-        paths[path][method] = {
+        const op = {
           ...def,
           tags: [tag],
-          summary,
-          description: def.description || summary,
+          security: normalizeSecurity(def.security),
           ...(def.requestBody ? { requestBody: withExamples(def.requestBody, method, path) } : {}),
-          responses: normalizeResponses(def.responses, {
-            secured: !(Array.isArray(def.security) && def.security.length === 0),
-            hasPathParam: path.includes("{"),
-            hasInput: Boolean(def.requestBody) || (def.parameters || []).some((p) => p.in === "query" && p.required),
-            isWrite: method !== "get",
-          }),
+          responses: normalizeResponses(def.responses),
         };
+        delete op.summary;
+        delete op.description;
+        paths[path][method] = op;
       });
     });
   });
@@ -142,42 +147,32 @@ const buildSwaggerDocument = () => {
     info: {
       title: "PrintZ API",
       version: "2.0.0",
-      description: [
-        "REST API for PrintZ: billing and POS, job orders, design, production, delivery, HR and the branch-to-manufacturing-unit sale orders.",
-        "",
-        "**Signing in**",
-        "1. Call `POST /auth/login` with your email and password.",
-        "2. Copy `accessToken` from the response, press **Authorize** and paste it. Do not type `Bearer`.",
-        "3. When the access token expires, send `refreshToken` to `POST /auth/refresh`.",
-        "",
-        "**Conventions**",
-        "- Success: `{ success: true, message, data }`. Lists also return `meta` with `page`, `limit`, `total` and `totalPages`.",
-        "- Errors: `{ success: false, code, message, details? }`. `code` is a stable value you can branch on.",
-        "- Ids are 24-character MongoDB ObjectIds. Dates are ISO 8601.",
-      ].join("\n"),
     },
     servers: [
-      { url: "/api", description: "This server" },
-      { url: `http://localhost:${env.PORT || 5000}/api`, description: "Local development" },
+      { url: "/api" },
+      { url: `http://localhost:${env.PORT || 5000}/api` },
     ],
-    tags: Object.keys(tagDescriptions)
-      .filter((name) => usedTags.has(name))
+    tags: Array.from(usedTags)
       .sort((a, b) => a.localeCompare(b))
-      .map((name) => ({ name, description: tagDescriptions[name] })),
+      .map((name) => ({ name })),
     components: {
       securitySchemes: {
-        bearerAuth: {
+        accessToken: {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
-          description: "The `accessToken` returned by `POST /auth/login`.",
+        },
+        refreshToken: {
+          type: "apiKey",
+          in: "header",
+          name: "x-refresh-token",
         },
       },
       schemas,
       responses,
       parameters,
     },
-    security: [{ bearerAuth: [] }],
+    security: [{ accessToken: [] }],
     paths,
   };
 };

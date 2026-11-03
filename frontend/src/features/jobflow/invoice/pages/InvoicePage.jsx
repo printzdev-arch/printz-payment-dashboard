@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   Receipt,
+  CreditCard,
   FileText,
   Clock,
   CheckCircle,
@@ -25,6 +26,7 @@ import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import invoiceApi from "../api/invoiceApi";
 import InvoiceEditorSection from "../components/InvoiceEditorSection";
 import InvoiceBillModal from "../components/InvoiceBillModal";
+import CashierSettlementModal from "../../settlement/components/CashierSettlementModal";
 import "../styles/invoice.css";
 
 export const InvoicePage = () => {
@@ -43,10 +45,33 @@ export const InvoicePage = () => {
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [autoPrintBill, setAutoPrintBill] = useState(false);
+  const [selectedInvoiceForCashier, setSelectedInvoiceForCashier] = useState(null);
 
   const handlePickJob = (jobId) => {
     setSelectedJobForInvoice(jobId);
     window.scrollTo({ top: 120, behavior: "smooth" });
+  };
+
+  const handleLiveCalculationChange = (calcData) => {
+    if (!calcData || !calcData.jobId) return;
+    setPendingEligibleJobs((prev) =>
+      prev.map((j) => {
+        if (
+          String(j._id) === String(calcData.jobId) ||
+          String(j.jobOrderId) === String(calcData.jobId) ||
+          j.jobNo === calcData.jobId
+        ) {
+          return {
+            ...j,
+            estimateAmount: calcData.grandTotal,
+            grandTotal: calcData.grandTotal,
+            advancePaid: calcData.advancePaid,
+            balanceDue: calcData.balanceDue,
+          };
+        }
+        return j;
+      })
+    );
   };
 
   useEffect(() => {
@@ -68,8 +93,9 @@ export const InvoicePage = () => {
         const jObj = inv.jobOrderId && typeof inv.jobOrderId === "object" ? inv.jobOrderId : null;
         const total = Number(inv.grandTotal || inv.invoiceTotal || 0);
         const adv = Number(inv.advancePaid || inv.advanceApplied || jObj?.advancePaid || 0);
-        const paid = Number(inv.paidAmount || inv.amountPaid || 0) || adv;
-        const balance = typeof inv.balanceDue !== "undefined" ? Number(inv.balanceDue) : Math.max(0, total - paid);
+        const paid = Number(inv.paidAmount || inv.amountPaid || 0);
+        const isPaid = inv.status === "PAID" || inv.paymentStatus === "PAID" || (inv.balanceDue !== undefined && Number(inv.balanceDue) <= 0);
+        const balance = isPaid ? 0 : (typeof inv.balanceDue !== "undefined" ? Number(inv.balanceDue) : Math.max(0, total - (adv + paid)));
 
         return {
           _id: inv._id || inv.id,
@@ -79,13 +105,14 @@ export const InvoicePage = () => {
           customerName: inv.customerName || inv.customerSnapshot?.name || jObj?.customerName || "Customer",
           customerPhone: inv.customerPhone || inv.customerSnapshot?.mobile || "N/A",
           grandTotal: total,
-          paidAmount: paid,
+          paidAmount: isPaid ? total : (paid || adv),
           advancePaid: adv,
           advanceApplied: Number(inv.advanceApplied || adv),
           balanceDue: balance,
-          status: inv.status || "DRAFT",
-          paymentStatus: inv.paymentStatus || (balance === 0 ? "PAID" : paid > 0 ? "PARTIAL" : "UNPAID"),
+          status: isPaid ? "PAID" : (inv.status || "DRAFT"),
+          paymentStatus: isPaid ? "PAID" : (inv.paymentStatus || (balance === 0 ? "PAID" : paid > 0 ? "PARTIAL" : "UNPAID")),
           createdAt: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : "Today",
+          jobType: inv.jobType || inv.raw?.jobType || jObj?.jobType || "Print Only",
           raw: inv,
         };
       });
@@ -143,45 +170,86 @@ export const InvoicePage = () => {
           invoiceByJobId.get(id.toLowerCase()) ||
           invoiceByJobId.get(jNo) ||
           invoiceByJobId.get(jNo.toLowerCase()) ||
+          j.existingInvoice ||
           null;
 
-        const matchedGrandTotal = Number(matchedInv?.grandTotal || 0);
-        const jGrandTotal = Number(j.grandTotal || j.totalAmount || 0);
-        const jSubtotal = Number(j.subtotal || j.estimatedCost || j.estimatedPrice || 0);
+        const matchedDiscount = Number(matchedInv?.discountTotal || j.discountTotal || j.existingInvoice?.discountTotal || 0);
+        const invoiceGrand = Number(
+          matchedInv?.grandTotal ||
+          j.existingInvoice?.grandTotal ||
+          matchedInv?.totalAmount ||
+          0
+        );
+        const effectiveSubtotal = Number(matchedInv?.subtotal || j.subtotal || j.estimatedCost || j.estimatedPrice || 0);
 
-        let estAmt = matchedGrandTotal > 0
-          ? matchedGrandTotal
-          : (jGrandTotal > 0 ? jGrandTotal : jSubtotal);
+        let estAmt = invoiceGrand > 0
+          ? invoiceGrand
+          : (matchedDiscount > 0 && effectiveSubtotal > 0
+              ? Math.max(0, effectiveSubtotal - matchedDiscount)
+              : (Number(j.grandTotal || j.totalAmount || 0) > 0
+                  ? Number(j.grandTotal || j.totalAmount || 0)
+                  : effectiveSubtotal));
+
+        // Deduct discount if estAmt reflects raw subtotal
+        if (matchedDiscount > 0 && estAmt === effectiveSubtotal && estAmt > matchedDiscount) {
+          estAmt = Math.round((estAmt - matchedDiscount) * 100) / 100;
+        }
 
         const jAdv = Number(j.advancePaid || j.raw?.advancePaid || 0);
         const invAdv = Number(
           matchedInv?.advancePaid ||
           matchedInv?.advanceApplied ||
-          matchedInv?.paidAmount ||
           matchedInv?.raw?.advancePaid ||
           matchedInv?.raw?.advanceApplied ||
-          matchedInv?.raw?.amountPaid ||
-          matchedInv?.raw?.paidAmount ||
           0
         );
-        let resolvedAdvance = Math.max(jAdv, invAdv);
+        const invPaymentsSum = Array.isArray(matchedInv?.payments)
+          ? matchedInv.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0)
+          : (Array.isArray(matchedInv?.raw?.payments) ? matchedInv.raw.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0);
+        const invPaid = Number(
+          matchedInv?.paidAmount ||
+          matchedInv?.raw?.paidAmount ||
+          matchedInv?.raw?.amountPaid ||
+          invPaymentsSum ||
+          0
+        );
 
-        // If advance was paid on grand total including GST (e.g. 50% of RM 2457 = RM 1228.50 on subtotal RM 2275), align estAmt with grand total
-        if (resolvedAdvance > 0 && estAmt > 0 && resolvedAdvance > (estAmt * 0.5)) {
-          if (matchedGrandTotal > 0) {
-            estAmt = matchedGrandTotal;
-          } else if (jGrandTotal > 0 && jGrandTotal > estAmt) {
-            estAmt = jGrandTotal;
-          } else if (Math.abs(resolvedAdvance * 2 - (estAmt * 1.08)) < 1) {
-            estAmt = Math.round(estAmt * 1.08 * 100) / 100;
-          } else if (Math.abs(resolvedAdvance * 2 - (estAmt * 1.18)) < 1) {
-            estAmt = Math.round(estAmt * 1.18 * 100) / 100;
-          }
+        // Advance is strictly the initial advance paid (do not double count with cumulative paidAmount)
+        let resolvedAdvance = Math.max(jAdv, invAdv);
+        if (resolvedAdvance === 0 && invPaid > 0) {
+          resolvedAdvance = invPaid;
         }
 
-        const remainingBal = (matchedInv && matchedInv.balanceDue !== undefined && matchedInv.balanceDue !== null && Number(matchedInv.balanceDue) > 0)
-          ? Number(matchedInv.balanceDue)
-          : (j.balanceDue != null && Number(j.balanceDue) > 0 ? Number(j.balanceDue) : Math.max(0, Math.round((estAmt - resolvedAdvance) * 100) / 100));
+        // If cumulative payments equal or exceed payable, align estAmt and mark settled
+        const totalCollectedOnJob = Math.max(resolvedAdvance, invPaid);
+        if (estAmt > 0 && totalCollectedOnJob >= estAmt) {
+          estAmt = Math.min(estAmt, totalCollectedOnJob);
+        }
+
+        const isSettled = Boolean(
+          matchedInv?.status === "PAID" ||
+          matchedInv?.paymentStatus === "PAID" ||
+          j.paymentStatus === "PAID" ||
+          (matchedInv && matchedInv.balanceDue !== undefined && matchedInv.balanceDue !== null && Number(matchedInv.balanceDue) <= 0) ||
+          (j.balanceDue !== undefined && j.balanceDue !== null && Number(j.balanceDue) <= 0 && (matchedInv || resolvedAdvance > 0)) ||
+          (estAmt > 0 && totalCollectedOnJob >= estAmt)
+        );
+
+        let remainingBal = 0;
+        if (isSettled) {
+          remainingBal = 0;
+          resolvedAdvance = estAmt;
+        } else if (matchedInv && matchedInv.balanceDue !== undefined && matchedInv.balanceDue !== null && Number(matchedInv.balanceDue) > 0) {
+          // Use the invoice's server-computed balanceDue directly — it already accounts for discount
+          remainingBal = Number(matchedInv.balanceDue);
+          // Re-derive resolvedAdvance from invoiceGrand - balanceDue for consistency
+          if (invoiceGrand > 0 && invoiceGrand > remainingBal) {
+            resolvedAdvance = Math.round((invoiceGrand - remainingBal) * 100) / 100;
+          }
+        } else {
+          const effectiveTotal = invoiceGrand > 0 ? invoiceGrand : estAmt;
+          remainingBal = Math.max(0, Math.round((effectiveTotal - resolvedAdvance) * 100) / 100);
+        }
 
         if (resolvedAdvance === 0 && estAmt > 0 && remainingBal < estAmt) {
           resolvedAdvance = Math.max(0, Math.round((estAmt - remainingBal) * 100) / 100);
@@ -199,7 +267,8 @@ export const InvoicePage = () => {
           estimateAmount: estAmt,
           advancePaid: resolvedAdvance,
           balanceDue: remainingBal,
-          currentStage: j.currentStage || "DELIVERED",
+          currentStage: isSettled ? "COMPLETED" : (j.currentStage || "DELIVERED"),
+          isSettled,
           invoice: matchedInv || null,
           hasInvoice: Boolean(matchedInv),
           raw: j,
@@ -310,7 +379,7 @@ export const InvoicePage = () => {
       sortable: true,
       render: (val) => (
         <span style={{ fontWeight: 700, color: "#0f172a" }}>
-          RM {Number(val || 0).toFixed(2)}
+          ₹{Number(val || 0).toFixed(2)}
         </span>
       ),
     },
@@ -319,14 +388,17 @@ export const InvoicePage = () => {
       label: "Advance Paid",
       sortable: true,
       render: (val, row) => {
+        const isSettled = row.isSettled || Number(row.balanceDue) <= 0 || row.invoice?.status === "PAID" || row.invoice?.paymentStatus === "PAID";
         const isPrintOnly = String(row.jobType || "").toUpperCase().includes("PRINT") && !String(row.jobType || "").toUpperCase().includes("DESIGN");
-        if (isPrintOnly) {
+        if (isPrintOnly || isSettled) {
           return (
             <div>
-              <span style={{ color: "#6b21a8", fontWeight: 700, fontSize: "0.85rem" }}>
-                Full: RM {Number(row.estimateAmount || 0).toFixed(2)}
+              <span style={{ color: isSettled ? "#059669" : "#6b21a8", fontWeight: 700, fontSize: "0.85rem" }}>
+                Full: ₹ {Number(row.estimateAmount || 0).toFixed(2)}
               </span>
-              <div style={{ fontSize: "0.68rem", color: "#6b21a8", fontWeight: 600 }}>100% Payment (No Advance)</div>
+              <div style={{ fontSize: "0.68rem", color: isSettled ? "#059669" : "#6b21a8", fontWeight: 600 }}>
+                {isSettled ? "100% Fully Settled" : "100% Payment (No Advance)"}
+              </div>
             </div>
           );
         }
@@ -336,7 +408,7 @@ export const InvoicePage = () => {
 
         return (
           <span style={{ color: "#059669", fontWeight: 600 }}>
-            RM {advVal.toFixed(2)}
+            ₹ {advVal.toFixed(2)}
           </span>
         );
       },
@@ -345,7 +417,10 @@ export const InvoicePage = () => {
       key: "currentStage",
       label: "Fulfillment Stage",
       sortable: true,
-      render: (val) => <StatusBadge status={val} domain="delivery" />,
+      render: (val, row) => {
+        const isSettled = row?.isSettled || Number(row?.balanceDue) <= 0 || row?.invoice?.status === "PAID" || row?.invoice?.paymentStatus === "PAID";
+        return <StatusBadge status={isSettled ? "COMPLETED" : val} domain="delivery" />;
+      },
     },
     {
       key: "actions",
@@ -353,12 +428,13 @@ export const InvoicePage = () => {
       sortable: false,
       align: "right",
       render: (_, row) => {
+        const isSettled = row.isSettled || Number(row.balanceDue) <= 0 || row.invoice?.status === "PAID" || row.invoice?.paymentStatus === "PAID";
         const isDesignOnly = String(row.jobType || "").toUpperCase().includes("DESIGN") && !String(row.jobType || "").toUpperCase().includes("PRINT");
         const remainingBal = Number(row.balanceDue != null ? row.balanceDue : (row.estimateAmount - (row.advancePaid || 0)));
         const stageUpper = String(row.currentStage || row.raw?.stage || "").toUpperCase();
         const isDesignReady = stageUpper === "READY" || stageUpper === "COMPLETED" || row.raw?.designStatus === "COMPLETED";
         const hasPaidAdvance = Number(row.advancePaid || 0) > 0;
-        const needsBalanceCollection = isDesignOnly && isDesignReady && hasPaidAdvance && remainingBal > 0;
+        const needsBalanceCollection = !isSettled && isDesignOnly && isDesignReady && hasPaidAdvance && remainingBal > 0;
 
         return (
           <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
@@ -376,11 +452,11 @@ export const InvoicePage = () => {
                   fontWeight: 600,
                   boxShadow: "0 1px 2px rgba(5,150,105,0.2)",
                 }}
-                title={`Collect remaining balance of RM ${remainingBal.toFixed(2)} and complete order`}
+                title={`Collect remaining balance of ₹ ${remainingBal.toFixed(2)} and complete order`}
               >
-                <Receipt size={14} /> Collect Balance (RM {remainingBal.toFixed(2)})
+                <Receipt size={14} /> Collect Balance (₹ {remainingBal.toFixed(2)})
               </button>
-            ) : (!hasPaidAdvance || !row.hasInvoice) ? (
+            ) : (!hasPaidAdvance || !row.hasInvoice) && !isSettled ? (
               <button
                 type="button"
                 className="jf-btn jf-btn-primary jf-btn-sm"
@@ -457,6 +533,15 @@ export const InvoicePage = () => {
       ),
     },
     {
+      key: "jobType",
+      label: "Job Type",
+      sortable: true,
+      width: "125px",
+      render: (val, row) => (
+        <JobTypeBadge jobType={val || row.raw?.jobType || "Print Only"} size="sm" />
+      ),
+    },
+    {
       key: "customerName",
       label: "Customer",
       sortable: true,
@@ -474,7 +559,7 @@ export const InvoicePage = () => {
       label: "Invoice Total",
       sortable: true,
       render: (val) => (
-        <strong style={{ color: "#0f172a" }}>RM {Number(val || 0).toFixed(2)}</strong>
+        <strong style={{ color: "#0f172a" }}>₹{Number(val || 0).toFixed(2)}</strong>
       ),
     },
     {
@@ -483,7 +568,7 @@ export const InvoicePage = () => {
       sortable: true,
       render: (val) => (
         <span style={{ color: "#059669", fontWeight: 600 }}>
-          RM {Number(val || 0).toFixed(2)}
+          ₹{Number(val || 0).toFixed(2)}
         </span>
       ),
     },
@@ -495,7 +580,7 @@ export const InvoicePage = () => {
         const b = Number(val || 0);
         return (
           <span style={{ color: b > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>
-            RM {b.toFixed(2)}
+            ₹{b.toFixed(2)}
           </span>
         );
       },
@@ -538,6 +623,43 @@ export const InvoicePage = () => {
       align: "right",
       render: (_, row) => (
         <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
+          {row.balanceDue > 0 ? (
+            <button
+              type="button"
+              className="jf-btn jf-btn-primary jf-btn-sm"
+              onClick={() => setSelectedInvoiceForCashier(row._id || row.id || row.raw?._id)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "#059669",
+                borderColor: "#059669",
+                fontWeight: 700,
+                fontSize: "0.775rem",
+                padding: "0.3rem 0.65rem",
+                cursor: "pointer",
+              }}
+              title="Collect Balance Payment via Cashier"
+            >
+              <CreditCard size={13} /> Settle ₹{Number(row.balanceDue).toFixed(2)}
+            </button>
+          ) : (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "3px",
+                padding: "0.2rem 0.5rem",
+                borderRadius: "4px",
+                background: "#dcfce7",
+                color: "#166534",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+              }}
+            >
+              <CheckCircle size={12} /> Settled
+            </span>
+          )}
           <button
             type="button"
             className="jf-btn jf-btn-secondary jf-btn-sm"
@@ -573,62 +695,11 @@ export const InvoicePage = () => {
       activeStep={6}
     >
       <div className="invoice-feature-container">
-        {/* KPI Stats Grid */}
-        <div className="invoice-stats-grid">
-          <div className="invoice-stat-card">
-            <div style={{ background: "#eff6ff", padding: "0.75rem", borderRadius: "10px", color: "#2563eb" }}>
-              <Receipt size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>{pendingEligibleJobs.length}</div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Ready for Invoicing</div>
-            </div>
-          </div>
-
-          <div className="invoice-stat-card">
-            <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "10px", color: "#475569" }}>
-              <FileText size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>{countDraft}</div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Draft Invoices</div>
-            </div>
-          </div>
-
-          <div className="invoice-stat-card">
-            <div style={{ background: "#fff7ed", padding: "0.75rem", borderRadius: "10px", color: "#ea580c" }}>
-              <Clock size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>{countPendingApproval}</div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Variance Pending Approval</div>
-            </div>
-          </div>
-
-          <div className="invoice-stat-card">
-            <div style={{ background: "#f3e8ff", padding: "0.75rem", borderRadius: "10px", color: "#7c3aed" }}>
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>{countFinalized}</div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Finalized & Locked</div>
-            </div>
-          </div>
-
-          <div className="invoice-stat-card">
-            <div style={{ background: "#dcfce7", padding: "0.75rem", borderRadius: "10px", color: "#15803d" }}>
-              <DollarSign size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>RM {totalInvoicedVal.toFixed(2)}</div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Total Billed Value</div>
-            </div>
-          </div>
-        </div>
 
         {/* ── EMBEDDED INVOICE CREATION & ADVANCE COLLECTION FORM (ABOVE TABLE, NO POPUP) ── */}
         <InvoiceEditorSection
           selectedJobOrderId={selectedJobForInvoice}
+          onLiveCalculationChange={handleLiveCalculationChange}
           pendingJobs={pendingEligibleJobs}
           onJobSelected={(jobId) => setSelectedJobForInvoice(jobId)}
           onInvoiceFinalized={(finalized) => {
@@ -793,10 +864,26 @@ export const InvoicePage = () => {
           isOpen={isBillModalOpen}
           invoice={viewingInvoice}
           autoPrint={autoPrintBill}
+          onSettle={(inv) => {
+            setIsBillModalOpen(false);
+            setSelectedInvoiceForCashier(inv._id || inv.id || inv.raw?._id);
+          }}
           onClose={() => {
             setIsBillModalOpen(false);
             setViewingInvoice(null);
             setAutoPrintBill(false);
+          }}
+        />
+
+        {/* Cashier Settlement Modal for collecting balance payment */}
+        <CashierSettlementModal
+          isOpen={Boolean(selectedInvoiceForCashier)}
+          onClose={() => setSelectedInvoiceForCashier(null)}
+          invoiceId={selectedInvoiceForCashier}
+          onPaymentComplete={() => {
+            loadInvoiceData();
+            setSelectedInvoiceForCashier(null);
+            toast.success("Balance payment collected & invoice settled successfully!");
           }}
         />
       </div>

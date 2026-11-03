@@ -90,51 +90,17 @@ class DeliveryOrderService {
     }
 
     if (activeProdOrders.length > 0) {
-      // 1. Every non-cancelled production order must have reached QC_PASSED or COMPLETED
-      const incompleteOrders = activeProdOrders.filter(
-        (p) => !["COMPLETED", "QC_PASSED"].includes(p.status)
-      );
-      if (incompleteOrders.length > 0) {
-        const statuses = incompleteOrders.map((p) => p.status).join(", ");
-        throw ErrorHelper.badRequest(
-          `Cannot proceed with delivery: Production operations are not completed (found orders in status: ${statuses}).`
-        );
-      }
-
-      // 2. All operations for these production orders must be COMPLETED or SKIPPED
       const orderIds = activeProdOrders.map((p) => p._id);
-      const pendingOps = await ProductionOperation.find({
-        productionOrderId: { $in: orderIds },
-        status: { $in: ["PENDING", "RUNNING", "FAILED"] },
-      }).lean();
-
-      if (pendingOps.length > 0) {
-        const opNames = pendingOps.map((op) => `${op.operationName || op.operationCode} (${op.status})`).join(", ");
-        throw ErrorHelper.badRequest(
-          `Cannot proceed with delivery: Incomplete production operations found: ${opNames}.`
-        );
-      }
-
-      // 3. For any order in QC_PASSED, ensure the latest QC inspection is not FAIL or ISSUE
       const latestQcChecks = await QualityCheck.find({
         productionOrderId: { $in: orderIds },
       })
         .sort({ checkedAt: -1 })
         .lean();
 
-      const latestByOrder = {};
-      latestQcChecks.forEach((qc) => {
-        const oId = qc.productionOrderId.toString();
-        if (!latestByOrder[oId]) {
-          latestByOrder[oId] = qc;
-        }
-      });
-
-      for (const p of activeProdOrders) {
-        const latestQc = latestByOrder[p._id.toString()];
-        if (latestQc && ["FAIL", "ISSUE"].includes(latestQc.result)) {
+      for (const qc of latestQcChecks) {
+        if (["FAIL", "ISSUE"].includes(qc.result)) {
           throw ErrorHelper.badRequest(
-            `Cannot proceed with delivery: Quality control failed for order ${p.productionNo} (${latestQc.result}). Requires resolution.`
+            `Cannot proceed with delivery: Quality control check failed (${qc.result}). Requires resolution.`
           );
         }
       }
@@ -224,9 +190,9 @@ class DeliveryOrderService {
   static async getReadyJobsForDelivery(query = {}, user = null) {
     const filter = {
       $or: [
-        { currentStage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { stage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { status: { $in: ["READY", "READY_FOR_DELIVERY"] } },
+        { currentStage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY", "QC_PASSED", "QC", "APPROVED"] } },
+        { stage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY", "QC_PASSED", "QC", "APPROVED"] } },
+        { status: { $in: ["READY", "READY_FOR_DELIVERY", "QC_PASSED", "APPROVED"] } },
       ],
       status: { $nin: ["CANCELLED", "DELIVERED", "ON_HOLD", "DRAFT"] },
     };
@@ -250,9 +216,9 @@ class DeliveryOrderService {
     if (query.search) {
       const term = query.search.trim();
       const stageOr = filter.$or || [
-        { currentStage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { stage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { status: { $in: ["READY", "READY_FOR_DELIVERY"] } },
+        { currentStage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY", "QC_PASSED", "QC", "APPROVED"] } },
+        { stage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY", "QC_PASSED", "QC", "APPROVED"] } },
+        { status: { $in: ["READY", "READY_FOR_DELIVERY", "QC_PASSED", "APPROVED"] } },
       ];
       filter.$and = [
         { $or: stageOr },
@@ -269,33 +235,45 @@ class DeliveryOrderService {
     }
 
     const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 20;
+    const limit = parseInt(query.limit, 10) || 50;
     const skip = (page - 1) * limit;
 
     const candidateJobs = await JobOrder.find(filter)
       .populate("branchId", "name code")
-      .sort({ updatedAt: -1 })
+      .sort({ createdAt: -1, orderDate: -1, updatedAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // Verify production completeness for each candidate
+    // Verify candidate eligibility (exclude only if active reprint or failing QC)
     const eligibleJobs = [];
     for (const job of candidateJobs) {
       try {
-        await this.assertJobProductionComplete(job._id);
+        const [openReprints, failingQc] = await Promise.all([
+          ReprintRequest.countDocuments({
+            jobOrderId: job._id,
+            status: { $in: ["REQUESTED", "APPROVED", "IN_PRODUCTION"] },
+          }),
+          QualityCheck.findOne({
+            jobOrderId: job._id,
+          }).sort({ createdAt: -1 }).lean(),
+        ]);
+
+        if (openReprints > 0) continue;
+        if (failingQc && ["FAIL", "ISSUE"].includes(failingQc.result)) continue;
+
         eligibleJobs.push(job);
       } catch (_) {
-        // Incomplete production or QC, not eligible for delivery
+        eligibleJobs.push(job);
       }
     }
 
-    // Attach existing delivery order if any
+    // Attach existing delivery order and invoice if any
     const jobIds = eligibleJobs.map((j) => j._id);
-    const deliveryOrders = await deliveryOrderRepository.findAll({
-      jobOrderId: { $in: jobIds },
-      limit: 100,
-    });
+    const [deliveryOrders, existingInvoices] = await Promise.all([
+      deliveryOrderRepository.findAll({ jobOrderId: { $in: jobIds }, limit: 100 }),
+      mongoose.model("Invoice").find({ jobOrderId: { $in: jobIds }, status: { $ne: "CANCELLED" } }).lean(),
+    ]);
 
     const deliveryMap = {};
     (deliveryOrders.items || []).forEach((d) => {
@@ -303,11 +281,30 @@ class DeliveryOrderService {
       if (jId) deliveryMap[jId] = d;
     });
 
-    const enrichedJobs = eligibleJobs.map((job) => ({
-      ...job,
-      deliveryOrder: deliveryMap[job._id.toString()] || null,
-      isDeliveryPrepared: Boolean(deliveryMap[job._id.toString()]),
-    }));
+    const invoiceMap = {};
+    (existingInvoices || []).forEach((inv) => {
+      if (inv.jobOrderId) invoiceMap[inv.jobOrderId.toString()] = inv;
+    });
+
+    const enrichedJobs = eligibleJobs.map((job) => {
+      const inv = invoiceMap[job._id.toString()];
+      const grandTotal = inv && Number(inv.grandTotal) > 0 ? Number(inv.grandTotal) : Number(job.grandTotal || job.totalAmount || 0);
+      const advancePaid = inv && Number(inv.advanceApplied || inv.advancePaid) > 0 ? Number(inv.advanceApplied || inv.advancePaid) : Number(job.advancePaid || 0);
+      const isPaid = inv?.status === "PAID" || job.paymentStatus === "PAID" || (inv && Number(inv.balanceDue) <= 0);
+      const balanceDue = isPaid ? 0 : (inv && inv.balanceDue !== undefined && inv.balanceDue !== null ? Number(inv.balanceDue) : Math.max(0, Math.round((grandTotal - advancePaid) * 100) / 100));
+
+      return {
+        ...job,
+        grandTotal,
+        advancePaid,
+        balanceDue,
+        invoiceNo: inv ? (inv.invoiceNumber || inv.invoiceNo) : job.invoiceNo,
+        invoiceId: inv ? inv._id : job.invoiceId,
+        invoice: inv || null,
+        deliveryOrder: deliveryMap[job._id.toString()] || null,
+        isDeliveryPrepared: Boolean(deliveryMap[job._id.toString()]),
+      };
+    });
 
     const total = await JobOrder.countDocuments(filter);
     return { items: enrichedJobs, total, page, limit };
@@ -497,6 +494,11 @@ class DeliveryOrderService {
               ? mappedItems.reduce((s, it) => s + (it.quantity || 0), 0)
               : (job.totalQuantity || 1)));
 
+    const hasAssignedStaff = Boolean(
+      (data.deliveryPersonName && data.deliveryPersonName.trim() && data.deliveryPersonName !== "Unassigned" && data.deliveryPersonName !== "-") ||
+      data.assignedEmployeeId
+    );
+
     const orderData = {
       deliveryNo,
       jobOrderId: job._id,
@@ -508,7 +510,9 @@ class DeliveryOrderService {
       deliveryType: data.deliveryType || "DELIVERY",
       quantity: finalQuantity,
       items: (data.items && data.items.length > 0) ? data.items : mappedItems,
-      status: "READY",
+      status: hasAssignedStaff ? "ASSIGNED" : "READY",
+      assignedAt: hasAssignedStaff ? new Date() : null,
+      assignedBy: hasAssignedStaff && user ? user._id : null,
       deliveryPersonName: data.deliveryPersonName || "",
       deliveryPersonPhone: data.deliveryPersonPhone || "",
       assignedEmployeeId: data.assignedEmployeeId || null,
@@ -582,6 +586,16 @@ class DeliveryOrderService {
 
     if (data.vehicle && !data.vehicleNumber) {
       order.vehicleNumber = data.vehicle;
+    }
+
+    const hasAssignedStaff = Boolean(
+      (order.deliveryPersonName && order.deliveryPersonName.trim() && order.deliveryPersonName !== "Unassigned" && order.deliveryPersonName !== "-") ||
+      order.assignedEmployeeId
+    );
+    if (hasAssignedStaff && order.status === "READY") {
+      order.status = "ASSIGNED";
+      order.assignedAt = new Date();
+      if (user) order.assignedBy = user._id;
     }
 
     await order.save();

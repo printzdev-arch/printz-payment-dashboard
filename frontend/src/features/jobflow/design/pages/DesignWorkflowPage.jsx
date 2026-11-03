@@ -994,10 +994,17 @@ export const DesignWorkflowPage = () => {
         };
       });
 
+      // Filter out any Print Only jobs from design queue completely
+      const designEligibleMapped = mapped.filter((j) => {
+        const jobTypeStr = String(j.raw?.jobType || j.raw?.specs?.jobType || "").toUpperCase();
+        const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+        return !isPrintOnly;
+      });
+
       // Merge with INITIAL_DESIGNER_JOBS so each designer has ready invitations and workbench jobs
-      const existingJobNos = new Set(mapped.map((j) => j.jobNo));
+      const existingJobNos = new Set(designEligibleMapped.map((j) => j.jobNo));
       const starterJobs = INITIAL_DESIGNER_JOBS.filter((j) => !existingJobNos.has(j.jobNo));
-      const combined = [...mapped, ...starterJobs];
+      const combined = [...designEligibleMapped, ...starterJobs];
 
       setJobs(combined);
 
@@ -1056,7 +1063,7 @@ export const DesignWorkflowPage = () => {
               validEmails.some((ve) => nm && ve.split("@")[0].replace(".", " ").includes(nm))
             );
           });
-          const finalList = filtered.length > 0 ? filtered : rawDesigners;
+          const finalList = filtered.length > 0 ? filtered : INITIAL_DESIGNERS;
           setDesigners(finalList);
           if (finalList[0]?.maxLoad) {
             setGlobalMaxLoad(finalList[0].maxLoad);
@@ -2988,9 +2995,7 @@ export const DesignWorkflowPage = () => {
                   <Users size={18} style={{ color: "#2563eb" }} />
                   <span>Designer Queue</span>
                 </h4>
-                <p className="dq-designer-queue-subtitle">
-                  Active designers available for Round Robin allocation. Manage capacity and individual max loads.
-                </p>
+                
               </div>
               <button
                 type="button"
@@ -3319,9 +3324,7 @@ export const DesignWorkflowPage = () => {
                   <strong style={{ fontSize: "0.9375rem", color: "#1e3a8a" }}>
                     All Designers Queue (Unified Overview)
                   </strong>
-                  <div style={{ fontSize: "0.8125rem", color: "#475569", marginTop: "0.15rem" }}>
-                    Showing all jobs across all designer queues. Click any designer pill above to filter to their individual profile.
-                  </div>
+                  
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>

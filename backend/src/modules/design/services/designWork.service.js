@@ -19,8 +19,12 @@ class DesignWorkService {
     }
 
     const assignedId = String(assignment.employeeId?._id || assignment.employeeId);
-    const isPrivileged = ["admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"].includes(user.role);
-    if (!isPrivileged && assignedId !== String(user._id)) {
+    const userRoleStr = String(user?.role || user?.roleCode || "").toLowerCase();
+    const isPrivileged = ["admin", "superadmin", "manager", "branch_manager", "store_manager"].includes(userRoleStr) || userRoleStr.includes("manager") || userRoleStr.includes("admin");
+    const userEmpId = user?.employeeId ? String(user.employeeId) : null;
+    const isAssigned = assignedId === String(user?._id) || (userEmpId && assignedId === userEmpId);
+
+    if (!isPrivileged && !isAssigned) {
       throw ErrorHelper.forbidden("This job is not assigned to you.");
     }
 
@@ -162,9 +166,11 @@ class DesignWorkService {
 
     if (isRevision) {
       // Validate authorization: must be assigned designer or manager/admin
-      const isPrivileged = ["admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"].includes(user.role);
+      const userRoleStr = String(user?.role || user?.roleCode || "").toLowerCase();
+      const isPrivileged = ["admin", "superadmin", "manager", "branch_manager", "store_manager"].includes(userRoleStr) || userRoleStr.includes("manager") || userRoleStr.includes("admin");
       const assignedId = job.designerId ? String(job.designerId._id || job.designerId) : "";
-      const isAssigned = assignedId && assignedId === String(user._id);
+      const userEmpId = user?.employeeId ? String(user.employeeId) : null;
+      const isAssigned = assignedId && (assignedId === String(user._id) || (userEmpId && assignedId === userEmpId));
       if (!isPrivileged && !isAssigned) {
         throw ErrorHelper.forbidden("Unauthorized: Revision can only be started by the assigned designer.");
       }
@@ -263,9 +269,8 @@ class DesignWorkService {
         ? new mongoose.Types.ObjectId(targetDesignerId)
         : targetDesignerId;
     } else if (!targetDesignerId) {
-      const isPrivileged = [
-        "admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"
-      ].includes(user.role);
+      const userRoleStr = String(user?.role || user?.roleCode || "").toLowerCase();
+      const isPrivileged = ["admin", "superadmin", "manager", "branch_manager", "store_manager"].includes(userRoleStr) || userRoleStr.includes("manager") || userRoleStr.includes("admin");
       if (!isPrivileged) {
         match.employeeId = user._id;
       }

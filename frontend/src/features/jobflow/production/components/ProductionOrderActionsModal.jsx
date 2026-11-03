@@ -23,14 +23,13 @@ export const ProductionOrderActionsModal = ({
   const isResume = actionType === "RESUME";
   const isCancel = actionType === "CANCEL";
 
-  const poNumber = productionOrder.productionNo || productionOrder.orderNumber || "PO";
-  const jobNumber = productionOrder.jobNo || productionOrder.jobOrderNo || "JO";
+  const jobNumber = productionOrder.jobNo || productionOrder.jobOrderNo || productionOrder.productionNo || "Job Order";
 
   const getTitle = () => {
-    if (isHold) return "Place Production Order on Hold";
-    if (isResume) return "Resume Production Order";
-    if (isCancel) return "Cancel Production Order";
-    return "Order Action";
+    if (isHold) return "Place Job Order on Hold";
+    if (isResume) return "Resume Job Order";
+    if (isCancel) return "Cancel Job Order";
+    return "Job Action";
   };
 
   const handleSubmit = async (e) => {
@@ -45,13 +44,13 @@ export const ProductionOrderActionsModal = ({
       const orderId = productionOrder._id || productionOrder.id;
       if (isHold) {
         await jobFlowApi.holdProductionOrder(orderId, reason.trim());
-        toast.warning(`Production Order ${poNumber} placed on hold.`);
+        toast.warning(`Job Order ${jobNumber} placed on hold.`);
       } else if (isResume) {
         await jobFlowApi.resumeProductionOrder(orderId, reason.trim() || "Resumed by manager");
-        toast.success(`Production Order ${poNumber} resumed.`);
+        toast.success(`Job Order ${jobNumber} resumed.`);
       } else if (isCancel) {
         await jobFlowApi.cancelProductionOrder(orderId, reason.trim());
-        toast.error(`Production Order ${poNumber} cancelled.`);
+        toast.error(`Job Order ${jobNumber} cancelled.`);
       }
 
       if (onSuccess) onSuccess();
@@ -74,7 +73,7 @@ export const ProductionOrderActionsModal = ({
             <div>
               <h3 className="jf-modal-title">{getTitle()}</h3>
               <span className="prod-modal-subtitle">
-                Order #{poNumber} (Job #{jobNumber})
+                Job Order #{jobNumber}
               </span>
             </div>
           </div>
@@ -105,7 +104,7 @@ export const ProductionOrderActionsModal = ({
 
             {isCancel && (
               <div className="prod-modal-alert prod-modal-alert--red">
-                <strong>Warning:</strong> Cancelling this production order is permanent. Remaining operations will be
+                <strong>Warning:</strong> Cancelling this job order is permanent. Remaining operations will be
                 closed.
               </div>
             )}

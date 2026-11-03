@@ -155,7 +155,7 @@ const jobOrderSchema = new mongoose.Schema(
       index: true,
     },
     designerId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed,
       ref: "User",
       default: null,
       index: true,

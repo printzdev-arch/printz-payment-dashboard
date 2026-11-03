@@ -238,6 +238,16 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
           if (autoRate > 0) updated.unitPrice = autoRate;
         }
       }
+      if (field === "quantity") {
+        const newQty = Number(value) > 0 ? Number(value) : "";
+        if (newQty && prev.finishingServices.length > 0) {
+          updated.finishingServices = prev.finishingServices.map((s) => ({
+            ...s,
+            quantity: newQty,
+            total: Math.round(newQty * Number(s.unitPrice || 0) * 100) / 100,
+          }));
+        }
+      }
       if (field === "unitPrice") {
         updated.unitPriceManuallyEdited = true;
       }
@@ -245,34 +255,74 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     });
   };
 
-  const addQuickFinishing = (name, defaultPrice = 0.50, unit = "sheets") => {
-    const existing = formData.finishingServices.find((s) => s.name === name);
-    if (existing) {
-      toast.info(`${name} is already in the list.`);
-      return;
-    }
-    const defaultConf =
-      name.toLowerCase().includes("lamination") ? "Matte" :
-      name.toLowerCase().includes("foil") ? "Gold Foil Stamping" :
-      name.toLowerCase().includes("uv") ? "Spot UV (Front)" :
-      name.toLowerCase().includes("pack") ? "Shrink Wrap" :
-      name.toLowerCase().includes("bind") ? "Spiral (Black)" :
-      "Standard";
+  const availableFinishingServices = (
+    masterDefaults.finishingServicesList.length > 0
+      ? masterDefaults.finishingServicesList.map((s) => s.name)
+      : [
+          "Lamination",
+          "Cutting",
+          "Trimming",
+          "Binding",
+          "Folding",
+          "Creasing",
+          "Die Cutting",
+          "Foiling",
+          "UV Coating",
+          "Mounting",
+          "Perforation",
+          "Numbering",
+          "Packing",
+        ]
+  );
 
-    const newService = {
+  const getDefaultConfig = (name) => {
+    const n = String(name || "").toLowerCase();
+    if (n.includes("lamination")) return "Matte";
+    if (n.includes("foil")) return "Gold Foil Stamping";
+    if (n.includes("uv")) return "Spot UV (Front)";
+    if (n.includes("pack")) return "Shrink Wrap";
+    if (n.includes("bind")) return "Spiral (Black)";
+    if (n.includes("fold") || n.includes("creas")) return "Half Fold";
+    if (n.includes("cut") || n.includes("trim")) return "Trim to 90 x 54 mm";
+    return "Standard";
+  };
+
+  const handleAddFinishingRow = () => {
+    const currentQty = Number(formData.quantity) > 0 ? Number(formData.quantity) : 1;
+    const unused = availableFinishingServices.find(
+      (s) => !formData.finishingServices.some((f) => f.name === s)
+    ) || availableFinishingServices[0] || "Lamination";
+
+    const newRow = {
       id: Date.now(),
-      name,
-      config: defaultConf,
-      unitPrice: defaultPrice,
-      quantity: formData.quantity || 500,
-      total: (formData.quantity || 500) * defaultPrice,
-      unit,
+      name: unused,
+      config: getDefaultConfig(unused),
+      unitPrice: 0.50,
+      quantity: currentQty,
+      total: Math.round(currentQty * 0.50 * 100) / 100,
+      unit: "sheets",
     };
+
     setFormData((prev) => ({
       ...prev,
-      finishingServices: [...prev.finishingServices, newService],
+      finishingServices: [...prev.finishingServices, newRow],
     }));
-    toast.success(`Added ${name}`);
+  };
+
+  const handleFinishingServiceChange = (id, newName) => {
+    setFormData((prev) => ({
+      ...prev,
+      finishingServices: prev.finishingServices.map((s) => {
+        if (s.id === id) {
+          return {
+            ...s,
+            name: newName,
+            config: getDefaultConfig(newName),
+          };
+        }
+        return s;
+      }),
+    }));
   };
 
   const removeFinishingService = (id) => {
@@ -324,6 +374,22 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
       toast.error("Please select or specify a customer.");
       return;
     }
+    if (!formData.jobTitle?.trim()) {
+      toast.error("Please enter a Job Title.");
+      return;
+    }
+    if (!formData.productType) {
+      toast.error("Please select a Product Type.");
+      return;
+    }
+    if (!formData.quantity || Number(formData.quantity) <= 0) {
+      toast.error("Please enter a valid Quantity greater than 0.");
+      return;
+    }
+    if (!formData.targetDueDate) {
+      toast.error("Please select a Target Due Date.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -362,12 +428,13 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         notes: formData.remarks,
         specialInstructions: formData.specialInstructions,
         status: isDraft ? "DRAFT" : "SUBMITTED",
-        subtotal: grandTotal,
+        subtotal: productCost,
         grandTotal: grandTotal,
         estimatedPrice: grandTotal,
         totalAmount: grandTotal,
         items: [
           {
+            lineNo: 1,
             itemName: formData.jobTitle || `${formData.productType || "Custom Print Order"} - ${Number(formData.quantity) || 1} pcs`,
             quantity: Number(formData.quantity) || 1,
             unitPrice: currentUnitPrice,
@@ -395,6 +462,19 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
             })),
             needsProduction: true,
           },
+          ...(formData.finishingServices || []).map((svc, idx) => ({
+            lineNo: idx + 2,
+            itemType: "FINISHING",
+            itemName: `Finishing: ${svc.name}`,
+            description: `${svc.config || "Standard"} (${Number(svc.quantity) || Number(formData.quantity) || 1} ${svc.unit || "sheets"})`,
+            quantity: Number(svc.quantity) || Number(formData.quantity) || 1,
+            unit: (svc.unit || "PCS").toUpperCase(),
+            unitPrice: Number(svc.unitPrice) || 0,
+            unitRate: Number(svc.unitPrice) || 0,
+            amount: Number(svc.total) || Math.round((Number(svc.quantity) || Number(formData.quantity) || 1) * Number(svc.unitPrice || 0) * 100) / 100,
+            totalPrice: Number(svc.total) || Math.round((Number(svc.quantity) || Number(formData.quantity) || 1) * Number(svc.unitPrice || 0) * 100) / 100,
+            needsProduction: true,
+          })),
         ],
         specs: {
           jobType: formData.jobType || "Print Only",
@@ -439,6 +519,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 unitPrice: baseRate,
                 quantity: qty,
                 amount: productCost,
+                totalPrice: productCost,
                 unit: "PCS",
                 taxRate: 0,
               },
@@ -450,12 +531,17 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 unitPrice: Number(svc.unitPrice) || 0,
                 quantity: Number(svc.quantity) || qty,
                 unit: (svc.unit || "PCS").toUpperCase(),
+                amount: Number(svc.total) || Math.round((Number(svc.quantity) || qty) * Number(svc.unitPrice || 0) * 100) / 100,
+                totalPrice: Number(svc.total) || Math.round((Number(svc.quantity) || qty) * Number(svc.unitPrice || 0) * 100) / 100,
                 taxRate: 0,
               })),
             ];
             await jobFlowApi.submitEstimate(newId, {
               items: estimateItems,
               finishingServices: formData.finishingServices || [],
+              subtotal: grandTotal,
+              grandTotal: grandTotal,
+              total: grandTotal,
               discountAmount: 0,
               taxRate: 0,
               taxAmount: 0,
@@ -739,21 +825,6 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <option value="Print Only">Print Only (Artwork Provided)</option>
                   <option value="Design Only">Design Only</option>
                 </select>
-                {formData.jobType === "Print Only" && (
-                  <div style={{ fontSize: "0.74rem", color: "#6b21a8", marginTop: "4px", background: "#f5f3ff", padding: "4px 8px", borderRadius: "6px", border: "1px solid #ddd6fe" }}>
-                    ⚡ <strong>Print Only:</strong> Goes directly till Invoice with <strong>Full Amount payment</strong> (No Advance). Order winds up & completes directly after invoice (does not go to production).
-                  </div>
-                )}
-                {formData.jobType === "Design Only" && (
-                  <div style={{ fontSize: "0.74rem", color: "#1d4ed8", marginTop: "4px", background: "#eff6ff", padding: "4px 8px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
-                    🎨 <strong>Design Only:</strong> Goes till Design Sample Approval. Once sample is approved, order <strong>Closes & Completes</strong>.
-                  </div>
-                )}
-                {formData.jobType === "Print & Design" && (
-                  <div style={{ fontSize: "0.74rem", color: "#065f46", marginTop: "4px", background: "#ecfdf5", padding: "4px 8px", borderRadius: "6px", border: "1px solid #a7f3d0" }}>
-                    🔄 <strong>Print & Design:</strong> Full end-to-end pipeline (Estimation → Advance Invoice → Design → Sample Approval → Production → Delivery).
-                  </div>
-                )}
               </div>
 
               {/* Row 3: Job Title (Spans 2 columns) */}
@@ -1009,250 +1080,287 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         </div>
 
         {/* ========================================================================= */}
-        {/* CARD 3: Add Finishing Services (Row 2, Column 1)                           */}
+        {/* ROW 2: Finishing Services (Wider ~65%) & Upload Artwork (Narrower ~35%)   */}
         {/* ========================================================================= */}
-        <div className="jf-card">
-          <div className="jf-card-header">
-            <h3 className="jf-card-title">Add Finishing Services</h3>
-          </div>
-
-          <div className="jf-card-body-stretch">
-            {/* Quick Add Chips */}
-            <div style={{ marginBottom: "1rem" }}>
-              <span className="jf-label">Quick Add (Common Services):</span>
-              <div className="jf-chips-wrap">
-                {(masterDefaults.finishingServicesList.length > 0
-                  ? masterDefaults.finishingServicesList.map((s) => s.name)
-                  : [
-                      "Lamination",
-                      "Cutting",
-                      "Trimming",
-                      "Binding",
-                      "Folding",
-                      "Creasing",
-                      "Die Cutting",
-                      "Foiling",
-                      "UV Coating",
-                      "Mounting",
-                      "Perforation",
-                      "Numbering",
-                      "Packing",
-                    ]
-                ).map((svc) => (
-                  <button
-                    key={svc}
-                    type="button"
-                    className="jf-chip-btn"
-                    onClick={() => addQuickFinishing(svc)}
-                  >
-                    + {svc}
-                  </button>
-                ))}
-              </div>
+        <div className="jf-finishing-upload-row">
+          {/* CARD 3: Finishing Services (Wider) */}
+          <div className="jf-card">
+            <div className="jf-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className="jf-card-title">Finishing Services</h3>
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary jf-btn-sm"
+                style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+                onClick={handleAddFinishingRow}
+              >
+                <Plus size={14} /> Add Service
+              </button>
             </div>
 
-            {/* Finishing Services Table (Static 3 rows, scrollable for 4+ rows) */}
-            <div className="jf-table-scroll-3rows" style={{ marginBottom: "1rem" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "28px", padding: "0.5rem 0.5rem" }}>#</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Finishing Service</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Config</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Price</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Qty</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Total</th>
-                    <th style={{ padding: "0.5rem 0.5rem", textAlign: "right" }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.finishingServices.map((svc, idx) => (
-                    <tr key={svc.id}>
-                      <td style={{ padding: "0.35rem 0.5rem" }}>{idx + 1}</td>
-                      <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}><strong>{svc.name}</strong></td>
-                      <td style={{ padding: "0.35rem 0.5rem" }}>
-                        <select
-                          className="jf-select"
-                          style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "28px", width: "auto", minWidth: "125px" }}
-                          value={svc.config}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setFormData((prev) => ({
-                              ...prev,
-                              finishingServices: prev.finishingServices.map((s) => s.id === svc.id ? { ...s, config: val } : s),
-                            }));
-                          }}
-                        >
-                          {String(svc.name || "").toLowerCase().includes("lamination") ? (
-                            <>
-                              <option value="Matte">Matte</option>
-                              <option value="Gloss">Gloss</option>
-                              <option value="Velvet Soft Touch">Velvet Soft Touch</option>
-                              <option value="Holographic Rainbow">Holographic Rainbow</option>
-                              <option value="Thermal Matte">Thermal Matte</option>
-                              <option value="Thermal Gloss">Thermal Gloss</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("foil") ? (
-                            <>
-                              <option value="Gold Foil Stamping">Gold Foil Stamping</option>
-                              <option value="Silver Foil Stamping">Silver Foil Stamping</option>
-                              <option value="Rose Gold Foil">Rose Gold Foil</option>
-                              <option value="Holographic Foil">Holographic Foil</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("uv") ? (
-                            <>
-                              <option value="Spot UV (Front)">Spot UV (Front)</option>
-                              <option value="Spot UV (Both Sides)">Spot UV (Both Sides)</option>
-                              <option value="Raised Spot UV">Raised Spot UV</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("cut") || String(svc.name || "").toLowerCase().includes("trim") ? (
-                            <>
-                              <option value="Trim to 90 x 54 mm">Trim to 90 x 54 mm</option>
-                              <option value="Die-Cut Round Corners">Die-Cut Round Corners</option>
-                              <option value="Custom Die-Cut">Custom Die-Cut</option>
-                              <option value="Straight Cut">Straight Cut</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("bind") ? (
-                            <>
-                              <option value="Spiral (Black)">Spiral (Black)</option>
-                              <option value="Wire-O Binding">Wire-O Binding</option>
-                              <option value="Saddle Stitching">Saddle Stitching</option>
-                              <option value="Perfect Binding">Perfect Binding</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("fold") || String(svc.name || "").toLowerCase().includes("creas") ? (
-                            <>
-                              <option value="Half Fold">Half Fold</option>
-                              <option value="Tri-Fold (Letter)">Tri-Fold (Letter)</option>
-                              <option value="Z-Fold">Z-Fold</option>
-                              <option value="Creasing Line">Creasing Line</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("pack") ? (
-                            <>
-                              <option value="Shrink Wrap">Shrink Wrap</option>
-                              <option value="Carton Packaging">Carton Packaging</option>
-                              <option value="Bundle Packing">Bundle Packing</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="Standard">Standard</option>
-                              <option value="Custom Specification">Custom Specification</option>
-                            </>
-                          )}
-                        </select>
-                      </td>
-                      <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>RM {svc.unitPrice.toFixed(2)}</td>
-                      <td style={{ padding: "0.35rem 0.5rem" }}>{svc.quantity}</td>
-                      <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}><strong>RM {svc.total.toFixed(2)}</strong></td>
-                      <td style={{ padding: "0.35rem 0.5rem", textAlign: "right" }}>
-                        <button
-                          type="button"
-                          className="jf-btn jf-btn-danger-outline jf-btn-sm"
-                          style={{ padding: "2px 6px" }}
-                          onClick={() => removeFinishingService(svc.id)}
-                        >
+            <div className="jf-card-body-stretch">
+              {/* Finishing Services Table */}
+              <div className="jf-table-scroll-3rows" style={{ marginBottom: "1rem" }}>
+                <table className="jf-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "28px", padding: "0.5rem 0.5rem", textAlign: "center" }}>#</th>
+                      <th style={{ padding: "0.5rem 0.5rem", minWidth: "140px" }}>Finishing Service</th>
+                      <th style={{ padding: "0.5rem 0.5rem", minWidth: "140px" }}>Config</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "95px" }}>Price</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "80px" }}>Qty</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "105px" }}>Total</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "45px", textAlign: "center" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.finishingServices.map((svc, idx) => (
+                      <tr key={svc.id}>
+                        <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>{idx + 1}</td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <select
+                            className="jf-select"
+                            style={{ padding: "0.2rem 0.4rem", fontSize: "0.78125rem", height: "30px", width: "100%", fontWeight: 600 }}
+                            value={svc.name}
+                            onChange={(e) => handleFinishingServiceChange(svc.id, e.target.value)}
+                          >
+                            {availableFinishingServices.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <select
+                            className="jf-select"
+                            style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
+                            value={svc.config}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((prev) => ({
+                                ...prev,
+                                finishingServices: prev.finishingServices.map((s) => s.id === svc.id ? { ...s, config: val } : s),
+                              }));
+                            }}
+                          >
+                            {String(svc.name || "").toLowerCase().includes("lamination") ? (
+                              <>
+                                <option value="Matte">Matte</option>
+                                <option value="Gloss">Gloss</option>
+                                <option value="Velvet Soft Touch">Velvet Soft Touch</option>
+                                <option value="Holographic Rainbow">Holographic Rainbow</option>
+                                <option value="Thermal Matte">Thermal Matte</option>
+                                <option value="Thermal Gloss">Thermal Gloss</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("foil") ? (
+                              <>
+                                <option value="Gold Foil Stamping">Gold Foil Stamping</option>
+                                <option value="Silver Foil Stamping">Silver Foil Stamping</option>
+                                <option value="Rose Gold Foil">Rose Gold Foil</option>
+                                <option value="Holographic Foil">Holographic Foil</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("uv") ? (
+                              <>
+                                <option value="Spot UV (Front)">Spot UV (Front)</option>
+                                <option value="Spot UV (Both Sides)">Spot UV (Both Sides)</option>
+                                <option value="Raised Spot UV">Raised Spot UV</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("cut") || String(svc.name || "").toLowerCase().includes("trim") ? (
+                              <>
+                                <option value="Trim to 90 x 54 mm">Trim to 90 x 54 mm</option>
+                                <option value="Die-Cut Round Corners">Die-Cut Round Corners</option>
+                                <option value="Custom Die-Cut">Custom Die-Cut</option>
+                                <option value="Straight Cut">Straight Cut</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("bind") ? (
+                              <>
+                                <option value="Spiral (Black)">Spiral (Black)</option>
+                                <option value="Wire-O Binding">Wire-O Binding</option>
+                                <option value="Saddle Stitching">Saddle Stitching</option>
+                                <option value="Perfect Binding">Perfect Binding</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("fold") || String(svc.name || "").toLowerCase().includes("creas") ? (
+                              <>
+                                <option value="Half Fold">Half Fold</option>
+                                <option value="Tri-Fold (Letter)">Tri-Fold (Letter)</option>
+                                <option value="Z-Fold">Z-Fold</option>
+                                <option value="Creasing Line">Creasing Line</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("pack") ? (
+                              <>
+                                <option value="Shrink Wrap">Shrink Wrap</option>
+                                <option value="Carton Packaging">Carton Packaging</option>
+                                <option value="Bundle Packing">Bundle Packing</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Standard">Standard</option>
+                                <option value="Custom Specification">Custom Specification</option>
+                              </>
+                            )}
+                          </select>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>RM</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="jf-input"
+                              style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
+                              value={svc.unitPrice}
+                              onChange={(e) => {
+                                const p = e.target.value === "" ? 0 : Number(e.target.value);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  finishingServices: prev.finishingServices.map((s) =>
+                                    s.id === svc.id ? { ...s, unitPrice: p, total: Math.round(Number(s.quantity || 1) * p * 100) / 100 } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                          </div>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <input
+                            type="number"
+                            min="1"
+                            className="jf-input"
+                            style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
+                            value={svc.quantity}
+                            onChange={(e) => {
+                              const q = e.target.value === "" ? 1 : Number(e.target.value);
+                              setFormData((prev) => ({
+                                ...prev,
+                                finishingServices: prev.finishingServices.map((s) =>
+                                  s.id === svc.id ? { ...s, quantity: q, total: Math.round(q * Number(s.unitPrice || 0) * 100) / 100 } : s
+                                ),
+                              }));
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>
+                          <strong>RM {Number(svc.total || (Number(svc.quantity || 1) * Number(svc.unitPrice || 0))).toFixed(2)}</strong>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>
+                          <button
+                            type="button"
+                            className="jf-btn jf-btn-danger-outline jf-btn-sm"
+                            style={{ padding: "3px 7px" }}
+                            onClick={() => removeFinishingService(svc.id)}
+                            title="Remove finishing service"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {formData.finishingServices.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: "center", color: "#64748b", padding: "2rem 1rem" }}>
+                          <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.85rem" }}>No finishing services added yet.</p>
+                          <button
+                            type="button"
+                            className="jf-btn jf-btn-secondary jf-btn-sm"
+                            onClick={handleAddFinishingRow}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+                          >
+                            <Plus size={14} /> Add Finishing Service
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Total Bar pinned to bottom */}
+              <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f0fdf4", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Total Estimated Cost:</span>
+                  <span style={{ fontSize: "0.75rem", color: "#15803d" }}>
+                    Product: RM {productCost.toFixed(2)} {finishingTotal > 0 ? `+ Finishing: RM ${finishingTotal.toFixed(2)}` : "(Finishing: RM 0.00)"}
+                  </span>
+                </div>
+                <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>RM {grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 4: Upload Artwork & References (Narrower) */}
+          <div className="jf-card">
+            <div className="jf-card-header">
+              <h3 className="jf-card-title">Upload Artwork & References</h3>
+            </div>
+
+            <div className="jf-card-body-stretch">
+              {/* Dropzone */}
+              <label className="jf-dropzone" style={{ display: "block", marginBottom: "1rem", padding: "1rem" }}>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.ai,.psd"
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                />
+                <Upload size={26} style={{ color: "var(--jf-primary)", margin: "0 auto 0.4rem" }} />
+                <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.8125rem" }}>
+                  Drag and drop files here or <span style={{ color: "var(--jf-primary)", textDecoration: "underline" }}>browse</span>
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "#475569", marginTop: "2px" }}>
+                  PDF, JPG, PNG, AI, PSD, CDR (Max 10MB)
+                </div>
+              </label>
+
+              {/* Uploaded Files List */}
+              {formData.uploadedFiles.length > 0 && (
+                <div style={{ marginBottom: "1rem" }}>
+                  <h4 style={{ fontSize: "0.8125rem", margin: "0 0 0.5rem 0", color: "#0f172a", fontWeight: 600 }}>
+                    Uploaded Files ({formData.uploadedFiles.length})
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "140px", overflowY: "auto" }}>
+                    {formData.uploadedFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0.5rem 0.75rem",
+                          border: "1px solid var(--jf-border)",
+                          borderRadius: "6px",
+                          background: "#f8fafc",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <FileText size={16} style={{ color: "#ef4444" }} />
+                          <div>
+                            <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{file.name}</div>
+                            <div style={{ fontSize: "0.75rem", color: "#475569" }}>{file.size} • {file.type}</div>
+                          </div>
+                        </div>
+                        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" style={{ padding: "2px 6px" }} onClick={() => removeFile(idx)}>
                           <Trash2 size={13} />
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {formData.finishingServices.length === 0 && (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: "center", color: "#475569", padding: "2rem" }}>
-                        No finishing services added yet. Click a chip above to add.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Total Bar pinned to bottom */}
-            <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f0fdf4", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Total Estimated Cost:</span>
-                <span style={{ fontSize: "0.75rem", color: "#15803d" }}>
-                  Product: RM {productCost.toFixed(2)} {finishingTotal > 0 ? `+ Finishing: RM ${finishingTotal.toFixed(2)}` : "(Finishing: RM 0.00)"}
-                </span>
-              </div>
-              <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>RM {grandTotal.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* CARD 4: Upload Artwork & References (Row 2, Column 2)                      */}
-        {/* ========================================================================= */}
-        <div className="jf-card">
-          <div className="jf-card-header">
-            <h3 className="jf-card-title">Upload Artwork & References</h3>
-          </div>
-
-          <div className="jf-card-body-stretch">
-            {/* Dropzone */}
-            <label className="jf-dropzone" style={{ display: "block", marginBottom: "1rem", padding: "1.25rem 1rem" }}>
-              <input
-                type="file"
-                multiple
-                accept=".pdf,.png,.jpg,.jpeg,.ai,.psd"
-                onChange={handleFileUpload}
-                style={{ display: "none" }}
-              />
-              <Upload size={28} style={{ color: "var(--jf-primary)", margin: "0 auto 0.5rem" }} />
-              <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.875rem" }}>
-                Drag and drop files here or <span style={{ color: "var(--jf-primary)", textDecoration: "underline" }}>click to upload</span>
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "4px" }}>
-                Supported formats: PDF, JPG, PNG, AI, PSD, CDR (Max 10MB)
-              </div>
-            </label>
-
-            {/* Uploaded Files List */}
-            {formData.uploadedFiles.length > 0 && (
-              <div style={{ marginBottom: "1rem" }}>
-                <h4 style={{ fontSize: "0.8125rem", margin: "0 0 0.5rem 0", color: "#0f172a", fontWeight: 600 }}>
-                  Uploaded Files ({formData.uploadedFiles.length})
-                </h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "140px", overflowY: "auto" }}>
-                  {formData.uploadedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "0.5rem 0.75rem",
-                        border: "1px solid var(--jf-border)",
-                        borderRadius: "6px",
-                        background: "#f8fafc",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <FileText size={16} style={{ color: "#ef4444" }} />
-                        <div>
-                          <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{file.name}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{file.size} • {file.type}</div>
-                        </div>
                       </div>
-                      <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" style={{ padding: "2px 6px" }} onClick={() => removeFile(idx)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Special Instructions pinned to bottom */}
-            <div className="jf-form-group" style={{ marginTop: "auto" }}>
-              <label className="jf-label">Special Instructions (Optional)</label>
-              <textarea
-                className="jf-textarea"
-                rows={3}
-                value={formData.specialInstructions}
-                onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
-                placeholder="Mention specific Pantone codes, packaging requirements or sample signoff instructions..."
-                style={{ minHeight: "68px" }}
-              />
+              {/* Special Instructions pinned to bottom */}
+              <div className="jf-form-group" style={{ marginTop: "auto" }}>
+                <label className="jf-label">Special Instructions (Optional)</label>
+                <textarea
+                  className="jf-textarea"
+                  rows={3}
+                  value={formData.specialInstructions}
+                  onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
+                  placeholder="Mention specific Pantone codes, packaging requirements or sample signoff instructions..."
+                  style={{ minHeight: "68px" }}
+                />
+              </div>
             </div>
           </div>
         </div>

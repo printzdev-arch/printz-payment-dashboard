@@ -34,9 +34,9 @@ import productionApi from "../api/productionApi";
 import "../styles/production-planning.css";
 import "../styles/production-theme.css";
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Constants                                                                  */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 const ROWS_PER_PAGE = 8;
 
@@ -88,9 +88,9 @@ const TABS = [
   { id: "REVISE", label: "Planned (Revise)" },
 ];
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Helpers                                                                    */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 const pad = (n) => String(n).padStart(2, "0");
 const toInputDate = (value) => {
@@ -101,14 +101,14 @@ const toInputDate = (value) => {
 const todayInput = () => toInputDate(new Date());
 
 const formatDay = (value) => {
-  if (!value) return "—";
+  if (!value) return "ΓÇö";
   const d = new Date(value);
-  return isNaN(d) ? "—" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return isNaN(d) ? "ΓÇö" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 const formatMinutes = (m) => {
   const n = Math.round(Number(m) || 0);
-  if (!n) return "—";
+  if (!n) return "ΓÇö";
   const h = Math.floor(n / 60);
   const r = n % 60;
   return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r}m`;
@@ -156,7 +156,7 @@ const mapRow = (row) => {
     jobNo: row.jobNo || "",
     jobId: row.jobOrderId || row.jobId,
     estimateNo: row.estimateNo || "",
-    customerName: row.customerName || "—",
+    customerName: row.customerName || "ΓÇö",
     customerSource: row.customerSource || "",
     companyName: row.customerCompany || row.customerName || "",
     productName: row.productName || specs.productName || "Print Job",
@@ -178,8 +178,8 @@ const mapRow = (row) => {
     },
     specs: {
       size: specs.size || "",
-      paper: [specs.material, specs.paperGsm && `${specs.paperGsm} GSM`].filter(Boolean).join(" · "),
-      color: [specs.colorMode, specs.printingSide].filter(Boolean).join(" · "),
+      paper: [specs.material, specs.paperGsm && `${specs.paperGsm} GSM`].filter(Boolean).join(" ┬╖ "),
+      color: [specs.colorMode, specs.printingSide].filter(Boolean).join(" ┬╖ "),
       finishing,
     },
     operations: suggested.map((op) => ({
@@ -309,9 +309,9 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Machine / operator pickers (real records, sends ids)                       */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 function ResourceSelect({ value, fallbackName, items, emptyLabel, onChange, small, label }) {
   // A name saved before pickers existed is kept as an option so it is not lost
@@ -341,9 +341,9 @@ function ResourceSelect({ value, fallbackName, items, emptyLabel, onChange, smal
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Operation form                                                             */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 function OperationForm({ initial, otherOps, machines, operators, onCancel, onSubmit }) {
   const [form, setForm] = useState(initial);
@@ -441,9 +441,9 @@ function OperationForm({ initial, otherOps, machines, operators, onCancel, onSub
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Material form                                                              */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 function MaterialForm({ initial, operationNames, onCancel, onSubmit }) {
   const [form, setForm] = useState(initial);
@@ -511,9 +511,9 @@ function MaterialForm({ initial, operationNames, onCancel, onSubmit }) {
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Plan production view                                                       */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 function PlanProductionView({ job, machines, operators, onBack, onDone }) {
   const revising = job.status !== "UNASSIGNED";
@@ -546,7 +546,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
   const hasShortage = materials.some((m) => shortageFor(m.requiredQty, m.availableStock) > 0);
   const nameOfOp = (id) => operations.find((o) => o.id === id)?.operationName;
 
-  /* ── Operations ── */
+  /* ΓöÇΓöÇ Operations ΓöÇΓöÇ */
   const resetToSuggested = () => {
     if (!window.confirm("Replace the editable operations with the suggested sequence? Operations already started stay as they are.")) return;
     const locked = operations.filter(isLockedOp);
@@ -591,7 +591,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
     setOperations((prev) => prev.map((op, i) => (i === idx ? { ...op, ...patch } : op)));
   };
 
-  /* ── Materials ── */
+  /* ΓöÇΓöÇ Materials ΓöÇΓöÇ */
   const saveMaterial = (data) => {
     if (matModal.index === null) {
       setMaterials((prev) => [...prev, { ...data, id: `mat-${Date.now()}` }]);
@@ -609,7 +609,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
     toast.info(`Removed ${removed.name}.`);
   };
 
-  /* ── Save / confirm ── */
+  /* ΓöÇΓöÇ Save / confirm ΓöÇΓöÇ */
   const buildPayload = (action) => {
     const editable = operations.filter((op) => !isLockedOp(op));
     return {
@@ -682,9 +682,9 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
     try {
       await productionApi.planProductionOrder(job.id, buildPayload(action));
       if (confirming) {
-        toast.success(revising ? `Plan for ${job.productionNo} revised.` : `${job.productionNo} planned and queued for production.`);
+        toast.success(revising ? `Plan for ${job.jobNo || job.productionNo} revised.` : `${job.jobNo || job.productionNo} planned and queued for production.`);
       } else {
-        toast.success(`Draft saved for ${job.productionNo}.`);
+        toast.success(`Draft saved for ${job.jobNo || job.productionNo}.`);
       }
       onDone();
     } catch (err) {
@@ -708,7 +708,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
           <div className="pp-title-wrap">
             <div className="pp-title-icon"><Calendar size={24} /></div>
             <div>
-              <h2 className="pp-title">{revising ? "Revise Plan" : "Plan Production"} - {job.productionNo}</h2>
+              <h2 className="pp-title">{revising ? "Revise Plan" : "Plan Production"} - {job.jobNo || job.productionNo}</h2>
               <p className="pp-subtitle">
                 Job {job.jobNo || "—"}{revising ? ` · plan version ${job.planVersion}` : ""} · Plan operations, materials and schedule based on this job's approved specifications.
               </p>
@@ -733,8 +733,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
           <CardHead step={1} title="Job Details" note="(From Approved Job)" subtitle="Details come from the approved job order and cannot be edited here." />
           <div className="pp-detail-grid">
             <dl className="pp-detail-col">
-              <Detail label="Production Order">{job.productionNo}</Detail>
-              <Detail label="Job Number">{job.jobNo || "—"}</Detail>
+              <Detail label="Job Order No">{job.jobNo || job.productionNo || "—"}</Detail>
               <Detail label="Customer">{job.customerName}</Detail>
               <Detail label="Company Name">{job.companyName || "—"}</Detail>
               <Detail label="Product">{job.productName}</Detail>
@@ -747,7 +746,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
                   <Flag size={13} /> {priorityLabel(job.priority)}
                 </span>
               </Detail>
-              <Detail label="Special Instructions">{job.specialInstructions || "—"}</Detail>
+              <Detail label="Special Instructions">{job.specialInstructions || "ΓÇö"}</Detail>
             </dl>
           </div>
         </section>
@@ -773,10 +772,10 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
           <section className="pp-card pp-card--compact pp-card--grow">
             <h4 className="pp-label">Product Specification</h4>
             <dl className="pp-spec-list">
-              <div><dt>Size</dt><dd>{job.specs.size || "—"}</dd></div>
-              <div><dt>Paper</dt><dd>{job.specs.paper || "—"}</dd></div>
-              <div><dt>Color</dt><dd>{job.specs.color || "—"}</dd></div>
-              <div><dt>Finishing</dt><dd>{job.specs.finishing || "—"}</dd></div>
+              <div><dt>Size</dt><dd>{job.specs.size || "ΓÇö"}</dd></div>
+              <div><dt>Paper</dt><dd>{job.specs.paper || "ΓÇö"}</dd></div>
+              <div><dt>Color</dt><dd>{job.specs.color || "ΓÇö"}</dd></div>
+              <div><dt>Finishing</dt><dd>{job.specs.finishing || "ΓÇö"}</dd></div>
             </dl>
           </section>
         </div>
@@ -786,8 +785,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
         <CardHead
           step={2}
           title="Operation Sequence"
-          note="(Dynamic - Based on Job Requirements)"
-          subtitle="Operations are suggested from this job's specifications. Add, remove or reorder them as needed."
+          
           actions={
             <>
               <button type="button" className="pp-btn pp-btn--outline" onClick={resetToSuggested} title="Restore the suggested operations">
@@ -808,7 +806,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
           <span>
             <strong>{revising ? "Operations that have started or finished are locked." : "Default operations are suggested based on this job's requirements."}</strong>
             <br />
-            {reorderMode ? "Use the arrows in the Action column to change the order, then press Done." : "Machines and operators are real records. Leave the operator empty to let anyone claim the task."}
+           
           </span>
         </div>
 
@@ -856,7 +854,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
                       </td>
                       <td data-label="Machine">
                         {locked ? (
-                          op.machine || "—"
+                          op.machine || "ΓÇö"
                         ) : (
                           <ResourceSelect
                             small
@@ -871,7 +869,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
                       </td>
                       <td data-label="Operator">
                         {locked ? (
-                          op.operator || "—"
+                          op.operator || "ΓÇö"
                         ) : (
                           <ResourceSelect
                             small
@@ -904,10 +902,10 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
                       <td data-label="Est. Duration" className="pp-muted">{formatMinutes(op.estimatedMinutes)}</td>
                       <td data-label="Starts After">
                         <span className={op.dependsOnIds.length ? "pp-body-text" : "pp-muted"}>
-                          {op.dependsOnIds.length ? op.dependsOnIds.map(nameOfOp).filter(Boolean).join(", ") || "—" : "Earlier steps"}
+                          {op.dependsOnIds.length ? op.dependsOnIds.map(nameOfOp).filter(Boolean).join(", ") || "ΓÇö" : "Earlier steps"}
                         </span>
                       </td>
-                      <td data-label="Instructions" className="pp-instructions">{op.instructions || "—"}</td>
+                      <td data-label="Instructions" className="pp-instructions">{op.instructions || "ΓÇö"}</td>
                       <td data-label="Action">
                         <div className="pp-row-actions">
                           {locked ? (
@@ -997,13 +995,13 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
                       <tr key={mat.id}>
                         <td className="pp-col-num" data-label="#">{idx + 1}</td>
                         <td data-label="Material"><span className="pp-strong">{mat.name}</span></td>
-                        <td data-label="Specification" className="pp-muted">{mat.spec || "—"}</td>
+                        <td data-label="Specification" className="pp-muted">{mat.spec || "ΓÇö"}</td>
                         <td data-label="Required Qty">{Number(mat.requiredQty).toLocaleString()}</td>
                         <td data-label="Unit" className="pp-muted">{mat.unit}</td>
                         <td data-label="Available Stock">{Number(mat.availableStock).toLocaleString()}</td>
                         <td data-label="Shortage">{shortage > 0 ? <span className="pp-shortage">{shortage}</span> : <span className="pp-muted">0</span>}</td>
                         <td data-label="Related Operation">{mat.relatedOperation}</td>
-                        <td data-label="Remarks" className="pp-muted">{mat.remarks || "—"}</td>
+                        <td data-label="Remarks" className="pp-muted">{mat.remarks || "ΓÇö"}</td>
                         <td data-label="Action">
                           <div className="pp-row-actions">
                             <button type="button" className="pp-icon-btn" onClick={() => setMatModal({ index: idx })} aria-label="Edit material" title="Edit">
@@ -1024,7 +1022,7 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
         </section>
 
         <section className="pp-card">
-          <CardHead step={4} title="Production Schedule" subtitle="Set the overall schedule and priority for this production order." />
+          <CardHead step={4} title="Production Schedule" subtitle="Set the overall schedule and priority for this job order." />
 
           <div className="pp-form-grid pp-form-grid--3">
             <Field label="Planned Start Date" required>
@@ -1123,9 +1121,9 @@ function PlanProductionView({ job, machines, operators, onBack, onDone }) {
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Orders waiting to be planned                                               */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 function PlanningListView({ tab, setTab, branches, onOpen, reloadKey }) {
   const [rows, setRows] = useState([]);
@@ -1265,8 +1263,7 @@ function PlanningListView({ tab, setTab, branches, onOpen, reloadKey }) {
             <thead>
               <tr>
                 <th className="pp-col-num">#</th>
-                <th>Production Order</th>
-                <th>Job Number</th>
+                <th>Job Order No</th>
                 <th>Customer</th>
                 <th>Product</th>
                 <th className="pp-td-center">Quantity</th>
@@ -1278,10 +1275,10 @@ function PlanningListView({ tab, setTab, branches, onOpen, reloadKey }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr className="pp-row-empty"><td colSpan={10} className="pp-empty-cell">Loading orders...</td></tr>
+                <tr className="pp-row-empty"><td colSpan={9} className="pp-empty-cell">Loading orders...</td></tr>
               ) : pageItems.length === 0 ? (
                 <tr className="pp-row-empty">
-                  <td colSpan={10} className="pp-empty-cell">
+                  <td colSpan={9} className="pp-empty-cell">
                     <div>{rows.length === 0 ? (tab === "REVISE" ? "No planned orders to revise." : "Nothing is waiting to be planned.") : "No orders match your filters."}</div>
                     {rows.length > 0 && (
                       <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={resetFilters}>
@@ -1296,8 +1293,7 @@ function PlanningListView({ tab, setTab, branches, onOpen, reloadKey }) {
                   return (
                     <tr key={id} onClick={() => onOpen(id)}>
                       <td className="pp-col-num" data-label="#">{start + idx + 1}</td>
-                      <td data-label="Production Order"><span className="pp-strong">{row.productionNo}</span></td>
-                      <td data-label="Job Number">{row.jobNo || "—"}</td>
+                      <td data-label="Job Order No"><span className="pp-strong">{row.jobNo || row.productionNo || "—"}</span></td>
                       <td data-label="Customer">{row.customerName || "—"}</td>
                       <td data-label="Product">{row.productName || "—"}</td>
                       <td className="pp-td-center" data-label="Quantity"><span className="pp-strong">{(Number(row.requiredQuantity) || 0).toLocaleString()}</span></td>
@@ -1342,9 +1338,9 @@ function PlanningListView({ tab, setTab, branches, onOpen, reloadKey }) {
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 /* Page                                                                       */
-/* ────────────────────────────────────────────────────────────────────────── */
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
 
 export const ProductionPlanningPage = () => {
   const location = useLocation();
@@ -1389,10 +1385,14 @@ export const ProductionPlanningPage = () => {
     }
   }, [location, navigate, openJob]);
 
-  const closeJob = () => setActiveJob(null);
+  const closeJob = () => {
+    setActiveJob(null);
+    navigate("/production/orders");
+  };
   const finished = () => {
     setActiveJob(null);
     setReloadKey((k) => k + 1);
+    navigate("/production/orders");
   };
 
   if (opening && !activeJob) {

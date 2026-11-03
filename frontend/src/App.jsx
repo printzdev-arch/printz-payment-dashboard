@@ -75,7 +75,6 @@ import {
   EstimationPage,
   DesignWorkflowPage,
   DesignerLoginPage,
-  ProductionPage,
   QualityControlPage,
   DeliveryPage,
   InvoicePage,
@@ -83,16 +82,11 @@ import {
   BranchQrCustomerForm,
   MasterSettingsPage,
 } from "./features/jobflow";
-import QCPage from "./features/jobflow/production/pages/QCPage";
 import {
-  ProductionDashboardPage,
   ProductionOrdersPage,
   ProductionPlanningPage,
   OperationQueuePage,
-  CompletedProductionPage,
-  ReworkQueuePage,
   ReprintBatchesPage,
-  MachineTrackingPage,
   ProductionReportsPage,
 } from "./features/jobflow/production";
 import { PosBillingPage } from "./features/pos";
@@ -131,8 +125,8 @@ export { AuthProvider, useAuth, AuthContext };
 
 const pageTitleMapping = {
   "/login": "Login",
-  "/designer/login": "Designer Portal Login",
-  "/designer-login": "Designer Portal Login",
+  "/designer/login": "Login",
+  "/designer-login": "Login",
 
   "/forgot-password": "Forgot Password",
   "/admin-dashboard": "Admin Dashboard",
@@ -284,10 +278,9 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/designer/login" element={<DesignerLoginPage />} />
-        <Route path="/designer-login" element={<DesignerLoginPage />} />
-        {/* The manufacturing unit signs in from the Mfg tab of the main login */}
-        <Route path="/mfg/login" element={<Navigate to="/login?tab=mfg" replace />} />
+        <Route path="/designer/login" element={<Navigate to="/login" replace />} />
+        <Route path="/designer-login" element={<Navigate to="/login" replace />} />
+        <Route path="/mfg/login" element={<Navigate to="/login" replace />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/popup-demo" element={<PopupDemo />} />
         <Route
@@ -1218,7 +1211,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionDashboardPage />
+                  <ProductionOrdersPage />
                 </ManagerLayout>
               )}
             />
@@ -1231,7 +1224,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ProductionDashboardPage />
+                  <ProductionOrdersPage />
                 </ManagerLayout>
               )}
             />
@@ -1239,29 +1232,11 @@ const AppContent = () => {
         />
         <Route
           path="/production/dashboard"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <ProductionDashboardPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/v3/production"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <ProductionDashboardPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/production/planning"
@@ -1278,55 +1253,19 @@ const AppContent = () => {
         />
         <Route
           path="/jobflow/production-planning"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <ProductionPlanningPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/jobflow/production/planning"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <ProductionPlanningPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/production-planning"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <ProductionPlanningPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/v3/production/planning"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <ProductionPlanningPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/production/orders"
@@ -1356,29 +1295,11 @@ const AppContent = () => {
         />
         <Route
           path="/production/operation-queue"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <OperationQueuePage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/queue" replace />}
         />
         <Route
           path="/production/completed"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <CompletedProductionPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/production/rework"
@@ -1387,7 +1308,7 @@ const AppContent = () => {
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <ReworkQueuePage />
+                  <ReprintBatchesPage initialTab="REWORK" />
                 </ManagerLayout>
               )}
             />
@@ -1408,16 +1329,7 @@ const AppContent = () => {
         />
         <Route
           path="/production/machines"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin", "production_manager", "operator", "staff"]}
-              component={() => (
-                <ManagerLayout>
-                  <MachineTrackingPage />
-                </ManagerLayout>
-              )}
-            />
-          }
+          element={<Navigate to="/production/orders" replace />}
         />
         <Route
           path="/production/reports"
@@ -1441,7 +1353,7 @@ const AppContent = () => {
               roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
               component={() => (
                 <ManagerLayout>
-                  <QCPage />
+                  <QualityControlPage />
                 </ManagerLayout>
               )}
             />
@@ -1798,13 +1710,13 @@ const AppContent = () => {
           }
         />
 
-        {/* Manufacturing Unit portal (own login and layout) */}
+        {/* Manufacturing Unit portal */}
         <Route path="/mfg" element={<Navigate to="/mfg/dashboard" replace />} />
         <Route
           path="/mfg/dashboard"
           element={
             <PrivateRoute
-              loginPath="/login?tab=mfg"
+              loginPath="/login"
               roles={MFG_PORTAL_ROLES}
               component={() => (
                 <MfgLayout>
@@ -1818,7 +1730,7 @@ const AppContent = () => {
           path="/mfg/orders"
           element={
             <PrivateRoute
-              loginPath="/login?tab=mfg"
+              loginPath="/login"
               roles={MFG_PORTAL_ROLES}
               component={() => (
                 <MfgLayout>
@@ -1832,7 +1744,7 @@ const AppContent = () => {
           path="/mfg/orders/:id"
           element={
             <PrivateRoute
-              loginPath="/login?tab=mfg"
+              loginPath="/login"
               roles={MFG_PORTAL_ROLES}
               component={() => (
                 <MfgLayout>
@@ -1846,7 +1758,7 @@ const AppContent = () => {
           path="/mfg/print-dispatch"
           element={
             <PrivateRoute
-              loginPath="/login?tab=mfg"
+              loginPath="/login"
               roles={MFG_PORTAL_ROLES}
               component={() => (
                 <MfgLayout>
@@ -1860,7 +1772,7 @@ const AppContent = () => {
           path="/mfg/queue"
           element={
             <PrivateRoute
-              loginPath="/login?tab=mfg"
+              loginPath="/login"
               roles={["mfg_manager", "admin", "super_admin"]}
               component={() => (
                 <MfgLayout>

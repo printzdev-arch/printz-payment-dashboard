@@ -41,7 +41,7 @@ export const ReprintDecisionModal = ({
       const id = reprintRequest._id || reprintRequest.id;
       if (isApprove) {
         await jobFlowApi.approveReprintRequest(id, { comments: comments.trim(), markAsUrgent });
-        toast.success(`Reprint request ${requestNo} approved. A new reprint production order has been created.`);
+        toast.success(`Reprint request ${requestNo} approved. A new reprint run has been scheduled.`);
       } else {
         await jobFlowApi.rejectReprintRequest(id, { rejectionReason: rejectionReason.trim() });
         toast.warning(`Reprint request ${requestNo} rejected.`);
@@ -67,7 +67,7 @@ export const ReprintDecisionModal = ({
             <div>
               <h3 className="jf-modal-title">{isApprove ? "Approve Reprint Request" : "Reject Reprint Request"}</h3>
               <span className="prod-modal-subtitle">
-                Request #{requestNo} • Job #{jobNo}
+                Request #{requestNo} • Job Order #{jobNo}
               </span>
             </div>
           </div>
@@ -100,7 +100,7 @@ export const ReprintDecisionModal = ({
             {isApprove ? (
               <>
                 <div className="prod-modal-alert prod-modal-alert--green">
-                  Approving creates a new reprint production order for <strong>{qty ?? "—"} units</strong>, starting from{" "}
+                  Approving creates a new reprint run for <strong>{qty ?? "—"} units</strong>, starting from{" "}
                   <strong>{restartOp}</strong>, and adds its operations to the Production Tracking queue. The original
                   order stays as it is.
                 </div>

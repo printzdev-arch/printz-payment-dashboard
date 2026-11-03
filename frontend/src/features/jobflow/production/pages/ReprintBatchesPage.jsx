@@ -27,7 +27,7 @@ import "../styles/production-theme.css";
 /* Constants and helpers                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 const REPRINT_STATUS_LABEL = {
   REQUESTED: "Pending Approval",
@@ -88,17 +88,23 @@ function Pill({ tone, children }) {
 
 function Pager({ page, total, onChange }) {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (total <= PAGE_SIZE) return null;
+  const currentPage = Math.min(page, pages);
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
   return (
     <div className="rb-pager">
       <span>
-        Page {page} of {pages} · {total} records
+        {total === 0
+          ? "Showing 0 records"
+          : `Showing ${startIdx + 1} to ${Math.min(startIdx + PAGE_SIZE, total)} of ${total} records`}
       </span>
-      <div>
-        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" disabled={currentPage <= 1} onClick={() => onChange(currentPage - 1)}>
           Previous
         </button>
-        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" disabled={page >= pages} onClick={() => onChange(page + 1)}>
+        <span style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 0.25rem" }}>
+          Page {currentPage} of {pages}
+        </span>
+        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" disabled={currentPage >= pages} onClick={() => onChange(currentPage + 1)}>
           Next
         </button>
       </div>
@@ -156,8 +162,8 @@ function ReprintDetailsModal({ request, onClose }) {
               <strong>{num(request.requestedQty ?? r.quantity)}</strong>
             </div>
             <div>
-              <span>Production Order</span>
-              <strong>{request.productionNo || "—"}</strong>
+              <span>Job Order No</span>
+              <strong>{request.jobNo || request.productionNo || "—"}</strong>
             </div>
             <div>
               <span>Restart From</span>
@@ -221,7 +227,7 @@ function ReprintDetailsModal({ request, onClose }) {
                   <div className="rb-cycle-head">
                     <strong>{c.title}</strong>
                     <span className="rb-muted">
-                      {c.productionOrder?.productionNo || "Will be created on approval"} · {c.status}
+                      {c.productionOrder?.jobNo || c.productionOrder?.jobOrderNo || "Cycle Active"} · {c.status}
                     </span>
                   </div>
                   <div className="rb-ops">
@@ -372,8 +378,8 @@ function ReprintTab({ onChanged }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Request #</th>
-                <th>Job # / PO</th>
+                <th>Request </th>
+                <th>Job NO</th>
                 <th>Customer & Product</th>
                 <th>Reprint Qty</th>
                 <th>Defect Reason</th>
@@ -414,8 +420,7 @@ function ReprintTab({ onChanged }) {
                         <b className="rb-request-no">{r.requestNo || "—"}</b>
                       </td>
                       <td>
-                        <b>{r.jobNo || "—"}</b>
-                        <div className="rb-muted">{r.productionNo || "—"}</div>
+                        <b>{r.jobNo || r.productionNo || "—"}</b>
                       </td>
                       <td>
                         <b>{r.customerName || "—"}</b>
@@ -628,7 +633,7 @@ function ReworkTab({ onChanged }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Job # / PO</th>
+                <th>Job No</th>
                 <th>Customer & Product</th>
                 <th>Rework Operation</th>
                 <th>Defect / Instructions</th>
@@ -672,8 +677,7 @@ function ReworkTab({ onChanged }) {
                   return (
                     <tr key={row.id}>
                       <td>
-                        <b>{row.jobNo || "—"}</b>
-                        <div className="rb-muted">{row.productionNo || "—"}</div>
+                        <b>{row.jobNo || row.productionNo || "—"}</b>
                       </td>
                       <td>
                         <b>{row.customerName || "—"}</b>

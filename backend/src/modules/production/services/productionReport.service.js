@@ -179,7 +179,7 @@ const buildSummary = async (ctx) => {
     const end = o.actualEnd;
     return {
       productionNo: o.productionNo,
-      jobNo: job.jobNo || "",
+      jobNo: job.jobNo || o.productionNo || "",
       customer: job.customerName || "",
       product: productOf(o),
       cycle: o.cycleType === "ORIGINAL" ? "Original" : `${o.cycleType === "REPRINT" ? "Reprint" : "Rework"} R${o.cycleNo}`,
@@ -199,8 +199,7 @@ const buildSummary = async (ctx) => {
 
   return {
     columns: [
-      col("productionNo", "Production Order"),
-      col("jobNo", "Job No"),
+      col("jobNo", "Job Order No"),
       col("customer", "Customer"),
       col("product", "Product"),
       col("cycle", "Cycle"),
@@ -482,7 +481,7 @@ const buildRework = async (ctx) => {
     const order = orderMap[idOf(op.productionOrderId)] || {};
     return {
       productionNo: order.productionNo || "",
-      jobNo: jobOf(order).jobNo || "",
+      jobNo: jobOf(order).jobNo || order.productionNo || "",
       product: productOf(order),
       operation: op.operationName || op.operationCode,
       cycle: `R${op.cycleNo || 0}`,
@@ -497,8 +496,7 @@ const buildRework = async (ctx) => {
 
   return {
     columns: [
-      col("productionNo", "Production Order"),
-      col("jobNo", "Job No"),
+      col("jobNo", "Job Order No"),
       col("product", "Product"),
       col("operation", "Rework Operation"),
       col("cycle", "Cycle"),
@@ -637,8 +635,7 @@ const buildDeliveryDelays = async (ctx) => {
   const onTimePct = examined ? round(((examined - late.length) / examined) * 100) : null;
   return {
     columns: [
-      col("productionNo", "Production Order"),
-      col("jobNo", "Job No"),
+      col("jobNo", "Job Order No"),
       col("customer", "Customer"),
       col("priority", "Priority"),
       col("dueDate", "Planned End", "date"),
@@ -720,13 +717,13 @@ const buildJobHistory = async (ctx) => {
   const orderId = isObjectId(ctx.query.productionOrderId) ? ctx.query.productionOrderId : null;
   const columns = [
     col("at", "When", "date"),
-    col("productionNo", "Production Order"),
+    col("jobNo", "Job Order No"),
     col("event", "Event"),
     col("detail", "Details"),
     col("by", "By"),
   ];
   if (!term && !orderId) {
-    return { columns, rows: [], summary: [], note: "Enter a job number or production order number to see its history." };
+    return { columns, rows: [], summary: [], note: "Enter a job order number to see its history." };
   }
 
   const orderFilter = {};
@@ -741,7 +738,7 @@ const buildJobHistory = async (ctx) => {
   if (ctx.branch) orderFilter.branchId = ctx.branch;
 
   const orders = await populateJob(productionOrderRepository.find(orderFilter)).sort({ createdAt: 1 }).limit(50).lean();
-  if (orders.length === 0) return { columns, rows: [], summary: [], note: `No production order found for "${term}".` };
+  if (orders.length === 0) return { columns, rows: [], summary: [], note: `No job order found for "${term}".` };
 
   const ids = orders.map((o) => o._id);
   const ops = await productionOperationRepository.find({ productionOrderId: { $in: ids } }).sort({ sequenceNo: 1 }).lean();
@@ -755,20 +752,21 @@ const buildJobHistory = async (ctx) => {
   ops.forEach((op) => (op.pauseLog || []).forEach((p) => userIds.push(idOf(p.pausedBy))));
   checks.forEach((c) => userIds.push(idOf(c.checkedBy)));
   const users = await loadNames("User", userIds, userName);
-  const orderNo = Object.fromEntries(orders.map((o) => [String(o._id), o.productionNo]));
+  const orderJobNo = Object.fromEntries(orders.map((o) => [String(o._id), jobOf(o).jobNo || o.productionNo || ""]));
 
   const events = [];
-  const push = (at, productionNo, event, detail = "", by = "") => at && events.push({ at: new Date(at), productionNo, event, detail, by });
+  const push = (at, jobNo, event, detail = "", by = "") => at && events.push({ at: new Date(at), jobNo, event, detail, by });
 
   orders.forEach((o) => {
-    push(o.createdAt, o.productionNo, "Production order created", `${o.cycleType === "ORIGINAL" ? "Original" : o.cycleType} cycle, planned qty ${o.plannedQty || 0}`);
+    const jNo = orderJobNo[String(o._id)] || "";
+    push(o.createdAt, jNo, "Production started", `${o.cycleType === "ORIGINAL" ? "Original" : o.cycleType} cycle, planned qty ${o.plannedQty || 0}`);
     (o.statusHistory || []).forEach((h) =>
-      push(h.changedAt, o.productionNo, `Status: ${h.from || "—"} → ${h.to}`, h.reason || "", users[idOf(h.changedBy)] || "")
+      push(h.changedAt, jNo, `Status: ${h.from || "—"} → ${h.to}`, h.reason || "", users[idOf(h.changedBy)] || "")
     );
   });
 
   ops.forEach((op) => {
-    const no = orderNo[idOf(op.productionOrderId)];
+    const no = orderJobNo[idOf(op.productionOrderId)] || "";
     const name = op.operationName || op.operationCode;
     const tag = op.isRework ? `${name} (rework)` : name;
     push(op.startAt, no, `${tag} started`, [op.machine && `Machine: ${op.machine}`, op.operatorName && `Operator: ${op.operatorName}`].filter(Boolean).join(" · "), op.operatorName);
@@ -798,7 +796,7 @@ const buildJobHistory = async (ctx) => {
   );
 
   reprints.forEach((r) => {
-    const no = orderNo[idOf(r.productionOrderId)] || "";
+    const no = orderJobNo[idOf(r.productionOrderId)] || "";
     push(r.createdAt, no, `Reprint requested (${r.requestNo || ""})`, `${r.quantity || 0} pcs · ${r.defectType || r.reason || ""}`);
     push(r.approvedAt, no, r.status === "REJECTED" ? "Reprint rejected" : "Reprint approved", r.rejectionReason || r.managerComments || "");
     push(r.completedAt, no, "Reprint completed", "");
@@ -810,9 +808,9 @@ const buildJobHistory = async (ctx) => {
     columns,
     rows: events,
     summary: [
-      statTile("Job", job.jobNo || orders[0].productionNo),
+      statTile("Job Order No", job.jobNo || orders[0].productionNo),
       statTile("Customer", job.customerName || "—"),
-      statTile("Production Orders", orders.length),
+      
       statTile("Events", events.length),
     ],
   };

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -22,6 +23,9 @@ export default defineConfig({
     },
   },
   resolve: {
+    alias: {
+      stream: path.resolve(__dirname, 'src/utils/streamShim.js'),
+    },
     extensions: ['.jsx', '.js', '.tsx', '.ts', '.mjs', '.mts', '.json'],
   },
   server: {

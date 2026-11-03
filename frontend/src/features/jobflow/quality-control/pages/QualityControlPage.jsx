@@ -2,22 +2,18 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
+  ArrowLeft,
   AlertTriangle,
   RotateCcw,
   CheckCircle,
   XCircle,
   FileCheck,
   Truck,
-  Layers,
   Clock,
   ArrowRight,
   RefreshCw,
   Printer,
-  ChevronRight,
-  Sliders,
   Check,
-  Info,
-  Wrench,
   Percent,
 } from "lucide-react";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
@@ -29,18 +25,94 @@ import "../../../../styles/printzTheme.css";
 import { PrintzKpiCard } from "../../../../shared/motion/PrintzKpiCard";
 import { toast } from "react-toastify";
 
-// Dedicated Quality Control Sub-Views (10-Page Architecture)
 import PassedInspectionsTab from "../components/views/PassedInspectionsTab";
 import FailedInspectionsTab from "../components/views/FailedInspectionsTab";
 import QcReinspectionTab from "../components/views/QcReinspectionTab";
 import QcHistoryTab from "../components/views/QcHistoryTab";
 import QcReportsTab from "../components/views/QcReportsTab";
 
-/**
- * Dynamically generate multi-point QC inspection criteria
- * mapped directly to the actual Job Order requirements, substrate, dimensions,
- * batch quantity, customer requirements, and operations sequence from Production View Data
- */
+export const DEFECT_CLASSIFICATIONS = [
+  "Color Shift / Print Smear",
+  "Registration Misalignment / Off-center",
+  "Lamination Bubbles / Peeling",
+  "Miscut / Bleed Inaccuracy",
+  "Creasing / Folding Misalignment",
+  "Substrate Flaw / Paper Scratches",
+  "Missing Pages / Quantity Shortage",
+  "Spot UV / Foil Registration Issue",
+  "Binding / Spine Cracking / Stitching Defect",
+  "Packaging / Labeling Discrepancy",
+  "General Workmanship Defect",
+];
+
+export const getDefaultDefectForCriteria = (name = "") => {
+  const n = String(name || "").toLowerCase();
+  if (n.includes("color") || n.includes("delta") || n.includes("ink") || n.includes("smear")) return "Color Shift / Print Smear";
+  if (n.includes("register") || n.includes("align")) return "Registration Misalignment / Off-center";
+  if (n.includes("lam") || n.includes("coat") || n.includes("varnish") || n.includes("surface")) return "Lamination Bubbles / Peeling";
+  if (n.includes("cut") || n.includes("trim") || n.includes("dimension") || n.includes("square") || n.includes("bleed")) return "Miscut / Bleed Inaccuracy";
+  if (n.includes("fold") || n.includes("crease") || n.includes("bind") || n.includes("spine")) return "Creasing / Folding Misalignment";
+  if (n.includes("pack") || n.includes("count") || n.includes("quant") || n.includes("page")) return "Missing Pages / Quantity Shortage";
+  if (n.includes("substrate") || n.includes("paper") || n.includes("scratch")) return "Substrate Flaw / Paper Scratches";
+  if (n.includes("uv") || n.includes("foil") || n.includes("emboss")) return "Spot UV / Foil Registration Issue";
+  return "General Workmanship Defect";
+};
+
+/* Internal CSS – helper classes used by this page (layout classes live in quality-control.css) */
+const QC_INTERNAL_CSS = `
+.qc-stack { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.qc-stack-sm { display: flex; flex-direction: column; gap: .625rem; }
+.qc-cell-title { display: block; font-weight: 700; color: #0f172a; }
+.qc-cell-sub { font-size: .75rem; color: #475569; margin-top: 2px; }
+.qc-cell-clip { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qc-badge { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; }
+.qc-row-actions { display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: wrap; }
+.qc-between { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.qc-card-head { padding: 1.1rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.qc-card-head .jf-card-title { margin: 0; }
+.qc-index { font-size: .75rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: .2rem .5rem; border-radius: 6px; flex-shrink: 0; }
+.qc-criteria-left { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.qc-btn-block { width: 100%; padding: .75rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+.qc-btn-green { background: #059669 !important; color: #fff !important; }
+.qc-btn-amber { background: #d97706 !important; color: #fff !important; }
+.qc-btn-red   { background: #dc2626 !important; color: #fff !important; }
+.qc-btn-muted { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1 !important; cursor: not-allowed; }
+.qc-btn-pass-all { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
+.qc-notice { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .8rem 1rem; border-radius: 10px; font-weight: 700; font-size: .875rem; text-align: center; }
+.qc-notice.ok  { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.qc-notice.bad { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.qc-defect-card { padding: .8rem; border-radius: 10px; display: flex; flex-direction: column; gap: .45rem; }
+.qc-defect-card.fail  { border: 1px solid #fecaca; background: #fff5f5; }
+.qc-defect-card.minor { border: 1px solid #fde68a; background: #fffbeb; }
+.qc-defect-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.qc-tag { font-size: .6875rem; font-weight: 700; padding: .15rem .45rem; border-radius: 6px; }
+.qc-tag.fail  { background: #fee2e2; color: #991b1b; }
+.qc-tag.minor { background: #fef3c7; color: #92400e; }
+.qc-tag.manager { background: #fee2e2; color: #991b1b; margin-left: .25rem; }
+.qc-field-label { display: block; font-size: .6875rem; color: #64748b; font-weight: 600; margin-bottom: .2rem; }
+.qc-field-sm { font-size: .8125rem; padding: .4rem .5rem; height: auto; }
+.qc-section-title { display: flex; align-items: center; gap: .4rem; font-weight: 700; color: #b91c1c; font-size: .875rem; }
+.qc-route-body strong { font-size: .875rem; }
+.qc-route-option.is-rework strong { color: #b45309; }
+.qc-route-option.is-reprint strong { color: #991b1b; }
+.qc-auto-hint { font-size: .75rem; font-weight: 700; }
+.qc-empty { text-align: center; padding: 3rem 1.25rem; }
+.qc-empty-icon { width: 56px; height: 56px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+.qc-empty h3 { font-size: 1.125rem; font-weight: 700; color: #0f172a; margin: 0 0 1rem; }
+.qc-empty-actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+.qc-reason-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+.qc-reason-box p { margin: .4rem 0 0; font-size: .8125rem; color: #7f1d1d; }
+.qc-loss { color: #dc2626; font-weight: 700; }
+.qc-status-dot-on { color: #059669; font-size: .7rem; font-weight: 600; }
+.qc-status-dot-off { color: #d97706; font-size: .7rem; font-weight: 600; }
+.qc-meta-sep { color: #cbd5e1; }
+@media (max-width: 640px) {
+  .qc-cell-clip { max-width: 140px; }
+  .qc-card-head { padding: .9rem 1rem; }
+  .qc-empty-actions > * { flex: 1 1 100%; }
+}
+`;
+
 export const generateQcCriteria = (job) => {
   if (!job) return [];
 
@@ -56,37 +128,6 @@ export const generateQcCriteria = (job) => {
     (Array.isArray(raw.items) && raw.items[0]) ||
     {};
 
-  const dimensions =
-    job.dimensions && job.dimensions !== "Standard"
-      ? job.dimensions
-      : specs.size ||
-        specs.paperSize ||
-        (specs.width && specs.height ? `${specs.width}x${specs.height}` : "") ||
-        "Specified Dimensions";
-
-  const materialStock =
-    job.materialStock && job.materialStock !== "Standard Stock"
-      ? job.materialStock
-      : specs.paperType ||
-        specs.material ||
-        (specs.paperGsm ? `${specs.paperGsm} GSM Stock` : "") ||
-        "Specified substrate";
-
-  const batchQty = Number(
-    job.batchQty || raw.actualQty || raw.plannedQty || specs.quantity || jobDetails.quantity || 50
-  );
-
-  const productType = job.productType || jobDetails.title || raw.title || "Print Job";
-  const customerReq = (
-    job.customerRequirements ||
-    jobDetails.customerRequirements ||
-    raw.customerRequirements ||
-    jobDetails.notes ||
-    raw.notes ||
-    ""
-  ).trim();
-
-  // Operations list directly from production order execution sequence
   let ops =
     Array.isArray(job.operations) && job.operations.length > 0
       ? job.operations
@@ -101,128 +142,51 @@ export const generateQcCriteria = (job) => {
       { sequenceNo: 1, operationName: "Printing" },
       ...specs.finishing.map((f, i) => ({
         sequenceNo: i + 2,
-        operationName: f.name || f.code || f,
+        operationName: typeof f === "string" ? f : f.name || f.code || "Finishing",
       })),
+    ];
+  }
+
+  if (ops.length === 0) {
+    ops = [
+      { sequenceNo: 1, operationName: "Printing" },
+      { sequenceNo: 2, operationName: "Packing & Bundling" },
     ];
   }
 
   const criteria = [];
   let criteriaIndex = 1;
-  const processedKeys = new Set();
+  const processedNames = new Set();
 
-  if (ops.length > 0) {
-    ops.forEach((op) => {
-      const opName = (op.operationName || op.operation || op.operationCode || "").trim();
-      const opLower = opName.toLowerCase();
-      const isRework = op.isRework || opLower.includes("rework") || opLower.includes("re-run");
-
-      if (isRework) {
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: `Rework Rectification: ${opName.replace(/^Rework:\s*/i, "")}`,
-          desc: `Verify 100% resolution of defect on all ${(op.completedQty || batchQty).toLocaleString()} pcs before clearing inspection`,
-          status: "PASS",
-        });
-        return;
-      }
-
-      if (opLower.includes("print") && !processedKeys.has("print")) {
-        processedKeys.add("print");
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: "Color Calibration & Delta E",
-          desc: `Verify brand colors against approved digital proof for ${productType} (Delta E < 2.0)`,
-          status: "PASS",
-        });
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: "Registration & Alignment",
-          desc: `Front-to-back print register within ±0.5mm on ${materialStock}`,
-          status: "PASS",
-        });
-      } else if (
-        (opLower.includes("lam") || opLower.includes("coat") || opLower.includes("varnish")) &&
-        !processedKeys.has("lam")
-      ) {
-        processedKeys.add("lam");
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: `Surface ${opName} & Coating`,
-          desc: "Smooth adhesion without air bubbles, heat wrinkling, silvering or peeling",
-          status: "PASS",
-        });
-      } else if (
-        (opLower.includes("cut") || opLower.includes("trim") || opLower.includes("guillotine")) &&
-        !processedKeys.has("cut")
-      ) {
-        processedKeys.add("cut");
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: "Dimension Accuracy & Bleed Cut",
-          desc: `Trim flush to exact dimensions (${dimensions}) without border clipping or feathering`,
-          status: "PASS",
-        });
-      } else if (
-        (opLower.includes("bind") || opLower.includes("fold") || opLower.includes("crease")) &&
-        !processedKeys.has("bind")
-      ) {
-        processedKeys.add("bind");
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: `${opName} Structural Integrity`,
-          desc: "Clean fold lines without spine cracking, square spine squaring and secure adhesion",
-          status: "PASS",
-        });
-      } else if (opLower.includes("pack") && !processedKeys.has("pack")) {
-        processedKeys.add("pack");
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: "Packaging & Count Verification",
-          desc: `Count batch total of ${batchQty.toLocaleString()} units, bubble wrapped and labeled`,
-          status: "PASS",
-        });
-      } else if (!processedKeys.has(opLower) && opName) {
-        processedKeys.add(opLower);
-        criteria.push({
-          id: `c${criteriaIndex++}`,
-          name: `${opName} Verification`,
-          desc: `Technical verification for work center process ${opName} against job order specs`,
-          status: "PASS",
-        });
-      }
-    });
-  }
-
-  // Always include standard base quality checks
-  if (!processedKeys.has("print")) {
-    criteria.push({
-      id: `c${criteriaIndex++}`,
-      name: "Print Clarity & Ink Density",
-      desc: `High-resolution text and imagery without smudging, streaks or banding on ${materialStock}`,
-      status: "PASS",
-    });
-  }
-  if (!processedKeys.has("cut")) {
-    criteria.push({
-      id: `c${criteriaIndex++}`,
-      name: "Dimensions & Square Cut",
-      desc: `Accurate trim to ${dimensions} within tolerance limits`,
-      status: "PASS",
-    });
-  }
-
-  // Customer custom requirements check if specified
-  if (customerReq) {
-    criteria.push({
-      id: `c${criteriaIndex++}`,
-      name: "Customer Specific Directives",
-      desc: `Special request: "${customerReq.slice(0, 100)}${customerReq.length > 100 ? "..." : ""}"`,
-      status: "PASS",
-    });
-  }
+  ops.forEach((op) => {
+    const name = (op.operationName || op.operation || op.name || op.operationCode || "").trim();
+    if (!name) return;
+    if (processedNames.has(name.toLowerCase())) return;
+    processedNames.add(name.toLowerCase());
+    criteria.push({ id: `c${criteriaIndex++}`, name, status: "PASS" });
+  });
 
   return criteria;
 };
+
+/* Small presentational helpers */
+const Cell = ({ title, sub, clip }) => (
+  <div>
+    <span className="qc-cell-title">{title}</span>
+    {sub ? <div className={`qc-cell-sub ${clip ? "qc-cell-clip" : ""}`} title={clip ? sub : undefined}>{sub}</div> : null}
+  </div>
+);
+
+const PageHeader = ({ title, onBack }) => (
+  <div className="qc-page-header">
+    <h2>{title}</h2>
+    <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onBack}>
+      <ArrowLeft size={14} /> Back to QC Queue
+    </button>
+  </div>
+);
+
+const reprintStatusLabel = (s) => (s === "APPROVED" ? "Approved" : s === "REJECTED" ? "Rejected" : "Pending");
 
 export const QualityControlPage = ({ embedded = false }) => {
   const navigate = useNavigate();
@@ -232,38 +196,44 @@ export const QualityControlPage = ({ embedded = false }) => {
   const tabParam = searchParams.get("tab");
 
   const normalizeTab = (t) => {
-    if (t === "15A" || t === "overview" || t === "dashboard") return "overview";
-    if (t === "queue" || t === "incoming") return "incoming";
+    if (t === "history" || t === "reports") return "history";
     if (t === "15B" || t === "inspection" || t === "form") return "inspection";
-    if (t === "passed") return "passed";
-    if (t === "failed") return "failed";
     if (t === "16A" || t === "rework" || t === "rework-requests") return "rework-requests";
     if (t === "16B" || t === "reprints" || t === "reprint" || t === "reprint-approvals") return "reprint-approvals";
-    if (t === "reinspection") return "reinspection";
-    if (t === "history") return "history";
-    if (t === "reports") return "reports";
-    return t || "overview";
+    return "overview";
   };
 
   const [activeTab, setActiveTab] = useState(() => normalizeTab(tabParam));
   const [loading, setLoading] = useState(false);
-  const [queueFilter, setQueueFilter] = useState("ALL"); // "ALL", "PENDING", "PASSED", "REWORK"
+  const [queueFilter, setQueueFilter] = useState(() => {
+    if (tabParam === "passed") return "PASSED";
+    if (tabParam === "failed") return "REWORK";
+    if (tabParam === "incoming" || tabParam === "queue") return "PENDING";
+    return "ALL";
+  });
 
-  // 15A: QC Queue Data
+  // 15A
   const [qcQueue, setQcQueue] = useState([]);
   const [selectedQcJob, setSelectedQcJob] = useState(null);
 
-  // 15B: QC Inspection Checklist State
+  // 15B
   const [inspectionCriteria, setInspectionCriteria] = useState([]);
-  const [qcVerdict, setQcVerdict] = useState("PASS"); // "PASS", "DEFECT"
+  const [qcVerdict, setQcVerdict] = useState("PASS");
   const [affectedQty, setAffectedQty] = useState(1);
   const [defectType, setDefectType] = useState("Color Shift / Print Smear");
-  const [defectSeverity, setDefectSeverity] = useState("MAJOR"); // "MINOR", "MAJOR", "CRITICAL"
+  const [defectSeverity, setDefectSeverity] = useState("MAJOR");
   const [defectNotes, setDefectNotes] = useState("");
-  const [inspectorNotes, setInspectorNotes] = useState("Quality verified against approved digital proof and shop tolerances.");
-  const [routingDecision, setRoutingDecision] = useState("TARGETED_REWORK"); // "TARGETED_REWORK", "FULL_REPRINT"
+  const [criteriaDefectTypes, setCriteriaDefectTypes] = useState({});
+  const [criteriaDefectNotes, setCriteriaDefectNotes] = useState({});
 
-  // 16A: Targeted Rework Management State
+  const flaggedCriteria = useMemo(
+    () => inspectionCriteria.filter((c) => c.status === "FAIL" || c.status === "MINOR"),
+    [inspectionCriteria]
+  );
+  const [inspectorNotes, setInspectorNotes] = useState("Quality verified against approved digital proof and shop tolerances.");
+  const [routingDecision, setRoutingDecision] = useState("TARGETED_REWORK");
+
+  // 16A
   const [reworkQueue, setReworkQueue] = useState([
     {
       _id: "rw-1",
@@ -299,15 +269,17 @@ export const QualityControlPage = ({ embedded = false }) => {
     },
   ]);
 
+  const [selectedRework, setSelectedRework] = useState(null);
+  const [reworkQty, setReworkQty] = useState(1);
   const [reworkTargetOp, setReworkTargetOp] = useState("Matt Lamination");
   const [reworkMachine, setReworkMachine] = useState("Floor Workstation 01");
   const [reworkOperator, setReworkOperator] = useState("Production Team");
   const [reworkPriority, setReworkPriority] = useState("URGENT");
   const [reworkInstructions, setReworkInstructions] = useState("");
   const [dispatchedJobIds, setDispatchedJobIds] = useState(new Set());
-  const [reworkFilter, setReworkFilter] = useState("ALL"); // "ALL", "IN_REWORK", "PENDING", "URGENT"
+  const [reworkFilter, setReworkFilter] = useState("ALL");
 
-  // 16B: Reprint Requests State
+  // 16B
   const [reprintRequests, setReprintRequests] = useState([
     {
       _id: "rep-1",
@@ -341,12 +313,15 @@ export const QualityControlPage = ({ embedded = false }) => {
 
   const [selectedReprint, setSelectedReprint] = useState(reprintRequests[0]);
   const [managerNotes, setManagerNotes] = useState("Authorized for emergency reprint. Press calibrated.");
-  const [reprintFilter, setReprintFilter] = useState("ALL"); // "ALL", "PENDING", "APPROVED"
+  const [reprintFilter, setReprintFilter] = useState("ALL");
 
-  // Sync tab from URL params
   useEffect(() => {
     const t = searchParams.get("tab");
     if (t) {
+      if (t === "passed") setQueueFilter("PASSED");
+      else if (t === "failed") setQueueFilter("REWORK");
+      else if (t === "incoming" || t === "queue") setQueueFilter("PENDING");
+      else if (t === "overview" || t === "15A") setQueueFilter("ALL");
       setActiveTab(normalizeTab(t));
     }
   }, [searchParams]);
@@ -361,7 +336,6 @@ export const QualityControlPage = ({ embedded = false }) => {
     });
   };
 
-  // Main data loader from backend
   const loadQcData = () => {
     setLoading(true);
     Promise.allSettled([
@@ -375,7 +349,6 @@ export const QualityControlPage = ({ embedded = false }) => {
         const merged = [];
         const seenJobNos = new Set();
 
-        // Passed checks set
         const passedQcSet = new Set();
         if (qcChecksRes?.status === "fulfilled" && qcChecksRes.value) {
           const checks =
@@ -394,7 +367,6 @@ export const QualityControlPage = ({ embedded = false }) => {
           }
         }
 
-        // All POs
         const allPos =
           poRes.status === "fulfilled" && poRes.value
             ? poRes.value.data?.items ||
@@ -453,8 +425,7 @@ export const QualityControlPage = ({ embedded = false }) => {
             operations.length === 0 &&
             (poByJobRef.get(poId)?.operations?.length || poByJobRef.get(jobNo)?.operations?.length)
           ) {
-            operations =
-              poByJobRef.get(poId)?.operations || poByJobRef.get(jobNo)?.operations || [];
+            operations = poByJobRef.get(poId)?.operations || poByJobRef.get(jobNo)?.operations || [];
           }
 
           if (operations.length === 0 && Array.isArray(specs.finishing) && specs.finishing.length > 0) {
@@ -477,9 +448,7 @@ export const QualityControlPage = ({ embedded = false }) => {
             ["READY", "DELIVERY", "DELIVERED", "COMPLETED", "SETTLED"].includes(
               String(jobObj?.currentStage || "").toUpperCase()
             ) ||
-            ["READY", "DELIVERED", "COMPLETED", "SETTLED"].includes(
-              String(jobObj?.status || "").toUpperCase()
-            ) ||
+            ["READY", "DELIVERED", "COMPLETED", "SETTLED"].includes(String(jobObj?.status || "").toUpperCase()) ||
             (poId && passedQcSet.has(poId)) ||
             (jobObj?._id && passedQcSet.has(String(jobObj._id)));
 
@@ -528,19 +497,23 @@ export const QualityControlPage = ({ embedded = false }) => {
           }
         }
 
-        // 2. All POs with status QC / COMPLETED
+        // 2. POs in QC / COMPLETED / QC_ISSUE
         allPos.forEach((po) => {
           const poId = String(po._id || po.id || "");
           const jobObj = po.jobOrderId && typeof po.jobOrderId === "object" ? po.jobOrderId : null;
           const jobNo = jobObj?.jobNo || po.jobNo || `JO-${poId.slice(-6)}`;
-          if (!seenJobNos.has(poId) && !seenJobNos.has(jobNo) && (po.status === "QC" || po.status === "COMPLETED" || po.status === "QC_ISSUE")) {
+          if (
+            !seenJobNos.has(poId) &&
+            !seenJobNos.has(jobNo) &&
+            (po.status === "QC" || po.status === "COMPLETED" || po.status === "QC_ISSUE")
+          ) {
             seenJobNos.add(poId);
             seenJobNos.add(jobNo);
             merged.push(formatJobItem(po, jobObj));
           }
         });
 
-        // 3. Job Orders in QC or production completed
+        // 3. Job orders
         if (jobOrdersRes.status === "fulfilled" && jobOrdersRes.value) {
           const jobItems =
             jobOrdersRes.value.data?.items ||
@@ -550,59 +523,58 @@ export const QualityControlPage = ({ embedded = false }) => {
             jobItems.forEach((job) => {
               const jNo = job.jobNo || job.jobNumber || `JO-${(job._id || "").slice(-6)}`;
               const jId = String(job._id || job.id || "");
-              if (!seenJobNos.has(jNo) && !seenJobNos.has(jId)) {
-                seenJobNos.add(jNo);
-                seenJobNos.add(jId);
+              if (seenJobNos.has(jNo) || seenJobNos.has(jId)) return;
+              seenJobNos.add(jNo);
+              seenJobNos.add(jId);
 
-                const matchedPo = poByJobRef.get(jId) || poByJobRef.get(jNo) || null;
-                if (matchedPo) {
-                  merged.push(formatJobItem(matchedPo, job));
-                } else {
-                  const specs = job.specs || job.items?.[0] || {};
-                  let operations = Array.isArray(job.operations) && job.operations.length > 0 ? job.operations : [];
-                  if (operations.length === 0 && Array.isArray(specs.finishing) && specs.finishing.length > 0) {
-                    operations = [
-                      { sequenceNo: 1, operationName: "Printing", machine: "Floor Station", status: "COMPLETED" },
-                      ...specs.finishing.map((f, i) => ({
-                        sequenceNo: i + 2,
-                        operationName: f.name || f.code || f,
-                        machine: "Floor Station",
-                        status: "COMPLETED",
-                      })),
-                    ];
-                  }
-                  merged.push({
-                    _id: job._id || job.id,
-                    jobOrderId: job._id || job.id,
-                    orderNumber: `PO-${jNo.replace("JO-", "")}`,
-                    jobNo: jNo,
-                    customerName: job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
-                    productType: job.title || job.productType || "Custom Print Order",
-                    dimensions: specs.size || specs.paperSize || job.dimensions || "Standard",
-                    materialStock: specs.paperType || specs.material || job.paper || "Standard Stock",
-                    customerRequirements: job.customerRequirements || job.notes || job.remarks || "",
-                    operations,
-                    batchQty: Number(specs.quantity || job.quantity || 500),
-                    machine: "Digital Press 01",
-                    operator: "Floor Team",
-                    completedTime: job.updatedAt
-                      ? new Date(job.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                      : "Just now",
-                    status: ["READY", "DELIVERY", "DELIVERED", "COMPLETED", "SETTLED"].includes(
-                      String(job.currentStage || "").toUpperCase()
-                    )
-                      ? "PASSED"
-                      : "PENDING_QC",
-                    proofUrl: job.designProofUrl || job.proofUrl || null,
-                    raw: job,
-                  });
-                }
+              const matchedPo = poByJobRef.get(jId) || poByJobRef.get(jNo) || null;
+              if (matchedPo) {
+                merged.push(formatJobItem(matchedPo, job));
+                return;
               }
+
+              const specs = job.specs || job.items?.[0] || {};
+              let operations = Array.isArray(job.operations) && job.operations.length > 0 ? job.operations : [];
+              if (operations.length === 0 && Array.isArray(specs.finishing) && specs.finishing.length > 0) {
+                operations = [
+                  { sequenceNo: 1, operationName: "Printing", machine: "Floor Station", status: "COMPLETED" },
+                  ...specs.finishing.map((f, i) => ({
+                    sequenceNo: i + 2,
+                    operationName: f.name || f.code || f,
+                    machine: "Floor Station",
+                    status: "COMPLETED",
+                  })),
+                ];
+              }
+              merged.push({
+                _id: job._id || job.id,
+                jobOrderId: job._id || job.id,
+                orderNumber: `PO-${jNo.replace("JO-", "")}`,
+                jobNo: jNo,
+                customerName: job.customerName || job.customer?.name || job.customerSnapshot?.name || "Customer",
+                productType: job.title || job.productType || "Custom Print Order",
+                dimensions: specs.size || specs.paperSize || job.dimensions || "Standard",
+                materialStock: specs.paperType || specs.material || job.paper || "Standard Stock",
+                customerRequirements: job.customerRequirements || job.notes || job.remarks || "",
+                operations,
+                batchQty: Number(specs.quantity || job.quantity || 500),
+                machine: "Digital Press 01",
+                operator: "Floor Team",
+                completedTime: job.updatedAt
+                  ? new Date(job.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "Just now",
+                status: ["READY", "DELIVERY", "DELIVERED", "COMPLETED", "SETTLED"].includes(
+                  String(job.currentStage || "").toUpperCase()
+                )
+                  ? "PASSED"
+                  : "PENDING_QC",
+                proofUrl: job.designProofUrl || job.proofUrl || null,
+                raw: job,
+              });
             });
           }
         }
 
-        // Sort: newest first
         merged.sort((a, b) => {
           const dateA = a.raw?.updatedAt || a.raw?.createdAt || 0;
           const dateB = b.raw?.updatedAt || b.raw?.createdAt || 0;
@@ -611,13 +583,16 @@ export const QualityControlPage = ({ embedded = false }) => {
 
         setQcQueue(merged);
 
-        // Selection logic: If coming with targetLookup, pick that; else if in 15B and nothing selected, pick 1st pending
         const targetLookup = preselectedOrderId || preselectedJobId;
         if (targetLookup) {
           const match = merged.find(
             (q) =>
-              (preselectedOrderId && (String(q.productionOrderId) === preselectedOrderId || String(q._id) === preselectedOrderId)) ||
-              (preselectedJobId && (String(q._id) === preselectedJobId || q.jobNo === preselectedJobId || String(q.jobOrderId) === preselectedJobId))
+              (preselectedOrderId &&
+                (String(q.productionOrderId) === preselectedOrderId || String(q._id) === preselectedOrderId)) ||
+              (preselectedJobId &&
+                (String(q._id) === preselectedJobId ||
+                  q.jobNo === preselectedJobId ||
+                  String(q.jobOrderId) === preselectedJobId))
           );
           if (match) {
             setSelectedQcJob(match);
@@ -626,12 +601,10 @@ export const QualityControlPage = ({ embedded = false }) => {
             setSelectedQcJob(merged[0]);
           }
         } else {
-          // If active tab is 15B and no job selected, auto-select first pending job so user never faces a dead end!
           const firstPending = merged.find((q) => q.status === "PENDING_QC") || merged[0] || null;
           setSelectedQcJob((prev) => prev || firstPending);
         }
 
-        // Live reprint requests
         if (reprintRes?.status === "fulfilled" && reprintRes.value) {
           const reprintItems =
             reprintRes.value.data?.items ||
@@ -644,8 +617,8 @@ export const QualityControlPage = ({ embedded = false }) => {
               const jobNo = r.jobOrderId?.jobNo || matchedJob?.jobNo || r.jobNo || (jId ? `JO-${jId.slice(-6)}` : "JO-UNKNOWN");
               const customerName = r.jobOrderId?.customerName || matchedJob?.customerName || r.customerName || "Customer";
               const product = r.jobOrderId?.title || matchedJob?.productType || r.product || "Custom Print Order";
-              const rawCost = Number(r.estimatedCost || r.scrapCost || ((r.quantity || 20) * 0.45));
-              const scrapCost = rawCost > 0 ? rawCost : ((r.quantity || 20) * 0.45);
+              const rawCost = Number(r.estimatedCost || r.scrapCost || (r.quantity || 20) * 0.45);
+              const scrapCost = rawCost > 0 ? rawCost : (r.quantity || 20) * 0.45;
 
               return {
                 _id: r._id || r.id,
@@ -663,9 +636,7 @@ export const QualityControlPage = ({ embedded = false }) => {
               };
             });
             setReprintRequests(mappedReprints);
-            if (!selectedReprint && mappedReprints.length > 0) {
-              setSelectedReprint(mappedReprints[0]);
-            }
+            setSelectedReprint((prev) => prev || mappedReprints[0]);
           }
         }
       })
@@ -681,7 +652,7 @@ export const QualityControlPage = ({ embedded = false }) => {
     loadQcData();
   }, [preselectedJobId, preselectedOrderId]);
 
-  // Synchronize dynamic QC criteria whenever selectedQcJob changes
+  // Sync criteria when selected job changes
   useEffect(() => {
     if (!selectedQcJob) {
       setInspectionCriteria([]);
@@ -690,12 +661,14 @@ export const QualityControlPage = ({ embedded = false }) => {
 
     setInspectionCriteria(generateQcCriteria(selectedQcJob));
     setAffectedQty(Math.min(50, selectedQcJob.batchQty || 50));
+    setCriteriaDefectTypes({});
+    setCriteriaDefectNotes({});
+    setRoutingDecision("TARGETED_REWORK");
 
     const currentOps = selectedQcJob.operations || selectedQcJob.raw?.operations || [];
     if (currentOps.length > 0) {
       const defaultRework =
-        currentOps.find((o) => (o.operationName || o.operation || "").toLowerCase().includes("lam")) ||
-        currentOps[0];
+        currentOps.find((o) => (o.operationName || o.operation || "").toLowerCase().includes("lam")) || currentOps[0];
       if (defaultRework) {
         setReworkTargetOp(defaultRework.operationName || defaultRework.operation || "Printing");
         setReworkMachine(defaultRework.machine || "Floor Station 01");
@@ -706,135 +679,173 @@ export const QualityControlPage = ({ embedded = false }) => {
     }
 
     setReworkOperator(selectedQcJob.operator || "Floor Technician");
-    setQcVerdict(selectedQcJob.status === "PASSED" ? "PASS" : "PASS");
+    setQcVerdict("PASS");
   }, [selectedQcJob?._id, selectedQcJob?.jobNo]);
 
-  // When switching to inspection directly from sidebar, ensure a job is selected
   useEffect(() => {
     if ((activeTab === "inspection" || activeTab === "15B") && !selectedQcJob && qcQueue.length > 0) {
       const firstPending = qcQueue.find((q) => q.status === "PENDING_QC") || qcQueue[0];
-      if (firstPending) {
-        setSelectedQcJob(firstPending);
-      }
+      if (firstPending) setSelectedQcJob(firstPending);
     }
   }, [activeTab, qcQueue, selectedQcJob]);
 
-  // Criteria toggle
+  // Criteria toggle with auto-selection of Partial Rework vs Full Reprint
   const handleToggleCriteria = (id, newStatus) => {
-    setInspectionCriteria((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
-    );
+    const target = inspectionCriteria.find((c) => c.id === id);
+    if (!target) return;
+
     if (newStatus !== "PASS") {
-      setQcVerdict("DEFECT");
+      setCriteriaDefectTypes((types) => ({
+        ...types,
+        [id]: types[id] || getDefaultDefectForCriteria(target.name),
+      }));
+    }
+
+    const nextList = inspectionCriteria.map((c) => (c.id === id ? { ...c, status: newStatus } : c));
+    setInspectionCriteria(nextList);
+
+    const flagged = nextList.filter((c) => c.status !== "PASS");
+    if (flagged.length === 0) {
+      setQcVerdict("PASS");
+      setRoutingDecision("TARGETED_REWORK");
+      return;
+    }
+
+    setQcVerdict("DEFECT");
+
+    const hasPrintHardDefect = flagged.some((c) => /print/i.test(c.name) && c.status === "FAIL");
+    const allOperationsFailed = flagged.length === nextList.length && flagged.every((c) => c.status === "FAIL");
+
+    if (hasPrintHardDefect || allOperationsFailed) {
+      setRoutingDecision("FULL_REPRINT");
+      setDefectSeverity("CRITICAL");
+    } else {
+      setRoutingDecision("TARGETED_REWORK");
+      setDefectSeverity("MAJOR");
+      setReworkTargetOp(flagged[0].name);
     }
   };
 
-  // 1-Click Pass All
   const handlePassAllCriteria = () => {
     setInspectionCriteria((prev) => prev.map((c) => ({ ...c, status: "PASS" })));
+    setCriteriaDefectTypes({});
+    setCriteriaDefectNotes({});
     setQcVerdict("PASS");
+    setRoutingDecision("TARGETED_REWORK");
     toast.info("All checklist items set to PASS.");
   };
 
-  // Submit QC Verdict from 15B
   const handleSubmitInspection = async () => {
     if (!selectedQcJob) return;
     setLoading(true);
     const targetId = selectedQcJob.productionOrderId || selectedQcJob._id || selectedQcJob.id;
+    const batch = Number(selectedQcJob.batchQty) || 500;
 
     try {
       if (qcVerdict === "PASS") {
         await jobFlowApi.performQualityCheck(targetId, {
           result: "PASS",
           passed: true,
-          quantityChecked: Number(selectedQcJob.batchQty) || 500,
-          acceptedQty: Number(selectedQcJob.batchQty) || 500,
+          quantityChecked: batch,
+          acceptedQty: batch,
           rejectedQty: 0,
           notes: inspectorNotes || "Batch verified against all job specifications.",
           comments: inspectorNotes || "Batch verified against all job specifications.",
         });
 
         toast.success(`Job ${selectedQcJob.jobNo} PASSED inspection! Ready for Delivery.`);
-
-        setQcQueue((prev) =>
-          prev.map((q) => (q.jobNo === selectedQcJob.jobNo ? { ...q, status: "PASSED" } : q))
-        );
+        setQcQueue((prev) => prev.map((q) => (q.jobNo === selectedQcJob.jobNo ? { ...q, status: "PASSED" } : q)));
         setSelectedQcJob((prev) => (prev ? { ...prev, status: "PASSED" } : null));
+        return;
+      }
+
+      const compiledDefects =
+        flaggedCriteria.length > 0
+          ? flaggedCriteria
+              .map((c) => {
+                const type = criteriaDefectTypes[c.id] || getDefaultDefectForCriteria(c.name);
+                const note = criteriaDefectNotes[c.id];
+                return `${c.name}: ${type}${note ? ` (${note})` : ""}`;
+              })
+              .join(" | ")
+          : defectType;
+
+      const finalDefectSummary = defectNotes ? `${compiledDefects} — ${defectNotes}` : compiledDefects;
+      const qty = Number(affectedQty) || 1;
+
+      if (routingDecision === "TARGETED_REWORK") {
+        await jobFlowApi.performQualityCheck(targetId, {
+          result: "ISSUE",
+          passed: false,
+          quantityChecked: batch,
+          acceptedQty: Math.max(0, batch - qty),
+          rejectedQty: qty,
+          issueDetails: finalDefectSummary,
+          correctiveAction: "REWORK",
+          reworkOperationCode: reworkTargetOp || "PRINT",
+          comments: defectNotes || compiledDefects || "Targeted rework required",
+        });
+
+        const newReworkItem = {
+          _id: `rw-${Date.now()}`,
+          productionOrderId: selectedQcJob.productionOrderId,
+          jobNo: selectedQcJob.jobNo,
+          orderNumber: selectedQcJob.orderNumber,
+          customerName: selectedQcJob.customerName,
+          productType: selectedQcJob.productType,
+          reworkOp: reworkTargetOp,
+          machine: reworkMachine,
+          operator: reworkOperator,
+          affectedQty: qty,
+          defectSummary: finalDefectSummary,
+          instructions: reworkInstructions || `Re-run ${reworkTargetOp} on ${qty} pcs.`,
+          priority: reworkPriority,
+          status: "PENDING_DISPATCH",
+          updatedAt: "Just now",
+        };
+
+        setReworkQueue((prev) => [newReworkItem, ...prev]);
+        setSelectedRework(newReworkItem);
+        setReworkQty(qty);
+        setReworkInstructions(newReworkItem.instructions);
+        setQcQueue((prev) => prev.map((q) => (q.jobNo === selectedQcJob.jobNo ? { ...q, status: "REWORK_REQUIRED" } : q)));
+
+        toast.warning(`Defects recorded on ${selectedQcJob.jobNo}. Routing to Targeted Operation Rework.`);
+        setActiveTab("16A");
       } else {
-        if (routingDecision === "TARGETED_REWORK") {
-          await jobFlowApi.performQualityCheck(targetId, {
-            result: "ISSUE",
-            passed: false,
-            quantityChecked: Number(selectedQcJob.batchQty) || 500,
-            acceptedQty: Math.max(0, (Number(selectedQcJob.batchQty) || 500) - Number(affectedQty || 1)),
-            rejectedQty: Number(affectedQty) || 1,
-            issueDetails: `${defectType}: ${defectNotes || "Defect recorded"}`,
-            correctiveAction: "REWORK",
-            reworkOperationCode: reworkTargetOp || "PRINT",
-            comments: defectNotes || "Targeted rework required",
-          });
+        await jobFlowApi.performQualityCheck(targetId, {
+          result: "ISSUE",
+          passed: false,
+          quantityChecked: batch,
+          acceptedQty: Math.max(0, batch - qty),
+          rejectedQty: qty,
+          issueDetails: finalDefectSummary,
+          correctiveAction: "REPRINT",
+          restartFromOperationCode: "PRINT",
+          reprintQuantity: qty,
+          comments: defectNotes || compiledDefects || "Full reprint requested",
+        });
 
-          // Add to local rework queue immediately
-          const newReworkItem = {
-            _id: `rw-${Date.now()}`,
-            jobNo: selectedQcJob.jobNo,
-            orderNumber: selectedQcJob.orderNumber,
-            customerName: selectedQcJob.customerName,
-            productType: selectedQcJob.productType,
-            reworkOp: reworkTargetOp,
-            machine: reworkMachine,
-            operator: reworkOperator,
-            affectedQty: Number(affectedQty) || 1,
-            defectSummary: `${defectType} — ${defectNotes}`,
-            instructions: reworkInstructions || `Re-run ${reworkTargetOp} on ${affectedQty} pcs.`,
-            priority: reworkPriority,
-            status: "PENDING_DISPATCH",
-            updatedAt: "Just now",
-          };
+        const newReprintItem = {
+          _id: `rep-${Date.now()}`,
+          reprintNo: `REP-${String(Date.now()).slice(-6)}`,
+          jobNo: selectedQcJob.jobNo,
+          customerName: selectedQcJob.customerName,
+          product: selectedQcJob.productType,
+          quantity: Number(affectedQty) || Number(selectedQcJob.batchQty) || 50,
+          scrapCost: ((Number(affectedQty) || 50) * 0.35).toFixed(2),
+          reason: finalDefectSummary,
+          machine: selectedQcJob.machine || "Main Press",
+          requestedBy: "Inspector Sign-off",
+          requestedAt: "Just now",
+          status: "PENDING_APPROVAL",
+        };
 
-          setReworkQueue((prev) => [newReworkItem, ...prev]);
-          setQcQueue((prev) =>
-            prev.map((q) => (q.jobNo === selectedQcJob.jobNo ? { ...q, status: "REWORK_REQUIRED" } : q))
-          );
+        setReprintRequests((prev) => [newReprintItem, ...prev]);
+        setSelectedReprint(newReprintItem);
 
-          toast.warning(`Defect recorded on ${selectedQcJob.jobNo}. Routing to Targeted Operation Rework.`);
-          setActiveTab("16A");
-        } else {
-          // Full reprint request
-          await jobFlowApi.performQualityCheck(targetId, {
-            result: "ISSUE",
-            passed: false,
-            quantityChecked: Number(selectedQcJob.batchQty) || 500,
-            acceptedQty: Math.max(0, (Number(selectedQcJob.batchQty) || 500) - Number(affectedQty || 1)),
-            rejectedQty: Number(affectedQty) || 1,
-            issueDetails: `${defectType}: ${defectNotes || "Severe defect requiring full reprint"}`,
-            correctiveAction: "REPRINT",
-            restartFromOperationCode: "PRINT",
-            reprintQuantity: Number(affectedQty) || 1,
-            comments: defectNotes || "Full reprint requested",
-          });
-
-          const newReprintItem = {
-            _id: `rep-${Date.now()}`,
-            reprintNo: `REP-${String(Date.now()).slice(-6)}`,
-            jobNo: selectedQcJob.jobNo,
-            customerName: selectedQcJob.customerName,
-            product: selectedQcJob.productType,
-            quantity: Number(affectedQty) || Number(selectedQcJob.batchQty) || 50,
-            scrapCost: ((Number(affectedQty) || 50) * 0.35).toFixed(2),
-            reason: `${defectType} — ${defectNotes || "Unrecoverable quality defect"}`,
-            machine: selectedQcJob.machine || "Main Press",
-            requestedBy: "Inspector Sign-off",
-            requestedAt: "Just now",
-            status: "PENDING_APPROVAL",
-          };
-
-          setReprintRequests((prev) => [newReprintItem, ...prev]);
-          setSelectedReprint(newReprintItem);
-
-          toast.error(`Full reprint requested for ${selectedQcJob.jobNo}. Escalated to Manager Approval.`);
-          setActiveTab("16B");
-        }
+        toast.error(`Full reprint requested for ${selectedQcJob.jobNo}. Escalated to Manager Approval.`);
+        setActiveTab("16B");
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to record inspection result.");
@@ -843,9 +854,18 @@ export const QualityControlPage = ({ embedded = false }) => {
     }
   };
 
-  // Dispatch Targeted Rework (16A)
-  const handleDispatchRework = async (targetJob) => {
-    const jobToDispatch = targetJob || selectedQcJob || (reworkQueue.length > 0 ? reworkQueue[0] : null);
+  const loadReworkIntoForm = (rw) => {
+    setSelectedRework(rw);
+    setReworkTargetOp(rw.reworkOp);
+    setReworkMachine(rw.machine);
+    setReworkOperator(rw.operator);
+    setReworkInstructions(rw.instructions || "");
+    setReworkPriority(rw.priority || "NORMAL");
+    setReworkQty(rw.affectedQty);
+  };
+
+  const handleDispatchRework = async () => {
+    const jobToDispatch = selectedRework || reworkQueue[0] || null;
     if (!jobToDispatch) {
       toast.error("Please select a rework batch to dispatch.");
       return;
@@ -857,6 +877,25 @@ export const QualityControlPage = ({ embedded = false }) => {
       return;
     }
 
+    const markDispatched = (withInstructions) => {
+      setDispatchedJobIds((prev) => new Set([...prev, jobKey]));
+      setReworkQueue((prev) =>
+        prev.map((rw) =>
+          rw.jobNo === jobToDispatch.jobNo || rw._id === jobToDispatch._id
+            ? {
+                ...rw,
+                status: "IN_REWORK",
+                machine: reworkMachine,
+                operator: reworkOperator,
+                priority: reworkPriority,
+                ...(withInstructions ? { instructions: reworkInstructions } : {}),
+              }
+            : rw
+        )
+      );
+      setSelectedRework((prev) => (prev && prev._id === jobToDispatch._id ? { ...prev, status: "IN_REWORK" } : prev));
+    };
+
     setLoading(true);
     try {
       const pId = jobToDispatch.productionOrderId || jobToDispatch._id;
@@ -866,55 +905,25 @@ export const QualityControlPage = ({ embedded = false }) => {
           machine: reworkMachine,
           operator: reworkOperator,
           instructions: reworkInstructions,
-          quantity: affectedQty,
+          quantity: reworkQty,
         });
       }
-
       toast.success(`Targeted Rework task dispatched for ${jobToDispatch.jobNo} to ${reworkMachine}!`);
-
-      // Track as dispatched to disable repeat clicks immediately
-      setDispatchedJobIds((prev) => new Set([...prev, jobKey]));
-
-      // Update local rework status
-      setReworkQueue((prev) =>
-        prev.map((rw) =>
-          rw.jobNo === jobToDispatch.jobNo || rw._id === jobToDispatch._id
-            ? { ...rw, status: "IN_REWORK", machine: reworkMachine, operator: reworkOperator, instructions: reworkInstructions }
-            : rw
-        )
-      );
-
-      setSelectedQcJob((prev) =>
-        prev && (prev.jobNo === jobToDispatch.jobNo || prev._id === jobToDispatch._id)
-          ? { ...prev, status: "IN_REWORK" }
-          : prev
-      );
+      markDispatched(true);
     } catch {
       toast.success(`Targeted Rework dispatched for ${jobToDispatch.jobNo}! Floor work order updated.`);
-      setDispatchedJobIds((prev) => new Set([...prev, jobKey]));
-      setReworkQueue((prev) =>
-        prev.map((rw) =>
-          rw.jobNo === jobToDispatch.jobNo || rw._id === jobToDispatch._id
-            ? { ...rw, status: "IN_REWORK", machine: reworkMachine, operator: reworkOperator }
-            : rw
-        )
-      );
+      markDispatched(false);
     } finally {
       setLoading(false);
     }
   };
 
-  // Complete Rework & send back to QC
   const handleMarkReworkCompleted = (rwItem) => {
     toast.success(`Rework on ${rwItem.jobNo} marked COMPLETED. Sent back to QC Queue for re-inspection.`);
     setReworkQueue((prev) => prev.filter((r) => r._id !== rwItem._id));
+    setSelectedRework((prev) => (prev?._id === rwItem._id ? null : prev));
+    setQcQueue((prev) => prev.map((q) => (q.jobNo === rwItem.jobNo ? { ...q, status: "PENDING_QC" } : q)));
 
-    // Update QC queue item back to PENDING_QC
-    setQcQueue((prev) =>
-      prev.map((q) => (q.jobNo === rwItem.jobNo ? { ...q, status: "PENDING_QC" } : q))
-    );
-
-    // Pick for inspection
     const matchingQc = qcQueue.find((q) => q.jobNo === rwItem.jobNo);
     if (matchingQc) {
       setSelectedQcJob({ ...matchingQc, status: "PENDING_QC" });
@@ -922,70 +931,57 @@ export const QualityControlPage = ({ embedded = false }) => {
     }
   };
 
-  // Manager Approve Reprint (16B)
   const handleApproveReprint = async (req) => {
+    const markApproved = () => {
+      setReprintRequests((prev) => prev.map((r) => (r._id === req._id ? { ...r, status: "APPROVED" } : r)));
+      setSelectedReprint((prev) => (prev?._id === req._id ? { ...prev, status: "APPROVED" } : prev));
+    };
     try {
       await jobFlowApi.approveReprintRequest(req._id || req.id);
       toast.success(`Reprint Request ${req.reprintNo} APPROVED by Manager! New batch re-issued from first operation.`);
-      setReprintRequests((prev) =>
-        prev.map((r) => (r._id === req._id ? { ...r, status: "APPROVED" } : r))
-      );
-      setSelectedReprint((prev) => (prev?._id === req._id ? { ...prev, status: "APPROVED" } : prev));
+      markApproved();
     } catch (err) {
       if (err.response?.status === 409 || err.response?.status === 400) {
         toast.info(`Reprint ${req.reprintNo} already approved or queued into production.`);
-        setReprintRequests((prev) =>
-          prev.map((r) => (r._id === req._id ? { ...r, status: "APPROVED" } : r))
-        );
-        setSelectedReprint((prev) => (prev?._id === req._id ? { ...prev, status: "APPROVED" } : prev));
+        markApproved();
       } else {
         toast.error(err.response?.data?.message || "Failed to approve reprint request");
       }
     }
   };
 
-  // Manager Reject Reprint (16B)
   const handleRejectReprint = async (req) => {
     try {
       await jobFlowApi.rejectReprintRequest(req._id || req.id, { reason: managerNotes });
       toast.info(`Reprint Request ${req.reprintNo} rejected by Manager. Job order placed ON HOLD.`);
-      setReprintRequests((prev) =>
-        prev.map((r) => (r._id === req._id ? { ...r, status: "REJECTED" } : r))
-      );
+      setReprintRequests((prev) => prev.map((r) => (r._id === req._id ? { ...r, status: "REJECTED" } : r)));
       setSelectedReprint((prev) => (prev?._id === req._id ? { ...prev, status: "REJECTED" } : prev));
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to record reprint rejection");
     }
   };
 
-  // Computed KPI metrics
+  // KPI metrics
   const pendingInspectionCount = qcQueue.filter((q) => q.status === "PENDING_QC").length;
   const passedTodayCount = qcQueue.filter((q) => q.status === "PASSED").length;
+  const reworkRequiredCount = qcQueue.filter((q) => q.status === "REWORK_REQUIRED").length;
   const activeReworkCount = reworkQueue.length;
   const pendingReprintCount = reprintRequests.filter((r) => r.status === "PENDING_APPROVAL").length;
   const totalChecked = passedTodayCount + activeReworkCount;
-  const passRatePercentage = totalChecked > 0 ? Math.round((passedTodayCount / totalChecked) * 100) : 98;
+  const passRatePercentage = totalChecked > 0 ? Math.round((passedTodayCount / totalChecked) * 100) : 0;
 
-  // Filtered queue data for 15A
   const filteredQcQueue = useMemo(() => {
-    if (queueFilter === "PENDING") {
-      return qcQueue.filter((q) => q.status === "PENDING_QC");
-    }
-    if (queueFilter === "PASSED") {
-      return qcQueue.filter((q) => q.status === "PASSED");
-    }
-    if (queueFilter === "REWORK") {
-      return qcQueue.filter((q) => q.status === "REWORK_REQUIRED");
-    }
+    if (queueFilter === "PENDING") return qcQueue.filter((q) => q.status === "PENDING_QC");
+    if (queueFilter === "PASSED") return qcQueue.filter((q) => q.status === "PASSED");
+    if (queueFilter === "REWORK") return qcQueue.filter((q) => q.status === "REWORK_REQUIRED");
     return qcQueue;
   }, [qcQueue, queueFilter]);
 
-  // Passed inspections list for PassedTab
-  const passedList = useMemo(() => {
-    return qcQueue.filter((q) => q.status === "PASSED" || q.status === "READY_FOR_DELIVERY");
-  }, [qcQueue]);
+  const passedList = useMemo(
+    () => qcQueue.filter((q) => q.status === "PASSED" || q.status === "READY_FOR_DELIVERY"),
+    [qcQueue]
+  );
 
-  // Dispatch to Delivery handler with split delivery support
   const handleDispatchToDelivery = async (passedItem, splitData) => {
     try {
       setLoading(true);
@@ -996,9 +992,7 @@ export const QualityControlPage = ({ embedded = false }) => {
       toast.success(
         `Job ${passedItem.jobNo} marked READY_FOR_DELIVERY (${splitData?.dispatchQty || passedItem.acceptedQty || passedItem.batchQty} units) and routed to Delivery Management.`
       );
-      setQcQueue((prev) =>
-        prev.map((q) => (q.jobNo === passedItem.jobNo ? { ...q, status: "READY_FOR_DELIVERY" } : q))
-      );
+      setQcQueue((prev) => prev.map((q) => (q.jobNo === passedItem.jobNo ? { ...q, status: "READY_FOR_DELIVERY" } : q)));
     } catch (err) {
       toast.info(`Job ${passedItem.jobNo} marked READY_FOR_DELIVERY in local queue.`);
     } finally {
@@ -1006,12 +1000,9 @@ export const QualityControlPage = ({ embedded = false }) => {
     }
   };
 
-  // Reinspection pass / fail handlers
   const handleApproveReinspection = (reItem) => {
     toast.success(`Rework batch ${reItem.reworkNo} (${reItem.jobNo}) CLEARED reinspection! Released to READY_FOR_DELIVERY.`);
-    setQcQueue((prev) =>
-      prev.map((q) => (q.jobNo === reItem.jobNo ? { ...q, status: "PASSED" } : q))
-    );
+    setQcQueue((prev) => prev.map((q) => (q.jobNo === reItem.jobNo ? { ...q, status: "PASSED" } : q)));
   };
 
   const handleRejectReinspection = (reItem) => {
@@ -1019,57 +1010,323 @@ export const QualityControlPage = ({ embedded = false }) => {
     handleTabChange("reprint-approvals");
   };
 
-  // Filtered rework queue data for 16A table
   const filteredReworkQueue = useMemo(() => {
-    if (reworkFilter === "IN_REWORK") {
-      return reworkQueue.filter((r) => r.status === "IN_REWORK");
-    }
-    if (reworkFilter === "PENDING") {
-      return reworkQueue.filter((r) => r.status !== "IN_REWORK");
-    }
-    if (reworkFilter === "URGENT") {
-      return reworkQueue.filter((r) => r.priority === "URGENT");
-    }
+    if (reworkFilter === "IN_REWORK") return reworkQueue.filter((r) => r.status === "IN_REWORK");
+    if (reworkFilter === "PENDING") return reworkQueue.filter((r) => r.status !== "IN_REWORK");
+    if (reworkFilter === "URGENT") return reworkQueue.filter((r) => r.priority === "URGENT");
     return reworkQueue;
   }, [reworkQueue, reworkFilter]);
 
-  // Quick Job Switcher (for 15B inspection form header)
-  const renderJobSwitcher = () => (
-    <div className="qc-job-switcher-box">
-      <span style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Active Batch:</span>
-      <select
-        className="qc-job-switcher-select"
-        value={selectedQcJob?.jobNo || ""}
-        onChange={(e) => {
-          const match = qcQueue.find((q) => q.jobNo === e.target.value);
-          if (match) setSelectedQcJob(match);
-        }}
-      >
-        {qcQueue.map((q) => (
-          <option key={q._id || q.jobNo} value={q.jobNo}>
-            {q.jobNo} — {q.customerName} ({q.status === "PASSED" ? "✓ Approved" : "Pending QC"})
-          </option>
-        ))}
-      </select>
-    </div>
+  const filteredReprints = useMemo(
+    () => (reprintFilter === "PENDING" ? reprintRequests.filter((r) => r.status === "PENDING_APPROVAL") : reprintRequests),
+    [reprintRequests, reprintFilter]
   );
+
+  const openInspection = (item, viaUrl = false) => {
+    setSelectedQcJob(item);
+    if (viaUrl) handleTabChange("inspection");
+    else setActiveTab("15B");
+  };
+
+  /* ───────── Table columns ───────── */
+  const qcBaseColumns = [
+    {
+      key: "jobNo",
+      label: "Order & Job #",
+      minWidth: "170px",
+      sortable: true,
+      render: (val) => <Cell title={val}  />,
+    },
+    { key: "customerName", label: "Customer", sortable: true },
+    {
+      key: "productType",
+      label: "Product & Specs",
+      sortable: true,
+      render: (val, item) => <Cell title={val} sub={`${item.dimensions} • ${item.materialStock}`} />,
+    },
+    {
+      key: "batchQty",
+      label: "Batch Qty",
+      sortable: true,
+      render: (val) => `${Number(val).toLocaleString()} pcs`,
+    },
+    {
+      key: "machine",
+      label: "Workstation",
+      sortable: true,
+      render: (val, item) => (
+        <div>
+          <div>{val}</div>
+          <div className="qc-cell-sub">{item.operator}</div>
+        </div>
+      ),
+    },
+    { key: "completedTime", label: "Time Ready", sortable: true },
+  ];
+
+  const qcStatusColumn = {
+    key: "status",
+    label: "Status",
+    sortable: true,
+    render: (val) => {
+      if (val === "PASSED")
+        return (
+          <span className="jf-badge jf-badge-green qc-badge">
+            <CheckCircle size={12} /> Approved
+          </span>
+        );
+      if (val === "REWORK_REQUIRED")
+        return (
+          <span className="jf-badge jf-badge-amber qc-badge">
+            <RotateCcw size={12} /> In Rework
+          </span>
+        );
+      return (
+        <span className="jf-badge jf-badge-amber qc-badge">
+          <Clock size={12} /> Pending QC
+        </span>
+      );
+    },
+  };
+
+  const queueColumns = [
+    ...qcBaseColumns,
+    qcStatusColumn,
+    {
+      key: "actions",
+      label: "Action",
+      sortable: false,
+      align: "right",
+      render: (_, item) =>
+        item.status === "PASSED" ? (
+          <div className="qc-row-actions">
+            <button
+              type="button"
+              className="jf-btn jf-btn-secondary jf-btn-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                openInspection(item);
+              }}
+            >
+              <FileCheck size={14} /> View QC
+            </button>
+            <button
+              type="button"
+              className="jf-btn jf-btn-primary jf-btn-sm qc-btn-green"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  if (jobFlowApi.markReadyForDelivery) {
+                    await jobFlowApi.markReadyForDelivery(item.productionOrderId || item._id);
+                  }
+                } catch (_) {}
+                navigate(`/jobflow/delivery?jobId=${item.jobOrderId || item._id}`);
+              }}
+            >
+              <Truck size={14} /> Deliver
+            </button>
+          </div>
+        ) : (
+          <div className="qc-row-actions">
+            <button
+              type="button"
+              className="jf-btn jf-btn-primary jf-btn-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                openInspection(item);
+              }}
+            >
+              <ShieldCheck size={14} /> Inspect
+            </button>
+          </div>
+        ),
+    },
+  ];
+
+  const incomingColumns = [
+    ...qcBaseColumns,
+    { key: "status", label: "Status", render: (val) => <StatusBadge status={val} /> },
+    {
+      key: "actions",
+      label: "Action",
+      align: "right",
+      render: (_, item) => (
+        <div className="qc-row-actions">
+          <button
+            type="button"
+            className="jf-btn jf-btn-primary jf-btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              openInspection(item, true);
+            }}
+          >
+            <ShieldCheck size={14} /> Inspect
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const reworkColumns = [
+    {
+      key: "jobNo",
+      label: "Job & Customer",
+      sortable: true,
+      minWidth: "150px",
+      render: (val, rw) => <Cell title={val} sub={rw.customerName} />,
+    },
+    {
+      key: "reworkOp",
+      label: "Step & Qty",
+      sortable: true,
+      minWidth: "170px",
+      render: (val, rw) => (
+        <div>
+          <span className="qc-cell-title" style={{ color: "#b45309" }}>{val}</span>
+          <div className="qc-cell-sub">{rw.affectedQty} pcs</div>
+          {rw.instructions && (
+            <div className="qc-cell-sub qc-cell-clip" title={rw.instructions}>
+              {rw.instructions}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "machine",
+      label: "Workstation",
+      sortable: true,
+      minWidth: "140px",
+      render: (val, rw) => (
+        <div>
+          <div>{val}</div>
+          <div className="qc-cell-sub">{rw.operator}</div>
+        </div>
+      ),
+    },
+    {
+      key: "priority",
+      label: "Priority & Status",
+      sortable: true,
+      minWidth: "130px",
+      render: (val, rw) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: ".25rem", alignItems: "flex-start" }}>
+          <span
+            className={`jf-badge ${val === "URGENT" ? "jf-badge-red" : val === "HIGH" ? "jf-badge-amber" : "jf-badge-blue"}`}
+            style={{ fontSize: ".7rem", padding: "1px 6px" }}
+          >
+            {val || "NORMAL"}
+          </span>
+          <span className={rw.status === "IN_REWORK" ? "qc-status-dot-on" : "qc-status-dot-off"}>
+            {rw.status === "IN_REWORK" ? "● In Floor Queue" : "○ Ready to Dispatch"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      sortable: false,
+      align: "right",
+      minWidth: "170px",
+      render: (_, rw) => (
+        <div className="qc-row-actions">
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary jf-btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              loadReworkIntoForm(rw);
+              toast.info(`Loaded rework specifications for ${rw.jobNo}.`);
+            }}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="jf-btn jf-btn-primary jf-btn-sm qc-btn-green"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMarkReworkCompleted(rw);
+            }}
+          >
+            <CheckCircle size={12} /> Return QC
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const reprintColumns = [
+    {
+      key: "reprintNo",
+      label: "Reprint #",
+      sortable: true,
+      render: (val, r) => <Cell title={val} sub={r.requestedAt} />,
+    },
+    {
+      key: "jobNo",
+      label: "Job & Customer",
+      sortable: true,
+      render: (val, r) => <Cell title={val} sub={r.customerName} />,
+    },
+    { key: "quantity", label: "Scrap Qty", sortable: true, render: (val) => `${val} pcs` },
+    {
+      key: "scrapCost",
+      label: "Scrap Cost",
+      sortable: true,
+      render: (val) => <strong className="qc-loss">RM {Number(val).toFixed(2)}</strong>,
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (val) => <StatusBadge status={reprintStatusLabel(val)} />,
+    },
+    {
+      key: "actions",
+      label: "Review",
+      sortable: false,
+      align: "right",
+      render: (_, r) => (
+        <div className="qc-row-actions">
+          <button
+            type="button"
+            className="jf-btn jf-btn-primary jf-btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedReprint(r);
+            }}
+          >
+            Review
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  /* Rework form context */
+  const activeRework = selectedRework || reworkQueue[0] || null;
+  const activeReworkJob = activeRework ? qcQueue.find((q) => q.jobNo === activeRework.jobNo) : null;
+  const reworkOps = Array.isArray(activeReworkJob?.operations) ? activeReworkJob.operations : [];
+  const isReworkDispatched = Boolean(
+    activeRework &&
+      (dispatchedJobIds.has(activeRework.jobNo) ||
+        dispatchedJobIds.has(activeRework._id) ||
+        activeRework.status === "IN_REWORK")
+  );
+
+  const batchQtyNum = selectedQcJob?.batchQty || 50;
+  const pctQty = (p) => Math.max(1, Math.round(batchQtyNum * p));
 
   const mainQcContent = (
     <div className="qc-page-wrapper">
-      {/* ──────────────── SCREEN 15A: QUALITY CONTROL - QUEUE & OVERVIEW ──────────────── */}
+      <style>{QC_INTERNAL_CSS}</style>
+
+      {/* ───────── 15A: QUEUE & OVERVIEW ───────── */}
       {(activeTab === "overview" || activeTab === "15A") && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Summary KPI Cards Grid - Exactly matching Manager Dashboard */}
-          <div
-            className="printz-summary-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "12px",
-              marginBottom: "8px",
-            }}
-          >
-            {/* KPI 1: Pending Inspection */}
+        <>
+          <div className="printz-summary-grid">
             <PrintzKpiCard
               title="Pending Inspection"
               value={pendingInspectionCount}
@@ -1078,8 +1335,6 @@ export const QualityControlPage = ({ embedded = false }) => {
               badge="Awaiting QC"
               onClick={() => setQueueFilter("PENDING")}
             />
-
-            {/* KPI 2: First-Pass Yield */}
             <PrintzKpiCard
               title="First-Pass Yield"
               value={passRatePercentage}
@@ -1089,8 +1344,6 @@ export const QualityControlPage = ({ embedded = false }) => {
               badge="Quality Rate"
               onClick={() => setQueueFilter("ALL")}
             />
-
-            {/* KPI 3: Passed Today */}
             <PrintzKpiCard
               title="Passed Today"
               value={passedTodayCount}
@@ -1099,8 +1352,6 @@ export const QualityControlPage = ({ embedded = false }) => {
               badge="Ready"
               onClick={() => setQueueFilter("PASSED")}
             />
-
-            {/* KPI 4: Targeted Rework */}
             <PrintzKpiCard
               title="Targeted Rework"
               value={activeReworkCount}
@@ -1109,8 +1360,6 @@ export const QualityControlPage = ({ embedded = false }) => {
               badge="Floor Re-run"
               onClick={() => setActiveTab("16A")}
             />
-
-            {/* KPI 5: Full Reprint Approvals */}
             <PrintzKpiCard
               title="Reprint Approvals"
               value={pendingReprintCount}
@@ -1121,503 +1370,140 @@ export const QualityControlPage = ({ embedded = false }) => {
             />
           </div>
 
-          {/* Filter Bar */}
           <div className="qc-filter-bar">
             <div className="qc-filter-pills">
-              <button
-                type="button"
-                className={`qc-filter-pill ${queueFilter === "ALL" ? "active" : ""}`}
-                onClick={() => setQueueFilter("ALL")}
-              >
-                All Batches ({qcQueue.length})
-              </button>
-              <button
-                type="button"
-                className={`qc-filter-pill ${queueFilter === "PENDING" ? "active" : ""}`}
-                onClick={() => setQueueFilter("PENDING")}
-              >
-                Awaiting Inspection ({pendingInspectionCount})
-              </button>
-              <button
-                type="button"
-                className={`qc-filter-pill ${queueFilter === "PASSED" ? "active" : ""}`}
-                onClick={() => setQueueFilter("PASSED")}
-              >
-                Passed & Released ({passedTodayCount})
-              </button>
-              <button
-                type="button"
-                className={`qc-filter-pill ${queueFilter === "REWORK" ? "active" : ""}`}
-                onClick={() => setQueueFilter("REWORK")}
-              >
-                Rework Required ({qcQueue.filter((q) => q.status === "REWORK_REQUIRED").length})
-              </button>
+              {[
+                ["ALL", `All (${qcQueue.length})`],
+                ["PENDING", `Awaiting (${pendingInspectionCount})`],
+                ["PASSED", `Passed (${passedTodayCount})`],
+                ["REWORK", `Rework (${reworkRequiredCount})`],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`qc-filter-pill ${queueFilter === key ? "active" : ""}`}
+                  onClick={() => setQueueFilter(key)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary jf-btn-sm"
-              onClick={loadQcData}
-              title="Refresh queue from production"
-            >
-              <RefreshCw size={14} className={loading ? "spin" : ""} /> Refresh Queue
+            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={loadQcData}>
+              <RefreshCw size={14} className={loading ? "spin" : ""} /> Refresh
             </button>
           </div>
 
-          {/* Completed Production Batches DataTable */}
           <JobFlowDataTable
-            columns={[
-              {
-                key: "jobNo",
-                label: "Order & Job #",
-                minWidth: "180px",
-                sortable: true,
-                render: (val, item) => (
-                  <div>
-                    <strong style={{ color: "#0f172a" }}>{val}</strong>
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>{item.orderNumber}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "customerName",
-                label: "Customer Name",
-                sortable: true,
-              },
-              {
-                key: "productType",
-                label: "Product & Specifications",
-                sortable: true,
-                render: (val, item) => (
-                  <div>
-                    <strong>{val}</strong>
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-                      {item.dimensions} • {item.materialStock}
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                key: "batchQty",
-                label: "Batch Qty",
-                sortable: true,
-                render: (val) => `${Number(val).toLocaleString()} pcs`,
-              },
-              {
-                key: "machine",
-                label: "Workstation / Operator",
-                sortable: true,
-                render: (val, item) => (
-                  <div>
-                    <div>{val}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>{item.operator}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "completedTime",
-                label: "Time Ready",
-                sortable: true,
-              },
-              {
-                key: "status",
-                label: "QC Status",
-                sortable: true,
-                render: (val) => {
-                  if (val === "PASSED") {
-                    return (
-                      <span
-                        className="jf-badge jf-badge-green"
-                        style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600 }}
-                      >
-                        <CheckCircle size={12} /> Approved
-                      </span>
-                    );
-                  }
-                  if (val === "REWORK_REQUIRED") {
-                    return (
-                      <span
-                        className="jf-badge jf-badge-amber"
-                        style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600 }}
-                      >
-                        <RotateCcw size={12} /> In Rework
-                      </span>
-                    );
-                  }
-                  return (
-                    <span
-                      className="jf-badge jf-badge-amber"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600 }}
-                    >
-                      <Clock size={12} /> Pending QC
-                    </span>
-                  );
-                },
-              },
-              {
-                key: "actions",
-                label: "Action",
-                sortable: false,
-                align: "right",
-                render: (_, item) => {
-                  const isApproved = item.status === "PASSED";
-                  if (isApproved) {
-                    return (
-                      <div style={{ display: "flex", gap: "0.35rem", justifyContent: "flex-end" }}>
-                        <button
-                          type="button"
-                          className="jf-btn jf-btn-secondary jf-btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedQcJob(item);
-                            setActiveTab("15B");
-                          }}
-                          title="View Checklist"
-                        >
-                          <FileCheck size={14} /> View QC
-                        </button>
-                        <button
-                          type="button"
-                          className="jf-btn jf-btn-primary jf-btn-sm"
-                          style={{ background: "#059669", color: "#ffffff" }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/jobflow/delivery?jobId=${item.jobOrderId || item._id}`);
-                          }}
-                          title="Proceed to Delivery"
-                        >
-                          <Truck size={14} /> Deliver
-                        </button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <button
-                      type="button"
-                      className="jf-btn jf-btn-primary jf-btn-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedQcJob(item);
-                        setActiveTab("15B");
-                      }}
-                    >
-                      <ShieldCheck size={14} /> Start Inspection
-                    </button>
-                  );
-                },
-              },
-            ]}
+            columns={queueColumns}
             data={filteredQcQueue}
             loading={loading}
             searchable={true}
-            searchPlaceholder="Search batches by job no, customer or workstation..."
+            searchPlaceholder="Search by job no, customer or workstation..."
             initialPageSize={10}
             pageSizeOptions={[5, 10, 25, 50]}
-            emptyMessage="No production batches found matching the selected filter."
-            onRowClick={(item) => {
-              setSelectedQcJob(item);
-              handleTabChange("inspection");
-            }}
+            emptyMessage="No batches found."
+            onRowClick={(item) => openInspection(item, true)}
           />
-        </div>
+        </>
       )}
 
-      {/* ──────────────── TAB 2: INCOMING QC QUEUE ──────────────── */}
+      {/* ───────── INCOMING QUEUE ───────── */}
       {activeTab === "incoming" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div className="jf-card" style={{ padding: "1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
-                  Incoming Quality Control Queue
-                </h2>
-                <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#475569" }}>
-                  Completed production orders staged from the shop floor awaiting physical quality clearance.
-                </p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <span className="jf-badge" style={{ background: "#fef3c7", color: "#d97706", fontWeight: 700, padding: "6px 12px", borderRadius: "6px" }}>
-                  {pendingInspectionCount} Batches Awaiting Inspection
-                </span>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={loadQcData}
-                >
-                  <RefreshCw size={14} className={loading ? "spin" : ""} /> Refresh Queue
-                </button>
-              </div>
-            </div>
+        <>
+          <div className="qc-page-header">
+            <h2>Incoming Queue ({pendingInspectionCount})</h2>
+            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={loadQcData}>
+              <RefreshCw size={14} className={loading ? "spin" : ""} /> Refresh
+            </button>
           </div>
-
           <JobFlowDataTable
-            columns={[
-              {
-                key: "jobNo",
-                label: "Order & Job #",
-                minWidth: "180px",
-                sortable: true,
-                render: (val, item) => (
-                  <div>
-                    <strong style={{ color: "#0f172a" }}>{val}</strong>
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>{item.orderNumber}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "customerName",
-                label: "Customer Name",
-                sortable: true,
-              },
-              {
-                key: "productType",
-                label: "Product & Specifications",
-                sortable: true,
-                render: (val, item) => (
-                  <div>
-                    <strong>{val}</strong>
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-                      {item.dimensions} • {item.materialStock}
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                key: "batchQty",
-                label: "Batch Qty",
-                sortable: true,
-                render: (val) => <strong>{val?.toLocaleString()} pcs</strong>,
-              },
-              {
-                key: "machine",
-                label: "Source Machine / Op",
-                render: (val, item) => (
-                  <div>
-                    <span>{val}</span>
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>Operator: {item.operator}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "completedTime",
-                label: "Handover Time",
-                render: (val) => (
-                  <span style={{ fontSize: "0.8125rem", color: "#475569", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                    <Clock size={13} /> {val}
-                  </span>
-                ),
-              },
-              {
-                key: "status",
-                label: "QC Status",
-                render: (val) => <StatusBadge status={val} />,
-              },
-              {
-                key: "actions",
-                label: "Action",
-                align: "right",
-                render: (_, item) => (
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-primary jf-btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedQcJob(item);
-                      handleTabChange("inspection");
-                    }}
-                  >
-                    <ShieldCheck size={14} /> Start Inspection
-                  </button>
-                ),
-              },
-            ]}
+            columns={incomingColumns}
             data={qcQueue.filter((q) => q.status === "PENDING_QC")}
             loading={loading}
             searchable={true}
-            searchPlaceholder="Search incoming batches by job no, customer or machine..."
+            searchPlaceholder="Search by job no, customer or machine..."
             initialPageSize={10}
             pageSizeOptions={[5, 10, 25, 50]}
-            emptyMessage="No production batches are currently awaiting QC inspection."
-            onRowClick={(item) => {
-              setSelectedQcJob(item);
-              handleTabChange("inspection");
-            }}
+            emptyMessage="No batches awaiting inspection."
+            onRowClick={(item) => openInspection(item, true)}
           />
-        </div>
+        </>
       )}
 
-      {/* ──────────────── SCREEN 15B: QUALITY CONTROL - INSPECTION FORM ──────────────── */}
+      {/* ───────── 15B: INSPECTION FORM ───────── */}
       {(activeTab === "inspection" || activeTab === "15B") && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {/* Header Bar with Batch Info and Job Switcher */}
+        <>
           {selectedQcJob ? (
-            <div className="qc-job-header">
-              <div>
-                <div className="qc-job-info-title">
-                  <h2 className="qc-job-title-text">
-                    Inspection: {selectedQcJob.jobNo}
-                  </h2>
-                  {selectedQcJob.orderNumber && (
-                    <span style={{ fontSize: "0.875rem", color: "#475569" }}>
-                      ({selectedQcJob.orderNumber})
-                    </span>
-                  )}
-                  {selectedQcJob.status === "PASSED" ? (
-                    <span className="jf-badge jf-badge-green" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-                      <CheckCircle size={13} /> Approved ✓
-                    </span>
-                  ) : (
-                    <span className="jf-badge jf-badge-blue">In Inspection</span>
-                  )}
-                </div>
-
-                <div className="qc-job-meta-line">
-                  <span>Customer: <strong>{selectedQcJob.customerName}</strong></span>
-                  <span>•</span>
-                  <span>Product: <strong>{selectedQcJob.productType}</strong></span>
-                  <span>•</span>
-                  <span>Dimensions: {selectedQcJob.dimensions || "Standard"}</span>
-                  <span>•</span>
-                  <span>Substrate: {selectedQcJob.materialStock || "Standard"}</span>
-                </div>
-
-                {selectedQcJob.customerRequirements && (
-                  <div className="qc-job-req-tag">
-                    📌 <strong>Customer Directive:</strong> {selectedQcJob.customerRequirements}
-                  </div>
-                )}
-
-                {/* Operations sequence flow */}
-                {Array.isArray(selectedQcJob.operations) && selectedQcJob.operations.length > 0 && (
-                  <div className="qc-operations-flow">
-                    <span style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Work Center Flow:</span>
-                    {selectedQcJob.operations.map((op, i) => {
-                      const isRework = (op.operationName || "").toLowerCase().includes("rework");
-                      return (
-                        <span
-                          key={op._id || i}
-                          className={`qc-op-chip ${isRework ? "rework" : ""}`}
-                        >
-                          #{op.sequenceNo || i + 1} {op.operationName || op.operation}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Controls: Batch size, Quick Switcher, Back Button */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.75rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <span style={{ fontSize: "0.875rem", color: "#475569" }}>
-                    Batch Qty: <strong style={{ color: "#059669", fontSize: "1rem" }}>{(selectedQcJob.batchQty || 0).toLocaleString()} pcs</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-secondary jf-btn-sm"
-                    onClick={() => setActiveTab("15A")}
-                  >
-                    Back to Queue
-                  </button>
-                </div>
-
-                {renderJobSwitcher()}
-              </div>
-            </div>
-          ) : (
-            <div className="jf-card" style={{ textAlign: "center", padding: "3rem 1.5rem" }}>
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "50%",
-                  background: "#ecfdf5",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 1rem",
-                  color: "#059669",
-                }}
-              >
-                <ShieldCheck size={28} />
-              </div>
-              <h3 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.5rem" }}>
-                Select a Batch to Start Inspection
-              </h3>
-              <p style={{ color: "#475569", maxWidth: "460px", margin: "0 auto 1.5rem", fontSize: "0.875rem" }}>
-                All pending production jobs can be inspected using the multi-point checklist below.
-              </p>
-              {qcQueue.length > 0 ? (
-                <div style={{ display: "inline-flex", gap: "0.75rem", alignItems: "center" }}>
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-primary"
-                    onClick={() => setSelectedQcJob(qcQueue[0])}
-                  >
-                    Inspect First Job ({qcQueue[0].jobNo})
-                  </button>
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-secondary"
-                    onClick={() => setActiveTab("15A")}
-                  >
-                    View Full Queue
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-primary"
-                  onClick={() => setActiveTab("15A")}
-                >
-                  Return to Queue
+            <>
+              <div className="qc-toolbar">
+                <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={() => setActiveTab("15A")}>
+                  <ArrowLeft size={14} /> Back to Queue
                 </button>
-              )}
-            </div>
-          )}
+                <span style={{ fontSize: ".875rem", color: "#475569" }}>
+                  Batch Qty: <strong style={{ color: "#059669" }}>{(selectedQcJob.batchQty || 0).toLocaleString()} pcs</strong>
+                </span>
+              </div>
 
-          {/* Inspection Form Grid */}
-          {selectedQcJob && (
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "1.25rem" }}>
-              {/* Left Column: Criteria Checklist */}
-              <div className="jf-card" style={{ padding: 0 }}>
-                <div
-                  className="jf-card-header"
-                  style={{
-                    padding: "1.25rem 1.25rem 0.75rem",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    borderBottom: "1px solid #f1f5f9",
-                  }}
-                >
-                  <div>
-                    <h3 className="jf-card-title" style={{ margin: 0 }}>Multi-Point Quality Verification</h3>
-                    <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "0.25rem" }}>
-                      Shop tolerances & process standards for {selectedQcJob.jobNo}
-                    </div>
+              <div className="qc-job-header">
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="qc-job-info-title">
+                    <h2 className="qc-job-title-text">{selectedQcJob.jobNo}</h2>
+                    {selectedQcJob.status === "PASSED" ? (
+                      <span className="jf-badge jf-badge-green qc-badge">
+                        <CheckCircle size={13} /> Approved
+                      </span>
+                    ) : (
+                      <span className="jf-badge jf-badge-blue">In Inspection</span>
+                    )}
                   </div>
 
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-secondary jf-btn-sm"
-                    style={{ color: "#059669", borderColor: "#a7f3d0", background: "#ecfdf5" }}
-                    onClick={handlePassAllCriteria}
-                    title="Mark all checklist items as PASS"
-                  >
-                    <Check size={14} /> Pass All Checks
+                  <div className="qc-job-meta-line">
+                    <span><strong>{selectedQcJob.customerName}</strong></span>
+                    <span className="qc-meta-sep">•</span>
+                    <span><strong>{selectedQcJob.productType}</strong></span>
+                    <span className="qc-meta-sep">•</span>
+                    <span>{selectedQcJob.dimensions || "Standard"}</span>
+                    <span className="qc-meta-sep">•</span>
+                    <span>{selectedQcJob.materialStock || "Standard"}</span>
+                  </div>
+
+                  {selectedQcJob.customerRequirements && (
+                    <div className="qc-job-req-tag">
+                      <strong>Customer Directive:</strong> {selectedQcJob.customerRequirements}
+                    </div>
+                  )}
+
+                  {Array.isArray(selectedQcJob.operations) && selectedQcJob.operations.length > 0 && (
+                    <div className="qc-operations-flow">
+                      {selectedQcJob.operations.map((op, i) => {
+                        const isRework = (op.operationName || "").toLowerCase().includes("rework");
+                        return (
+                          <span key={op._id || i} className={`qc-op-chip ${isRework ? "rework" : ""}`}>
+                            #{op.sequenceNo || i + 1} {op.operationName || op.operation}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Checklist */}
+              <div className="jf-card" style={{ padding: 0 }}>
+                <div className="qc-card-head">
+                  <h3 className="jf-card-title">Quality Verification</h3>
+                  <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm qc-btn-pass-all" onClick={handlePassAllCriteria}>
+                    <Check size={14} /> Pass All
                   </button>
                 </div>
 
                 <div>
-                  {inspectionCriteria.map((c) => (
+                  {inspectionCriteria.map((c, idx) => (
                     <div key={c.id} className="qc-criteria-row">
-                      <div>
+                      <div className="qc-criteria-left">
+                        <span className="qc-index">#{idx + 1}</span>
                         <div className="qc-criteria-title">{c.name}</div>
-                        <div className="qc-criteria-desc">{c.desc}</div>
                       </div>
-
                       <div className="qc-btn-group">
                         <button
                           type="button"
@@ -1625,13 +1511,6 @@ export const QualityControlPage = ({ embedded = false }) => {
                           onClick={() => handleToggleCriteria(c.id, "PASS")}
                         >
                           ✓ Pass
-                        </button>
-                        <button
-                          type="button"
-                          className={`qc-toggle-btn ${c.status === "MINOR" ? "minor-active" : ""}`}
-                          onClick={() => handleToggleCriteria(c.id, "MINOR")}
-                        >
-                          Minor
                         </button>
                         <button
                           type="button"
@@ -1645,27 +1524,22 @@ export const QualityControlPage = ({ embedded = false }) => {
                   ))}
                 </div>
 
-                {/* Overall Determination Box */}
                 <div className="qc-verdict-box">
-                  <h4 style={{ margin: 0, fontSize: "0.875rem", color: "#0f172a", fontWeight: 700 }}>
-                    Inspector Final Determination:
-                  </h4>
+                  <strong style={{ fontSize: ".875rem", color: "#0f172a" }}>Final Determination</strong>
                   <div className="qc-verdict-options">
-                    <label className={`qc-verdict-label ${qcVerdict === "PASS" ? "active-pass" : ""}`}>
+                    <label
+                      className={`qc-verdict-label ${qcVerdict === "PASS" && flaggedCriteria.length === 0 ? "active-pass" : ""}`}
+                      style={flaggedCriteria.length > 0 ? { opacity: 0.55, cursor: "not-allowed" } : undefined}
+                    >
                       <input
                         type="radio"
                         name="qcVerdict"
-                        checked={qcVerdict === "PASS"}
-                        onChange={() => setQcVerdict("PASS")}
+                        disabled={flaggedCriteria.length > 0}
+                        checked={qcVerdict === "PASS" && flaggedCriteria.length === 0}
+                        onChange={() => flaggedCriteria.length === 0 && setQcVerdict("PASS")}
                       />
-                      <div>
-                        <strong>✓ Pass All Inspection Points</strong>
-                        <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-                          Clear batch for packaging & delivery
-                        </div>
-                      </div>
+                      <strong>✓ Pass</strong>
                     </label>
-
                     <label className={`qc-verdict-label ${qcVerdict === "DEFECT" ? "active-defect" : ""}`}>
                       <input
                         type="radio"
@@ -1673,45 +1547,22 @@ export const QualityControlPage = ({ embedded = false }) => {
                         checked={qcVerdict === "DEFECT"}
                         onChange={() => setQcVerdict("DEFECT")}
                       />
-                      <div>
-                        <strong>⚠ Flag Defect / Needs Remediation</strong>
-                        <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-                          Route to rework or request reprint
-                        </div>
-                      </div>
+                      <strong>⚠ Flag Defect</strong>
                     </label>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Routing & Decision Panel */}
+              {/* Decision panel */}
               <div className="jf-card">
                 <div className="jf-card-header" style={{ marginBottom: "1rem" }}>
-                  <h3 className="jf-card-title">
-                    {qcVerdict === "PASS" ? "Release to Delivery" : "Defect Classification & Remediation"}
-                  </h3>
+                  <h3 className="jf-card-title">{qcVerdict === "PASS" ? "Release to Delivery" : "Defect & Remediation"}</h3>
                 </div>
 
                 {qcVerdict === "PASS" ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div
-                      style={{
-                        padding: "1rem",
-                        background: "#f0fdf4",
-                        borderRadius: "8px",
-                        border: "1px solid #bbf7d0",
-                        color: "#166534",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 700, marginBottom: "0.35rem" }}>
-                        <CheckCircle size={16} /> Batch Standard Verified
-                      </div>
-                      All {(selectedQcJob.batchQty || 0).toLocaleString()} finished units meet shop quality tolerances, print registration is accurate, and dimensions match customer specifications.
-                    </div>
-
+                  <div className="qc-stack">
                     <div className="jf-form-group">
-                      <label className="jf-label">Inspector Sign-off Notes</label>
+                      <label className="jf-label">Sign-off Notes</label>
                       <textarea
                         className="jf-textarea"
                         rows={3}
@@ -1722,52 +1573,36 @@ export const QualityControlPage = ({ embedded = false }) => {
                     </div>
 
                     {selectedQcJob.status === "PASSED" ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                        <div
-                          style={{
-                            padding: "0.85rem",
-                            background: "#f0fdf4",
-                            borderRadius: "6px",
-                            border: "1px solid #bbf7d0",
-                            color: "#166534",
-                            textAlign: "center",
-                            fontWeight: 700,
-                          }}
-                        >
-                          <CheckCircle size={16} style={{ verticalAlign: "middle", marginRight: "0.4rem" }} />
-                          Quality Inspection Approved
+                      <>
+                        <div className="qc-notice ok">
+                          <CheckCircle size={16} /> Inspection Approved
                         </div>
-
                         <button
                           type="button"
-                          className="jf-btn jf-btn-primary"
-                          style={{ width: "100%", padding: "0.75rem", background: "#059669" }}
+                          className="jf-btn jf-btn-primary qc-btn-block qc-btn-green"
                           onClick={() => navigate(`/jobflow/delivery?jobId=${selectedQcJob.jobOrderId || selectedQcJob._id}`)}
                         >
-                          <Truck size={16} /> Proceed to Delivery & Packaging <ArrowRight size={16} />
+                          <Truck size={16} /> Proceed to Delivery <ArrowRight size={16} />
                         </button>
-                      </div>
+                      </>
                     ) : (
                       <button
                         type="button"
-                        className="jf-btn jf-btn-primary"
-                        style={{ width: "100%", padding: "0.75rem" }}
+                        className="jf-btn jf-btn-primary qc-btn-block"
                         onClick={handleSubmitInspection}
                         disabled={loading}
                       >
-                        <CheckCircle size={16} /> Approve Inspection & Mark Passed
+                        <CheckCircle size={16} /> Approve & Mark Passed
                       </button>
                     )}
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    {/* Affected Quantity */}
+                  <div className="qc-stack">
+                    {/* Affected qty */}
                     <div className="jf-form-group">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <label className="jf-label">Affected Quantity (pcs)</label>
-                        <span style={{ fontSize: "0.75rem", color: "#475569" }}>
-                          Total Batch: {selectedQcJob.batchQty} pcs
-                        </span>
+                      <div className="qc-between">
+                        <label className="jf-label" style={{ margin: 0 }}>Affected Quantity (pcs)</label>
+                        <span className="qc-cell-sub" style={{ margin: 0 }}>Batch: {selectedQcJob.batchQty} pcs</span>
                       </div>
                       <input
                         type="number"
@@ -1776,845 +1611,418 @@ export const QualityControlPage = ({ embedded = false }) => {
                         max={selectedQcJob.batchQty || 10000}
                         value={affectedQty}
                         onChange={(e) => setAffectedQty(Number(e.target.value))}
+                        style={{ marginTop: ".4rem" }}
                       />
+                    
+                    </div>
 
-                      {/* Quick Percentage Pills */}
-                      <div className="qc-quick-select-pills">
-                        <button
-                          type="button"
-                          className="qc-quick-select-pill"
-                          onClick={() => setAffectedQty(Math.max(1, Math.round((selectedQcJob.batchQty || 50) * 0.1)))}
-                        >
-                          10% ({Math.max(1, Math.round((selectedQcJob.batchQty || 50) * 0.1))})
-                        </button>
-                        <button
-                          type="button"
-                          className="qc-quick-select-pill"
-                          onClick={() => setAffectedQty(Math.max(1, Math.round((selectedQcJob.batchQty || 50) * 0.25)))}
-                        >
-                          25% ({Math.max(1, Math.round((selectedQcJob.batchQty || 50) * 0.25))})
-                        </button>
-                        <button
-                          type="button"
-                          className="qc-quick-select-pill"
-                          onClick={() => setAffectedQty(Math.max(1, Math.round((selectedQcJob.batchQty || 50) * 0.5)))}
-                        >
-                          50% ({Math.max(1, Math.round((selectedQcJob.batchQty || 50) * 0.5))})
-                        </button>
-                        <button
-                          type="button"
-                          className="qc-quick-select-pill"
-                          onClick={() => setAffectedQty(selectedQcJob.batchQty || 50)}
-                        >
-                          100% Full Batch
-                        </button>
+                    {/* Defect classification */}
+                    {flaggedCriteria.length > 0 ? (
+                      <div className="qc-stack-sm">
+                        <div className="qc-section-title">
+                          <AlertTriangle size={15} /> Defects ({flaggedCriteria.length})
+                        </div>
+                        {flaggedCriteria.map((c) => {
+                          const cur = criteriaDefectTypes[c.id] || getDefaultDefectForCriteria(c.name);
+                          return (
+                            <div key={c.id} className="qc-defect-card fail">
+                              <div className="qc-defect-head">
+                                <span className="qc-tag fail">✕ Defect</span>
+                                <strong style={{ fontSize: ".8125rem", color: "#0f172a" }}>{c.name}</strong>
+                              </div>
+                              <div className="qc-defect-fields">
+                                <div>
+                                  <label className="qc-field-label">Defect Type</label>
+                                  <select
+                                    className="jf-select qc-field-sm"
+                                    value={cur}
+                                    onChange={(e) => setCriteriaDefectTypes((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                                  >
+                                    {DEFECT_CLASSIFICATIONS.map((opt) => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="qc-field-label">Notes</label>
+                                  <input
+                                    type="text"
+                                    className="jf-input qc-field-sm"
+                                    placeholder="e.g. 2mm off-center"
+                                    value={criteriaDefectNotes[c.id] || ""}
+                                    onChange={(e) => setCriteriaDefectNotes((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="jf-form-group">
+                        <label className="jf-label">Defect Type</label>
+                        <select className="jf-select" value={defectType} onChange={(e) => setDefectType(e.target.value)}>
+                          {DEFECT_CLASSIFICATIONS.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Severity */}
+                    <div className="jf-form-group">
+                      <label className="jf-label">Severity</label>
+                      <div className="qc-severity-row">
+                        {[
+                          ["MINOR", "Minor", "minor-active"],
+                          ["MAJOR", "Major", "minor-active"],
+                          ["CRITICAL", "Critical", "fail-active"],
+                        ].map(([key, label, activeCls]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            className={`qc-toggle-btn ${defectSeverity === key ? activeCls : ""}`}
+                            onClick={() => setDefectSeverity(key)}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
-                    {/* Defect Classification */}
                     <div className="jf-form-group">
-                      <label className="jf-label">Defect Classification</label>
-                      <select
-                        className="jf-select"
-                        value={defectType}
-                        onChange={(e) => setDefectType(e.target.value)}
-                      >
-                        <option value="Color Shift / Print Smear">Color Shift / Print Smear</option>
-                        <option value="Lamination Bubbles / Peeling">Lamination Bubbles / Peeling</option>
-                        <option value="Miscut / Bleed Inaccuracy">Miscut / Bleed Inaccuracy</option>
-                        <option value="Creasing / Folding Misalignment">Creasing / Folding Misalignment</option>
-                        <option value="Substrate Flaw / Paper Scratches">Substrate Flaw / Paper Scratches</option>
-                        <option value="Missing Pages / Quantity Shortage">Missing Pages / Quantity Shortage</option>
-                      </select>
-                    </div>
-
-                    {/* Severity Picker */}
-                    <div className="jf-form-group">
-                      <label className="jf-label">Severity Level</label>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button
-                          type="button"
-                          className={`qc-toggle-btn ${defectSeverity === "MINOR" ? "minor-active" : ""}`}
-                          style={{ flex: 1 }}
-                          onClick={() => setDefectSeverity("MINOR")}
-                        >
-                          Minor
-                        </button>
-                        <button
-                          type="button"
-                          className={`qc-toggle-btn ${defectSeverity === "MAJOR" ? "minor-active" : ""}`}
-                          style={{ flex: 1 }}
-                          onClick={() => setDefectSeverity("MAJOR")}
-                        >
-                          Major
-                        </button>
-                        <button
-                          type="button"
-                          className={`qc-toggle-btn ${defectSeverity === "CRITICAL" ? "fail-active" : ""}`}
-                          style={{ flex: 1 }}
-                          onClick={() => setDefectSeverity("CRITICAL")}
-                        >
-                          Critical
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Root Cause Notes */}
-                    <div className="jf-form-group">
-                      <label className="jf-label">Inspection Findings & Root Cause</label>
+                      <label className="jf-label">Findings & Root Cause</label>
                       <textarea
                         className="jf-textarea"
                         rows={3}
                         value={defectNotes}
                         onChange={(e) => setDefectNotes(e.target.value)}
-                        placeholder="Detail specific defect symptoms and work center cause..."
+                        placeholder="Defect symptoms and cause..."
                       />
                     </div>
 
-                    {/* Remediation Path Selection - Mapped directly to Flowchart */}
+                    {/* Remediation */}
                     <div className="jf-form-group">
-                      <label className="jf-label">Identify Defect Scope & Remediation</label>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "0.75rem",
-                            fontSize: "0.8125rem",
-                            padding: "0.75rem",
-                            border: routingDecision === "TARGETED_REWORK" ? "2px solid #d97706" : "1px solid #e2e8f0",
-                            borderRadius: "8px",
-                            background: routingDecision === "TARGETED_REWORK" ? "#fffbeb" : "#ffffff",
-                            cursor: "pointer",
-                          }}
-                        >
+                      <div className="qc-between" style={{ marginBottom: ".5rem" }}>
+                        <label className="jf-label" style={{ margin: 0 }}>Remediation</label>
+                        <span className="qc-auto-hint" style={{ color: routingDecision === "FULL_REPRINT" ? "#dc2626" : "#d97706" }}>
+                          ⚡ Auto: {routingDecision === "FULL_REPRINT" ? "Full Reprint" : "Partial Rework"}
+                        </span>
+                      </div>
+                      <div className="qc-stack-sm">
+                        <label className={`qc-route-option is-rework ${routingDecision === "TARGETED_REWORK" ? "selected" : ""}`}>
                           <input
                             type="radio"
                             name="routing"
                             checked={routingDecision === "TARGETED_REWORK"}
                             onChange={() => setRoutingDecision("TARGETED_REWORK")}
-                            style={{ marginTop: "0.2rem" }}
+                            style={{ marginTop: ".2rem" }}
                           />
-                          <div>
-                            <strong style={{ color: "#b45309", fontSize: "0.875rem" }}>Partial Rework (Specific Operation Defect)</strong>
-                            <div style={{ color: "#475569", fontSize: "0.75rem", marginTop: "0.2rem" }}>
-                              • Targeted rework task<br />
-                              • Resume at failed operation without restarting previous steps<br />
-                              • Return to QC upon completion
-                            </div>
+                          <div className="qc-route-body">
+                            <strong>Partial Rework</strong>
+                            <div className="qc-cell-sub">Re-run failed operation only</div>
                           </div>
                         </label>
 
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "0.75rem",
-                            fontSize: "0.8125rem",
-                            padding: "0.75rem",
-                            border: routingDecision === "FULL_REPRINT" ? "2px solid #dc2626" : "1px solid #e2e8f0",
-                            borderRadius: "8px",
-                            background: routingDecision === "FULL_REPRINT" ? "#fef2f2" : "#ffffff",
-                            cursor: "pointer",
-                          }}
-                        >
+                        <label className={`qc-route-option is-reprint ${routingDecision === "FULL_REPRINT" ? "selected" : ""}`}>
                           <input
                             type="radio"
                             name="routing"
                             checked={routingDecision === "FULL_REPRINT"}
                             onChange={() => setRoutingDecision("FULL_REPRINT")}
-                            style={{ marginTop: "0.2rem" }}
+                            style={{ marginTop: ".2rem" }}
                           />
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                              <strong style={{ color: "#991b1b", fontSize: "0.875rem" }}>Full Reprint (Full Production Defect)</strong>
-                              <span style={{ fontSize: "0.6875rem", fontWeight: 700, background: "#fee2e2", color: "#991b1b", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
-                                MANAGER ONLY
-                              </span>
-                            </div>
-                            <div style={{ color: "#475569", fontSize: "0.75rem", marginTop: "0.2rem" }}>
-                              • Batch scrapped due to unrecoverable defect<br />
-                              • Manager Approve → new batch from first operation<br />
-                              • Manager Reject → hold job, record decision
-                            </div>
+                          <div className="qc-route-body">
+                            <strong>Full Reprint</strong>
+                            <span className="qc-tag manager">MANAGER ONLY</span>
+                            <div className="qc-cell-sub">Scrap batch, restart from first operation</div>
                           </div>
                         </label>
                       </div>
                     </div>
 
-                    {/* Submit Remediation */}
                     <button
                       type="button"
-                      className="jf-btn jf-btn-primary"
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem",
-                        background: routingDecision === "TARGETED_REWORK" ? "#d97706" : "#dc2626",
-                      }}
+                      className={`jf-btn jf-btn-primary qc-btn-block ${routingDecision === "TARGETED_REWORK" ? "qc-btn-amber" : "qc-btn-red"}`}
                       onClick={handleSubmitInspection}
                       disabled={loading}
                     >
                       <ArrowRight size={16} />
-                      {routingDecision === "TARGETED_REWORK"
-                        ? "Route to Targeted Operation Rework"
-                        : "Escalate to Manager for Reprint Approval"}
+                      {routingDecision === "TARGETED_REWORK" ? "Route to Rework" : "Escalate for Reprint Approval"}
                     </button>
                   </div>
                 )}
+              </div>
+            </>
+          ) : (
+            <div className="jf-card qc-empty">
+              <div className="qc-empty-icon">
+                <ShieldCheck size={28} />
+              </div>
+              <h3>Select a Batch to Inspect</h3>
+              <div className="qc-empty-actions">
+                {qcQueue.length > 0 && (
+                  <button type="button" className="jf-btn jf-btn-primary" onClick={() => setSelectedQcJob(qcQueue[0])}>
+                    Inspect {qcQueue[0].jobNo}
+                  </button>
+                )}
+                <button type="button" className="jf-btn jf-btn-secondary" onClick={() => setActiveTab("15A")}>
+                  View Queue
+                </button>
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* ──────────────── SCREEN 16A: REWORK MANAGEMENT - TARGETED OPERATION REWORK HUB ──────────────── */}
+      {/* ───────── 16A: TARGETED REWORK ───────── */}
       {(activeTab === "rework-requests" || activeTab === "16A") && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>
-                Targeted Operation Rework
-              </h2>
-              
-            </div>
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary jf-btn-sm"
-              onClick={() => setActiveTab("15A")}
-            >
-              ← Back to QC Queue
-            </button>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "1.25rem" }}>
-          {/* Left: Active Rework Floor Batches DataTable */}
-          <div>
-            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  className={`qc-filter-pill ${reworkFilter === "ALL" ? "active" : ""}`}
-                  onClick={() => setReworkFilter("ALL")}
-                >
-                  All Remediation ({reworkQueue.length})
-                </button>
-                <button
-                  type="button"
-                  className={`qc-filter-pill ${reworkFilter === "IN_REWORK" ? "active" : ""}`}
-                  onClick={() => setReworkFilter("IN_REWORK")}
-                >
-                  In Floor Queue ({reworkQueue.filter((r) => r.status === "IN_REWORK").length})
-                </button>
-                <button
-                  type="button"
-                  className={`qc-filter-pill ${reworkFilter === "PENDING" ? "active" : ""}`}
-                  onClick={() => setReworkFilter("PENDING")}
-                >
-                  Pending Dispatch ({reworkQueue.filter((r) => r.status !== "IN_REWORK").length})
-                </button>
-                <button
-                  type="button"
-                  className={`qc-filter-pill ${reworkFilter === "URGENT" ? "active" : ""}`}
-                  onClick={() => setReworkFilter("URGENT")}
-                >
-                  Urgent ({reworkQueue.filter((r) => r.priority === "URGENT").length})
-                </button>
-              </div>
-            </div>
+        <>
+          <PageHeader title="Targeted Rework" onBack={() => setActiveTab("15A")} />
 
-            <JobFlowDataTable
-              columns={[
-                {
-                  key: "jobNo",
-                  label: "Job & Customer",
-                  sortable: true,
-                  minWidth: "150px",
-                  render: (val, rw) => (
-                    <div>
-                      <strong style={{ color: "#0f172a" }}>{val}</strong>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{rw.customerName}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: "reworkOp",
-                  label: "Defective Step & Qty",
-                  sortable: true,
-                  minWidth: "160px",
-                  render: (val, rw) => (
-                    <div>
-                      <strong style={{ color: "#b45309" }}>{val}</strong>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-                        Affected: <strong>{rw.affectedQty} pcs</strong>
-                      </div>
-                      {rw.instructions && (
-                        <div
-                          style={{
-                            fontSize: "0.7rem",
-                            color: "#475569",
-                            marginTop: "2px",
-                            maxWidth: "180px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          title={rw.instructions}
-                        >
-                          🛠️ {rw.instructions}
-                        </div>
-                      )}
-                    </div>
-                  ),
-                },
-                {
-                  key: "machine",
-                  label: "Workstation / Assigned",
-                  sortable: true,
-                  minWidth: "140px",
-                  render: (val, rw) => (
-                    <div>
-                      <div>{val}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{rw.operator}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: "priority",
-                  label: "Priority & Status",
-                  sortable: true,
-                  minWidth: "130px",
-                  render: (val, rw) => (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", alignItems: "flex-start" }}>
-                      <span
-                        className={`jf-badge ${
-                          val === "URGENT"
-                            ? "jf-badge-red"
-                            : val === "HIGH"
-                            ? "jf-badge-amber"
-                            : "jf-badge-blue"
-                        }`}
-                        style={{ fontSize: "0.7rem", padding: "1px 6px" }}
-                      >
-                        {val || "NORMAL"}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 600,
-                          color: rw.status === "IN_REWORK" ? "#059669" : "#d97706",
-                        }}
-                      >
-                        {rw.status === "IN_REWORK" ? "● In Floor Queue" : "○ Ready to Dispatch"}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  key: "actions",
-                  label: "Actions",
-                  sortable: false,
-                  align: "right",
-                  minWidth: "160px",
-                  render: (_, rw) => (
-                    <div style={{ display: "flex", gap: "0.35rem", justifyContent: "flex-end" }}>
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-secondary jf-btn-sm"
-                        style={{ padding: "0.3rem 0.55rem", fontSize: "0.75rem" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedQcJob(rw);
-                          setReworkTargetOp(rw.reworkOp);
-                          setReworkMachine(rw.machine);
-                          setReworkOperator(rw.operator);
-                          setReworkInstructions(rw.instructions);
-                          setAffectedQty(rw.affectedQty);
-                          toast.info(`Loaded rework specifications for ${rw.jobNo}.`);
-                        }}
-                        title="Edit Instructions"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-primary jf-btn-sm"
-                        style={{ background: "#059669", padding: "0.3rem 0.55rem", fontSize: "0.75rem" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkReworkCompleted(rw);
-                        }}
-                        title="Complete & Return to QC"
-                      >
-                        <CheckCircle size={12} /> Return QC
-                      </button>
-                    </div>
-                  ),
-                },
-              ]}
-              data={filteredReworkQueue}
-              loading={loading}
-              searchable={true}
-              searchPlaceholder="Search rework queue by job#, customer, workstation..."
-              initialPageSize={10}
-              pageSizeOptions={[10, 25, 50, 100]}
-              selectedRowId={selectedQcJob?._id || selectedQcJob?.jobNo}
-              onRowClick={(rw) => {
-                setSelectedQcJob(rw);
-                setReworkTargetOp(rw.reworkOp);
-                setReworkMachine(rw.machine);
-                setReworkOperator(rw.operator);
-                setReworkInstructions(rw.instructions);
-                setAffectedQty(rw.affectedQty);
-              }}
-              emptyMessage="No rework jobs found matching criteria."
-            />
-          </div>
-
-          {/* Right: Targeted Rework Dispatch Form */}
-          <div className="jf-card">
-            <div className="jf-card-header">
-              <div>
-                <h3 className="jf-card-title">Dispatch Targeted Rework</h3>
-                <span style={{ fontSize: "0.8125rem", color: "#475569" }}>
-                  Issue floor order to re-run only the defective step
-                </span>
-              </div>
-            </div>
-
-            {selectedQcJob && (
-              <div className="qc-rework-summary">
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                  <strong>Job: {selectedQcJob.jobNo} ({selectedQcJob.customerName})</strong>
-                  <span style={{ color: "#b45309", fontWeight: 700 }}>{affectedQty} pcs</span>
-                </div>
-                <div style={{ fontSize: "0.75rem", color: "#92400e" }}>
-                  Defect: {defectType} {defectNotes ? `— ${defectNotes}` : ""}
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div className="jf-form-group">
-                <label className="jf-label">Operation to Re-run</label>
-                <select
-                  className="jf-select"
-                  value={reworkTargetOp}
-                  onChange={(e) => setReworkTargetOp(e.target.value)}
-                >
-                  {Array.isArray(selectedQcJob?.operations) && selectedQcJob.operations.length > 0 ? (
-                    selectedQcJob.operations.map((op, idx) => (
-                      <option key={op._id || idx} value={op.operationName || op.operation}>
-                        #{op.sequenceNo || idx + 1} {op.operationName || op.operation} ({op.machine || "Station"})
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Printing">Printing</option>
-                      <option value="Matt Lamination">Matt Lamination</option>
-                      <option value="Gloss Lamination">Gloss Lamination</option>
-                      <option value="Die-Cutting & Trim">Die-Cutting & Trim</option>
-                      <option value="Creasing & Folding">Creasing & Folding</option>
-                      <option value="Binding">Binding</option>
-                      <option value="Packing">Packing</option>
-                    </>
-                  )}
-                </select>
-              </div>
-
-              <div className="jf-form-group">
-                <label className="jf-label">Allocated Workstation</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  value={reworkMachine}
-                  onChange={(e) => setReworkMachine(e.target.value)}
-                  placeholder="e.g. Komfi Delta 52 (Re-run)"
-                />
-              </div>
-
-              <div className="jf-form-group">
-                <label className="jf-label">Assigned Operator</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  value={reworkOperator}
-                  onChange={(e) => setReworkOperator(e.target.value)}
-                  placeholder="Operator name"
-                />
-              </div>
-
-              <div className="jf-form-group">
-                <label className="jf-label">Priority</label>
-                <select
-                  className="jf-select"
-                  value={reworkPriority}
-                  onChange={(e) => setReworkPriority(e.target.value)}
-                >
-                  <option value="NORMAL">Normal Priority</option>
-                  <option value="HIGH">High Priority</option>
-                  <option value="URGENT">Urgent (Floor Queue Interruption)</option>
-                </select>
-              </div>
-
-              <div className="jf-form-group">
-                <label className="jf-label">Corrective Technical Instructions for Operator</label>
-                <textarea
-                  className="jf-textarea"
-                  rows={3}
-                  value={reworkInstructions}
-                  onChange={(e) => setReworkInstructions(e.target.value)}
-                  placeholder="Provide precise technical instructions (e.g., feed rate, temperature, alignment tolerances)..."
-                />
-              </div>
-
-              {/* Dispatch Action Button / Status */}
-              {(() => {
-                const targetJob = selectedQcJob || (reworkQueue.length > 0 ? reworkQueue[0] : null);
-                const isDispatched = Boolean(
-                  targetJob &&
-                    (dispatchedJobIds.has(targetJob.jobNo) ||
-                      dispatchedJobIds.has(targetJob._id) ||
-                      targetJob.status === "IN_REWORK" ||
-                      reworkQueue.some(
-                        (rw) => (rw.jobNo === targetJob.jobNo || rw._id === targetJob._id) && rw.status === "IN_REWORK"
-                      ))
-                );
-
-                if (isDispatched) {
-                  return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                      <div
-                        style={{
-                          padding: "0.85rem 1rem",
-                          background: "#ecfdf5",
-                          border: "1px solid #a7f3d0",
-                          borderRadius: "8px",
-                          color: "#065f46",
-                          fontSize: "0.875rem",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.6rem",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <CheckCircle size={18} color="#059669" />
-                        <span>Rework operation dispatched to floor queue. Work order updated.</span>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="jf-btn"
-                        style={{
-                          width: "100%",
-                          padding: "0.75rem",
-                          background: "#f1f5f9",
-                          color: "#475569",
-                          border: "1px solid #cbd5e1",
-                          cursor: "not-allowed",
-                          fontWeight: 700,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "0.5rem",
-                        }}
-                        disabled={true}
-                      >
-                        <CheckCircle size={16} /> ✓ Dispatched & Active on Floor
-                      </button>
-
-                      <button
-                        type="button"
-                        className="jf-btn jf-btn-secondary"
-                        style={{ width: "100%", padding: "0.6rem" }}
-                        onClick={() => setActiveTab("15A")}
-                      >
-                        ← Return to QC Queue
-                      </button>
-                    </div>
-                  );
-                }
-
-                return (
+          <div className="qc-split qc-split-rework">
+            <div className="qc-stack">
+              <div className="qc-filter-pills">
+                {[
+                  ["ALL", `All (${reworkQueue.length})`],
+                  ["IN_REWORK", `On Floor (${reworkQueue.filter((r) => r.status === "IN_REWORK").length})`],
+                  ["PENDING", `Pending (${reworkQueue.filter((r) => r.status !== "IN_REWORK").length})`],
+                  ["URGENT", `Urgent (${reworkQueue.filter((r) => r.priority === "URGENT").length})`],
+                ].map(([key, label]) => (
                   <button
+                    key={key}
                     type="button"
-                    className="jf-btn jf-btn-primary"
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      background: "#d97706",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "0.5rem",
-                    }}
-                    onClick={() => handleDispatchRework()}
-                    disabled={loading}
+                    className={`qc-filter-pill ${reworkFilter === key ? "active" : ""}`}
+                    onClick={() => setReworkFilter(key)}
                   >
-                    {loading ? (
-                      <>
-                        <RefreshCw size={16} className="spin" /> Dispatching to Floor...
-                      </>
-                    ) : (
-                      <>
-                        <RotateCcw size={16} /> Dispatch Targeted Rework to Floor
-                      </>
-                    )}
+                    {label}
                   </button>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-        </div>
-      )}
+                ))}
+              </div>
 
-      {/* ──────────────── SCREEN 16B: FULL PRODUCTION REPRINT - MANAGER APPROVAL ──────────────── */}
-      {(activeTab === "reprint-approvals" || activeTab === "16B") && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>
-                Full Production Reprint Approvals (Stage 7.3)
-              </h2>
-              <span style={{ fontSize: "0.8125rem", color: "#475569" }}>
-                Manager authorization required to scrap defective batch and spawn new batch from 1st operation
-              </span>
-            </div>
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary jf-btn-sm"
-              onClick={() => setActiveTab("15A")}
-            >
-              ← Back to QC Queue
-            </button>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.25rem" }}>
-          {/* Left: Pending Reprint Queue DataTable */}
-          <div>
-            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <button
-                type="button"
-                className={`qc-filter-pill ${reprintFilter === "ALL" ? "active" : ""}`}
-                onClick={() => setReprintFilter("ALL")}
-              >
-                All Reprints ({reprintRequests.length})
-              </button>
-              <button
-                type="button"
-                className={`qc-filter-pill ${reprintFilter === "PENDING" ? "active" : ""}`}
-                onClick={() => setReprintFilter("PENDING")}
-              >
-                Pending Authorization ({pendingReprintCount})
-              </button>
+              <JobFlowDataTable
+                columns={reworkColumns}
+                data={filteredReworkQueue}
+                loading={loading}
+                searchable={true}
+                searchPlaceholder="Search by job, customer, workstation..."
+                initialPageSize={10}
+                pageSizeOptions={[10, 25, 50, 100]}
+                selectedRowId={activeRework?._id}
+                onRowClick={loadReworkIntoForm}
+                emptyMessage="No rework jobs found."
+              />
             </div>
 
-            <JobFlowDataTable
-              columns={[
-                {
-                  key: "reprintNo",
-                  label: "Reprint #",
-                  sortable: true,
-                  render: (val, r) => (
-                    <div>
-                      <strong>{val}</strong>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{r.requestedAt}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: "jobNo",
-                  label: "Job & Customer",
-                  sortable: true,
-                  render: (val, r) => (
-                    <div>
-                      <strong>{val}</strong>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{r.customerName}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: "quantity",
-                  label: "Scrap Qty",
-                  sortable: true,
-                  render: (val) => `${val} pcs`,
-                },
-                {
-                  key: "scrapCost",
-                  label: "Scrap Cost",
-                  sortable: true,
-                  render: (val) => (
-                    <strong style={{ color: "#dc2626" }}>RM {Number(val).toFixed(2)}</strong>
-                  ),
-                },
-                {
-                  key: "status",
-                  label: "Status",
-                  sortable: true,
-                  render: (val) => (
-                    <StatusBadge
-                      status={val === "APPROVED" ? "Approved" : val === "REJECTED" ? "Rejected" : "Pending"}
-                    />
-                  ),
-                },
-                {
-                  key: "actions",
-                  label: "Review",
-                  sortable: false,
-                  align: "right",
-                  render: (_, r) => (
-                    <button
-                      type="button"
-                      className="jf-btn jf-btn-primary jf-btn-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedReprint(r);
-                      }}
-                    >
-                      Review
-                    </button>
-                  ),
-                },
-              ]}
-              data={
-                reprintFilter === "PENDING"
-                  ? reprintRequests.filter((r) => r.status === "PENDING_APPROVAL")
-                  : reprintRequests
-              }
-              loading={loading}
-              searchable={true}
-              searchPlaceholder="Search reprint authorizations..."
-              initialPageSize={10}
-              pageSizeOptions={[5, 10, 25, 50]}
-              selectedRowId={selectedReprint?._id}
-              onRowClick={(r) => setSelectedReprint(r)}
-              emptyMessage="No reprint requests found."
-            />
-          </div>
+            <div className="jf-card">
+              <div className="jf-card-header" style={{ marginBottom: "1rem" }}>
+                <h3 className="jf-card-title">Dispatch Rework</h3>
+              </div>
 
-          {/* Right: Manager Scrap & Reprint Review Pane */}
-          <div className="jf-card">
-            {selectedReprint ? (
-              <>
-                <div className="jf-card-header" style={{ marginBottom: "1rem" }}>
-                  <div>
-                    <h3 className="jf-card-title">Manager Scrap & Reprint Authorization</h3>
-                    <span style={{ fontSize: "0.8125rem", color: "#475569" }}>
-                      Authorization Ref: <strong>{selectedReprint.reprintNo}</strong>
-                    </span>
+              {activeRework && (
+                <div className="qc-rework-summary">
+                  <div className="qc-between">
+                    <strong>{activeRework.jobNo} · {activeRework.customerName}</strong>
+                    <span style={{ color: "#b45309", fontWeight: 700 }}>{reworkQty} pcs</span>
                   </div>
-                  <StatusBadge
-                    status={selectedReprint.status === "APPROVED" ? "Approved" : selectedReprint.status === "REJECTED" ? "Rejected" : "Pending"}
-                  />
+                  {activeRework.defectSummary && (
+                    <div style={{ fontSize: ".75rem", color: "#92400e", marginTop: ".25rem" }}>{activeRework.defectSummary}</div>
+                  )}
+                </div>
+              )}
+
+              <div className="qc-stack">
+                <div className="jf-form-group">
+                  <label className="jf-label">Operation to Re-run</label>
+                  <select className="jf-select" value={reworkTargetOp} onChange={(e) => setReworkTargetOp(e.target.value)}>
+                    {reworkOps.length > 0 ? (
+                      reworkOps.map((op, idx) => (
+                        <option key={op._id || idx} value={op.operationName || op.operation}>
+                          #{op.sequenceNo || idx + 1} {op.operationName || op.operation}
+                        </option>
+                      ))
+                    ) : (
+                      ["Printing", "Matt Lamination", "Gloss Lamination", "Die-Cutting & Trim", "Creasing & Folding", "Binding", "Packing"].map(
+                        (o) => (
+                          <option key={o} value={o}>{o}</option>
+                        )
+                      )
+                    )}
+                  </select>
                 </div>
 
-                <div
-                  style={{
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    borderRadius: "8px",
-                    padding: "1rem",
-                    marginBottom: "1rem",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "#991b1b" }}>
-                      Defect Cause:
-                    </span>
-                    <strong style={{ color: "#dc2626" }}>
-                      Est. Scrap Loss: RM {Number(selectedReprint.scrapCost || 0).toFixed(2)}
-                    </strong>
-                  </div>
-                  <p style={{ margin: 0, fontSize: "0.8125rem", color: "#7f1d1d" }}>
-                    {selectedReprint.reason}
-                  </p>
+                <div className="jf-form-group">
+                  <label className="jf-label">Workstation</label>
+                  <input type="text" className="jf-input" value={reworkMachine} onChange={(e) => setReworkMachine(e.target.value)} />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
-                  <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "#475569", textTransform: "uppercase" }}>Job Order</div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedReprint.jobNo}</div>
-                  </div>
-
-                  <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "#475569", textTransform: "uppercase" }}>Customer</div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedReprint.customerName}</div>
-                  </div>
-
-                  <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "#475569", textTransform: "uppercase" }}>Machine / Press</div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedReprint.machine}</div>
-                  </div>
-
-                  <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "#475569", textTransform: "uppercase" }}>Inspector</div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedReprint.requestedBy}</div>
-                  </div>
+                <div className="jf-form-group">
+                  <label className="jf-label">Operator</label>
+                  <input type="text" className="jf-input" value={reworkOperator} onChange={(e) => setReworkOperator(e.target.value)} />
                 </div>
 
-                <div className="jf-form-group" style={{ marginBottom: "1.25rem" }}>
-                  <label className="jf-label">Manager Authorization Notes & Floor Directive</label>
+                <div className="jf-form-group">
+                  <label className="jf-label">Priority</label>
+                  <select className="jf-select" value={reworkPriority} onChange={(e) => setReworkPriority(e.target.value)}>
+                    <option value="NORMAL">Normal</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                  </select>
+                </div>
+
+                <div className="jf-form-group">
+                  <label className="jf-label">Instructions</label>
                   <textarea
                     className="jf-textarea"
                     rows={3}
-                    value={managerNotes}
-                    onChange={(e) => setManagerNotes(e.target.value)}
-                    placeholder="Enter approval conditions or salvage directives..."
+                    value={reworkInstructions}
+                    onChange={(e) => setReworkInstructions(e.target.value)}
+                    placeholder="Feed rate, temperature, alignment tolerances..."
                   />
                 </div>
 
-                {selectedReprint.status === "PENDING_APPROVAL" ? (
-                  <div style={{ display: "flex", gap: "0.75rem" }}>
-                    <button
-                      type="button"
-                      className="jf-btn jf-btn-danger-outline"
-                      style={{ flex: 1 }}
-                      onClick={() => handleRejectReprint(selectedReprint)}
-                    >
-                      <XCircle size={16} /> Reject → Hold Job
+                {isReworkDispatched ? (
+                  <>
+                    <div className="qc-notice ok">
+                      <CheckCircle size={16} /> Dispatched & active on floor
+                    </div>
+                    <button type="button" className="jf-btn jf-btn-secondary qc-btn-block" onClick={() => setActiveTab("15A")}>
+                      <ArrowLeft size={14} /> Back to QC Queue
                     </button>
-                    <button
-                      type="button"
-                      className="jf-btn jf-btn-primary"
-                      style={{ flex: 1, background: "#059669" }}
-                      onClick={() => handleApproveReprint(selectedReprint)}
-                    >
-                      <CheckCircle size={16} /> Approve → New Batch from 1st Op
-                    </button>
-                  </div>
+                  </>
                 ) : (
-                  <div
-                    style={{
-                      padding: "0.75rem",
-                      background: selectedReprint.status === "APPROVED" ? "#f0fdf4" : "#fef2f2",
-                      borderRadius: "6px",
-                      border: selectedReprint.status === "APPROVED" ? "1px solid #bbf7d0" : "1px solid #fecaca",
-                      color: selectedReprint.status === "APPROVED" ? "#166534" : "#991b1b",
-                      textAlign: "center",
-                      fontWeight: 700,
-                    }}
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-primary qc-btn-block qc-btn-amber"
+                    onClick={handleDispatchRework}
+                    disabled={loading || !activeRework}
                   >
-                    ✓ Manager Decision Recorded: {selectedReprint.status}
-                  </div>
+                    {loading ? (
+                      <>
+                        <RefreshCw size={16} className="spin" /> Dispatching...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw size={16} /> Dispatch to Floor
+                      </>
+                    )}
+                  </button>
                 )}
-              </>
-            ) : (
-              <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#475569" }}>
-                <p>Select a reprint request from the left table to review.</p>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-        </div>
+        </>
       )}
 
-      {/* ──────────────── TAB 4: PASSED INSPECTIONS ──────────────── */}
+      {/* ───────── 16B: REPRINT APPROVALS ───────── */}
+      {(activeTab === "reprint-approvals" || activeTab === "16B") && (
+        <>
+          <PageHeader title="Reprint Approvals" onBack={() => setActiveTab("15A")} />
+
+          <div className="qc-split qc-split-reprint">
+            <div className="qc-stack">
+              <div className="qc-filter-pills">
+                <button
+                  type="button"
+                  className={`qc-filter-pill ${reprintFilter === "ALL" ? "active" : ""}`}
+                  onClick={() => setReprintFilter("ALL")}
+                >
+                  All ({reprintRequests.length})
+                </button>
+                <button
+                  type="button"
+                  className={`qc-filter-pill ${reprintFilter === "PENDING" ? "active" : ""}`}
+                  onClick={() => setReprintFilter("PENDING")}
+                >
+                  Pending ({pendingReprintCount})
+                </button>
+              </div>
+
+              <JobFlowDataTable
+                columns={reprintColumns}
+                data={filteredReprints}
+                loading={loading}
+                searchable={true}
+                searchPlaceholder="Search reprint requests..."
+                initialPageSize={10}
+                pageSizeOptions={[5, 10, 25, 50]}
+                selectedRowId={selectedReprint?._id}
+                onRowClick={(r) => setSelectedReprint(r)}
+                emptyMessage="No reprint requests found."
+              />
+            </div>
+
+            <div className="jf-card">
+              {selectedReprint ? (
+                <>
+                  <div className="jf-card-header qc-between" style={{ marginBottom: "1rem" }}>
+                    <div>
+                      <h3 className="jf-card-title">{selectedReprint.reprintNo}</h3>
+                    </div>
+                    <StatusBadge status={reprintStatusLabel(selectedReprint.status)} />
+                  </div>
+
+                  <div className="qc-reason-box">
+                    <div className="qc-between">
+                      <strong style={{ color: "#991b1b", fontSize: ".875rem" }}>Defect Cause</strong>
+                      <span className="qc-loss">RM {Number(selectedReprint.scrapCost || 0).toFixed(2)}</span>
+                    </div>
+                    <p>{selectedReprint.reason}</p>
+                  </div>
+
+                  <div className="qc-info-grid">
+                    {[
+                      ["Job Order", selectedReprint.jobNo],
+                      ["Customer", selectedReprint.customerName],
+                      ["Machine", selectedReprint.machine],
+                      ["Inspector", selectedReprint.requestedBy],
+                    ].map(([label, value]) => (
+                      <div key={label} className="qc-info-cell">
+                        <div className="label">{label}</div>
+                        <div className="value">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="jf-form-group" style={{ marginBottom: "1.25rem" }}>
+                    <label className="jf-label">Manager Notes</label>
+                    <textarea
+                      className="jf-textarea"
+                      rows={3}
+                      value={managerNotes}
+                      onChange={(e) => setManagerNotes(e.target.value)}
+                      placeholder="Approval conditions or salvage directives..."
+                    />
+                  </div>
+
+                  {selectedReprint.status === "PENDING_APPROVAL" ? (
+                    <div className="qc-action-row">
+                      <button type="button" className="jf-btn jf-btn-danger-outline" onClick={() => handleRejectReprint(selectedReprint)}>
+                        <XCircle size={16} /> Reject
+                      </button>
+                      <button type="button" className="jf-btn jf-btn-primary qc-btn-green" onClick={() => handleApproveReprint(selectedReprint)}>
+                        <CheckCircle size={16} /> Approve
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={`qc-notice ${selectedReprint.status === "APPROVED" ? "ok" : "bad"}`}>
+                      Decision Recorded: {selectedReprint.status}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="qc-empty">Select a request to review.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ───────── Sub-views ───────── */}
       {activeTab === "passed" && (
-        <PassedInspectionsTab
-          passedList={passedList}
-          onDispatchToDelivery={handleDispatchToDelivery}
-        />
+        <PassedInspectionsTab passedList={passedList} onDispatchToDelivery={handleDispatchToDelivery} />
       )}
 
-      {/* ──────────────── TAB 5: FAILED INSPECTIONS ──────────────── */}
       {activeTab === "failed" && (
         <FailedInspectionsTab
           onTriggerRework={() => handleTabChange("rework-requests")}
@@ -2622,7 +2030,6 @@ export const QualityControlPage = ({ embedded = false }) => {
         />
       )}
 
-      {/* ──────────────── TAB 8: QC REINSPECTION QUEUE ──────────────── */}
       {activeTab === "reinspection" && (
         <QcReinspectionTab
           onApproveReinspection={handleApproveReinspection}
@@ -2630,27 +2037,14 @@ export const QualityControlPage = ({ embedded = false }) => {
         />
       )}
 
-      {/* ──────────────── TAB 9: QC AUDIT HISTORY ──────────────── */}
-      {activeTab === "history" && (
-        <QcHistoryTab />
-      )}
-
-      {/* ──────────────── TAB 10: QC REPORTS & INTELLIGENCE ──────────────── */}
-      {activeTab === "reports" && (
-        <QcReportsTab />
-      )}
+      {activeTab === "history" && <QcHistoryTab />}
+      {activeTab === "reports" && <QcReportsTab />}
     </div>
   );
 
-  if (embedded) {
-    return mainQcContent;
-  }
+  if (embedded) return mainQcContent;
 
-  return (
-    <JobFlowLayout title="Quality Control & Remediation">
-      {mainQcContent}
-    </JobFlowLayout>
-  );
+  return <JobFlowLayout title="Quality Control & Remediation">{mainQcContent}</JobFlowLayout>;
 };
 
 export default QualityControlPage;

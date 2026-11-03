@@ -164,7 +164,7 @@ export const EnhancedQCModal = ({
 
       if (result === "PASS") {
         toast.success(
-          `Production Order ${productionOrder.orderNumber} PASSED QC! Moved to Delivery Order preparation.`
+          `Job Order ${productionOrder.jobOrderNo || productionOrder.jobNo || productionOrder.orderNumber || ""} PASSED QC! Moved to Delivery Order preparation.`
         );
       } else if (correctiveAction === "REWORK") {
         toast.info(
@@ -207,8 +207,7 @@ export const EnhancedQCModal = ({
             <div>
               <h3 className="jf-modal-title">Quality Control (QC) Inspection</h3>
               <span className="prod-modal-subtitle">
-                Order #{productionOrder.orderNumber || "PO"} • Job #
-                {productionOrder.jobOrderNo || productionOrder.jobOrderId?.jobNo || "JO"}
+                Job Order #{productionOrder.jobOrderNo || productionOrder.jobNo || productionOrder.orderNumber || "JO"}
               </span>
             </div>
           </div>

@@ -6,6 +6,17 @@ const JobWorkflowService = require("../../job-orders/services/jobWorkflow.servic
 const ProductionStateService = require("../../production/services/productionState.service");
 const { emitJobEvent } = require("../../job-orders/events/jobEvents.emitter");
 const ErrorHelper = require("../../../utils/ApiError");
+const mongoose = require("mongoose");
+
+const BRANCH_DESIGNERS = [
+  { name: "Ali Hassan", email: "ali.hassan@printz.com", employeeCode: "EMP-001" },
+  { name: "Siti Rahman", email: "siti.rahman@printz.com", employeeCode: "EMP-002" },
+  { name: "Kumar Anil", email: "kumar.anil@printz.com", employeeCode: "EMP-003" },
+  { name: "John Lee", email: "john.lee@printz.com", employeeCode: "EMP-004" },
+  { name: "Nur Aisyah", email: "nur.aisyah@printz.com", employeeCode: "EMP-005" },
+  { name: "Guna", email: "guna@gmail.com", employeeCode: "EMP-006" },
+];
+const BRANCH_DESIGNER_EMAILS = new Set(BRANCH_DESIGNERS.map((d) => d.email.toLowerCase()));
 
 class DesignAllocationService {
   /**
@@ -17,6 +28,7 @@ class DesignAllocationService {
       { $inc: { n: 1 } },
       { upsert: true, new: true }
     );
+    
   }
 
   /**
@@ -125,7 +137,60 @@ class DesignAllocationService {
       seenNames.add(nameKey);
       uniqueDesigners.push(d);
     }
-    designers = uniqueDesigners;
+
+    // Keep ONLY the 6 specified branch designers (excluding mfg designers or others)
+    let filteredDesigners = uniqueDesigners.filter((d) => {
+      const em = (d.email || "").toLowerCase().trim();
+      return BRANCH_DESIGNER_EMAILS.has(em);
+    });
+
+    // Ensure all 6 branch designers are present in the pool
+    for (const bDes of BRANCH_DESIGNERS) {
+      const exists = filteredDesigners.some((d) => (d.email || "").toLowerCase().trim() === bDes.email.toLowerCase());
+      if (!exists) {
+        let u = await User.findOne({
+          $or: [
+            { email: bDes.email.toLowerCase() },
+            { name: bDes.name },
+            { username: bDes.email.split("@")[0].toLowerCase() },
+          ],
+        });
+
+        let realId = u ? u._id : null;
+        if (!realId) {
+          try {
+            const newUser = await User.create({
+              name: bDes.name,
+              email: bDes.email.toLowerCase(),
+              username: bDes.email.split("@")[0].toLowerCase(),
+              password: "Password@123",
+              role: "designer",
+              isActive: true,
+              branchId: targetBranchId || null,
+            });
+            realId = newUser._id;
+          } catch (createErr) {
+            const foundAfterErr = await User.findOne({ email: bDes.email.toLowerCase() });
+            realId = foundAfterErr ? foundAfterErr._id : new mongoose.Types.ObjectId();
+          }
+        }
+
+        filteredDesigners.push({
+          _id: realId,
+          userId: realId,
+          employeeId: realId,
+          employeeCode: bDes.employeeCode,
+          name: bDes.name,
+          role: "designer",
+          isDesigner: true,
+          email: bDes.email,
+          maxLoad: 5,
+          isActive: true,
+        });
+      }
+    }
+
+    designers = filteredDesigners;
 
     let rejectedSet = new Set();
     if (jobId) {
@@ -220,6 +285,14 @@ class DesignAllocationService {
     if (!job) {
       return { jobId: String(jobId), assigned: false, reason: "NOT_FOUND" };
     }
+
+    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+    if (isPrintOnly) {
+      job.designStatus = "NOT_REQUIRED";
+      await job.save();
+      return { jobId: String(job._id), assigned: false, reason: "PRINT_ONLY_NO_DESIGN_OR_PRODUCTION_REQUIRED" };
+    }
     if (job.currentStage !== "DESIGN_QUEUE" && job.currentStage !== "DESIGN_ASSIGNED") {
       job.currentStage = "DESIGN_QUEUE";
       await job.save();
@@ -293,6 +366,12 @@ class DesignAllocationService {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
 
+    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+    if (isPrintOnly) {
+      throw ErrorHelper.badRequest("Cannot assign designer to a Print Only job. Print Only orders bypass design and proceed directly to production.");
+    }
+
     if (job.currentStage !== "DESIGN_QUEUE" && job.currentStage !== "DESIGN_ASSIGNED") {
       job.currentStage = "DESIGN_QUEUE";
       await job.save();
@@ -360,6 +439,12 @@ class DesignAllocationService {
     await this.lock();
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+
+    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+    if (isPrintOnly) {
+      throw ErrorHelper.badRequest("Cannot assign designer to a Print Only job. Print Only orders bypass design and proceed directly to production.");
+    }
 
     const current = await jobAssignmentRepository.findOne({
       jobOrderId: job._id,

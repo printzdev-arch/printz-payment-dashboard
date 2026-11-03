@@ -38,7 +38,7 @@ class ResponseHelper {
         }
 
         for (const [k, v] of Object.entries(obj)) {
-          if (payload[k] === undefined) {
+          if (k !== "accessToken" && k !== "refreshToken" && payload[k] === undefined) {
             payload[k] = v;
           }
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Info, AlertTriangle, X } from "lucide-react";
 import { toast as reactToastifyToast } from "react-toastify";
@@ -184,7 +184,7 @@ if (typeof window !== "undefined") {
 /**
  * Toast Item Component
  */
-const MotionToastItem = ({ item, onDismiss }) => {
+const MotionToastItem = forwardRef(({ item, onDismiss }, ref) => {
   const isReduced = isReducedMotionPreferred();
 
   useEffect(() => {
@@ -212,6 +212,7 @@ const MotionToastItem = ({ item, onDismiss }) => {
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={
         isReduced
@@ -276,7 +277,9 @@ const MotionToastItem = ({ item, onDismiss }) => {
       </div>
     </motion.div>
   );
-};
+});
+
+MotionToastItem.displayName = "MotionToastItem";
 
 /**
  * Top-Center Toast Container

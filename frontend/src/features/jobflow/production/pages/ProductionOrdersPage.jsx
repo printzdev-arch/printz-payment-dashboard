@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Search,
   Plus,
-  Filter,
   Calendar,
   CalendarCheck,
   Play,
@@ -110,7 +109,7 @@ function OrderDetailsModal({ orderId, onClose }) {
     productionApi
       .getProductionOrderById(orderId)
       .then((res) => alive && setData(res?.data || res?.productionOrder || res))
-      .catch((e) => alive && setError(errorMessage(e, "Could not load this production order.")));
+      .catch((e) => alive && setError(errorMessage(e, "Could not load this job order.")));
     return () => {
       alive = false;
     };
@@ -124,10 +123,10 @@ function OrderDetailsModal({ orderId, onClose }) {
       <div className="po2-modal" role="dialog" aria-modal="true">
         <div className="po2-modal-head">
           <div>
-            <h3>{data?.productionNo || "Production Order"}</h3>
+            <h3>{data?.jobNo || data?.jobOrderNo || data?.productionNo || "Job Order"}</h3>
             {data && (
               <span className="po2-sub">
-                {data.jobNo || "—"} · {data.customerName || "—"} · {data.productName || "—"}
+                {data.customerName || "—"} · {data.productName || "—"}
               </span>
             )}
           </div>
@@ -458,7 +457,7 @@ export default function ProductionOrdersPage() {
           <Search size={16} />
           <input
             type="text"
-            placeholder="Search by PO, job number, customer, product..."
+            placeholder="Search by job order no, customer, product..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -525,48 +524,7 @@ export default function ProductionOrdersPage() {
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          className={`po-btn po-btn-outline po-filter-btn ${moreFilters ? "is-active" : ""}`}
-          onClick={() => setMoreFilters((v) => !v)}
-          aria-expanded={moreFilters}
-        >
-          <Filter size={16} /> Filters
-        </button>
-
-        {moreFilters && (
-          <div className="po-more-filters">
-            <label className="po-field">
-              <span>Planning Status</span>
-              <select value={planningFilter} onChange={withReset(setPlanningFilter)}>
-                <option value="ALL">All</option>
-                <option value="UNPLANNED">Unplanned</option>
-                <option value="DRAFT">Draft</option>
-                <option value="PLANNED">Planned</option>
-              </select>
-            </label>
-            <button type="button" className="po-btn po-btn-ghost" onClick={resetFilters}>
-              Reset
-            </button>
-          </div>
-        )}
       </section>
-
-      {/* KPI cards (counted by the server, not from the current page)
-      <section className="po-stats" aria-label="Summary">
-        {cards.map(({ label, value, icon: Icon }) => (
-          <div className="po-stat" key={label}>
-            <span className="po-stat-icon">
-              <Icon size={20} />
-            </span>
-            <div>
-              <div className="po-stat-label">{label}</div>
-              <div className="po-stat-value">{value}</div>
-            </div>
-          </div>
-        ))}
-      </section> */}
 
       {loadError && (
         <div className="po2-banner" role="alert">
@@ -589,9 +547,7 @@ export default function ProductionOrdersPage() {
             </span>
             <h2>Production Orders</h2>
           </div>
-          <button type="button" className="po-btn po-btn-primary" onClick={() => navigate("/production/planning")}>
-            <Plus size={16} /> View Production Planning
-          </button>
+         
         </div>
 
         <div className="po-table-wrap">
@@ -599,14 +555,11 @@ export default function ProductionOrdersPage() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>PO Number</th>
-                <th>Job Number</th>
+                <th>Job Order No</th>
                 <th>Customer</th>
                 <th>Product</th>
                 <th className="num">Order Qty</th>
-                <th>Planning</th>
                 <th>Status</th>
-                <th>Progress</th>
                 <th>Priority</th>
                 <th>Planned Start</th>
                 <th>Planned End</th>
@@ -616,57 +569,37 @@ export default function ProductionOrdersPage() {
             <tbody>
               {loading ? (
                 <tr className="po-empty-row">
-                  <td colSpan="13">Loading production orders…</td>
+                  <td colSpan="10">Loading production orders…</td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr className="po-empty-row">
-                  <td colSpan="13">
+                  <td colSpan="10">
                     {loadError ? "Could not load production orders." : "No production orders match the current filters."}
                   </td>
                 </tr>
               ) : (
                 orders.map((o, i) => {
                   const id = rowId(o);
-                  const planned = o.status !== "UNASSIGNED";
                   const can = actionsFor(o.status);
                   const hasMenu = can.hold || can.resume || can.cancel;
                   const prio = String(o.priority || "NORMAL").toUpperCase();
-                  const pct = Math.max(0, Math.min(100, Number(o.progressPct) || 0));
                   return (
                     <tr key={id}>
                       <td data-label="#" className="col-index">
                         {startIdx + i + 1}
                       </td>
-                      <td data-label="PO Number" className="po-number">
-                        {o.productionNo || "—"}
+                      <td data-label="Job Order No" className="po-number">
+                        {o.jobNo || o.jobOrderNo || o.productionNo || "—"}
                       </td>
-                      <td data-label="Job Number">{o.jobNo || o.jobOrderNo || "—"}</td>
                       <td data-label="Customer">{o.customerName || "—"}</td>
                       <td data-label="Product">{o.productName || "—"}</td>
                       <td data-label="Order Qty" className="num">
                         {fmtNum(o.quantity ?? o.plannedQty)}
                       </td>
-                      <td data-label="Planning">
-                        <span
-                          className={`po-pill ${
-                            planned ? "pill-planned" : o.planningStatus === "DRAFT" ? "pill-draft" : "pill-unplanned"
-                          }`}
-                        >
-                          {planningLabel(o)}
-                        </span>
-                      </td>
                       <td data-label="Status">
                         <span className={`po-pill ${pillClass(o.status)}`}>
                           {STATUS_LABELS[o.status] || o.status}
                         </span>
-                      </td>
-                      <td data-label="Progress">
-                        <div className="po2-progress">
-                          <div className="po2-progress-bar">
-                            <i style={{ width: `${pct}%` }} />
-                          </div>
-                          <span>{pct}%</span>
-                        </div>
                       </td>
                       <td data-label="Priority">
                         <span className={`po2-prio ${prio.toLowerCase()}`}>{prio}</span>

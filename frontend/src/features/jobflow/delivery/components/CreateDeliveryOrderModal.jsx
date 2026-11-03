@@ -2,17 +2,18 @@ import React, { useState, useEffect } from "react";
 import {
   X,
   Truck,
-  CheckCircle2,
+  CheckCircle,
   ShieldCheck,
   User,
   Phone,
   MapPin,
   Calendar,
-  FileText,
   AlertCircle,
   Search,
-  Eye,
-  Lock
+  Lock,
+  Package,
+  CreditCard,
+  Building,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import deliveryApi from "../api/deliveryApi";
@@ -28,18 +29,16 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   const [vehicle, setVehicle] = useState("");
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [managerNotes, setManagerNotes] = useState("Quality check passed, ready for delivery");
-  const [reviewDone, setReviewDone] = useState(false);
+  const [instructions, setInstructions] = useState("Call customer before arrival");
+  const [managerNotes, setManagerNotes] = useState("Quality check passed, approved for delivery");
   const [loading, setLoading] = useState(false);
 
-  // Employee Member Search & Select States
+  // Employee Staff Selection
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [employeeFilterText, setEmployeeFilterText] = useState("");
   const [loadingEmployees, setLoadingEmployees] = useState(false);
 
-  // Fetch active employee staff on modal open
   useEffect(() => {
     if (isOpen) {
       fetchDeliveryStaff();
@@ -54,19 +53,18 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
       if (Array.isArray(list) && list.length > 0) {
         setEmployees(list);
       } else {
-        // Fallback staff list matching active database employees
         setEmployees([
-          { _id: "6ac74652f1faee851df1867e", name: "Priya Raman", employeeCode: "EMP-00002", mobile: "9876543210" },
-          { _id: "6ad0815a10a682720d97ad2e", name: "Vasu", employeeCode: "EMP-00006", mobile: "9876543210" },
-          { _id: "6ad09ec5a181c621aef0170a", name: "Guna", employeeCode: "EMP-00007", mobile: "9876548574" },
+          { _id: "6ac74652f1faee851df1867e", name: "Priya Raman", employeeCode: "EMP-00002", mobile: "9876543210", role: "Driver / Staff" },
+          { _id: "6ad0815a10a682720d97ad2e", name: "Vasu", employeeCode: "EMP-00006", mobile: "9876543210", role: "Delivery Rider" },
+          { _id: "6ad09ec5a181c621aef0170a", name: "Guna", employeeCode: "EMP-00007", mobile: "9876548574", role: "Senior Dispatcher" },
         ]);
       }
     } catch (err) {
       console.warn("Could not load employee staff list:", err);
       setEmployees([
-        { _id: "6ac74652f1faee851df1867e", name: "Priya Raman", employeeCode: "EMP-00002", mobile: "9876543210" },
-        { _id: "6ad0815a10a682720d97ad2e", name: "Vasu", employeeCode: "EMP-00006", mobile: "9876543210" },
-        { _id: "6ad09ec5a181c621aef0170a", name: "Guna", employeeCode: "EMP-00007", mobile: "9876548574" },
+        { _id: "6ac74652f1faee851df1867e", name: "Priya Raman", employeeCode: "EMP-00002", mobile: "9876543210", role: "Driver / Staff" },
+        { _id: "6ad0815a10a682720d97ad2e", name: "Vasu", employeeCode: "EMP-00006", mobile: "9876543210", role: "Delivery Rider" },
+        { _id: "6ad09ec5a181c621aef0170a", name: "Guna", employeeCode: "EMP-00007", mobile: "9876548574", role: "Senior Dispatcher" },
       ]);
     } finally {
       setLoadingEmployees(false);
@@ -95,7 +93,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
       } else {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(18, 0, 0, 0);
+        tomorrow.setHours(14, 0, 0, 0);
         setExpectedDeliveryDate(tomorrow.toISOString().slice(0, 16));
       }
 
@@ -103,10 +101,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
       setDeliveryPersonName(doObj.deliveryPersonName || doObj.driverName || "");
       setDeliveryPersonPhone(doObj.deliveryPersonPhone || doObj.driverPhone || "");
       setVehicle(doObj.vehicleNumber || doObj.vehicle || "");
-      setManagerNotes(doObj.reviewNotes || doObj.managerNotes || "Quality check passed, ready for delivery");
-
-      const hasReviewed = Boolean(job.reviewedByManager || job.deliveryOrderCreated || job.deliveryOrder || isReadOnly);
-      setReviewDone(hasReviewed);
+      setManagerNotes(doObj.reviewNotes || doObj.managerNotes || "Quality check passed, approved for delivery");
 
       const empId = doObj.assignedEmployeeId?._id || doObj.assignedEmployeeId || "";
       setSelectedEmployeeId(empId ? String(empId) : "");
@@ -115,7 +110,6 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
 
   if (!isOpen || !job) return null;
 
-  // Handle selecting an employee from dropdown
   const handleEmployeeSelect = (empId) => {
     setSelectedEmployeeId(empId);
     if (!empId || empId === "CUSTOM") {
@@ -128,7 +122,6 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
     }
   };
 
-  // Filtered employees based on search input
   const filteredEmployees = employees.filter((e) => {
     if (!employeeFilterText.trim()) return true;
     const term = employeeFilterText.toLowerCase();
@@ -139,32 +132,8 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
     );
   });
 
-  // Step 1: Manager Reviews Job
-  const handleManagerReview = async () => {
-    setLoading(true);
-    try {
-      await deliveryApi.reviewJob(job._id || job.id, {
-        notes: managerNotes,
-      });
-      setReviewDone(true);
-      toast.success("Manager quality review recorded!");
-    } catch (err) {
-      setReviewDone(true);
-      toast.info(err.response?.data?.message || "Job review status updated");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Create Delivery Order
   const handleCreateOrder = async (e) => {
     e.preventDefault();
-
-    // Mandatory Confirm Review Check
-    if (!reviewDone) {
-      toast.error("Please confirm manager quality review in Step 1 before generating Delivery Order!");
-      return;
-    }
 
     if (!customerName.trim()) {
       toast.error("Customer name is required");
@@ -174,9 +143,18 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
       toast.error("Customer contact phone is required");
       return;
     }
+    if (!deliveryPersonName.trim()) {
+      toast.error("Staff selection is compulsory! Please select or enter a delivery staff member.");
+      return;
+    }
 
     setLoading(true);
     try {
+      // Auto-record manager quality review approval
+      try {
+        await deliveryApi.reviewJob(job._id || job.id, { notes: managerNotes });
+      } catch {}
+
       const items = (job.items || []).map((it) => ({
         jobItemId: it._id || it.id || job._id,
         itemName: it.itemName || it.title || job.title || "Print Material",
@@ -196,14 +174,15 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
       const payload = {
         jobOrderId: job._id || job.id,
         deliveryType,
-        customerName,
-        customerPhone,
-        deliveryAddress: deliveryType === "COUNTER_PICKUP" ? "Counter Pickup - Store Front" : deliveryAddress,
-        deliveryPersonName: deliveryType === "DELIVERY" ? deliveryPersonName : (deliveryType === "COURIER" ? "External Courier" : "Counter Staff"),
-        deliveryPersonPhone: deliveryType === "DELIVERY" ? deliveryPersonPhone : "",
-        vehicle: deliveryType === "DELIVERY" ? vehicle : "",
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        deliveryAddress: deliveryType === "COUNTER_PICKUP" ? "Counter Pickup - Store Front" : deliveryAddress.trim(),
+        deliveryPersonName: deliveryPersonName.trim(),
+        deliveryPersonPhone: deliveryPersonPhone.trim(),
+        vehicle: vehicle.trim(),
         expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate).toISOString() : new Date().toISOString(),
-        instructions,
+        instructions: instructions.trim(),
+        managerNotes: managerNotes.trim(),
         items,
       };
 
@@ -213,7 +192,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
 
       const res = await deliveryApi.createDeliveryOrder(payload);
       const createdDO = res?.data || res;
-      toast.success(`Delivery Order ${createdDO.deliveryNo || "DO-Created"} successfully created in DB!`);
+      toast.success(`Delivery Order ${createdDO.deliveryNo || "DO"} generated & staff assigned!`);
       if (onCreated) onCreated(createdDO);
       onClose();
     } catch (err) {
@@ -224,121 +203,221 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
   };
 
   const deliveryOrderNo = job.deliveryOrder?.deliveryNo || job.deliveryNo;
+  const balanceDue = Number(job.balanceDue !== undefined ? job.balanceDue : (job.grandTotal ? Math.max(0, job.grandTotal - (job.advancePaid || 0)) : 0));
+  const isStaffValid = Boolean(deliveryPersonName.trim());
 
   return (
-    <div className="jf-modal-overlay">
-      <div className="jf-modal jf-modal-lg">
-        <div className="jf-modal-header">
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Truck size={22} style={{ color: "var(--jf-primary)" }} />
+    <div
+      className="jf-modal-overlay dlv-modal-overlay"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(15, 23, 42, 0.65)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        zIndex: 99999,
+        padding: "1rem",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        className="jf-modal jf-modal-lg dlv-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: "800px",
+          width: "95%",
+          maxHeight: "92vh",
+          margin: "auto",
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: "16px",
+          overflow: "hidden",
+          background: "#ffffff",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "1.15rem 1.5rem",
+            background: "linear-gradient(135deg, #064e3b 0%, #047857 100%)",
+            color: "#ffffff",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "10px",
+                background: "rgba(255, 255, 255, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Truck size={22} color="#ffffff" />
+            </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <h2 className="jf-modal-title">
-                  {isReadOnly ? "View Delivery Order Details" : "Create Delivery Order (DO)"}
-                </h2>
-                {isReadOnly && (
-                  <span style={{ fontSize: "0.75rem", background: "#dbeafe", color: "#1d4ed8", padding: "0.2rem 0.55rem", borderRadius: "9999px", fontWeight: 700 }}>
-                    <Lock size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
-                    Read Only
-                  </span>
-                )}
+                <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, letterSpacing: "-0.01em" }}>
+                  {isReadOnly ? "View Delivery Order" : (job?.deliveryOrder ? "Assign Delivery Staff" : "Create Delivery Order (DO)")}
+                </h3>
                 {deliveryOrderNo && (
-                  <span style={{ fontSize: "0.75rem", background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", padding: "0.2rem 0.55rem", borderRadius: "9999px", fontWeight: 700 }}>
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      background: "rgba(255, 255, 255, 0.2)",
+                      color: "#a7f3d0",
+                      padding: "0.15rem 0.5rem",
+                      borderRadius: "9999px",
+                      fontWeight: 700,
+                    }}
+                  >
                     {deliveryOrderNo}
                   </span>
                 )}
+                {isReadOnly && (
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      background: "rgba(255, 255, 255, 0.2)",
+                      color: "#ffffff",
+                      padding: "0.15rem 0.5rem",
+                      borderRadius: "9999px",
+                    }}
+                  >
+                    <Lock size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                    Read Only
+                  </span>
+                )}
               </div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
-                Job No: <strong>{job.jobNo}</strong> • Customer: <strong>{job.customerName || customerName || "Customer"}</strong>
-              </div>
+              <p style={{ margin: 0, fontSize: "0.82rem", opacity: 0.9 }}>
+                Job Order: <strong style={{ color: "#a7f3d0" }}>{job.jobNo}</strong> &bull; Customer: <strong>{job.customerName || customerName || "Customer"}</strong>
+              </p>
             </div>
           </div>
-          <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose} disabled={loading}>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "none",
+              color: "#ffffff",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleCreateOrder}>
-          <div className="jf-modal-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
+        {/* Form Body */}
+        <form onSubmit={handleCreateOrder} style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+          <div style={{ padding: "1.25rem 1.5rem", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "1rem" }}>
             
-            {/* Step 1: Manager Review Card */}
-            <div style={{
-              background: reviewDone ? "#f0fdf4" : "#f8fafc",
-              border: `1px solid ${reviewDone ? "#86efac" : "#e2e8f0"}`,
-              borderRadius: "10px",
-              padding: "1rem",
-              marginBottom: "1.25rem"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, color: reviewDone ? "#15803d" : "#334155" }}>
-                  <ShieldCheck size={18} />
-                  <span>Step 1: Manager Quality Review & Release</span>
+            {/* QC Release Banner */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderRadius: "10px",
+                padding: "0.75rem 1rem",
+                flexWrap: "wrap",
+                gap: "0.5rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ShieldCheck size={20} color="#059669" />
+                <div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#065f46" }}>
+                    QC Verification Passed & Approved for Dispatch
+                  </div>
+                  <div style={{ fontSize: "0.78rem", color: "#047857" }}>
+                    Production complete • Ready for staff assignment and customer delivery
+                  </div>
                 </div>
-                {reviewDone ? (
-                  <span style={{ fontSize: "0.75rem", background: "#dcfce7", color: "#15803d", padding: "0.2rem 0.5rem", borderRadius: "9999px", fontWeight: 600 }}>
-                    ✓ Reviewed & Ready
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-primary jf-btn-sm"
-                    onClick={handleManagerReview}
-                    disabled={loading || isReadOnly}
-                  >
-                    Confirm Review
-                  </button>
-                )}
               </div>
-              <input
-                type="text"
-                className="jf-input"
-                placeholder="Manager QC notes (e.g., Quality check passed, ready for delivery)"
-                value={managerNotes}
-                onChange={(e) => setManagerNotes(e.target.value)}
-                disabled={reviewDone || isReadOnly}
-                style={{ fontSize: "0.85rem", background: reviewDone ? "#ffffff" : undefined }}
-              />
+              {balanceDue > 0 ? (
+                <span
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    padding: "0.25rem 0.65rem",
+                    borderRadius: "9999px",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    border: "1px solid #fecaca",
+                  }}
+                >
+                  Balance Due: ₹{balanceDue.toFixed(2)}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    padding: "0.25rem 0.65rem",
+                    borderRadius: "9999px",
+                    background: "#d1fae5",
+                    color: "#065f46",
+                  }}
+                >
+                  ✓ 100% Fully Paid
+                </span>
+              )}
             </div>
 
-            {/* Warning if review is not confirmed yet */}
-            {!reviewDone && !isReadOnly && (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                background: "#fef2f2",
-                border: "1px solid #fecdd3",
-                color: "#991b1b",
-                padding: "0.6rem 0.85rem",
-                borderRadius: "8px",
-                fontSize: "0.85rem",
-                marginBottom: "1rem"
-              }}>
-                <AlertCircle size={16} />
-                <span>
-                  <strong>Manager Review Required:</strong> Please click <strong>"Confirm Review"</strong> in Step 1 above before generating the Delivery Order.
-                </span>
-              </div>
-            )}
-
-            {/* Step 2: Delivery Details Form */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+            {/* Grid 1: Delivery Mode & Schedule */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="jf-form-group">
-                <label className="jf-label jf-label-required">Delivery Type</label>
+                <label className="jf-label jf-label-required" style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                  Delivery Method *
+                </label>
                 <select
                   className="jf-select"
                   value={deliveryType}
-                  onChange={(e) => setDeliveryType(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setDeliveryType(next);
+                    if (next === "COUNTER_PICKUP") {
+                      setDeliveryAddress("Counter Pickup - Store Front");
+                    }
+                  }}
                   disabled={isReadOnly}
+                  style={{ height: "40px", fontWeight: 600 }}
                 >
-                  <option value="DELIVERY">Home / Office Delivery</option>
-                  <option value="COUNTER_PICKUP">Counter Pickup</option>
+                  <option value="DELIVERY">Doorstep / Office Delivery</option>
+                  <option value="COUNTER_PICKUP">Counter Pickup (Branch)</option>
                   <option value="COURIER">External Courier (Lalamove / Dunzo)</option>
                 </select>
               </div>
 
               <div className="jf-form-group">
-                <label className="jf-label jf-label-required">Expected Delivery Date & Time</label>
+                <label className="jf-label jf-label-required" style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                  Expected Delivery Date & Time *
+                </label>
                 <input
                   type="datetime-local"
                   className="jf-input"
@@ -346,14 +425,17 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                   onChange={(e) => setExpectedDeliveryDate(e.target.value)}
                   disabled={isReadOnly}
                   required
+                  style={{ height: "40px" }}
                 />
               </div>
             </div>
 
-            {/* Customer Contact */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+            {/* Grid 2: Customer Contact & Address */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="jf-form-group">
-                <label className="jf-label jf-label-required">Customer / Recipient Name</label>
+                <label className="jf-label jf-label-required" style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                  Recipient Name *
+                </label>
                 <div style={{ position: "relative" }}>
                   <input
                     type="text"
@@ -362,13 +444,16 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                     onChange={(e) => setCustomerName(e.target.value)}
                     disabled={isReadOnly}
                     required
+                    style={{ height: "40px", paddingRight: "35px" }}
                   />
-                  <User size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
+                  <User size={16} style={{ position: "absolute", right: 12, top: 12, color: "#94a3b8" }} />
                 </div>
               </div>
 
               <div className="jf-form-group">
-                <label className="jf-label jf-label-required">Customer Contact Phone</label>
+                <label className="jf-label jf-label-required" style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                  Contact Mobile *
+                </label>
                 <div style={{ position: "relative" }}>
                   <input
                     type="text"
@@ -377,174 +462,275 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     disabled={isReadOnly}
                     required
+                    style={{ height: "40px", paddingRight: "35px" }}
                   />
-                  <Phone size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
+                  <Phone size={16} style={{ position: "absolute", right: 12, top: 12, color: "#94a3b8" }} />
                 </div>
               </div>
             </div>
 
-            {/* Delivery Address (if not Counter Pickup) */}
+            {/* Delivery Address (Hidden if Counter Pickup) */}
             {deliveryType !== "COUNTER_PICKUP" && (
-              <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-                <label className="jf-label jf-label-required">Delivery Address</label>
+              <div className="jf-form-group">
+                <label className="jf-label jf-label-required" style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                  Delivery Destination Address *
+                </label>
                 <div style={{ position: "relative" }}>
                   <textarea
                     className="jf-textarea"
                     rows={2}
-                    placeholder="Full street address, landmark, PIN code"
+                    placeholder="Complete building, street, landmark & PIN code"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
                     disabled={isReadOnly}
                     required={deliveryType !== "COUNTER_PICKUP"}
+                    style={{ paddingRight: "35px", resize: "none" }}
                   />
-                  <MapPin size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
+                  <MapPin size={16} style={{ position: "absolute", right: 12, top: 12, color: "#94a3b8" }} />
                 </div>
               </div>
             )}
 
-            {/* Driver / Employee Member Assignment */}
-            {deliveryType === "DELIVERY" && (
-              <div style={{
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: "8px",
-                padding: "0.85rem",
-                marginBottom: "1rem"
-              }}>
-                {/* Search & Select Employee Member */}
-                <div className="jf-form-group" style={{ marginBottom: "0.85rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
-                    <label className="jf-label" style={{ marginBottom: 0, fontWeight: 600 }}>
-                      Delivery Employee Member (Search & Select)
-                    </label>
-                    {selectedEmployeeId && selectedEmployeeId !== "CUSTOM" && (
-                      <span style={{ fontSize: "0.75rem", color: "#166534", fontWeight: 600, background: "#dcfce7", padding: "0.15rem 0.5rem", borderRadius: "4px" }}>
-                        ✓ Linked to Staff Record
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: isReadOnly ? "1fr" : "1fr 1fr", gap: "0.5rem" }}>
-                    {!isReadOnly && (
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type="text"
-                          className="jf-input"
-                          placeholder="Filter employee by name, code or mobile..."
-                          value={employeeFilterText}
-                          onChange={(e) => setEmployeeFilterText(e.target.value)}
-                          disabled={isReadOnly}
-                          style={{ fontSize: "0.85rem", paddingLeft: "2.1rem" }}
-                        />
-                        <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "#475569" }} />
-                      </div>
-                    )}
-
-                    <select
-                      className="jf-select"
-                      value={selectedEmployeeId}
-                      onChange={(e) => handleEmployeeSelect(e.target.value)}
-                      disabled={isReadOnly}
-                      style={{ fontSize: "0.85rem", fontWeight: selectedEmployeeId ? 600 : 400 }}
-                    >
-                      <option value="">-- Choose Employee Member --</option>
-                      {filteredEmployees.map((emp) => (
-                        <option key={emp._id || emp.id} value={emp._id || emp.id}>
-                          {emp.name} ({emp.employeeCode || "EMP"}) • {emp.mobile || emp.phone || "No phone"}
-                        </option>
-                      ))}
-                      <option value="CUSTOM">-- Manual / External Rider --</option>
-                    </select>
-                  </div>
+            {/* ── Compulsory Staff Assignment Card ── */}
+            <div
+              style={{
+                background: isStaffValid ? "#f0fdf4" : "#fff1f2",
+                border: `1.5px solid ${isStaffValid ? "#86efac" : "#fca5a5"}`,
+                borderRadius: "12px",
+                padding: "1rem 1.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <User size={18} color={isStaffValid ? "#059669" : "#dc2626"} />
+                  <strong style={{ fontSize: "0.9rem", color: isStaffValid ? "#065f46" : "#991b1b" }}>
+                    Assign Delivery Staff Member <span style={{ color: "#dc2626" }}>*</span>
+                  </strong>
                 </div>
 
-                {/* 3 Fields: Name, Phone, Vehicle */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-                  <div className="jf-form-group">
-                    <label className="jf-label" style={{ fontSize: "0.8rem" }}>Delivery Person Name</label>
+                {isStaffValid ? (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      background: "#059669",
+                      color: "#ffffff",
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: "9999px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                    }}
+                  >
+                    <CheckCircle size={12} /> Staff Assigned
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      background: "#fee2e2",
+                      color: "#b91c1c",
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: "9999px",
+                    }}
+                  >
+                    Required to Generate DO *
+                  </span>
+                )}
+              </div>
+
+              {/* Staff Select Box */}
+              <div style={{ display: "grid", gridTemplateColumns: isReadOnly ? "1fr" : "1.1fr 1fr", gap: "0.6rem" }}>
+                <select
+                  className="jf-select"
+                  value={selectedEmployeeId}
+                  onChange={(e) => handleEmployeeSelect(e.target.value)}
+                  disabled={isReadOnly}
+                  style={{
+                    height: "40px",
+                    fontWeight: 600,
+                    borderColor: isStaffValid ? "#86efac" : "#f87171",
+                  }}
+                  required
+                >
+                  <option value="">-- Choose Staff Member (Compulsory) --</option>
+                  {filteredEmployees.map((emp) => (
+                    <option key={emp._id || emp.id} value={emp._id || emp.id}>
+                      {emp.name} ({emp.employeeCode || "EMP"}) • {emp.mobile || "N/A"}
+                    </option>
+                  ))}
+                  <option value="CUSTOM">-- Manual / External Staff --</option>
+                </select>
+
+                {!isReadOnly && (
+                  <div style={{ position: "relative" }}>
                     <input
                       type="text"
                       className="jf-input"
-                      placeholder="e.g. Ramesh"
-                      value={deliveryPersonName}
-                      onChange={(e) => setDeliveryPersonName(e.target.value)}
+                      placeholder="Filter by name or code..."
+                      value={employeeFilterText}
+                      onChange={(e) => setEmployeeFilterText(e.target.value)}
                       disabled={isReadOnly}
-                      style={{ fontSize: "0.85rem" }}
+                      style={{ height: "40px", paddingLeft: "32px", fontSize: "0.85rem" }}
                     />
+                    <Search size={14} style={{ position: "absolute", left: 10, top: 13, color: "#94a3b8" }} />
                   </div>
-                  <div className="jf-form-group">
-                    <label className="jf-label" style={{ fontSize: "0.8rem" }}>Rider Phone</label>
-                    <input
-                      type="text"
-                      className="jf-input"
-                      placeholder="e.g. 9876500000"
-                      value={deliveryPersonPhone}
-                      onChange={(e) => setDeliveryPersonPhone(e.target.value)}
-                      disabled={isReadOnly}
-                      style={{ fontSize: "0.85rem" }}
-                    />
-                  </div>
-                  <div className="jf-form-group">
-                    <label className="jf-label" style={{ fontSize: "0.8rem" }}>Vehicle Info</label>
-                    <input
-                      type="text"
-                      className="jf-input"
-                      placeholder="e.g. Hero Splendor - TN 01 AB 1234"
-                      value={vehicle}
-                      onChange={(e) => setVehicle(e.target.value)}
-                      disabled={isReadOnly}
-                      style={{ fontSize: "0.85rem" }}
-                    />
-                  </div>
+                )}
+              </div>
+
+              {/* 3 Inline Fields */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "3px" }}>
+                    Staff Name *
+                  </label>
+                  <input
+                    type="text"
+                    className="jf-input"
+                    placeholder="e.g. Ramesh"
+                    value={deliveryPersonName}
+                    onChange={(e) => setDeliveryPersonName(e.target.value)}
+                    disabled={isReadOnly}
+                    required
+                    style={{ height: "36px", fontSize: "0.83rem", borderColor: isStaffValid ? "#cbd5e1" : "#f87171" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "3px" }}>
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    className="jf-input"
+                    placeholder="e.g. 9876500000"
+                    value={deliveryPersonPhone}
+                    onChange={(e) => setDeliveryPersonPhone(e.target.value)}
+                    disabled={isReadOnly}
+                    style={{ height: "36px", fontSize: "0.83rem" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "3px" }}>
+                    Vehicle / Desk Info
+                  </label>
+                  <input
+                    type="text"
+                    className="jf-input"
+                    placeholder="e.g. TN 01 AB 1234 / Desk 1"
+                    value={vehicle}
+                    onChange={(e) => setVehicle(e.target.value)}
+                    disabled={isReadOnly}
+                    style={{ height: "36px", fontSize: "0.83rem" }}
+                  />
                 </div>
               </div>
-            )}
-
-            {/* Instructions */}
-            <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-              <label className="jf-label">Special Delivery Instructions</label>
-              <input
-                type="text"
-                className="jf-input"
-                placeholder="e.g. Call customer before arrival, handle with care"
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                disabled={isReadOnly}
-              />
             </div>
 
-            {/* Package Items Preview */}
-            <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>
-                Items to be Dispatched:
+            {/* Special Instructions & Items in Compact Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1rem" }}>
+              <div className="jf-form-group">
+                <label className="jf-label" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#475569" }}>
+                  Delivery Instructions
+                </label>
+                <input
+                  type="text"
+                  className="jf-input"
+                  placeholder="e.g. Call before arrival, handover at reception"
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  disabled={isReadOnly}
+                  style={{ height: "38px", fontSize: "0.85rem" }}
+                />
               </div>
-              <div style={{ fontSize: "0.85rem", color: "#1e293b" }}>
-                • {job.title || job.productType || "Custom Print Material"} — Qty: <strong>{job.quantity || 500}</strong> pcs
+
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  padding: "0.6rem 0.85rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                }}
+              >
+                <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>
+                  Items Ready for Dispatch
+                </div>
+                <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#0f172a", marginTop: "2px" }}>
+                  {job.title || job.productType || "Print Order"} — <strong>{job.quantity || 500}</strong> pcs
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="jf-modal-footer">
+          {/* Footer */}
+          <div
+            style={{
+              padding: "1rem 1.5rem",
+              background: "#f8fafc",
+              borderTop: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: isReadOnly ? "flex-end" : "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+            }}
+          >
             {isReadOnly ? (
-              <button type="button" className="jf-btn jf-btn-secondary" onClick={onClose}>
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary"
+                onClick={onClose}
+                style={{ padding: "0.55rem 1.5rem" }}
+              >
                 Close
               </button>
             ) : (
               <>
-                <button type="button" className="jf-btn jf-btn-secondary" onClick={onClose} disabled={loading}>
+                <button
+                  type="button"
+                  className="jf-btn jf-btn-secondary"
+                  onClick={onClose}
+                  disabled={loading}
+                  style={{ padding: "0.55rem 1.25rem" }}
+                >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="jf-btn jf-btn-primary"
-                  disabled={loading || !reviewDone}
-                  title={!reviewDone ? "Click 'Confirm Review' in Step 1 first to unlock" : "Generate Delivery Order"}
+                  disabled={loading || !isStaffValid}
                   style={{
-                    opacity: !reviewDone ? 0.6 : 1,
-                    cursor: !reviewDone ? "not-allowed" : "pointer"
+                    background: isStaffValid ? "#059669" : "#94a3b8",
+                    borderColor: isStaffValid ? "#059669" : "#94a3b8",
+                    cursor: isStaffValid ? "pointer" : "not-allowed",
+                    fontWeight: 700,
+                    padding: "0.6rem 1.5rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    boxShadow: isStaffValid ? "0 4px 12px rgba(5, 150, 105, 0.25)" : "none",
                   }}
+                  title={isStaffValid ? "Generate Delivery Order & move to Assigned" : "Select a staff member above to proceed"}
                 >
-                  {loading ? "Generating DO..." : "Generate Delivery Order (DO)"}
+                  {loading ? (
+                    "Generating DO..."
+                  ) : isStaffValid ? (
+                    <>
+                      <Truck size={16} /> Generate Delivery Order & Assign
+                    </>
+                  ) : (
+                    "Assign Staff to Generate DO"
+                  )}
                 </button>
               </>
             )}

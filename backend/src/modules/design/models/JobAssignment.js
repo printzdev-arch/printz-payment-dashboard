@@ -9,7 +9,7 @@ const jobAssignmentSchema = new mongoose.Schema(
       index: true,
     },
     employeeId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed,
       ref: "User",
       required: true,
       index: true,

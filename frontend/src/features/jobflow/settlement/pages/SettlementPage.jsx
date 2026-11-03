@@ -23,6 +23,7 @@ import {
 import { toast } from "react-toastify";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
+import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import settlementApi from "../api/settlementApi";
 import "../styles/settlement.css";
@@ -161,6 +162,7 @@ export const SettlementPage = () => {
           dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "Net 15",
           daysOld,
           isOverdue: inv.dueDate ? new Date(inv.dueDate).getTime() < Date.now() && balance > 0 : false,
+          jobType: jObj?.jobType || inv.jobType || inv.raw?.jobType || "Print Only",
           raw: inv,
         };
       });
@@ -453,7 +455,7 @@ export const SettlementPage = () => {
                 <tbody>
                   {filterOutstandingList().length === 0 ? (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                      <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No invoices match the selected filter.
                       </td>
                     </tr>
@@ -465,6 +467,9 @@ export const SettlementPage = () => {
                         </td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{inv.jobNo}</div>
+                        </td>
+                        <td>
+                          <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
                         </td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{inv.customerName}</div>
@@ -489,8 +494,8 @@ export const SettlementPage = () => {
                             <button
                               type="button"
                               className="jf-btn jf-btn-secondary jf-btn-sm"
-                              onClick={() => setSelectedJobForInvoice(inv.jobOrderId || inv._id)}
-                              title="View / Print Tax Invoice"
+                              onClick={() => navigate(`/jobflow/invoice?jobId=${inv.jobOrderId || inv.jobNo}`)}
+                              title="View / Print Commercial Tax Invoice"
                             >
                               <FileText size={13} />
                             </button>

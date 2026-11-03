@@ -62,11 +62,24 @@ const dayCount = (start, end) => {
 };
 
 const itemsForJob = async (job) => {
+  let list = [];
   if (job.items && job.items.length > 0) {
-    return job.items.filter((item) => item.needsProduction !== false);
+    list = job.items;
+  } else {
+    list = await mongoose.model("JobItem").find({ jobOrderId: job._id }).lean();
   }
-  const dbItems = await mongoose.model("JobItem").find({ jobOrderId: job._id }).lean();
-  return (dbItems || []).filter((item) => item.needsProduction !== false);
+  // Exclude finishing services: finishing services are post-press operations on the main printed product,
+  // NOT separate production orders.
+  const mainItems = (list || []).filter((item) => {
+    if (item.needsProduction === false) return false;
+    const typeUpper = String(item.itemType || item.productType || "").toUpperCase();
+    if (typeUpper === "FINISHING" || typeUpper === "SERVICE") return false;
+    const nameUpper = String(item.itemName || item.name || item.title || "").toUpperCase().trim();
+    if (nameUpper.startsWith("FINISHING:") || nameUpper.startsWith("FINISHING -") || nameUpper.startsWith("FINISHING ")) return false;
+    return true;
+  });
+
+  return mainItems;
 };
 
 const itemForOrder = async (order, job) => {
@@ -648,13 +661,29 @@ class ProductionPlanningService {
     if (scopedBranch) filter.branchId = scopedBranch;
     if (query.planningStatus) filter.planningStatus = String(query.planningStatus).toUpperCase();
 
-    const orders = await productionOrderRepository
+    const rawOrders = await productionOrderRepository
       .find(filter)
       .populate("jobOrderId")
       .populate("branchId", "name code")
       .sort({ createdAt: -1 })
       .limit(Math.min(500, parseInt(query.limit, 10) || 200))
       .lean();
+
+    const orders = [];
+    const deleteIds = [];
+    for (const order of rawOrders) {
+      const pName = String(order.specificationsSnapshot?.productName || "").toUpperCase().trim();
+      if (pName.startsWith("FINISHING:") || pName.startsWith("FINISHING -") || pName.startsWith("FINISHING ")) {
+        deleteIds.push(order._id);
+      } else {
+        orders.push(order);
+      }
+    }
+
+    if (deleteIds.length > 0) {
+      productionOrderRepository.deleteMany({ _id: { $in: deleteIds } }).catch(() => {});
+      productionOperationRepository.deleteMany({ productionOrderId: { $in: deleteIds } }).catch(() => {});
+    }
 
     const ops = await productionOperationRepository.findByProductionOrders(orders.map((o) => o._id));
     const opsByOrder = {};

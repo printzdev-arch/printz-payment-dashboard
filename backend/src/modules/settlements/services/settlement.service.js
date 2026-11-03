@@ -43,11 +43,22 @@ class SettlementService {
    * Retrieve settlement details for an existing invoice.
    */
   static async getSettlement(invoiceId, authContext = {}, user = null) {
-    const invoice = await Invoice.findById(invoiceId)
+    let invoice = await Invoice.findById(invoiceId)
       .populate("jobOrderId", "jobNo title stage status")
       .populate("branchId", "name code")
       .populate("customerId", "name mobile email")
       .lean();
+
+    if (!invoice) {
+      invoice = await Invoice.findOne({
+        $or: [{ _id: invoiceId }, { jobOrderId: invoiceId }],
+        isDeleted: { $ne: true },
+      })
+        .populate("jobOrderId", "jobNo title stage status")
+        .populate("branchId", "name code")
+        .populate("customerId", "name mobile email")
+        .lean();
+    }
 
     if (!invoice || invoice.isDeleted) {
       throw ErrorHelper.notFound("Invoice not found with ID: " + invoiceId);
@@ -103,7 +114,13 @@ class SettlementService {
   static async collectPayment(invoiceId, paymentData = {}, user = null, authContext = {}) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
-    const invoice = await Invoice.findById(invoiceId);
+    let invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+      invoice = await Invoice.findOne({
+        $or: [{ _id: invoiceId }, { jobOrderId: invoiceId }],
+        isDeleted: { $ne: true },
+      });
+    }
     if (!invoice || invoice.isDeleted) {
       throw ErrorHelper.notFound("Invoice not found with ID: " + invoiceId);
     }
@@ -145,6 +162,15 @@ class SettlementService {
     const currentPaid = this.round2(
       validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
     );
+
+    // If discount or updated grand total is passed at settlement
+    if (paymentData.discountTotal !== undefined && !isNaN(Number(paymentData.discountTotal)) && Number(paymentData.discountTotal) > 0) {
+      invoice.discountTotal = Number(paymentData.discountTotal);
+      invoice.grandTotal = Math.max(0, this.round2(Number(invoice.subtotal || invoice.grandTotal) - invoice.discountTotal + Number(invoice.taxTotal || 0)));
+    } else if (paymentData.grandTotal !== undefined && Number(paymentData.grandTotal) > 0) {
+      invoice.grandTotal = Number(paymentData.grandTotal);
+    }
+
     const invoiceTotal = this.round2(invoice.grandTotal || 0);
     const applicableAdvance = this.round2(invoice.advanceApplied || invoice.advancePaid || 0);
     const currentBalanceDue = Math.max(0, this.round2(invoiceTotal - currentPaid - applicableAdvance));
@@ -193,23 +219,34 @@ class SettlementService {
 
     // Update Invoice authoritative settlement fields
     const newPaidTotal = this.round2(currentPaid + amount);
-    const newBalanceDue = Math.max(0, this.round2(invoiceTotal - newPaidTotal - applicableAdvance));
-    const newPaymentStatus = (newPaidTotal + applicableAdvance) >= invoiceTotal ? "PAID" : "PARTIAL";
+    let newBalanceDue = Math.max(0, this.round2(invoiceTotal - newPaidTotal - applicableAdvance));
+    let newPaymentStatus = (paymentData.settleInFull || (newPaidTotal + applicableAdvance) >= invoiceTotal || newBalanceDue <= 0.01) ? "PAID" : "PARTIAL";
+    if (newPaymentStatus === "PAID") {
+      newBalanceDue = 0;
+    }
 
     invoice.paidAmount = newPaidTotal;
     invoice.balanceDue = newBalanceDue;
     invoice.paymentStatus = newPaymentStatus;
-    if (newPaymentStatus === "PAID") {
-      invoice.status = INVOICE_STATUS.PAID;
-    } else {
-      invoice.status = INVOICE_STATUS.PARTIALLY_PAID;
-    }
+    invoice.status = newPaymentStatus === "PAID" ? INVOICE_STATUS.PAID : INVOICE_STATUS.PARTIALLY_PAID;
     await invoice.save();
 
-    // Update Job Order payment status
-    await JobOrder.findByIdAndUpdate(invoice.jobOrderId, {
+    // Update Job Order payment status and settlement amounts
+    const jobUpdate = {
+      grandTotal: invoiceTotal,
+      totalAmount: invoiceTotal,
+      discountTotal: Number(invoice.discountTotal || 0),
+      balanceDue: newBalanceDue,
+      paidAmount: this.round2(newPaidTotal + applicableAdvance),
       paymentStatus: newPaymentStatus,
-    });
+    };
+    if (newPaymentStatus === "PAID") {
+      jobUpdate.currentStage = "COMPLETED";
+      jobUpdate.stage = "COMPLETED";
+      jobUpdate.status = "COMPLETED";
+      jobUpdate.completionDate = new Date();
+    }
+    await JobOrder.findByIdAndUpdate(invoice.jobOrderId, { $set: jobUpdate });
 
     // Audit log
     await auditLogService.log({
@@ -242,7 +279,13 @@ class SettlementService {
    * Paginated payment history for an invoice.
    */
   static async getPaymentsByInvoice(invoiceId, query = {}, user = null, authContext = {}) {
-    const invoice = await Invoice.findById(invoiceId);
+    let invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+      invoice = await Invoice.findOne({
+        $or: [{ _id: invoiceId }, { jobOrderId: invoiceId }],
+        isDeleted: { $ne: true },
+      });
+    }
     if (!invoice || invoice.isDeleted) {
       throw ErrorHelper.notFound("Invoice not found with ID: " + invoiceId);
     }
