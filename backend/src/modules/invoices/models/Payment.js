@@ -47,6 +47,14 @@ const paymentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // ADVANCE / FULL are received when the invoice is finalized (counted through the invoice's advanceApplied);
+    // BALANCE is every payment collected afterwards.
+    paymentType: {
+      type: String,
+      enum: ["ADVANCE", "FULL", "BALANCE"],
+      default: "BALANCE",
+      index: true,
+    },
     paymentMethod: {
       type: String,
       default: null,
@@ -147,12 +155,34 @@ paymentSchema.statics.findByInvoiceId = async function (invoiceId) {
   return this.find({ invoiceId, status: { $ne: "FAILED" } }).sort({ paymentDate: -1 });
 };
 
+// Balance payments only. Advance / full payments taken at invoice time are represented by the invoice's
+// advanceApplied, so they are left out here to avoid counting them twice.
 paymentSchema.statics.findValidPaymentsByInvoiceId = async function (invoiceId) {
+  return this.find({
+    invoiceId,
+    status: { $in: ["COMPLETED", "PAID", "SUCCESS"] },
+    paymentType: { $nin: ["ADVANCE", "FULL"] },
+    isDeleted: { $ne: true },
+  }).sort({ paymentDate: 1 });
+};
+
+// Every valid receipt for an invoice, advance and balance, for display and receipts.
+paymentSchema.statics.findAllReceiptsByInvoiceId = async function (invoiceId) {
   return this.find({
     invoiceId,
     status: { $in: ["COMPLETED", "PAID", "SUCCESS"] },
     isDeleted: { $ne: true },
   }).sort({ paymentDate: 1 });
+};
+
+// Total received at invoice time (advance or full payment).
+paymentSchema.statics.sumInvoiceTimePayments = async function (invoiceId) {
+  const rows = await this.find({
+    invoiceId,
+    status: { $in: ["COMPLETED", "PAID", "SUCCESS"] },
+    paymentType: { $in: ["ADVANCE", "FULL"] },
+  }).lean();
+  return Math.round(rows.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) * 100) / 100;
 };
 
 paymentSchema.statics.findByJobOrderId = async function (jobOrderId) {

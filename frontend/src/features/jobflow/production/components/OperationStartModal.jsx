@@ -49,8 +49,7 @@ export const OperationStartModal = ({
   if (!isOpen || !operation) return null;
 
   const opName = operation.operationName || operation.operation || operation.operationCode;
-  const poNumber = productionOrder?.productionNo || productionOrder?.orderNumber || "—";
-  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || "—";
+  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || productionOrder?.productionNo || "—";
   const seq = operation.sequenceNo || operation.sequence || "—";
 
   const handleSubmit = async (e) => {
@@ -111,10 +110,6 @@ export const OperationStartModal = ({
         <form onSubmit={handleSubmit}>
           <div className="jf-modal-body prod-modal-body-stack">
             <div className="prod-modal-info-box">
-              <div>
-                <span className="prod-modal-label">Production Order:</span>
-                <strong className="prod-modal-val">{poNumber}</strong>
-              </div>
               <div>
                 <span className="prod-modal-label">Job Order No:</span>
                 <strong className="prod-modal-val">{jobNumber}</strong>

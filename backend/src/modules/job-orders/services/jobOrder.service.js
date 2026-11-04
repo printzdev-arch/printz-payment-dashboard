@@ -10,6 +10,7 @@ const JobEstimateService = require("./jobEstimate.service");
 const ProductionStateService = require("../../production/services/productionState.service");
 const { PRE_PRODUCTION_STATUSES, JOB_STAGES } = require("../constants/jobStages");
 const { sortFinishingServices, ensureStaticFinishingServices } = require("../constants/finishingServices");
+const { getFlowType, FLOW_TYPES } = require("../constants/jobFlows");
 const { emitJobEvent } = require("../events/jobEvents.emitter");
 const ErrorHelper = require("../../../utils/ApiError");
 const customerRepository = require("../../customers/models/Customer");
@@ -60,16 +61,18 @@ class JobOrderService {
     switch (job.currentStage) {
       case "ENQUIRY":
       case "ESTIMATION":
-        actions.push("update", "replaceItems", "estimate");
+        if (this.isEditable(job)) actions.push("update", "replaceItems");
+        actions.push("estimate");
         break;
       case "ESTIMATE_APPROVAL":
+        if (this.isEditable(job)) actions.push("update");
         actions.push("estimate", "estimate.approve", "estimate.reject");
         break;
       case "DESIGN_QUEUE":
-        actions.push("assign", "skip-design");
+        actions.push("assign");
         break;
       case "DESIGN_ASSIGNED":
-        actions.push("accept", "reject", "reassign", "skip-design");
+        actions.push("accept", "reject", "reassign");
         break;
       case "DESIGN_IN_PROGRESS":
       case "REVISION":
@@ -124,7 +127,11 @@ class JobOrderService {
       gstin: dto.customerGstin || dto.customerSnapshot?.gstin || "",
     };
 
-    const orderBranchId = dto.branchId || user.branchId;
+    // Branch managers can only raise job orders for their own branch, whatever the client sends
+    const isBranchManager = ["manager", "branch_manager", "branch_manager1"].includes(
+      String(user.role || user.roleCode || "").toLowerCase()
+    );
+    const orderBranchId = isBranchManager && user.branchId ? user.branchId : dto.branchId || user.branchId;
 
     if (dto.customerId) {
       if (!mongoose.Types.ObjectId.isValid(String(dto.customerId))) {
@@ -181,9 +188,27 @@ class JobOrderService {
     const orderSource = isDesigner ? "DESIGNER" : "MANAGER";
     const orderCreatedByRole = isDesigner ? "DESIGNER" : (user.role || "MANAGER").toUpperCase();
 
+    const finishingTotal = (Array.isArray(dto.finishingServices) ? dto.finishingServices : []).reduce(
+      (sum, f) => sum + Number(f.total || (Number(f.unitPrice || 0) * Number(f.quantity || dto.quantity || 1))),
+      0
+    );
+    // Finishing is only added on top when the items don't already carry it as their own lines,
+    // otherwise it would be counted twice.
+    const finishingInItems = items.some(
+      (it) => it.itemType === "FINISHING" || String(it.itemName || "").toLowerCase().startsWith("finishing")
+    );
+    const extraFinishing = finishingInItems ? 0 : Math.round(finishingTotal * 100) / 100;
+    const computedSubtotal = Math.round((totals.subtotal + extraFinishing) * 100) / 100;
+    const computedGrandTotal = Math.round((totals.grandTotal + extraFinishing) * 100) / 100;
+    // The server total is authoritative; client totals are used only when no priced items were sent
+    const finalGrandTotal =
+      computedGrandTotal > 0
+        ? computedGrandTotal
+        : Math.max(Number(dto.grandTotal || 0), Number(dto.totalAmount || 0), Number(dto.estimatedPrice || 0));
+
     const job = await jobOrderRepository.create({
       jobNo,
-      branchId: dto.branchId || user.branchId,
+      branchId: orderBranchId,
       customerId,
       customerSnapshot,
       customerName: customerSnapshot.name,
@@ -198,31 +223,38 @@ class JobOrderService {
         return p === "MEDIUM" ? "NORMAL" : (["LOW", "NORMAL", "HIGH", "URGENT"].includes(p) ? p : "NORMAL");
       })(),
       jobType: dto.jobType || "PRINT_JOB",
-      quantity: Number(dto.quantity) || items.reduce((acc, i) => acc + (Number(i.quantity) || 0), 0) || 1,
+      // Finishing lines are not extra pieces: when no job quantity is sent, count only the product lines
+      quantity:
+        Number(dto.quantity) ||
+        items
+          .filter((i) => i.itemType !== "FINISHING")
+          .reduce((acc, i) => acc + (Number(i.quantity) || 0), 0) ||
+        1,
       customerRequirements: dto.customerRequirements || dto.notes || "",
-      remarks: dto.remarks || "",
+      remarks: dto.remarks || dto.notes || "",
+      notes: dto.notes || dto.remarks || "",
       specialInstructions: dto.specialInstructions || "",
       deliveryMethod: dto.deliveryMethod || "",
-      referenceNo: dto.referenceNo || "",
+      qcRequired: getFlowType({ jobType: dto.jobType || "PRINT_JOB" }) === FLOW_TYPES.PRINT_ONLY ? dto.qcRequired !== false : true,
       specs: typeof dto.specs === "object" && dto.specs !== null ? dto.specs : {},
       finishingServices: Array.isArray(dto.finishingServices) ? dto.finishingServices : [],
       additionalServices: Array.isArray(dto.additionalServices) ? dto.additionalServices : [],
       attachments: Array.isArray(dto.attachments) ? dto.attachments : [],
       advancePaid: Number(dto.advancePaid) || 0,
       paidAmount: Number(dto.advancePaid) || 0,
-      balanceDue: Math.max(0, totals.grandTotal - (Number(dto.advancePaid) || 0)),
+      balanceDue: Math.max(0, finalGrandTotal - (Number(dto.advancePaid) || 0)),
       status: dto.status === "SUBMITTED" ? "ACTIVE" : (dto.status || "DRAFT"),
       currentStage: "ENQUIRY",
       stage: "ENQUIRY",
       designStatus: isDesigner ? "ASSIGNED" : "UNASSIGNED",
       designerId: isDesigner ? user._id : (dto.designerId || null),
       designerName: isDesigner ? (user.name || "Designer") : (dto.designerName || ""),
-      subtotal: totals.subtotal,
+      subtotal: computedSubtotal > 0 ? computedSubtotal : Number(dto.subtotal) || 0,
       taxAmount: totals.taxAmount,
       discountAmount: totals.discount,
-      grandTotal: totals.grandTotal,
-      estimatedPrice: totals.grandTotal,
-      totalAmount: totals.grandTotal,
+      grandTotal: finalGrandTotal,
+      estimatedPrice: finalGrandTotal,
+      totalAmount: finalGrandTotal,
       source: orderSource,
       createdByRole: orderCreatedByRole,
       createdBy: user._id,
@@ -248,11 +280,36 @@ class JobOrderService {
     }
 
     // Create item records
-    const itemDocsToCreate = items.map((it, idx) => ({
-      jobOrderId: job._id,
+    const itemDocsToCreate = this.buildItemDocs(job._id, items, totals);
+
+    await jobItemRepository.insertMany(itemDocsToCreate);
+    job.items = itemDocsToCreate;
+    await job.save();
+
+    // Record creation in workflow & audit
+    await JobWorkflowService.recordCreated(job, user._id);
+
+    if (!dto.draft) {
+      await JobWorkflowService.transition(job._id, "ESTIMATION", { actorId: user._id, user });
+      if (dto.submitForEstimateApproval) {
+        await JobEstimateService.estimate(job._id, { items }, user);
+      }
+    }
+
+    emitJobEvent("job.created", { jobId: String(job._id), jobNo });
+
+    return this.get(job._id, user);
+  }
+
+  /**
+   * Build the job item records for a list of order lines (shared by create and edit).
+   */
+  static buildItemDocs(jobId, items, totals) {
+    return items.map((it, idx) => ({
+      jobOrderId: jobId,
       lineNo: idx + 1,
-      jobItemId: it.jobItemId || it.id || `item_${job._id}_${idx + 1}`,
-      productType: it.productType || it.itemType || "PRINT",
+      jobItemId: it.jobItemId || it.id || `item_${jobId}_${idx + 1}`,
+      productType: it.productType || it.specifications?.productType || it.itemType || "PRINT",
       itemType: it.itemType || "PRINT",
       itemId: it.itemId || null,
       itemName: it.itemName || it.title || it.name || it.description || "Print Item",
@@ -311,26 +368,37 @@ class JobOrderService {
       customerRequirements: it.customerRequirements || it.notes || "",
       remarks: it.remarks || "",
     }));
-
-    await jobItemRepository.insertMany(itemDocsToCreate);
-
-    // Record creation in workflow & audit
-    await JobWorkflowService.recordCreated(job, user._id);
-
-    if (!dto.draft) {
-      await JobWorkflowService.transition(job._id, "ESTIMATION", { actorId: user._id, user });
-      if (dto.submitForEstimateApproval) {
-        await JobEstimateService.estimate(job._id, { items }, user);
-      }
-    }
-
-    emitJobEvent("job.created", { jobId: String(job._id), jobNo });
-
-    return this.get(job._id, user);
   }
 
   /**
-   * Update Job Order header.
+   * A job order can be edited only until its estimate is approved.
+   */
+  static isEditable(job) {
+    if (!job) return false;
+    if (job.isLocked || job.closureStatus === "CLOSED") return false;
+    if (["CANCELLED", "ON_HOLD"].includes(job.status)) return false;
+    if (job.estimationStatus === "APPROVED") return false;
+    return [JOB_STAGES.ENQUIRY, JOB_STAGES.ESTIMATION, JOB_STAGES.ESTIMATE_APPROVAL].includes(
+      job.currentStage || job.stage
+    );
+  }
+
+  /**
+   * Branch managers may only touch job orders of their own branch.
+   */
+  static assertBranchAccess(job, user) {
+    const role = String(user?.role || user?.roleCode || "").toLowerCase();
+    if (!["manager", "branch_manager", "branch_manager1"].includes(role) || !user.branchId) return;
+    const own = String(user.branchId._id || user.branchId);
+    const jobBranch = String(job.branchId?._id || job.branchId || "");
+    if (jobBranch && jobBranch !== own) {
+      throw ErrorHelper.forbidden("You can only modify job orders of your own branch.");
+    }
+  }
+
+  /**
+   * Update a Job Order before its estimate is approved.
+   * Only the listed fields can be changed; stage, status, totals and branch are never taken from the request.
    */
   static async update(id, dto = {}, user) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
@@ -339,58 +407,96 @@ class JobOrderService {
     const job = await jobOrderRepository.findById(id);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
 
+    this.assertBranchAccess(job, user);
+
     if (job.isLocked || job.closureStatus === "CLOSED") {
       throw ErrorHelper.forbidden("Cannot modify a closed or locked Job Order.");
     }
-
-    const isOpen = ["DRAFT", "ESTIMATION", "DESIGN"].includes(job.status);
-    const keys = Object.keys(dto).filter((k) => dto[k] !== undefined);
-    if (!isOpen && keys.some((k) => !["remarks", "dueDate", "notes"].includes(k))) {
-      throw ErrorHelper.conflict("After design phase, only remarks, notes, and dueDate can be modified.");
+    if (!this.isEditable(job)) {
+      throw ErrorHelper.conflict(
+        job.estimationStatus === "APPROVED"
+          ? "This job order can no longer be edited because its estimate has been approved."
+          : `This job order can no longer be edited at stage '${job.currentStage}'.`
+      );
     }
 
-    const set = { ...dto };
-    if (dto.dueDate) set.dueDate = new Date(dto.dueDate);
-    if (dto.completionDate) set.completionDate = new Date(dto.completionDate);
-    if (dto.quantity) set.quantity = Number(dto.quantity);
+    const set = {};
+    const copy = ["branchName", "deliveryMethod", "remarks", "notes", "specialInstructions", "jobType", "specs", "additionalServices", "attachments"];
+    for (const key of copy) {
+      if (dto[key] !== undefined) set[key] = dto[key];
+    }
+    // Quality control can be switched off only for Print Only jobs
+    if (dto.qcRequired !== undefined || set.jobType !== undefined) {
+      const nextType = set.jobType !== undefined ? set.jobType : job.jobType;
+      const requested = dto.qcRequired !== undefined ? dto.qcRequired !== false : job.qcRequired !== false;
+      set.qcRequired = getFlowType({ jobType: nextType }) === FLOW_TYPES.PRINT_ONLY ? requested : true;
+    }
+    if (dto.title !== undefined || dto.jobTitle !== undefined) set.title = dto.title || dto.jobTitle;
+    if (dto.dueDate !== undefined) set.dueDate = dto.dueDate ? parseBusinessDate(dto.dueDate) || new Date(dto.dueDate) : null;
+    if (dto.priority !== undefined) {
+      const p = String(dto.priority || "NORMAL").toUpperCase();
+      set.priority = p === "MEDIUM" ? "NORMAL" : ["LOW", "NORMAL", "HIGH", "URGENT"].includes(p) ? p : "NORMAL";
+    }
+    if (dto.quantity !== undefined) set.quantity = Number(dto.quantity);
     if (dto.finishingServices !== undefined) {
-      set.finishingServices = Array.isArray(dto.finishingServices)
-        ? ensureStaticFinishingServices(dto.finishingServices, set.quantity || job.quantity || 500)
-        : [];
+      set.finishingServices = Array.isArray(dto.finishingServices) ? dto.finishingServices : [];
     }
-    if (dto.specs !== undefined) set.specs = dto.specs;
+    if (dto.remarks !== undefined && dto.notes === undefined) set.notes = dto.remarks;
+    if (dto.notes !== undefined && dto.remarks === undefined) set.remarks = dto.notes;
 
-    if (dto.customerId !== undefined) {
-      if (dto.customerId) {
-        if (!mongoose.Types.ObjectId.isValid(String(dto.customerId))) {
-          throw ErrorHelper.badRequest(`Invalid customer ID format: '${dto.customerId}'`);
-        }
-        const customer = await customerRepository.findById(dto.customerId);
-        if (!customer) {
-          throw ErrorHelper.notFound(`Customer with ID '${dto.customerId}' not found`);
-        }
-        if (customer.isActive === false) {
-          throw ErrorHelper.badRequest(`Customer '${customer.name}' is inactive and cannot be assigned to job orders`);
-        }
-        set.customerId = customer._id;
-        if (!job.customerSnapshot || dto.customerSnapshot || dto.customerName) {
-          set.customerSnapshot = {
-            name: dto.customerName || dto.customerSnapshot?.name || customer.name || "Walk-in Customer",
-            mobile: dto.customerPhone || dto.customerSnapshot?.mobile || customer.mobile || "",
-            email: dto.customerEmail || dto.customerSnapshot?.email || customer.email || "",
-            company: dto.customerCompany || dto.customerSnapshot?.company || customer.companyName || customer.company || "",
-            address: dto.customerAddress || dto.customerSnapshot?.address || customer.address || "",
-            gstin: dto.customerGstin || dto.customerSnapshot?.gstin || customer.gstin || "",
-          };
-          set.customerName = set.customerSnapshot.name;
-          set.customerPhone = set.customerSnapshot.mobile;
-        }
-      } else {
-        set.customerId = null;
+    // The customer of an existing job order is fixed; the same customer may be sent back unchanged
+    if (dto.customerId !== undefined && String(dto.customerId || "") !== String(job.customerId || "")) {
+      throw ErrorHelper.badRequest("The customer of a job order cannot be changed.");
+    }
+
+    let itemsReplaced = false;
+    if (Array.isArray(dto.items) && dto.items.length > 0) {
+      const items = dto.items;
+      const discount = dto.discountAmount !== undefined ? dto.discountAmount : job.discountAmount || 0;
+      const totals = JobEstimateService.calculateTotals(items, discount);
+      JobEstimateService.assertDiscountAllowed(totals.subtotal, totals.discount, user);
+
+      const finishingList = set.finishingServices !== undefined ? set.finishingServices : job.finishingServices || [];
+      const finishingInItems = items.some(
+        (it) => it.itemType === "FINISHING" || String(it.itemName || "").toLowerCase().startsWith("finishing")
+      );
+      const extraFinishing = finishingInItems
+        ? 0
+        : finishingList.reduce(
+            (sum, f) => sum + Number(f.total || Number(f.unitPrice || 0) * Number(f.quantity || set.quantity || job.quantity || 1)),
+            0
+          );
+      const subtotal = Math.round((totals.subtotal + extraFinishing) * 100) / 100;
+      const grandTotal = Math.round((totals.grandTotal + extraFinishing) * 100) / 100;
+
+      const itemDocs = this.buildItemDocs(job._id, items, totals);
+      await jobItemRepository.deleteMany({ jobOrderId: job._id });
+      await jobItemRepository.insertMany(itemDocs);
+
+      set.items = itemDocs;
+      set.subtotal = subtotal;
+      set.taxAmount = totals.taxAmount;
+      set.discountAmount = totals.discount;
+      set.grandTotal = grandTotal;
+      set.totalAmount = grandTotal;
+      set.estimatedPrice = grandTotal;
+      set.balanceDue = Math.max(0, grandTotal - (Number(job.advancePaid) || 0));
+      if (set.quantity === undefined) {
+        set.quantity = items.filter((i) => i.itemType !== "FINISHING").reduce((acc, i) => acc + (Number(i.quantity) || 0), 0) || job.quantity;
+      }
+      itemsReplaced = true;
+    }
+
+    await jobOrderRepository.update(job._id, set);
+
+    // An estimate already sent for approval must follow the edited order, so it is submitted again as a new version
+    if (itemsReplaced && (job.estimationStatus === "PENDING" || job.currentStage === JOB_STAGES.ESTIMATE_APPROVAL)) {
+      try {
+        await JobEstimateService.estimate(job._id, { items: dto.items }, user);
+      } catch (estimateErr) {
+        console.warn("Could not refresh estimate after job order edit:", estimateErr.message);
       }
     }
-
-    const updated = await jobOrderRepository.update(job._id, set);
 
     await ProductionStateService.logAudit({
       action: "UPDATE",
@@ -398,10 +504,10 @@ class JobOrderService {
       resourceId: job._id,
       user,
       branchId: job.branchId,
-      details: dto,
+      details: { fields: Object.keys(set), itemsReplaced },
     });
 
-    return updated;
+    return this.get(job._id, user);
   }
 
   /**
@@ -481,6 +587,8 @@ class JobOrderService {
     }));
 
     await jobItemRepository.insertMany(itemDocsToCreate);
+    job.items = itemDocsToCreate;
+    await job.save();
 
     job.subtotal = totals.subtotal;
     job.taxAmount = totals.taxAmount;
@@ -500,64 +608,6 @@ class JobOrderService {
     });
 
     return jobItemRepository.findByJobOrderId(job._id);
-  }
-
-  /**
-   * Skip design from DESIGN_QUEUE or DESIGN_ASSIGNED directly to PRODUCTION_PLANNING.
-   */
-  static async skipDesign(id, reason = "Direct Print Ready file provided", user) {
-    if (!user) throw ErrorHelper.unauthorized("Authentication required.");
-
-    const job = await jobOrderRepository.findById(id);
-    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
-
-    let countPrintReady = await jobFileRepository.countDocuments({
-      jobOrderId: job._id,
-      fileCategory: "PRINT_READY",
-    });
-
-    if (countPrintReady < 1) {
-      await jobFileRepository.create({
-        jobOrderId: job._id,
-        fileName: `${job.jobNo || "Artwork"}_Approved_PrintReady.pdf`,
-        fileCategory: "PRINT_READY",
-        mimeType: "application/pdf",
-        fileUrl: `https://printz.shop/proofs/${job._id}/print_ready.pdf`,
-        uploadedBy: user._id,
-      });
-    }
-
-    // Close any active designer assignment
-    await JobAssignment.updateMany(
-      { jobOrderId: job._id, assignmentType: "DESIGNER", currentAssignment: true },
-      { $set: { currentAssignment: false, status: "COMPLETED", releasedAt: new Date() } }
-    );
-
-    const updated = await JobWorkflowService.transition(job._id, "PRODUCTION_PLANNING", {
-      actorId: user._id,
-      reason: `DESIGN_SKIPPED: ${reason}`,
-      patch: { designerId: null, assignedAt: null },
-      user,
-    });
-
-    // Auto-create Production Order in UNASSIGNED state so it appears as Unassigned until user plans it
-    try {
-      const ProductionPlanningService = require("../../production/services/productionPlanning.service");
-      await ProductionPlanningService.createUnassignedOrder(job._id, user);
-    } catch (planErr) {
-      // Non-blocking
-    }
-
-    await ProductionStateService.logAudit({
-      action: "UPDATE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user,
-      branchId: job.branchId,
-      details: { skipDesign: true, reason },
-    });
-
-    return updated;
   }
 
   static async hold(id, reason, user) {
@@ -649,11 +699,13 @@ class JobOrderService {
       ];
     }
 
-    return jobOrderRepository.findAll({
+    const result = await jobOrderRepository.findAll({
       ...filter,
       page: query.page,
       limit: query.limit,
     });
+
+    return result;
   }
 
   /**
@@ -676,6 +728,8 @@ class JobOrderService {
 
     const jobTypeStr = String(jobObj.jobType || jobObj.specs?.jobType || "").toUpperCase();
     const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
+    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+
     const hasCompletedDesign =
       jobObj.designStatus === "COMPLETED" ||
       ["PRODUCTION_PLANNING", "COMPLETED", "DELIVERED"].includes(jobObj.currentStage) ||
@@ -715,6 +769,7 @@ class JobOrderService {
       latestSample,
       files,
       allowedActions: this.allowedActions(job),
+      canEdit: this.isEditable(job),
     };
   }
 

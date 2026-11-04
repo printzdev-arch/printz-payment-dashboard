@@ -1039,7 +1039,7 @@ export const MasterSettingsPage = () => {
                                 )}
                                 {item.defaultPrice > 0 && (
                                   <span style={{ fontSize: "0.75rem", background: "#ecfdf5", color: "#065f46", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-                                    RM {Number(item.defaultPrice).toFixed(2)} / {item.unit || "pcs"}
+                                    ₹{Number(item.defaultPrice).toFixed(2)} / {item.unit || "pcs"}
                                   </span>
                                 )}
                               </div>
@@ -1418,7 +1418,7 @@ export const MasterSettingsPage = () => {
                 {/* Default Price & Unit */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div className="jf-form-group">
-                    <label className="jf-label">Base Price (RM)</label>
+                    <label className="jf-label">Base Price (₹)</label>
                     <input
                       type="number"
                       step="0.01"

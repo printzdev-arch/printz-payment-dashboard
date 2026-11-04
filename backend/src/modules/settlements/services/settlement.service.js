@@ -7,6 +7,8 @@ const numberSequenceService = require("../../number-sequences/services/numberSeq
 const auditLogService = require("../../audit-logs/services/auditLog.service");
 const ErrorHelper = require("../../../utils/ApiError");
 const { INVOICE_STATUS } = require("../../invoices/constants/invoice");
+const { nextPaymentNo } = require("../../invoices/utils/documentNumbers");
+const { getFlowType, FLOW_TYPES } = require("../../job-orders/constants/jobFlows");
 
 class SettlementService {
   /**
@@ -43,11 +45,22 @@ class SettlementService {
    * Retrieve settlement details for an existing invoice.
    */
   static async getSettlement(invoiceId, authContext = {}, user = null) {
-    const invoice = await Invoice.findById(invoiceId)
+    let invoice = await Invoice.findById(invoiceId)
       .populate("jobOrderId", "jobNo title stage status")
       .populate("branchId", "name code")
       .populate("customerId", "name mobile email")
       .lean();
+
+    if (!invoice) {
+      invoice = await Invoice.findOne({
+        $or: [{ _id: invoiceId }, { jobOrderId: invoiceId }],
+        isDeleted: { $ne: true },
+      })
+        .populate("jobOrderId", "jobNo title stage status")
+        .populate("branchId", "name code")
+        .populate("customerId", "name mobile email")
+        .lean();
+    }
 
     if (!invoice || invoice.isDeleted) {
       throw ErrorHelper.notFound("Invoice not found with ID: " + invoiceId);
@@ -56,6 +69,7 @@ class SettlementService {
     this.assertBranchAccess(invoice.branchId?._id || invoice.branchId, authContext, user);
 
     const validPayments = await paymentRepository.findValidPaymentsByInvoiceId(invoice._id);
+    const receipts = await Payment.findAllReceiptsByInvoiceId(invoice._id);
     const amountPaid = this.round2(
       validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
     );
@@ -81,9 +95,20 @@ class SettlementService {
       customerName: invoice.customerId?.name || invoice.customerSnapshot?.name,
       invoiceTotal,
       amountPaid,
+      advanceApplied: applicableAdvance,
+      totalReceived: this.round2(amountPaid + applicableAdvance),
       balanceDue,
       paymentStatus,
       status: invoice.status,
+      receipts: receipts.map((p) => ({
+        id: p._id,
+        paymentNo: p.paymentNo,
+        amount: p.amount,
+        paymentType: p.paymentType || "BALANCE",
+        paymentMode: p.paymentMode,
+        paymentReference: p.paymentReference,
+        paymentDate: p.paymentDate,
+      })),
       payments: validPayments.map((p) => ({
         id: p._id,
         paymentNo: p.paymentNo,
@@ -103,7 +128,13 @@ class SettlementService {
   static async collectPayment(invoiceId, paymentData = {}, user = null, authContext = {}) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
-    const invoice = await Invoice.findById(invoiceId);
+    let invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+      invoice = await Invoice.findOne({
+        $or: [{ _id: invoiceId }, { jobOrderId: invoiceId }],
+        isDeleted: { $ne: true },
+      });
+    }
     if (!invoice || invoice.isDeleted) {
       throw ErrorHelper.notFound("Invoice not found with ID: " + invoiceId);
     }
@@ -145,6 +176,9 @@ class SettlementService {
     const currentPaid = this.round2(
       validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
     );
+
+    // The invoice total and discount are fixed once the invoice is finalized: a payment only reduces the balance.
+
     const invoiceTotal = this.round2(invoice.grandTotal || 0);
     const applicableAdvance = this.round2(invoice.advanceApplied || invoice.advancePaid || 0);
     const currentBalanceDue = Math.max(0, this.round2(invoiceTotal - currentPaid - applicableAdvance));
@@ -161,16 +195,7 @@ class SettlementService {
     }
 
     // Generate Payment Number
-    let paymentNo;
-    try {
-      paymentNo = await numberSequenceService.getNextSequence(
-        "PAY",
-        invoice.branchId,
-        "PAY-YYYY-XXXX"
-      );
-    } catch (_) {
-      paymentNo = "PAY-" + Date.now().toString().slice(-8);
-    }
+    const paymentNo = await nextPaymentNo();
 
     // Create Payment
     const payment = await Payment.create({
@@ -182,6 +207,7 @@ class SettlementService {
       amount: this.round2(amount),
       paymentMode: ["CASH", "CARD", "UPI", "BANK"].includes(mode) ? mode : "CASH",
       paymentMethod: mode,
+      paymentType: "BALANCE",
       paymentReference: paymentData.paymentReference || paymentData.referenceNumber || null,
       referenceNumber: paymentData.referenceNumber || paymentData.paymentReference || null,
       paymentDate: paymentData.paymentDate ? new Date(paymentData.paymentDate) : new Date(),
@@ -193,23 +219,42 @@ class SettlementService {
 
     // Update Invoice authoritative settlement fields
     const newPaidTotal = this.round2(currentPaid + amount);
-    const newBalanceDue = Math.max(0, this.round2(invoiceTotal - newPaidTotal - applicableAdvance));
-    const newPaymentStatus = (newPaidTotal + applicableAdvance) >= invoiceTotal ? "PAID" : "PARTIAL";
+    let newBalanceDue = Math.max(0, this.round2(invoiceTotal - newPaidTotal - applicableAdvance));
+    let newPaymentStatus = (paymentData.settleInFull || (newPaidTotal + applicableAdvance) >= invoiceTotal || newBalanceDue <= 0.01) ? "PAID" : "PARTIAL";
+    if (newPaymentStatus === "PAID") {
+      newBalanceDue = 0;
+    }
 
     invoice.paidAmount = newPaidTotal;
     invoice.balanceDue = newBalanceDue;
     invoice.paymentStatus = newPaymentStatus;
-    if (newPaymentStatus === "PAID") {
-      invoice.status = INVOICE_STATUS.PAID;
-    } else {
-      invoice.status = INVOICE_STATUS.PARTIALLY_PAID;
-    }
+    invoice.status = newPaymentStatus === "PAID" ? INVOICE_STATUS.PAID : INVOICE_STATUS.PARTIALLY_PAID;
     await invoice.save();
 
-    // Update Job Order payment status
-    await JobOrder.findByIdAndUpdate(invoice.jobOrderId, {
+    // Update Job Order payment status and settlement amounts
+    const jobUpdate = {
+      grandTotal: invoiceTotal,
+      totalAmount: invoiceTotal,
+      discountTotal: Number(invoice.discountTotal || 0),
+      balanceDue: newBalanceDue,
+      paidAmount: this.round2(newPaidTotal + applicableAdvance),
       paymentStatus: newPaymentStatus,
-    });
+    };
+    // Only a Design Only job (nothing to deliver) is completed by its last payment, once the design is approved.
+    // A Print & Design job stays where it is: the balance is settled first, then it is delivered.
+    const settledJob = await JobOrder.findById(invoice.jobOrderId);
+    if (
+      newPaymentStatus === "PAID" &&
+      settledJob &&
+      getFlowType(settledJob) === FLOW_TYPES.DESIGN_ONLY &&
+      String(settledJob.currentStage || "").toUpperCase() === "READY"
+    ) {
+      jobUpdate.currentStage = "COMPLETED";
+      jobUpdate.stage = "COMPLETED";
+      jobUpdate.status = "COMPLETED";
+      jobUpdate.completionDate = new Date();
+    }
+    await JobOrder.findByIdAndUpdate(invoice.jobOrderId, { $set: jobUpdate });
 
     // Audit log
     await auditLogService.log({
@@ -242,7 +287,13 @@ class SettlementService {
    * Paginated payment history for an invoice.
    */
   static async getPaymentsByInvoice(invoiceId, query = {}, user = null, authContext = {}) {
-    const invoice = await Invoice.findById(invoiceId);
+    let invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+      invoice = await Invoice.findOne({
+        $or: [{ _id: invoiceId }, { jobOrderId: invoiceId }],
+        isDeleted: { $ne: true },
+      });
+    }
     if (!invoice || invoice.isDeleted) {
       throw ErrorHelper.notFound("Invoice not found with ID: " + invoiceId);
     }
@@ -338,6 +389,9 @@ class SettlementService {
     if (payment.status === "VOID") {
       throw ErrorHelper.conflict("Payment is already VOID.");
     }
+    if (["ADVANCE", "FULL"].includes(payment.paymentType)) {
+      throw ErrorHelper.conflict("The advance / full payment received with the invoice cannot be voided here.");
+    }
 
     payment.status = "VOID";
     payment.voidReason = reason.trim();
@@ -353,12 +407,13 @@ class SettlementService {
         validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
       );
       const invoiceTotal = this.round2(invoice.grandTotal || 0);
-      const newBalanceDue = Math.max(0, this.round2(invoiceTotal - newPaidTotal));
+      const advance = this.round2(invoice.advanceApplied || invoice.advancePaid || 0);
+      const newBalanceDue = Math.max(0, this.round2(invoiceTotal - newPaidTotal - advance));
 
       let newPaymentStatus = "UNPAID";
-      if (newPaidTotal >= invoiceTotal && invoiceTotal > 0) {
+      if (newPaidTotal + advance >= invoiceTotal && invoiceTotal > 0) {
         newPaymentStatus = "PAID";
-      } else if (newPaidTotal > 0) {
+      } else if (newPaidTotal + advance > 0) {
         newPaymentStatus = "PARTIAL";
       }
 

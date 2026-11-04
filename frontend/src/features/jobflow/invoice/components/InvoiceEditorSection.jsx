@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import invoiceApi from "../api/invoiceApi";
+import { calculateInvoiceTotals, discountToPayload, round2 } from "../utils/invoiceMath";
 import { customersApi } from "../../customers/api/customersApi";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
@@ -28,6 +29,7 @@ import "../styles/invoice.css";
 
 export const InvoiceEditorSection = ({
   selectedJobOrderId,
+  onLiveCalculationChange,
   pendingJobs = [],
   onJobSelected,
   onInvoiceFinalized,
@@ -53,6 +55,10 @@ export const InvoiceEditorSection = ({
   // Commercial Discount & Tax (GST) Settings
   const [discountPercent, setDiscountPercent] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
+  // Which discount box the user used last: a percentage or a fixed rupee amount (any size)
+  const [discountMode, setDiscountMode] = useState("FIXED");
+  // How this invoice is paid: the whole amount now ("FULL") or an advance now and the balance before delivery ("ADVANCE")
+  const [paymentPlan, setPaymentPlan] = useState("ADVANCE");
   const [gstRate, setGstRate] = useState(0); // 0% GST (GST Exempt / No Tax)
 
   // Initial Advance Payment (Percent or Amount) - Empty by default
@@ -90,12 +96,23 @@ export const InvoiceEditorSection = ({
   const jobTypeRaw = String(jobSnapshot?.jobType || activeInvoice?.jobType || "").toUpperCase();
   const isPrintOnly = jobTypeRaw.includes("PRINT") && !jobTypeRaw.includes("DESIGN");
   const isDesignOnly = jobTypeRaw.includes("DESIGN") && !jobTypeRaw.includes("PRINT");
+  const isFullPayment = paymentPlan === "FULL";
+
+  const stageUpper = String(
+    jobSnapshot?.currentStage ||
+    jobSnapshot?.stage ||
+    jobSnapshot?.raw?.currentStage ||
+    jobSnapshot?.raw?.stage ||
+    activeInvoice?.stage ||
+    activeInvoice?.currentStage ||
+    ""
+  ).toUpperCase();
   const isDesignCompletedOrReady =
-    isDesignOnly &&
-    (jobSnapshot?.designStatus === "COMPLETED" ||
-     activeInvoice?.designStatus === "COMPLETED" ||
-     jobSnapshot?.stage === "READY" ||
-     jobSnapshot?.currentStage === "READY");
+    stageUpper === "READY" ||
+    stageUpper === "COMPLETED" ||
+    stageUpper === "DELIVERED" ||
+    String(jobSnapshot?.designStatus || "").toUpperCase() === "COMPLETED" ||
+    String(activeInvoice?.designStatus || "").toUpperCase() === "COMPLETED";
 
   const initialAdvancePreviouslyPaid = Number(
     activeInvoice?.advancePaid ||
@@ -108,21 +125,23 @@ export const InvoiceEditorSection = ({
   const orderGrandTotal = Number(calcResult.grandTotal || activeInvoice?.grandTotal || 0);
   const balanceToCollect = Math.max(
     0,
-    Number(activeInvoice?.balanceDue ?? jobSnapshot?.balanceDue ?? (orderGrandTotal - initialAdvancePreviouslyPaid))
+    Math.round((orderGrandTotal - initialAdvancePreviouslyPaid) * 100) / 100
   );
+
   const isSettlingBalance =
-    isDesignCompletedOrReady &&
     initialAdvancePreviouslyPaid > 0 &&
     balanceToCollect > 0;
 
-  const effectiveBalanceToPay = (isSettlingBalance && initialAdvancePreviouslyPaid > 0)
-    ? (balanceCollectedInput !== "" ? Math.max(0, parseFloat(balanceCollectedInput) || 0) : balanceToCollect)
+  const effectiveBalanceToPay = isSettlingBalance
+    ? (balanceCollectedInput !== "" && !isNaN(parseFloat(balanceCollectedInput))
+        ? Math.min(balanceToCollect, Math.max(0, parseFloat(balanceCollectedInput) || 0))
+        : balanceToCollect)
     : balanceToCollect;
   const remainingBalanceAfterPay = Math.max(0, Math.round((balanceToCollect - effectiveBalanceToPay) * 100) / 100);
 
   const isFinalized =
     invoiceStatus === "PAID" ||
-    (invoiceStatus === "FINALIZED" && (!isDesignOnly || Number(activeInvoice?.balanceDue ?? jobSnapshot?.balanceDue ?? 0) <= 0));
+    (invoiceStatus === "FINALIZED" && !isSettlingBalance && balanceToCollect <= 0);
   const isApproved = invoiceStatus === "APPROVED";
   const isPendingApproval = invoiceStatus === "PENDING_APPROVAL";
 
@@ -134,7 +153,7 @@ export const InvoiceEditorSection = ({
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   // Live customer search against pendingJobs and customer directory
@@ -155,7 +174,7 @@ export const InvoiceEditorSection = ({
       type: "JOB",
       id: j._id || j.id || j.jobOrderId,
       title: j.customerName || j.customerSnapshot?.name || "Customer",
-      subtitle: `${j.jobNo || "Job"} • ${j.customerPhone || "No Phone"} • RM ${Number(j.estimateAmount || j.subtotal || j.grandTotal || 0).toFixed(2)}`,
+      subtitle: `${j.jobNo || "Job"} • ${j.customerPhone || "No Phone"} • ₹ ${Number(j.estimateAmount || j.subtotal || j.grandTotal || 0).toFixed(2)}`,
       raw: j,
     }));
 
@@ -184,7 +203,7 @@ export const InvoiceEditorSection = ({
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+  return () => clearTimeout(timer);
   }, [customerSearchQuery, pendingJobs]);
 
   const handleResetForm = () => {
@@ -197,6 +216,7 @@ export const InvoiceEditorSection = ({
     setAdditionalCharges([]);
     setDiscountPercent("");
     setDiscountAmount("");
+    setPaymentPlan("ADVANCE");
     setGstRate(0);
     setAdvanceType("PERCENTAGE");
     setAdvanceInput("");
@@ -224,17 +244,6 @@ export const InvoiceEditorSection = ({
     if (onClear) onClear();
   };
 
-  const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      { itemName: "Print Service / Material", quantity: 1, unitPrice: 0, taxRate: 18 }
-    ]);
-  };
-
-  const handleRemoveItem = (index) => {
-    setItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
   // Load job and invoice data when selectedJobOrderId changes
   useEffect(() => {
     if (selectedJobOrderId) {
@@ -245,45 +254,64 @@ export const InvoiceEditorSection = ({
   }, [selectedJobOrderId]);
 
   const numAdvanceVal = Math.max(0, parseFloat(advanceInput) || 0);
-  const currentAdvanceAmount = isPrintOnly
+  const currentAdvanceAmount = isFullPayment
     ? (calcResult.grandTotal || 0)
     : (advanceType === "PERCENTAGE"
       ? Math.min(calcResult.grandTotal || 0, Math.round((((calcResult.grandTotal || 0) * Math.min(100, numAdvanceVal)) / 100) * 100) / 100)
       : Math.min(calcResult.grandTotal || 0, numAdvanceVal));
-  const currentRemainingBalance = isPrintOnly
+  const currentRemainingBalance = isFullPayment
     ? 0
     : Math.max(0, Math.round(((calcResult.grandTotal || 0) - currentAdvanceAmount) * 100) / 100);
 
-  const handleDiscountPercentChange = (val) => {
-    setDiscountPercent(val);
-    const pct = Math.max(0, Math.min(100, parseFloat(val) || 0));
-    const sub = (items || []).reduce((acc, it) => acc + (Number(it.quantity || 0) * Number(it.unitPrice || 0)), 0)
-              + (additionalCharges || []).reduce((acc, ac) => acc + Number(ac.amount || 0), 0);
-    const amt = sub > 0 ? Math.round((sub * (pct / 100)) * 100) / 100 : 0;
-    setDiscountAmount(amt > 0 ? String(amt) : "");
+  // Notify parent of live calculation changes so table below stays synchronized in real time
+  useEffect(() => {
+    if (onLiveCalculationChange && jobSnapshot) {
+      const jId = jobSnapshot._id || jobSnapshot.id || jobSnapshot.jobOrderId || selectedJobOrderId;
+      const orderGT = Number(calcResult.grandTotal || 0);
+      if (jId && orderGT > 0) {
+        onLiveCalculationChange({
+          jobId: jId,
+          grandTotal: orderGT,
+          advancePaid: initialAdvancePreviouslyPaid || currentAdvanceAmount,
+          balanceDue: balanceToCollect,
+        });
+      }
+    }
+  }, [calcResult.grandTotal, balanceToCollect, initialAdvancePreviouslyPaid, currentAdvanceAmount, jobSnapshot, selectedJobOrderId]);
 
-    const updated = (items || []).map((it) => ({
-      ...it,
+  // Items without any line-level discount: the invoice discount is applied once, on the whole invoice
+  const stripLineDiscounts = (list) =>
+    (list || []).map(({ discountType, discountValue, discountAmount: _d, ...rest }) => rest);
+
+  const handleDiscountPercentChange = (val) => {
+    setBalanceCollectedInput("");
+    setDiscountMode("PERCENTAGE");
+    const pct = Math.max(0, Math.min(100, parseFloat(val) || 0));
+    setDiscountPercent(val === "" ? "" : String(pct));
+    const t = calculateInvoiceTotals({
+      items: withTaxRates(items),
+      additionalCharges: withTaxRates(additionalCharges),
       discountType: "PERCENTAGE",
       discountValue: pct,
-    }));
-    setItems(updated);
+    });
+    setDiscountAmount(t.discountTotal > 0 ? String(t.discountTotal) : "");
+    setItems(stripLineDiscounts(items));
   };
 
   const handleDiscountAmountChange = (val) => {
+    setBalanceCollectedInput("");
+    setDiscountMode("FIXED");
     setDiscountAmount(val);
     const amt = Math.max(0, parseFloat(val) || 0);
-    const sub = (items || []).reduce((acc, it) => acc + (Number(it.quantity || 0) * Number(it.unitPrice || 0)), 0)
-              + (additionalCharges || []).reduce((acc, ac) => acc + Number(ac.amount || 0), 0);
-    const pct = sub > 0 ? Math.round(((amt / sub) * 100) * 100) / 100 : 0;
-    setDiscountPercent(pct > 0 ? String(pct) : "");
-
-    const updated = (items || []).map((it) => ({
-      ...it,
-      discountType: "PERCENTAGE",
-      discountValue: pct,
-    }));
-    setItems(updated);
+    const t = calculateInvoiceTotals({
+      items: withTaxRates(items),
+      additionalCharges: withTaxRates(additionalCharges),
+      discountType: "FIXED",
+      discountValue: amt,
+    });
+    const base = t.subtotal + t.additionalChargesTotal;
+    setDiscountPercent(t.discountTotal > 0 && base > 0 ? String(round2((t.discountTotal / base) * 100)) : "");
+    setItems(stripLineDiscounts(items));
   };
 
   const handleGstRateChange = (newRate) => {
@@ -294,7 +322,24 @@ export const InvoiceEditorSection = ({
       taxRate: rate,
     }));
     setItems(updated);
+    setAdditionalCharges((prev) => (prev || []).map((c) => ({ ...c, taxRate: rate })));
   };
+
+  // Every line carries a GST rate; a line without one uses the invoice's selected GST rate
+  const withTaxRates = (list, rate = gstRate) =>
+    (list || []).map((it) => ({
+      ...it,
+      taxRate: Number(rate) || 0,
+    }));
+
+  // The part of every save / calculate request that the totals depend on
+  const invoicePayloadBase = () => ({
+    items: withTaxRates(items),
+    additionalCharges: withTaxRates(additionalCharges),
+    ...discountToPayload(discountMode, discountPercent, discountAmount),
+    gstRate: Number(gstRate) || 0,
+    paymentPlan,
+  });
 
   const computeLocalEstimate = (
     itemsList = items,
@@ -306,76 +351,27 @@ export const InvoiceEditorSection = ({
     discAmt = discountAmount,
     gRate = gstRate
   ) => {
-    let sub = 0;
-    (itemsList || []).forEach((it) => {
-      sub += Number(it.quantity || 0) * Number(it.unitPrice || 0);
-    });
-    (chargesList || []).forEach((ac) => {
-      sub += Number(ac.amount || 0);
-    });
-
-    const parsedDiscAmt = parseFloat(discAmt) || 0;
-    const parsedDiscPct = parseFloat(discPct) || 0;
-    let dTotal = 0;
-    if (parsedDiscAmt > 0) {
-      dTotal = Math.min(sub, parsedDiscAmt);
-    } else if (parsedDiscPct > 0) {
-      dTotal = Math.min(sub, Math.round((sub * (parsedDiscPct / 100)) * 100) / 100);
-    }
-    const taxable = Math.max(0, Math.round((sub - dTotal) * 100) / 100);
-
-    let tax = 0;
-    if (sub > 0 && dTotal > 0) {
-      const discountRatio = taxable / sub;
-      (itemsList || []).forEach((it) => {
-        const line = Number(it.quantity || 0) * Number(it.unitPrice || 0);
-        const lineTaxable = line * discountRatio;
-        const lineRate = Number(it.taxRate !== undefined ? it.taxRate : gRate);
-        tax += (lineTaxable * lineRate) / 100;
-      });
-      (chargesList || []).forEach((ac) => {
-        const line = Number(ac.amount || 0);
-        const lineTaxable = line * discountRatio;
-        const lineRate = Number(ac.taxRate !== undefined ? ac.taxRate : gRate);
-        tax += (lineTaxable * lineRate) / 100;
-      });
-    } else {
-      (itemsList || []).forEach((it) => {
-        const line = Number(it.quantity || 0) * Number(it.unitPrice || 0);
-        const lineRate = Number(it.taxRate !== undefined ? it.taxRate : gRate);
-        tax += (line * lineRate) / 100;
-      });
-      (chargesList || []).forEach((ac) => {
-        const line = Number(ac.amount || 0);
-        const lineRate = Number(ac.taxRate !== undefined ? ac.taxRate : gRate);
-        tax += (line * lineRate) / 100;
-      });
-    }
-
-    const cgst = Math.round((tax / 2) * 100) / 100;
-    const sgst = Math.round((tax / 2) * 100) / 100;
-    const grand = Math.round((taxable + cgst + sgst) * 100) / 100;
+    const discount = discountToPayload(discountMode, discPct, discAmt);
     const estAmount = Number(snapshot?.subtotal || snapshot?.estimatedPrice || snapshot?.grandTotal || 0);
-    const variance = estAmount > 0 ? Math.abs(grand - estAmount) : 0;
-    const variancePct = estAmount > 0 ? (variance / estAmount) * 100 : 0;
-    const requiresApproval = variancePct > 5.0 || variance > 500;
+    const totals = calculateInvoiceTotals({
+      items: withTaxRates(itemsList, gRate),
+      additionalCharges: withTaxRates(chargesList, gRate),
+      discountType: discount.discountType,
+      discountValue: discount.discountValue,
+      estimateAmount: estAmount,
+    });
 
     const numAdv = Math.max(0, parseFloat(advInp) || 0);
-    const advAmt = advType === "PERCENTAGE"
-      ? Math.min(grand, Math.round(((grand * Math.min(100, numAdv)) / 100) * 100) / 100)
-      : Math.min(grand, numAdv);
+    const advAmt = isFullPayment
+      ? totals.grandTotal
+      : advType === "PERCENTAGE"
+      ? Math.min(totals.grandTotal, round2((totals.grandTotal * Math.min(100, numAdv)) / 100))
+      : Math.min(totals.grandTotal, numAdv);
 
     setCalcResult({
-      subtotal: sub,
-      discountTotal: dTotal,
-      taxableAmount: taxable,
-      cgstTotal: cgst,
-      sgstTotal: sgst,
-      grandTotal: grand,
+      ...totals,
       advanceApplied: advAmt,
-      balanceDue: Math.max(0, Math.round((grand - advAmt) * 100) / 100),
-      variancePercentage: variancePct,
-      approvalRequired: requiresApproval,
+      balanceDue: Math.max(0, round2(totals.grandTotal - advAmt)),
     });
   };
 
@@ -471,8 +467,9 @@ export const InvoiceEditorSection = ({
       const recordedAdv = Number(snapshot.advancePaid || matchingPropJob?.advancePaid || 0);
       let initAdvType = "PERCENTAGE";
       let initAdvInput = "";
-      if (isPrintOnlyOrder || isDesignCompletedOrReady) {
-        // Print Only or Design Only with completed design requires 100% full payment / balance settlement
+      setPaymentPlan(isPrintOnlyOrder ? "FULL" : "ADVANCE");
+      if (isDesignCompletedOrReady) {
+        // Design Only with completed design: the whole remaining balance is settled
         initAdvType = "PERCENTAGE";
         initAdvInput = "100";
         setAdvanceType("PERCENTAGE");
@@ -527,51 +524,16 @@ export const InvoiceEditorSection = ({
         }
       }
 
-      // Determine GST rate from initial payment / invoice / job order
+      // Determine GST / Tax rate from job order or invoice
+      // GST is chosen once, on the invoice. A saved invoice keeps its rate; a new one starts at 0%.
       const initialGstRate = (() => {
         if (currentInv) {
-          if (currentInv.taxRate !== undefined && currentInv.taxRate !== null && !isNaN(Number(currentInv.taxRate))) {
-            return Number(currentInv.taxRate);
-          }
           if (currentInv.gstRate !== undefined && currentInv.gstRate !== null && !isNaN(Number(currentInv.gstRate))) {
             return Number(currentInv.gstRate);
           }
-          if (currentInv.items?.[0]?.taxRate !== undefined && currentInv.items?.[0]?.taxRate !== null && !isNaN(Number(currentInv.items[0].taxRate))) {
-            return Number(currentInv.items[0].taxRate);
-          }
-          if (Number(currentInv.taxTotal || currentInv.totalTax) > 0 && Number(currentInv.taxableAmount || currentInv.subtotal) > 0) {
-            return Math.round((Number(currentInv.taxTotal || currentInv.totalTax) / Number(currentInv.taxableAmount || currentInv.subtotal)) * 100);
-          }
-        }
-        if (snapshot.taxRate !== undefined && snapshot.taxRate !== null && !isNaN(Number(snapshot.taxRate))) {
-          return Number(snapshot.taxRate);
-        }
-        if (snapshot.gstRate !== undefined && snapshot.gstRate !== null && !isNaN(Number(snapshot.gstRate))) {
-          return Number(snapshot.gstRate);
-        }
-        if (snapshot.items?.[0]?.taxRate !== undefined && snapshot.items?.[0]?.taxRate !== null && !isNaN(Number(snapshot.items[0].taxRate))) {
-          return Number(snapshot.items[0].taxRate);
-        }
-        if (snapshot.estimateSnapshot?.taxAmount > 0 && Number(snapshot.estimateSnapshot?.subtotal || snapshot.estimateSnapshot?.taxableAmount) > 0) {
-          return Math.round((Number(snapshot.estimateSnapshot.taxAmount) / Number(snapshot.estimateSnapshot.subtotal || snapshot.estimateSnapshot.taxableAmount)) * 100);
-        }
-        if (Number(snapshot.taxAmount) > 0 && Number(snapshot.subtotal) > 0) {
-          return Math.round((Number(snapshot.taxAmount) / Number(snapshot.subtotal)) * 100);
-        }
-        // Deduce GST rate if initial advance paid implies a known tax slab (e.g. 50% advance = RM 1228.50 on subtotal RM 2275 -> grand total 2457 -> 8% GST)
-        const advPaid = Number(currentInv?.advancePaid || currentInv?.advanceApplied || snapshot.advancePaid || matchingPropJob?.advancePaid || 0);
-        const sub = Number(currentInv?.subtotal || snapshot.subtotal || mergedSnapshot.subtotal || 0);
-        if (advPaid > 0 && sub > 0) {
-          for (const ratio of [0.5, 0.25, 0.3, 0.4, 0.6, 1.0]) {
-            const impliedGrand = advPaid / ratio;
-            const diff = impliedGrand - sub;
-            if (diff > 0.5) {
-              const impliedRate = Math.round((diff / sub) * 100);
-              if ([5, 6, 8, 9, 10, 12, 18, 28].includes(impliedRate)) {
-                return impliedRate;
-              }
-            }
-          }
+          // Invoices saved before the common rate existed: the rate of their first line
+          const legacy = currentInv.items?.[0]?.taxRate;
+          if (legacy !== undefined && legacy !== null && !isNaN(Number(legacy))) return Number(legacy);
         }
         return 0;
       })();
@@ -599,8 +561,17 @@ export const InvoiceEditorSection = ({
         setAdditionalCharges(invCharges);
 
         setRemarks(currentInv.remarks || "Commercial Tax Invoice");
+        if (currentInv.paymentPlan) setPaymentPlan(currentInv.paymentPlan);
         if (currentInv.discountTotal) {
           setDiscountAmount(String(currentInv.discountTotal));
+          const base = Number(currentInv.subtotal || 0) + Number(currentInv.additionalChargesTotal || 0);
+          if (currentInv.invoiceDiscountType === "PERCENTAGE" && Number(currentInv.invoiceDiscountValue) > 0) {
+            setDiscountMode("PERCENTAGE");
+            setDiscountPercent(String(currentInv.invoiceDiscountValue));
+          } else {
+            setDiscountMode("FIXED");
+            if (base > 0) setDiscountPercent(String(round2((Number(currentInv.discountTotal) / base) * 100)));
+          }
         }
         setGstRate(initialGstRate);
 
@@ -613,7 +584,7 @@ export const InvoiceEditorSection = ({
 
         const effectiveAdvancePreviouslyPaid = Number(currentInv.advancePaid || currentInv.advanceApplied || recordedAdv || 0);
         const currentBalDue = Math.max(0, Math.round((currentGrand - effectiveAdvancePreviouslyPaid) * 100) / 100);
-        const isSettlingBalance = isDesignCompletedOrReady && effectiveAdvancePreviouslyPaid > 0 && currentBalDue > 0;
+        const isSettlingBalance = effectiveAdvancePreviouslyPaid > 0 && currentBalDue > 0;
 
         setCalcResult({
           subtotal: currentInv.subtotal || 0,
@@ -631,7 +602,7 @@ export const InvoiceEditorSection = ({
         if (isSettlingBalance) {
           setAdvanceType("PERCENTAGE");
           setAdvanceInput("100");
-          setBalanceCollectedInput(String(currentBalDue.toFixed(2)));
+          setBalanceCollectedInput("");
         } else {
           setBalanceCollectedInput("");
         }
@@ -761,32 +732,9 @@ export const InvoiceEditorSection = ({
         if (onJobSelected) onJobSelected(jobId);
         loadJobAndInvoiceData(jobId);
       } else {
+        // Only a job order with an approved estimate can be invoiced: there is no counter sale here
         setCustomerSearchQuery(result.title);
-        const newSnapshot = {
-          customerName: result.title,
-          customerPhone: result.raw?.mobile || "N/A",
-          customerSnapshot: {
-            name: result.title,
-            mobile: result.raw?.mobile || "",
-            email: result.raw?.email || "",
-            company: result.raw?.company || "",
-            gstin: result.raw?.gstin || "",
-            address: result.raw?.address || "",
-          },
-          jobNo: "COUNTER-SALE",
-          title: "Direct Counter Order",
-          quantity: 1,
-          grandTotal: 100,
-        };
-        setJobSnapshot(newSnapshot);
-        const counterItem = {
-          itemName: "Print Service / Counter Sale",
-          quantity: 1,
-          unitPrice: 100,
-          taxRate: 18,
-        };
-        setItems([counterItem]);
-        computeLocalEstimate([counterItem], [], newSnapshot, advanceType, advanceInput);
+        toast.info("This customer has no job order ready for invoicing. Approve the estimate of a job order first.");
       }
     }
   };
@@ -795,25 +743,44 @@ export const InvoiceEditorSection = ({
     if (!isFinalized && jobSnapshot) {
       computeLocalEstimate(items, additionalCharges, jobSnapshot, advanceType, advanceInput, discountPercent, discountAmount, gstRate);
     }
-  }, [items, additionalCharges, advanceType, advanceInput, discountPercent, discountAmount, gstRate, jobSnapshot, isFinalized]);
+  }, [items, additionalCharges, advanceType, advanceInput, discountPercent, discountAmount, discountMode, paymentPlan, gstRate, jobSnapshot, isFinalized]);
 
-  // Create Draft Invoice
+  // Create or Update Draft Invoice
   const handleCreateDraft = async () => {
     const jId = selectedJobOrderId || jobSnapshot?.jobOrderId || jobSnapshot?._id;
     if (!jId) {
       toast.warn("Please search and select a customer or job order first.");
       return;
     }
+    const invId = activeInvoice?._id || activeInvoice?.id;
     setLoading(true);
     try {
       const totalAmountToApply = (isSettlingBalance && initialAdvancePreviouslyPaid > 0)
         ? Math.round((initialAdvancePreviouslyPaid + effectiveBalanceToPay) * 100) / 100
         : currentAdvanceAmount;
 
+      if (invId) {
+        const res = await invoiceApi.updateDraftInvoice(invId, {
+          ...invoicePayloadBase(),
+          advancePaid: totalAmountToApply,
+          advanceApplied: totalAmountToApply,
+          advanceType,
+          advanceValue: numAdvanceVal,
+          paymentMode,
+          paymentReference: paymentRef,
+          remarks,
+          dueDate: dueDate ? new Date(dueDate).toISOString() : new Date().toISOString(),
+        });
+        const updated = res?.data || res;
+        setActiveInvoice(updated);
+        toast.success("Draft Invoice updated successfully!");
+        if (onInvoiceFinalized) onInvoiceFinalized(updated);
+        return;
+      }
+
       const res = await invoiceApi.createDraftInvoice({
         jobOrderId: jId,
-        items,
-        additionalCharges,
+        ...invoicePayloadBase(),
         advancePaid: totalAmountToApply,
         advanceApplied: totalAmountToApply,
         advanceType,
@@ -868,8 +835,7 @@ export const InvoiceEditorSection = ({
         : currentAdvanceAmount;
 
       const res = await invoiceApi.calculateInvoice(invId, {
-        items,
-        additionalCharges,
+        ...invoicePayloadBase(),
         advancePaid: totalAmountToApply,
         advanceApplied: totalAmountToApply,
       });
@@ -895,7 +861,7 @@ export const InvoiceEditorSection = ({
       const updated = res?.data || res;
       setActiveInvoice(updated);
       if (updated.status === "PENDING_APPROVAL") {
-        toast.warn("Variance > 5% or RM 500 tolerance. Submitted for Manager Variance Approval!");
+        toast.warn("Variance > 5% or ₹500 tolerance. Submitted for Manager Variance Approval!");
       } else {
         toast.success("Variance within tolerance! Auto-Approved! (APPROVED)");
       }
@@ -944,8 +910,7 @@ export const InvoiceEditorSection = ({
       if (!current?._id && !current?.id) {
         const res = await invoiceApi.createDraftInvoice({
           jobOrderId: jId,
-          items,
-          additionalCharges,
+          ...invoicePayloadBase(),
           advancePaid: totalAmountToApply,
           advanceApplied: totalAmountToApply,
           advanceType,
@@ -964,11 +929,42 @@ export const InvoiceEditorSection = ({
         throw new Error("Unable to establish draft invoice for this job order.");
       }
 
+      // 1.5 If collecting remaining balance on an already finalized invoice
+      if (isSettlingBalance && current?.status && current.status !== "DRAFT") {
+        try {
+          await invoiceApi.collectPayment(invId, {
+            amount: effectiveBalanceToPay,
+            paymentMode,
+            paymentReference: paymentRef,
+            remarks: "Remaining balance payment collected upon order completion.",
+          });
+        } catch (payErr) {
+          // The payment was not recorded: say so and stop, never show the invoice as settled
+          toast.error(payErr.response?.data?.message || "The balance payment could not be recorded.");
+          return;
+        }
+        const refreshed = await invoiceApi.getInvoiceById(invId).catch(() => null);
+        const settledInvoice = refreshed?.data || refreshed || current;
+        setActiveInvoice(settledInvoice);
+        const balanceLeft = Number(settledInvoice?.balanceDue || 0);
+        setCalcResult((prev) => ({
+          ...prev,
+          advanceApplied: Number(settledInvoice?.advanceApplied || prev.advanceApplied || 0),
+          balanceDue: balanceLeft,
+        }));
+        toast.success(
+          balanceLeft <= 0
+            ? `Balance of ₹ ${effectiveBalanceToPay.toFixed(2)} collected. Invoice fully settled.`
+            : `₹ ${effectiveBalanceToPay.toFixed(2)} collected. ₹ ${balanceLeft.toFixed(2)} still due.`
+        );
+        if (onInvoiceFinalized) onInvoiceFinalized(settledInvoice);
+        return;
+      }
+
       // 2. Sync items, charges & advance to draft
       try {
         const updated = await invoiceApi.updateDraftInvoice(invId, {
-          items,
-          additionalCharges,
+          ...invoicePayloadBase(),
           advancePaid: totalAmountToApply,
           advanceApplied: totalAmountToApply,
           advanceType,
@@ -987,7 +983,20 @@ export const InvoiceEditorSection = ({
       }
 
       // 3. Auto-approve variance if required
-      if (current.status === "PENDING_APPROVAL" || current.approvalRequired) {
+      // Step 3a: If still in DRAFT with approvalRequired, submit for approval first
+      if (current.approvalRequired && (!current.status || current.status === "DRAFT")) {
+        try {
+          const subRes = await invoiceApi.submitInvoiceForApproval(invId, {
+            comments: managerApprovalRemarks || "Auto-submitted for variance approval",
+          });
+          current = subRes?.data || subRes;
+          setActiveInvoice(current);
+        } catch (subErr) {
+          console.warn("Submit for approval warning:", subErr);
+        }
+      }
+      // Step 3b: Only call approveVariance if invoice is now PENDING_APPROVAL
+      if (current.status === "PENDING_APPROVAL") {
         try {
           const appRes = await invoiceApi.approveInvoiceVariance(invId, {
             decision: "APPROVED",
@@ -1006,10 +1015,10 @@ export const InvoiceEditorSection = ({
       setActiveInvoice(finalized);
       if (isDesignOnly && (jobSnapshot?.designStatus === "COMPLETED" || jobSnapshot?.stage === "READY" || jobSnapshot?.currentStage === "READY")) {
         toast.success(`Invoice ${finalized.invoiceNumber || "INV-Finalized"} settled! Remaining balance collected. Design Only order marked COMPLETED.`);
-      } else if (isPrintOnly) {
-        toast.success(`Invoice ${finalized.invoiceNumber || "INV-Finalized"} locked! Full payment recorded. Job order completed.`);
+      } else if (isFullPayment) {
+        toast.success(`Invoice ${finalized.invoiceNumber || "INV-Finalized"} locked! Full payment recorded. ${isPrintOnly ? "Job order sent to Production." : "Job order sent to Designer Queue."}`);
       } else {
-        toast.success(`Invoice ${finalized.invoiceNumber || "INV-Finalized"} locked! Advance payment recorded. Job order sent to Designer Queue.`);
+        toast.success(`Invoice ${finalized.invoiceNumber || "INV-Finalized"} locked! Advance payment recorded. ${isPrintOnly ? "Job order sent to Production." : "Job order sent to Designer Queue."}`);
       }
       if (onInvoiceFinalized) onInvoiceFinalized(finalized);
     } catch (err) {
@@ -1063,6 +1072,22 @@ export const InvoiceEditorSection = ({
       setLoading(false);
     }
   };
+
+  // Notify parent of live calculation changes so table below stays synchronized in real time
+  useEffect(() => {
+    if (onLiveCalculationChange && jobSnapshot) {
+      const jId = jobSnapshot._id || jobSnapshot.id || jobSnapshot.jobOrderId || selectedJobOrderId;
+      const orderGT = Number(calcResult.grandTotal || 0);
+      if (jId && orderGT > 0) {
+        onLiveCalculationChange({
+          jobId: jId,
+          grandTotal: orderGT,
+          advancePaid: initialAdvancePreviouslyPaid || currentAdvanceAmount,
+          balanceDue: balanceToCollect,
+        });
+      }
+    }
+  }, [calcResult.grandTotal, balanceToCollect, initialAdvancePreviouslyPaid, currentAdvanceAmount, jobSnapshot, selectedJobOrderId]);
 
   return (
     <div
@@ -1252,13 +1277,13 @@ export const InvoiceEditorSection = ({
           </div>
           <div>
             <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>
-              {isPrintOnly ? "Total Invoice Amount" : "Advance Paid (Recorded)"}
+              {isFullPayment ? "Total Invoice Amount" : "Advance Paid (Recorded)"}
             </div>
-            <div style={{ fontWeight: 700, color: isPrintOnly ? "#6b21a8" : "#059669", fontSize: "1.1rem" }}>
-              RM {Number(isPrintOnly ? (calcResult.grandTotal || jobSnapshot?.grandTotal || 0) : (initialAdvancePreviouslyPaid || jobSnapshot?.advancePaid || 0)).toFixed(2)}
+            <div style={{ fontWeight: 700, color: isFullPayment ? "#6b21a8" : "#059669", fontSize: "1.1rem" }}>
+              ₹ {Number(isFullPayment ? (calcResult.grandTotal || jobSnapshot?.grandTotal || 0) : (initialAdvancePreviouslyPaid || jobSnapshot?.advancePaid || 0)).toFixed(2)}
             </div>
             <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-              {isPrintOnly ? "100% Full Payment Required (No Advance)" : "Auto-deducted from settlement balance"}
+              {isFullPayment ? "100% Full Payment Required (No Advance)" : "Auto-deducted from settlement balance"}
             </div>
           </div>
           <div>
@@ -1278,22 +1303,14 @@ export const InvoiceEditorSection = ({
         <div style={{ marginBottom: "1.25rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
             <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#1e293b", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>1. Billable Print Items & Services</span>
+           
               {isSettlingBalance && (
                 <span className="jf-badge jf-badge-gray" style={{ fontSize: "0.72rem" }}>
                   🔒 Locked for Settlement
                 </span>
               )}
             </div>
-            {!isFinalized && !isSettlingBalance && (
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary jf-btn-sm"
-                onClick={handleAddItem}
-              >
-                <Plus size={14} /> Add Item
-              </button>
-            )}
+            
           </div>
 
           <table className="jf-table" style={{ fontSize: "0.875rem" }}>
@@ -1301,18 +1318,16 @@ export const InvoiceEditorSection = ({
               <tr>
                 <th>Item Description</th>
                 <th style={{ width: "110px" }}>Qty</th>
-                <th style={{ width: "130px" }}>Unit Price (RM)</th>
-                <th style={{ width: "110px" }}>GST Rate</th>
-                <th style={{ width: "130px", textAlign: "right" }}>Total (RM)</th>
-                {!isFinalized && !isSettlingBalance && <th style={{ width: "50px" }}></th>}
+                <th style={{ width: "130px" }}>Unit Price (₹)</th>
+                <th style={{ width: "130px", textAlign: "right" }}>Total (₹)</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "1.75rem", color: "#64748b" }}>
+                  <td colSpan={4} style={{ textAlign: "center", padding: "1.75rem", color: "#64748b" }}>
                     {jobSnapshot ? (
-                      <div>No items added yet. Click <strong>+ Add Item</strong> above to add billable items.</div>
+                      <div>This job order has no billable items.</div>
                     ) : (
                       <div style={{ padding: "0.25rem 0" }}>
                         <span style={{ fontWeight: 600, color: "#475569" }}>No job order selected</span>
@@ -1325,97 +1340,24 @@ export const InvoiceEditorSection = ({
                 </tr>
               ) : (
                 items.map((it, idx) => {
-                  const lineTotal = (Number(it.quantity || 0) * Number(it.unitPrice || 0));
-                  return (
+                  const lineTotal = Math.round(Number(it.quantity || 0) * Number(it.unitPrice || 0) * 100) / 100;
+                return (
                     <tr key={idx}>
                       <td>
                         <input
                           type="text"
                           className="jf-input"
                           value={it.itemName}
-                          onChange={(e) => {
-                            const updated = [...items];
-                            updated[idx].itemName = e.target.value;
-                            setItems(updated);
-                          }}
-                          disabled={isFinalized || isSettlingBalance}
+                          readOnly
+                          disabled
+                          title="The item follows the approved estimate and cannot be edited"
                         />
                       </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="jf-input"
-                          value={it.quantity}
-                          min={1}
-                          onChange={(e) => {
-                            const updated = [...items];
-                            updated[idx].quantity = Number(e.target.value);
-                            setItems(updated);
-                          }}
-                          disabled={isFinalized || isSettlingBalance}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="jf-input"
-                          value={it.unitPrice}
-                          onChange={(e) => {
-                            const updated = [...items];
-                            updated[idx].unitPrice = Number(e.target.value);
-                            setItems(updated);
-                          }}
-                          disabled={isFinalized || isSettlingBalance}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="jf-select"
-                          value={it.taxRate}
-                          onChange={(e) => {
-                            const updated = [...items];
-                            updated[idx].taxRate = Number(e.target.value);
-                            setItems(updated);
-                          }}
-                          disabled={isFinalized || isSettlingBalance}
-                          style={{
-                            background: isFinalized || isSettlingBalance ? "#f8fafc" : "#ffffff",
-                            cursor: isSettlingBalance ? "not-allowed" : "pointer"
-                          }}
-                        >
-                          <option value={0}>0%</option>
-                          <option value={5}>5%</option>
-                          <option value={6}>6%</option>
-                          <option value={8}>8%</option>
-                          <option value={12}>12%</option>
-                          <option value={18}>18%</option>
-                          <option value={28}>28%</option>
-                          {![0, 5, 6, 8, 12, 18, 28].includes(Number(it.taxRate)) && (
-                            <option value={Number(it.taxRate)}>{it.taxRate}%</option>
-                          )}
-                        </select>
-                      </td>
+                      <td style={{ fontWeight: 600 }}>{Number(it.quantity || 0)}</td>
+                      <td style={{ fontWeight: 600 }}>₹ {Number(it.unitPrice || 0).toFixed(2)}</td>
                       <td style={{ textAlign: "right", fontWeight: 600 }}>
-                        RM {lineTotal.toFixed(2)}
+                        ₹ {lineTotal.toFixed(2)}
                       </td>
-                      {!isFinalized && !isSettlingBalance && (
-                        <td>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(idx)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: "#dc2626",
-                              cursor: "pointer"
-                            }}
-                            title="Remove item"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      )}
                     </tr>
                   );
                 })
@@ -1478,7 +1420,7 @@ export const InvoiceEditorSection = ({
             }}>
               <span>Net Taxable Subtotal:</span>
               <strong style={{ color: "#0f172a" }}>
-                RM {Number(calcResult.taxableAmount || (calcResult.subtotal - (calcResult.discountTotal || 0)) || 0).toFixed(2)}
+                ₹ {Number(calcResult.taxableAmount || (calcResult.subtotal - (calcResult.discountTotal || 0)) || 0).toFixed(2)}
               </strong>
             </div>
           </div>
@@ -1532,9 +1474,7 @@ export const InvoiceEditorSection = ({
                   %
                 </span>
               </div>
-              <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: "5px" }}>
-                Auto-calculates RM amount
-              </div>
+              
 
               {/* Quick discount chips */}
               {!isFinalized && !isSettlingBalance && jobSnapshot && (
@@ -1562,11 +1502,11 @@ export const InvoiceEditorSection = ({
               )}
             </div>
 
-            {/* Column 2: Discount Amount (RM) */}
+            {/* Column 2: Discount Amount (₹) */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1e293b" }}>
-                  Discount Amount (RM)
+                  Discount Amount (₹)
                 </label>
               </div>
               <div style={{ position: "relative" }}>
@@ -1594,13 +1534,9 @@ export const InvoiceEditorSection = ({
                   color: "#64748b",
                   fontWeight: 700,
                   fontSize: "0.95rem"
-                }}>
-                  RM
-                </span>
+                }}>₹</span>
               </div>
-              <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: "5px" }}>
-                Auto-calculates percentage
-              </div>
+              
             </div>
 
             {/* Column 3: GST / Tax Selection */}
@@ -1624,24 +1560,21 @@ export const InvoiceEditorSection = ({
                   cursor: isSettlingBalance ? "not-allowed" : "pointer"
                 }}
               >
-                <option value={0}>0% - GST Exempt / Zero-rated</option>
-                <option value={5}>5% - Concessional GST (2.5% CGST + 2.5% SGST)</option>
-                <option value={6}>6% - SST / GST (3% CGST + 3% SGST)</option>
-                <option value={8}>8% - Standard SST / GST (4% CGST + 4% SGST)</option>
-                <option value={12}>12% - Standard GST (6% CGST + 6% SGST)</option>
-                <option value={18}>18% - Standard Commercial GST (9% CGST + 9% SGST)</option>
-                <option value={28}>28% - Maximum GST (14% CGST + 14% SGST)</option>
-                {![0, 5, 6, 8, 12, 18, 28].includes(Number(gstRate)) && (
-                  <option value={Number(gstRate)}>{gstRate}% - Applied GST</option>
+                <option value={0}>0% - No Tax / Exempt</option>
+                <option value={6}>6% - SST (6%)</option>
+                <option value={8}>8% - SST Standard (8%)</option>
+                <option value={10}>10% - Sales Tax (10%)</option>
+                {![0, 6, 8, 10].includes(Number(gstRate)) && (
+                  <option value={Number(gstRate)}>{gstRate}% - Applied Tax</option>
                 )}
               </select>
-              <div style={{ fontSize: "0.72rem", color: isSettlingBalance ? "#059669" : "#64748b", marginTop: "5px", fontWeight: isSettlingBalance ? 600 : 400 }}>
+              {/* <div style={{ fontSize: "0.72rem", color: isSettlingBalance ? "#059669" : "#64748b", marginTop: "5px", fontWeight: isSettlingBalance ? 600 : 400 }}>
                 {isSettlingBalance
-                  ? `🔒 GST rate locked to ${gstRate}% (matches initial advance payment)`
+                  ? `🔒 Tax rate locked to ${gstRate}% (matches initial advance payment)`
                   : gstRate > 0
-                  ? `CGST: ${gstRate / 2}% | SGST: ${gstRate / 2}% applied across all items`
-                  : "No GST charged on this invoice"}
-              </div>
+                  ? `SST / Tax: ${gstRate}% applied across all items`
+                  : "No tax charged on this invoice"}
+              </div> */}
             </div>
           </div>
         </div>
@@ -1681,11 +1614,11 @@ export const InvoiceEditorSection = ({
               <div>
                 <div style={{ fontWeight: 700, fontSize: "0.98rem", color: "#14532d", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <span>
-                    {isPrintOnly
-                      ? "3. Collect Full Amount (Print Only)"
+                    {isFullPayment
+                      ? "3. Collect Full Payment"
                       : (isSettlingBalance && initialAdvancePreviouslyPaid > 0)
-                      ? `3. Collect Remaining Balance (RM ${effectiveBalanceToPay.toFixed(2)})`
-                      : "3. Collect Initial Advance Payment"}
+                      ? `3. Collect Remaining Balance (₹ ${effectiveBalanceToPay.toFixed(2)})`
+                      : "3. Collect Advance Payment"}
                   </span>
                   {isPrintOnly && <JobTypeBadge jobType="Print Only" size="sm" />}
                   {(isSettlingBalance && initialAdvancePreviouslyPaid > 0) && (
@@ -1694,19 +1627,19 @@ export const InvoiceEditorSection = ({
                     </span>
                   )}
                 </div>
-                {isPrintOnly ? (
+                {/* {isFullPayment ? (
                   <div style={{ fontSize: "0.78rem", color: "#6b21a8", fontWeight: 600, marginTop: "2px" }}>
-                    Print Only: 100% Full Payment collected upfront (No Advance). Order winds up & completes directly upon invoice.
+                    Print Only: 100% Full Payment collected upfront. Order completes directly upon invoice settlement.
                   </div>
                 ) : (isSettlingBalance && initialAdvancePreviouslyPaid > 0) ? (
                   <div style={{ fontSize: "0.78rem", color: "#047857", fontWeight: 600, marginTop: "2px" }}>
-                    Design approved by customer. Collect remaining balance of RM {balanceToCollect.toFixed(2)} to complete and close order. (Amount is editable below).
+                    Design approved by customer. Collect remaining balance of ₹ {balanceToCollect.toFixed(2)} to complete and close order. (Amount is editable below).
                   </div>
                 ) : (
                   <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
                     Collect customer advance to confirm commercial order before design allocation
                   </div>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -1719,20 +1652,7 @@ export const InvoiceEditorSection = ({
               borderRadius: "8px",
               gap: "2px"
             }}>
-              {isPrintOnly ? (
-                <div
-                  style={{
-                    padding: "5px 12px",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    borderRadius: "6px",
-                    background: "#6b21a8",
-                    color: "#ffffff",
-                  }}
-                >
-                  ✓ Full Amount (100%)
-                </div>
-              ) : (isSettlingBalance && initialAdvancePreviouslyPaid > 0) ? (
+              {(isSettlingBalance && initialAdvancePreviouslyPaid > 0) ? (
                 <div
                   style={{
                     padding: "5px 12px",
@@ -1743,10 +1663,36 @@ export const InvoiceEditorSection = ({
                     color: "#ffffff",
                   }}
                 >
-                  ✓ Balance Settlement (RM {effectiveBalanceToPay.toFixed(2)})
+                  ✓ Balance Settlement (₹ {effectiveBalanceToPay.toFixed(2)})
                 </div>
               ) : (
                 <>
+                  {["FULL", "ADVANCE"].map((plan) => (
+                    <button
+                      key={plan}
+                      type="button"
+                      disabled={isFinalized}
+                      onClick={() => {
+                        setPaymentPlan(plan);
+                        setBalanceCollectedInput("");
+                      }}
+                      style={{
+                        padding: "5px 12px",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        border: "none",
+                        borderRadius: "6px",
+                        background: paymentPlan === plan ? "#0f766e" : "transparent",
+                        color: paymentPlan === plan ? "#ffffff" : "#475569",
+                        boxShadow: paymentPlan === plan ? "0 2px 4px rgba(0,0,0,0.12)" : "none",
+                        cursor: isFinalized ? "not-allowed" : "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {plan === "FULL" ? "Full Payment" : "Advance"}
+                    </button>
+                  ))}
+                  {!isFullPayment && (<>
                   <button
                     type="button"
                     disabled={isFinalized}
@@ -1783,8 +1729,9 @@ export const InvoiceEditorSection = ({
                       transition: "all 0.15s ease"
                     }}
                   >
-                    RM Fixed Amount
+                    ₹ Fixed Amount
                   </button>
+                  </>)}
                 </>
               )}
             </div>
@@ -1805,27 +1752,27 @@ export const InvoiceEditorSection = ({
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1e293b" }}>
-                  {isPrintOnly
-                    ? "Full Amount Payable (RM)"
+                  {isFullPayment
+                    ? "Full Amount Payable (₹)"
                     : (isSettlingBalance && initialAdvancePreviouslyPaid > 0)
-                    ? "Remaining Balance to Collect (RM - Editable)"
-                    : `Advance ${advanceType === "PERCENTAGE" ? "(Percentage %)" : "(Amount in RM)"}`}
+                    ? "Remaining Balance to Collect (₹ - Editable)"
+                    : `Advance ${advanceType === "PERCENTAGE" ? "(Percentage %)" : "(Amount in ₹)"}`}
                 </label>
-                {!isPrintOnly && !(isSettlingBalance && initialAdvancePreviouslyPaid > 0) && advanceType === "PERCENTAGE" && numAdvanceVal > 0 && (
+                {!isFullPayment && !(isSettlingBalance && initialAdvancePreviouslyPaid > 0) && advanceType === "PERCENTAGE" && numAdvanceVal > 0 && (
                   <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "#15803d", background: "#dcfce7", padding: "1px 6px", borderRadius: "4px" }}>
-                    = RM {currentAdvanceAmount.toFixed(2)}
+                    = ₹ {currentAdvanceAmount.toFixed(2)}
                   </span>
                 )}
               </div>
 
-              {isPrintOnly ? (
+              {isFullPayment ? (
                 <div>
                   <div style={{ position: "relative" }}>
                     <input
                       type="text"
                       className="jf-input"
                       readOnly
-                      value={`RM ${Number(calcResult.grandTotal || 0).toFixed(2)}`}
+                      value={`₹ ${Number(calcResult.grandTotal || 0).toFixed(2)}`}
                       style={{
                         paddingLeft: "1rem",
                         fontWeight: 800,
@@ -1837,7 +1784,7 @@ export const InvoiceEditorSection = ({
                     />
                   </div>
                   <div style={{ fontSize: "0.74rem", color: "#6b21a8", marginTop: "6px", fontWeight: 600 }}>
-                    ✓ Full amount collected upfront. No advance. Order winds up upon invoice.
+                    ✓ 100% full payment collected upfront upon invoicing.
                   </div>
                 </div>
               ) : (isSettlingBalance && initialAdvancePreviouslyPaid > 0) ? (
@@ -1870,23 +1817,23 @@ export const InvoiceEditorSection = ({
                       fontWeight: 800,
                       fontSize: "0.95rem"
                     }}>
-                      RM
+                      ₹
                     </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px", flexWrap: "wrap", gap: "4px" }}>
+                  {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px", flexWrap: "wrap", gap: "4px" }}>
                     <div style={{ fontSize: "0.74rem", color: "#047857", fontWeight: 600 }}>
-                      ✓ Initial advance RM {initialAdvancePreviouslyPaid.toFixed(2)} recorded.
+                      ✓ Initial advance ₹ {initialAdvancePreviouslyPaid.toFixed(2)} recorded.
                     </div>
                     {remainingBalanceAfterPay > 0 ? (
                       <span style={{ fontSize: "0.74rem", color: "#b45309", fontWeight: 700 }}>
-                        Remaining Due: RM {remainingBalanceAfterPay.toFixed(2)}
+                        Remaining Due: ₹ {remainingBalanceAfterPay.toFixed(2)}
                       </span>
                     ) : (
                       <span style={{ fontSize: "0.74rem", color: "#059669", fontWeight: 700 }}>
                         ✓ Full Balance Cleared
                       </span>
                     )}
-                  </div>
+                  </div> */}
                   {!isFinalized && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
                       <button
@@ -1903,7 +1850,7 @@ export const InvoiceEditorSection = ({
                         }}
                         onClick={() => setBalanceCollectedInput(balanceToCollect.toFixed(2))}
                       >
-                        Collect Full Balance (RM {balanceToCollect.toFixed(2)})
+                        Collect Full Balance (₹ {balanceToCollect.toFixed(2)})
                       </button>
                     </div>
                   )}
@@ -1938,7 +1885,7 @@ export const InvoiceEditorSection = ({
                       fontWeight: 700,
                       fontSize: "0.95rem"
                     }}>
-                      {advanceType === "PERCENTAGE" ? "%" : "RM"}
+                      {advanceType === "PERCENTAGE" ? "%" : "₹"}
                     </span>
                   </div>
 
@@ -1976,7 +1923,7 @@ export const InvoiceEditorSection = ({
                       ) : (
                         <>
                           {[
-                            { label: "Clear (RM 0)", val: 0 },
+                            { label: "Clear (₹ 0)", val: 0 },
                             { label: "50%", val: Math.round(((calcResult.grandTotal || 0) * 0.5) * 100) / 100 },
                             { label: "100% Full", val: Math.round((calcResult.grandTotal || 0) * 100) / 100 }
                           ].map((chip) => (
@@ -2023,25 +1970,23 @@ export const InvoiceEditorSection = ({
                   borderColor: "#cbd5e1"
                 }}
               >
-                <option value="UPI">UPI / QR Code (GPay, PhonePe, Paytm)</option>
+                <option value="UPI">DuitNow QR / E-Wallet (TnG, GrabPay)</option>
                 <option value="CASH">Cash Counter</option>
                 <option value="CARD">Credit / Debit Card (POS Machine)</option>
-                <option value="BANK_TRANSFER">Bank Transfer (NEFT / RTGS / IMPS)</option>
+                <option value="BANK_TRANSFER">Online Banking / Bank Transfer (FPX)</option>
               </select>
-              <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: "6px" }}>
-                Instant receipt recorded upon finalization
-              </div>
+             
             </div>
 
             {/* Column 3: Payment Ref / Note */}
             <div>
               <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
-                Payment Ref / Receipt # <span style={{ fontWeight: 400, color: "#94a3b8" }}>(Optional)</span>
+                Payment Ref / Receipt 
               </label>
               <input
                 type="text"
                 className="jf-input"
-                placeholder="e.g. UTR / UPI Ref / Manual Receipt #"
+                placeholder="e.g. DuitNow Ref / Card Slip # / Receipt #"
                 value={paymentRef}
                 onChange={(e) => setPaymentRef(e.target.value)}
                 disabled={isFinalized}
@@ -2050,9 +1995,7 @@ export const InvoiceEditorSection = ({
                   borderColor: "#cbd5e1"
                 }}
               />
-              <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: "6px" }}>
-                Audited on finalized commercial tax invoice
-              </div>
+              
             </div>
           </div>
 
@@ -2092,13 +2035,11 @@ export const InvoiceEditorSection = ({
                       <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                         Initial Advance Paid
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
-                        Collected earlier
-                      </div>
+                      
                     </div>
                   </div>
                   <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#475569" }}>
-                    RM {initialAdvancePreviouslyPaid.toFixed(2)}
+                    ₹ {initialAdvancePreviouslyPaid.toFixed(2)}
                   </div>
                 </div>
 
@@ -2129,13 +2070,11 @@ export const InvoiceEditorSection = ({
                       <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                         Balance Collecting Now
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: "#15803d" }}>
-                        Settles order to 100% full payment
-                      </div>
+                      
                     </div>
                   </div>
                   <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#166534" }}>
-                    RM {balanceToCollect.toFixed(2)}
+                    ₹ {effectiveBalanceToPay.toFixed(2)}
                   </div>
                 </div>
 
@@ -2166,13 +2105,11 @@ export const InvoiceEditorSection = ({
                       <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#065f46", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                         Remaining Balance
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: "#047857" }}>
-                        Fully settled upon lock
-                      </div>
+                     
                     </div>
                   </div>
                   <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#059669" }}>
-                    RM 0.00
+                    ₹ 0.00
                   </div>
                 </div>
               </>
@@ -2184,8 +2121,8 @@ export const InvoiceEditorSection = ({
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "0.75rem 1.1rem",
-                  background: isPrintOnly ? "#faf5ff" : "#f0fdf4",
-                  border: isPrintOnly ? "1px solid #ddd6fe" : "1px solid #bbf7d0",
+                  background: isFullPayment ? "#faf5ff" : "#f0fdf4",
+                  border: isFullPayment ? "1px solid #ddd6fe" : "1px solid #bbf7d0",
                   borderRadius: "10px"
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -2193,25 +2130,25 @@ export const InvoiceEditorSection = ({
                       width: 28,
                       height: 28,
                       borderRadius: "50%",
-                      background: isPrintOnly ? "#f3e8ff" : "#dcfce7",
+                      background: isFullPayment ? "#f3e8ff" : "#dcfce7",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: isPrintOnly ? "#7e22ce" : "#166534"
+                      color: isFullPayment ? "#7e22ce" : "#166534"
                     }}>
                       <CheckCircle size={16} />
                     </div>
                     <div>
-                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: isPrintOnly ? "#6b21a8" : "#166534", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                        {isPrintOnly ? "Full Amount Paid" : "Advance Paid Now"}
+                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: isFullPayment ? "#6b21a8" : "#166534", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        {isFullPayment ? "Full Amount Paid" : "Advance Paid Now"}
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: isPrintOnly ? "#7e22ce" : "#15803d" }}>
-                        {isPrintOnly ? "100% collected upon invoicing" : "Collected & recorded today"}
+                      <div style={{ fontSize: "0.72rem", color: isFullPayment ? "#7e22ce" : "#15803d" }}>
+                        {isFullPayment ? "100% collected upon invoicing" : "Collected & recorded today"}
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: isPrintOnly ? "#6b21a8" : "#166534" }}>
-                    RM {currentAdvanceAmount.toFixed(2)}
+                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: isFullPayment ? "#6b21a8" : "#166534" }}>
+                    ₹ {currentAdvanceAmount.toFixed(2)}
                   </div>
                 </div>
 
@@ -2221,8 +2158,8 @@ export const InvoiceEditorSection = ({
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "0.75rem 1.1rem",
-                  background: isPrintOnly ? "#f0fdf4" : "#fffbeb",
-                  border: isPrintOnly ? "1px solid #bbf7d0" : "1px solid #fde68a",
+                  background: isFullPayment ? "#f0fdf4" : "#fffbeb",
+                  border: isFullPayment ? "1px solid #bbf7d0" : "1px solid #fde68a",
                   borderRadius: "10px"
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -2230,25 +2167,25 @@ export const InvoiceEditorSection = ({
                       width: 28,
                       height: 28,
                       borderRadius: "50%",
-                      background: isPrintOnly ? "#dcfce7" : "#fef3c7",
+                      background: isFullPayment ? "#dcfce7" : "#fef3c7",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: isPrintOnly ? "#15803d" : "#b45309"
+                      color: isFullPayment ? "#15803d" : "#b45309"
                     }}>
-                      {isPrintOnly ? <CheckCircle size={16} /> : <Clock size={16} />}
+                      {isFullPayment ? <CheckCircle size={16} /> : <Clock size={16} />}
                     </div>
                     <div>
-                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: isPrintOnly ? "#166534" : "#92400e", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                        {isPrintOnly ? "Balance Due" : "Remaining Balance"}
+                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: isFullPayment ? "#166534" : "#92400e", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        {isFullPayment ? "Balance Due" : "Remaining Balance"}
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: isPrintOnly ? "#15803d" : "#b45309" }}>
-                        {isPrintOnly ? "Order winds up & completes" : "Due at settlement & delivery"}
+                      <div style={{ fontSize: "0.72rem", color: isFullPayment ? "#15803d" : "#b45309" }}>
+                        {isFullPayment ? "Nothing left to collect" : "Settle before delivery"}
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: isPrintOnly ? "#166534" : "#b45309" }}>
-                    RM {currentRemainingBalance.toFixed(2)}
+                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: isFullPayment ? "#166534" : "#b45309" }}>
+                    ₹ {currentRemainingBalance.toFixed(2)}
                   </div>
                 </div>
               </>
@@ -2264,74 +2201,92 @@ export const InvoiceEditorSection = ({
           marginBottom: "1.25rem"
         }}>
           {/* Totals Summary */}
-          <div className="invoice-calc-summary" style={{ width: "380px" }}>
+          <div className="invoice-calc-summary" style={{ width: "500px" }}>
             <div className="invoice-calc-row">
               <span>Subtotal:</span>
-              <strong>RM {Number(calcResult.subtotal || 0).toFixed(2)}</strong>
+              <strong>₹ {Number(calcResult.subtotal || 0).toFixed(2)}</strong>
             </div>
-            {Number(calcResult.discountTotal || 0) > 0 && (
-              <>
-                <div className="invoice-calc-row" style={{ color: "#15803d" }}>
-                  <span>Discount ({Number(discountPercent || 0)}%):</span>
-                  <strong>- RM {Number(calcResult.discountTotal || 0).toFixed(2)}</strong>
-                </div>
-                <div className="invoice-calc-row" style={{ color: "#334155", fontWeight: 600 }}>
-                  <span>Net Taxable Subtotal:</span>
-                  <strong>RM {Number(calcResult.taxableAmount || (calcResult.subtotal - calcResult.discountTotal) || 0).toFixed(2)}</strong>
-                </div>
-              </>
-            )}
+            {Number(calcResult.discountTotal || 0) > 0 && (() => {
+              const effectivePct = Number(discountPercent) > 0
+                ? Number(discountPercent)
+                : (Number(calcResult.subtotal || 0) > 0
+                    ? Math.round(((Number(calcResult.discountTotal) / Number(calcResult.subtotal)) * 100) * 10) / 10
+                    : 0);
+            return (
+                <>
+                  <div className="invoice-calc-row" style={{ color: "#15803d" }}>
+                    <span>Discount ({effectivePct}%):</span>
+                    <strong>- ₹ {Number(calcResult.discountTotal || 0).toFixed(2)}</strong>
+                  </div>
+                  <div className="invoice-calc-row" style={{ color: "#334155", fontWeight: 600 }}>
+                    <span>Net Taxable Subtotal:</span>
+                    <strong>₹ {Number(calcResult.taxableAmount || (calcResult.subtotal - calcResult.discountTotal) || 0).toFixed(2)}</strong>
+                  </div>
+                </>
+              );
+            })()}
             {Number(gstRate || 0) > 0 && (
-              <>
-                <div className="invoice-calc-row">
-                  <span>CGST ({Number(gstRate) / 2}%):</span>
-                  <span>RM {Number(calcResult.cgstTotal || 0).toFixed(2)}</span>
-                </div>
-                <div className="invoice-calc-row">
-                  <span>SGST ({Number(gstRate) / 2}%):</span>
-                  <span>RM {Number(calcResult.sgstTotal || 0).toFixed(2)}</span>
-                </div>
-              </>
+              <div className="invoice-calc-row">
+                <span>SST / Tax ({Number(gstRate)}%):</span>
+                <span>₹ {Number((calcResult.cgstTotal || 0) + (calcResult.sgstTotal || 0)).toFixed(2)}</span>
+              </div>
             )}
             <div className="invoice-calc-row total">
               <span>Grand Total:</span>
-              <span>RM {Number(calcResult.grandTotal || 0).toFixed(2)}</span>
+              <span>₹ {Number(calcResult.grandTotal || 0).toFixed(2)}</span>
             </div>
-            {isPrintOnly ? (
+            {isFullPayment ? (
               <>
                 <div className="invoice-calc-row" style={{ color: "#6b21a8", fontWeight: 700 }}>
                   <span>Full Payment Collected:</span>
-                  <span>- RM {Number(calcResult.grandTotal || 0).toFixed(2)}</span>
+                  <span>- ₹ {Number(calcResult.grandTotal || 0).toFixed(2)}</span>
                 </div>
                 <div className="invoice-calc-row balance" style={{ color: "#059669", fontWeight: 800 }}>
                   <span>Balance Due:</span>
-                  <span>RM 0.00 (Fully Settled • Winds Up)</span>
+                  <span>₹ 0.00 (Fully Paid)</span>
                 </div>
               </>
-            ) : (isSettlingBalance && initialAdvancePreviouslyPaid > 0) ? (
+            ) : isSettlingBalance ? (
               <>
                 <div className="invoice-calc-row" style={{ color: "#475569", fontWeight: 600 }}>
                   <span>Less: Initial Advance Paid:</span>
-                  <span>- RM {initialAdvancePreviouslyPaid.toFixed(2)}</span>
+                  <span>- ₹ {initialAdvancePreviouslyPaid.toFixed(2)}</span>
                 </div>
                 <div className="invoice-calc-row" style={{ color: "#059669", fontWeight: 700 }}>
-                  <span>Less: Balance Collected Now:</span>
-                  <span>- RM {balanceToCollect.toFixed(2)}</span>
+                  <span>Less: Balance Collecting Now:</span>
+                  <span>- ₹ {effectiveBalanceToPay.toFixed(2)}</span>
                 </div>
-                <div className="invoice-calc-row balance" style={{ color: "#059669", fontWeight: 800 }}>
+                <div className="invoice-calc-row balance" style={{ color: remainingBalanceAfterPay <= 0 ? "#059669" : "#b45309", fontWeight: 800 }}>
                   <span>Remaining Balance Due:</span>
-                  <span>RM 0.00 (Paid in Full • Order Completed)</span>
+                  <span>₹ {remainingBalanceAfterPay.toFixed(2)} {remainingBalanceAfterPay <= 0 ? "(Paid in Full)" : ""}</span>
+                </div>
+              </>
+            ) : (invoiceStatus === "PAID" || (initialAdvancePreviouslyPaid > 0 && balanceToCollect <= 0)) ? (
+              <>
+                <div className="invoice-calc-row" style={{ color: "#475569", fontWeight: 600 }}>
+                  <span>Initial Advance Paid:</span>
+                  <span>- ₹ {initialAdvancePreviouslyPaid.toFixed(2)}</span>
+                </div>
+                {orderGrandTotal > initialAdvancePreviouslyPaid && (
+                  <div className="invoice-calc-row" style={{ color: "#059669", fontWeight: 700 }}>
+                    <span>Balance Collected:</span>
+                    <span>- ₹ {(orderGrandTotal - initialAdvancePreviouslyPaid).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="invoice-calc-row balance" style={{ color: "#059669", fontWeight: 800 }}>
+                  <span>Balance Due:</span>
+                  <span>₹ 0.00 (Paid in Full)</span>
                 </div>
               </>
             ) : (
               <>
                 <div className="invoice-calc-row" style={{ color: "#059669", fontWeight: 600 }}>
                   <span>Less: Initial Advance Paid:</span>
-                  <span>- RM {currentAdvanceAmount.toFixed(2)}</span>
+                  <span>- ₹ {currentAdvanceAmount.toFixed(2)}</span>
                 </div>
                 <div className="invoice-calc-row balance" style={{ color: "#b45309" }}>
                   <span>Balance Due for Settlement:</span>
-                  <span>RM {currentRemainingBalance.toFixed(2)}</span>
+                  <span>₹ {currentRemainingBalance.toFixed(2)}</span>
                 </div>
               </>
             )}
@@ -2444,20 +2399,20 @@ export const InvoiceEditorSection = ({
               >
                 <CheckCircle size={18} />
                 {loading
-                  ? (isPrintOnly ? "Finalizing Full Payment..." : "Finalizing & Locking...")
+                  ? (isFullPayment ? "Finalizing Full Payment..." : "Finalizing & Locking...")
                   : !jobSnapshot
                   ? "Finalize & Lock Invoice →"
-                  : isPrintOnly
-                  ? "Finalize, Collect Full Amount & Complete Job →"
-                  : (isSettlingBalance && initialAdvancePreviouslyPaid > 0)
-                  ? `Finalize, Collect Balance (RM ${effectiveBalanceToPay.toFixed(2)}) & Complete Order →`
+                  : isFullPayment
+                  ? "Finalize & Lock (Full Payment) →"
+                  : isSettlingBalance
+                  ? `Collect Balance (₹ ${effectiveBalanceToPay.toFixed(2)}) & Complete Order →`
                   : isDesignOnly
                   ? (jobSnapshot?.designStatus === "COMPLETED" || jobSnapshot?.stage === "READY" || jobSnapshot?.currentStage === "READY" ? "Finalize, Collect Remaining Balance & Complete Order →" : "Finalize & Lock (Design Only) →")
-                  : "Finalize & Lock (Send to Designer) →"}
+                  : (isPrintOnly ? "Finalize & Lock (Send to Production) →" : "Finalize & Lock (Send to Designer) →")}
               </button>
             ) : (
               <span className="jf-badge jf-badge-green" style={{ fontSize: "0.85rem", padding: "0.4rem 0.8rem" }}>
-                <CheckCircle size={14} /> {isPrintOnly ? "Invoice Finalized with Full Payment • Job Completed & Wound Up" : isDesignOnly ? (jobSnapshot?.designStatus === "COMPLETED" ? "Invoice Finalized & Remaining Balance Collected • Order Completed" : "Invoice Finalized (Design Only)") : "Invoice Finalized & Sent to Designer"}
+                <CheckCircle size={14} /> {isFullPayment ? "Invoice Finalized with Full Payment" : isSettlingBalance || (initialAdvancePreviouslyPaid > 0 && balanceToCollect <= 0) ? "Invoice Settled • Full Balance Collected (Balance: ₹ 0.00)" : isDesignOnly ? "Invoice Finalized (Design Only)" : (isPrintOnly ? "Invoice Finalized & Sent to Production" : "Invoice Finalized & Sent to Designer")}
               </span>
             )}
           </div>
@@ -2479,6 +2434,7 @@ export const InvoiceEditorSection = ({
           grandTotal: calcResult.grandTotal,
           advancePaid: currentAdvanceAmount,
           balanceDue: currentRemainingBalance,
+          paymentPlan,
           paymentMode,
           paymentReference: paymentRef,
         }}

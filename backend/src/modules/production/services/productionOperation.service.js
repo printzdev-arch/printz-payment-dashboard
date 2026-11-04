@@ -601,6 +601,31 @@ class ProductionOperationService {
       user,
     });
 
+    // A Print Only job can be set up without quality control: there is no inspection to wait for
+    const JobOrder = require("../../job-orders/models/JobOrder");
+    const parentJob = await JobOrder.findById(parentOrder.jobOrderId).lean();
+    if (parentJob && parentJob.qcRequired === false) {
+      parentOrder.approvedQty = (parentOrder.approvedQty || 0) + (parentOrder.actualQty || 0);
+      await ProductionStateService.transitionOrder(parentOrder, "QC_PASSED", {
+        reason: "QC not required for this job order",
+        user,
+      });
+      await ProductionStateService.transitionOrder(parentOrder, "COMPLETED", {
+        reason: "QC not required for this job order",
+        user,
+      });
+      const QualityCheckService = require("./qualityCheck.service");
+      await QualityCheckService.completeJobIfReady(parentOrder, parentJob, user, "QC not required");
+
+      await ProductionStateService.dispatchWorkflowEvent({
+        jobOrderId: parentOrder.jobOrderId,
+        productionOrderId: parentOrder._id,
+        eventType: "productionOrder.qcSkipped",
+        stage: "QC",
+      });
+      return true;
+    }
+
     await ProductionStateService.updateJobStage(parentOrder.jobOrderId, "QC");
 
     await ProductionStateService.dispatchWorkflowEvent({

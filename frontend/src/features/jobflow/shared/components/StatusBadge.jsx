@@ -9,6 +9,21 @@ export const StatusBadge = ({ status, domain }) => {
   let label = status;
 
   // Domain-specific or general overrides
+  if (domain === "delivery") {
+    if (["READY", "PENDING_REVIEW", "REVIEW"].includes(s)) {
+      return <span className="jf-badge jf-badge-amber">PENDING REVIEW</span>;
+    }
+    if (["ASSIGNED", "PACKED"].includes(s)) {
+      return <span className="jf-badge jf-badge-blue">ASSIGNED</span>;
+    }
+    if (s === "OUT_FOR_DELIVERY") {
+      return <span className="jf-badge jf-badge-amber">OUT FOR DELIVERY</span>;
+    }
+    if (["DELIVERED", "DELIVERED_AND_PAID", "DELIVERED & PAID"].includes(s)) {
+      return <span className="jf-badge jf-badge-green">DELIVERED & PAID</span>;
+    }
+  }
+
   if (s === "CLOSED") {
     colorClass = "jf-badge-dark";
     label = "Closed 🔒";

@@ -152,8 +152,6 @@ export const DEFAULT_MASTER_CATEGORIES = [
     items: [
       { name: "Branch Counter Self-Pickup", order: 1, isDefault: true, isActive: true },
       { name: "Local Dispatch / Delivery", order: 2, isActive: true },
-      { name: "Express Courier Service", order: 3, isActive: true },
-      { name: "Lalamove / Grab Express", order: 4, isActive: true },
     ],
   },
   {

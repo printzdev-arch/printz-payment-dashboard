@@ -123,22 +123,31 @@ export const DesignerLoginPage = () => {
           } catch { }
         }
 
+        const allowedEmails = [
+          "ali.hassan@printz.com",
+          "siti.rahman@printz.com",
+          "kumar.anil@printz.com",
+          "john.lee@printz.com",
+          "nur.aisyah@printz.com",
+          "guna@gmail.com",
+        ];
+
         if (Array.isArray(rawList) && rawList.length > 0) {
-          const palette = ["#d97706", "#059669", "#dc2626", "#0891b2", "#2563eb", "#7c3aed", "#db2777"];
+          const palette = ["#dc2626", "#0891b2", "#059669", "#2563eb", "#7c3aed", "#d97706"];
           const seenEmails = new Set();
           const combined = [];
 
-          // First add dynamic designers from DB
+          // Only add branch designers from DB (excluding mfg or other roles)
           for (let i = 0; i < rawList.length; i++) {
             const d = rawList[i];
             const em = (d.email || "").toLowerCase().trim();
-            if (em && seenEmails.has(em)) continue;
-            if (em) seenEmails.add(em);
+            if (!em || !allowedEmails.includes(em) || seenEmails.has(em)) continue;
+            seenEmails.add(em);
 
             combined.push({
               id: d._id || d.id || `des-${i + 1}`,
               name: d.name || "Designer",
-              email: d.email || `${(d.name || "des").toLowerCase().replace(/\s+/g, ".")}@printz.com`,
+              email: d.email,
               username: d.username || d.name?.toLowerCase().replace(/\s+/g, "_"),
               code: d.employeeCode || `EMP-00${i + 1}`,
               specialization: d.specialization || d.designation || "Creative Designer",
@@ -155,7 +164,7 @@ export const DesignerLoginPage = () => {
             });
           }
 
-          // Then append any DEFAULT_DESIGNERS not yet present
+          // Append any of the 6 DEFAULT_DESIGNERS not yet present
           for (const def of DEFAULT_DESIGNERS) {
             const em = (def.email || "").toLowerCase().trim();
             if (!seenEmails.has(em)) {
@@ -204,36 +213,8 @@ export const DesignerLoginPage = () => {
       toast.success(`Welcome to PrintZ Studio, ${user?.name || selectedDesigner.name}!`);
       navigate("/jobflow/design?view=my-jobs");
     } catch (err) {
-      console.warn("Designer login API error, using seamless simulation fallback:", err);
-      // Instant login fallback for prototype/demo
-      const des =
-        designersList.find(
-          (d) =>
-            d.email.toLowerCase() === identifier.toLowerCase() ||
-            d.code.toLowerCase() === identifier.toLowerCase()
-        ) || selectedDesigner;
-
-      if (des) {
-        const dummyUser = {
-          name: des.name,
-          email: des.email,
-          role: "designer",
-          token: "mock_designer_token_" + Date.now(),
-        };
-        localStorage.setItem("token", dummyUser.token);
-        localStorage.setItem("printz_auth_token", dummyUser.token);
-        localStorage.setItem("printz_user", JSON.stringify(dummyUser));
-        localStorage.setItem("user", JSON.stringify(dummyUser));
-        localStorage.setItem("userRole", "designer");
-        localStorage.setItem("userName", des.name);
-        localStorage.setItem("userEmail", des.email);
-
-        toast.success(`Welcome to PrintZ Studio, ${des.name}!`);
-        navigate("/jobflow/design?view=my-jobs");
-        return;
-      }
-      const msg = err.response?.data?.message || err.message || "Failed to sign in. Please verify credentials.";
-      toast.error(msg);
+      // A wrong password or an unknown designer is refused; there is no offline sign-in
+      toast.error(err.response?.data?.message || err.message || "Failed to sign in. Please verify credentials.");
     } finally {
       setLoading(false);
     }

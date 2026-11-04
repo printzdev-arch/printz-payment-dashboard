@@ -151,17 +151,20 @@ class ProductionOrderService {
       scopeQueryToUser(query, user)
     );
 
-    // Filter out orders for Print Only or Design Only jobs (they do not undergo production)
+    // Design Only jobs do not undergo production, so their orders are not listed (nothing is deleted by a read).
+    // Standalone orders erroneously created for finishing services are cleaned up
     const filteredItems = [];
     const deleteIds = [];
     for (const item of items) {
       const job = item.jobOrderId && typeof item.jobOrderId === "object" ? item.jobOrderId : {};
       const jobTypeStr = String(job.jobType || "").toUpperCase();
-      const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
       const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
-      if (isPrintOnly || isDesignOnly) {
+      const pName = String(item.specificationsSnapshot?.productName || "").toUpperCase().trim();
+      const isFinishingPO = pName.startsWith("FINISHING:") || pName.startsWith("FINISHING -") || pName.startsWith("FINISHING ");
+
+      if (isFinishingPO) {
         deleteIds.push(item._id);
-      } else {
+      } else if (!isDesignOnly) {
         filteredItems.push(item);
       }
     }
@@ -169,6 +172,7 @@ class ProductionOrderService {
     if (deleteIds.length > 0) {
       try {
         await productionOrderRepository.deleteMany({ _id: { $in: deleteIds } });
+        await productionOperationRepository.deleteMany({ productionOrderId: { $in: deleteIds } });
       } catch (e) {
         // non-blocking
       }

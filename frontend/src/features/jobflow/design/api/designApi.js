@@ -1,10 +1,11 @@
 import api from "../../../../services/api";
 
-const isMongoId = (val) => typeof val === "string" && /^[0-9a-fA-F]{24}$/.test(val);
-
 /**
  * Design Workflow Dedicated API
- * Manages Design Queue, Designer Pool, Workload Allocation, Artwork Proofs, and Approvals
+ * Manages the Design Queue, the designer pool, workload, artwork proofs and approvals.
+ *
+ * Every call returns the server's real answer: when the server refuses (not your job, wrong stage, not a
+ * manager...) the error is thrown so the screen can show the server's message instead of a made-up success.
  */
 export const designApi = {
   // ── Design Queue & Designer Pool ──
@@ -31,11 +32,6 @@ export const designApi = {
     };
   },
 
-  addDesignerToPool: async (designerData) => {
-    const res = await api.post("/design/pool/designer", designerData);
-    return res.data;
-  },
-
   updateDesignerInPool: async (id, data) => {
     const res = await api.patch(`/design/pool/designer/${id}`, data);
     return res.data;
@@ -52,30 +48,18 @@ export const designApi = {
   },
 
   getRecentDesignAssignments: async (params = {}) => {
-    try {
-      const res = await api.get("/design/recent-assignments", { params });
-      return res.data;
-    } catch {
-      return { success: false, data: [] };
-    }
+    const res = await api.get("/design/recent-assignments", { params });
+    return res.data;
   },
 
   getRejectedAssignments: async (params = {}) => {
-    try {
-      const res = await api.get("/design/rejected-assignments", { params });
-      return res.data;
-    } catch {
-      return { success: false, data: [] };
-    }
+    const res = await api.get("/design/rejected-assignments", { params });
+    return res.data;
   },
 
   getDesignerWorkload: async (params = {}) => {
-    try {
-      const res = await api.get("/design/workload", { params });
-      return res.data;
-    } catch {
-      return { success: false, data: [] };
-    }
+    const res = await api.get("/design/workload", { params });
+    return res.data;
   },
 
   // ── Assignment & Allocation Actions ──
@@ -87,28 +71,8 @@ export const designApi = {
       ...(empId ? { employeeId: empId, designerId: empId } : {}),
       ...data,
     };
-
-    if (!isMongoId(id)) {
-      return {
-        success: true,
-        message: "Designer assigned successfully",
-        data: { jobId: id, assigned: true, ...payload },
-      };
-    }
-
-    try {
-      const res = await api.post(`/design/jobs/${id}/assign`, payload);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 404 || err.response?.status === 409) {
-        return {
-          success: true,
-          message: "Designer assigned successfully",
-          data: { jobId: id, assigned: true, ...payload },
-        };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/assign`, payload);
+    return res.data;
   },
 
   autoAssignQueue: async () => {
@@ -117,237 +81,76 @@ export const designApi = {
   },
 
   autoAssignDesigner: async (id, data = {}) => {
-    if (!isMongoId(id)) {
-      return { success: true, message: "Queue auto-assigned", data: { jobId: id, assigned: true } };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/auto-allocate`, data);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 409 && err.response?.data?.message?.includes("already")) {
-        return {
-          success: true,
-          message: "Job already assigned",
-          data: { jobId: id, assigned: true },
-        };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/auto-allocate`, data);
+    return res.data;
+  },
+
+  reassignDesigner: async (id, data = {}) => {
+    const res = await api.post(`/design/jobs/${id}/reassign`, data);
+    return res.data;
   },
 
   approveArtworkProof: async (jobId, data = {}) => {
-    if (!isMongoId(jobId)) {
-      return { success: true, message: "Artwork approved", data: { jobId, stage: "PRODUCTION_PLANNING" } };
-    }
     const res = await api.post(`/design/jobs/${jobId}/approve`, data);
     return res.data;
   },
 
   acceptDesignAssignment: async (id) => {
-    if (!isMongoId(id)) {
-      return { success: true, message: "Design assignment accepted", data: { id, status: "Accepted" } };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/accept`);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 403 || err.response?.status === 404) {
-        try {
-          const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-          const myUserId = storedUser._id || storedUser.id;
-          if (myUserId) {
-            try {
-              await api.post(`/design/jobs/${id}/reassign`, {
-                target: myUserId,
-                reason: "Manager claimed design assignment",
-              });
-            } catch {
-              await api.post(`/design/jobs/${id}/assign`, {
-                method: "MANUAL",
-                employeeId: myUserId,
-              });
-            }
-            const retryRes = await api.post(`/design/jobs/${id}/accept`);
-            return retryRes.data;
-          }
-        } catch (innerErr) {
-          console.warn("Auto-claim assignment fallback:", innerErr);
-        }
-        return { success: true, message: "Design assignment accepted", data: { id, status: "Accepted" } };
-      }
-      if (err.response?.status === 400 || err.response?.status === 409) {
-        return { success: true, message: "Design assignment accepted", data: { id, status: "Accepted" } };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/accept`);
+    return res.data;
   },
 
   rejectDesignAssignment: async (id, reason) => {
-    if (!isMongoId(id)) {
-      return { success: true, message: "Design assignment rejected", data: { id, reason } };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/reject`, { reason });
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 404) {
-        return { success: true, message: "Design assignment rejected", data: { id, reason } };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/reject`, { reason });
+    return res.data;
   },
 
   startDesignWork: async (id) => {
-    if (!isMongoId(id)) {
-      return { success: true, message: "Design work started", data: { id, status: "In Progress" } };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/start`);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 403 || err.response?.status === 404) {
-        try {
-          await designApi.acceptDesignAssignment(id);
-          const retry = await api.post(`/design/jobs/${id}/start`);
-          return retry.data;
-        } catch {
-          return { success: true, message: "Design work started", data: { id, status: "In Progress" } };
-        }
-      }
-      if (err.response?.status === 400 || err.response?.status === 409) {
-        return { success: true, message: "Design work started", data: { id, status: "In Progress" } };
-      }
-      throw err;
-    }
-  },
-
-  skipDesign: async (id, data = {}) => {
-    if (!isMongoId(id)) {
-      return { success: true, message: "Design skipped; Job Order moved to PRODUCTION_PLANNING", data: { id, currentStage: "PRODUCTION_PLANNING" } };
-    }
-    try {
-      const res = await api.post(`/job-orders/${id}/skip-design`, {
-        reason: data.reason || "Customer approved proof - released to production",
-      });
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 422 || err.response?.data?.message?.includes("PRINT_READY_FILE_REQUIRED")) {
-        try {
-          await api.post(`/job-orders/${id}/files`, {
-            fileName: "Approved_Proof_PrintReady.pdf",
-            fileCategory: "PRINT_READY",
-            mimeType: "application/pdf",
-            fileUrl: "https://printz.shop/files/approved_proof.pdf",
-          });
-          const retry = await api.post(`/job-orders/${id}/skip-design`, {
-            reason: data.reason || "Customer approved proof - released to production",
-          });
-          return retry.data;
-        } catch (innerErr) {
-          console.warn("Upload print ready fallback:", innerErr);
-        }
-      }
-      if (err.response?.status === 400 || err.response?.status === 404 || err.response?.status === 409) {
-        return { success: true, message: "Design skipped; Job Order moved to PRODUCTION_PLANNING", data: { id, currentStage: "PRODUCTION_PLANNING" } };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/start`);
+    return res.data;
   },
 
   uploadDesignProof: async (id, formDataOrData) => {
-    if (!isMongoId(id)) {
-      return { success: true, message: "Proof uploaded", data: formDataOrData };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/samples`, formDataOrData);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 404) {
-        return { success: true, message: "Proof uploaded", data: formDataOrData };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/samples`, formDataOrData);
+    return res.data;
   },
 
   getDesignProofs: async (id) => {
-    if (!isMongoId(id)) {
-      return { success: true, data: [] };
-    }
-    try {
-      const res = await api.get(`/design/jobs/${id}/samples`);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 404) {
-        return { success: true, data: [] };
-      }
-      throw err;
-    }
+    const res = await api.get(`/design/jobs/${id}/samples`);
+    return res.data;
   },
 
   submitProofForApproval: async (id, sampleId, data = {}) => {
-    if (!isMongoId(id) || !isMongoId(sampleId)) {
-      return { success: true, message: "Proof submitted for approval", data };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/samples/${sampleId}/submit`, data);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 404) {
-        return { success: true, message: "Proof submitted for approval", data };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/samples/${sampleId}/submit`, data);
+    return res.data;
   },
 
   decideDesignProof: async (id, sampleId, decisionData) => {
-    if (!isMongoId(id) || !isMongoId(sampleId)) {
-      return { success: true, message: "Proof decision recorded", data: decisionData };
-    }
-    try {
-      const res = await api.post(`/design/jobs/${id}/samples/${sampleId}/decide`, decisionData);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 404) {
-        return { success: true, message: "Proof decision recorded", data: decisionData };
-      }
-      throw err;
-    }
+    const res = await api.post(`/design/jobs/${id}/samples/${sampleId}/decide`, decisionData);
+    return res.data;
   },
 
   getAllSampleDesigns: async (params = {}) => {
-    try {
-      const res = await api.get("/design/samples", { params });
-      return res.data;
-    } catch {
-      return { success: false, data: [] };
-    }
+    const res = await api.get("/design/samples", { params });
+    return res.data;
   },
 
   submitSampleProof: async (jobId, data = {}) => {
-    if (!isMongoId(jobId)) {
-      return { success: true, message: "Sample proof submitted for review", data };
-    }
     const res = await api.post(`/design/jobs/${jobId}/submit-proof`, data);
     return res.data;
   },
 
   rejectSampleDesign: async (jobId, data = {}) => {
-    if (!isMongoId(jobId)) {
-      return { success: true, message: "Sample rejected. Sent for revision.", data };
-    }
     const res = await api.post(`/design/jobs/${jobId}/reject-sample`, data);
     return res.data;
   },
 
   approveSampleDesign: async (jobId, data = {}) => {
-    if (!isMongoId(jobId)) {
-      return { success: true, message: "Sample design approved", data };
-    }
     const res = await api.post(`/design/jobs/${jobId}/approve`, data);
     return res.data;
   },
 
-  // ── Public Proof Portal ──
+  // ── Public Proof Portal (registered customers only; a walk-in customer approves in person) ──
   getPublicDesignProof: async (token) => {
     const res = await api.get(`/public/design-approvals/${token}`);
     return res.data;

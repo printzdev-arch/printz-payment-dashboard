@@ -59,6 +59,11 @@ export const invoiceApi = {
     return res.data;
   },
 
+  collectPayment: async (id, data) => {
+    const res = await api.post(`/invoices/${id}/payments`, data);
+    return res.data;
+  },
+
   // ── 5. PDF & WhatsApp Sharing ──
   getInvoicePdf: async (id, params = {}) => {
     const res = await api.get(`/invoices/${id}/pdf`, { params });

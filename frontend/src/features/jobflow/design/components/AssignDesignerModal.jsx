@@ -49,9 +49,22 @@ export const AssignDesignerModal = ({
         try {
           const branchId = job?.branchId || job?.branch;
           const poolRes = await jobFlowApi.getDesignerPool(branchId ? { branchId } : {});
-          const freshDesigners = poolRes?.designers || poolRes?.data || [];
+          const allowedEmails = [
+            "ali.hassan@printz.com",
+            "siti.rahman@printz.com",
+            "kumar.anil@printz.com",
+            "john.lee@printz.com",
+            "nur.aisyah@printz.com",
+            "guna@gmail.com",
+          ];
+          const rawDesigners = poolRes?.designers || poolRes?.data || [];
+          const freshDesigners = rawDesigners.filter((d) =>
+            allowedEmails.includes((d.email || "").toLowerCase().trim())
+          );
           if (Array.isArray(freshDesigners) && freshDesigners.length > 0) {
             setLivePool(freshDesigners);
+          } else {
+            setLivePool(defaultDesigners);
           }
           if (poolRes?.nextDesigner) {
             setLiveNextDesignerId(poolRes.nextDesigner);
@@ -168,6 +181,15 @@ export const AssignDesignerModal = ({
   const maxJobsLimit = targetDesigner?.maxLoad || 5;
 
   const handleConfirm = async () => {
+    // Guard: Print Only jobs must NEVER reach design allocation
+    const jobTypeStr = String(job?.jobType || job?.raw?.jobType || job?.specs?.jobType || "").toUpperCase();
+    const isPrintOnlyJob = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+    if (isPrintOnlyJob) {
+      toast.error("Print Only jobs bypass design and go directly to production. No designer allocation needed.");
+      onClose();
+      return;
+    }
+
     if (allocationMethod === "MANUAL" && !selectedDesignerId) {
       toast.error("Please choose a designer from the dropdown");
       return;
@@ -205,8 +227,8 @@ export const AssignDesignerModal = ({
         );
       } else {
         const res = await jobFlowApi.assignDesigner(jobId, {
-          employeeId: selectedDesignerId,
-          designerId: selectedDesignerId,
+          employeeId: targetDesigner?.email || selectedDesignerId,
+          designerId: targetDesigner?.email || selectedDesignerId,
           designerName: targetDesignerName,
           email: targetDesigner?.email,
           method: "MANUAL",

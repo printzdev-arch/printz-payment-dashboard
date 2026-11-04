@@ -111,7 +111,7 @@ export const QualityCheckModal = ({ isOpen, onClose, productionOrder, onComplete
         <form onSubmit={handleSubmit}>
           <div className="jf-modal-body">
             <p style={{ fontSize: "0.875rem", color: "#475569", marginTop: 0 }}>
-              Order No: <strong>{productionOrder.orderNumber || productionOrder.jobNo || "PO-202610-0018"}</strong> •{" "}
+              Job Order No: <strong>{productionOrder.jobNo || productionOrder.jobOrderNo || "-"}</strong> •{" "}
               {productionOrder.productType || "Business Cards"}
             </p>
 

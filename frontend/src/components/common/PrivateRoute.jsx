@@ -33,7 +33,7 @@ const PrivateRoute = ({ component: Component, children, roles, loginPath }) => {
   const hasToken = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("printz_auth_token");
 
   if (!effectiveUser && !hasToken) {
-    return <Navigate to={loginPath || (isDesigner ? "/designer/login" : "/login")} replace />;
+    return <Navigate to={loginPath || "/login"} replace />;
   }
 
   // Strictly lock designer users inside Design or Manufacturing routes

@@ -4,7 +4,6 @@ const NumberSequence = require("../../modules/number-sequences/models/NumberSequ
 const PREFIX_MAP = Object.freeze({
   EMPLOYEE: "EMP",
   JOB_ORDER: "JO",
-  ESTIMATE: "EST",
   INVOICE: "INV",
   APPROVAL: "APR",
   SALE_RECEIPT: "SR",

@@ -100,8 +100,15 @@ export const jobOrdersApi = {
     return res.data;
   },
 
-  uploadJobFile: async (id, formData) => {
-    const res = await api.post(`/job-orders/${id}/files`, formData, {
+  // Registers file details (name, category, attachment id) against a job order
+  uploadJobFile: async (id, fileData) => {
+    const res = await api.post(`/job-orders/${id}/files`, fileData);
+    return res.data;
+  },
+
+  // Uploads the actual file; formData needs file, entityType and entityId
+  uploadAttachment: async (formData) => {
+    const res = await api.post("/attachments", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

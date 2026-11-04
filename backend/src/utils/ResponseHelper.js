@@ -24,7 +24,8 @@ class ResponseHelper {
           payload.job = data;
           payload.jobOrder = data;
         }
-        if (obj.estimateNo !== undefined) {
+        // Estimates have no number of their own; they are recognised by their job link, version and totals
+        if (obj.jobOrderId !== undefined && obj.versionNo !== undefined && obj.subtotal !== undefined && obj.grandTotal !== undefined && obj.invoiceNumber === undefined) {
           payload.estimate = data;
         }
         if (obj.productionNo !== undefined) {
@@ -38,7 +39,7 @@ class ResponseHelper {
         }
 
         for (const [k, v] of Object.entries(obj)) {
-          if (payload[k] === undefined) {
+          if (k !== "accessToken" && k !== "refreshToken" && payload[k] === undefined) {
             payload[k] = v;
           }
         }

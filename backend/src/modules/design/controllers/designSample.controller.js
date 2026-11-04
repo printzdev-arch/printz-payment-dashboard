@@ -78,7 +78,7 @@ const decide = asyncHandler(async (req, res) => {
 });
 
 const listAllSamples = asyncHandler(async (req, res) => {
-  const samples = await DesignSampleService.listAllSamples(req.query.limit || 50);
+  const samples = await DesignSampleService.listAllSamples(req.query.limit || 50, req.user);
   return ResponseHelper.ok(res, "Sample designs retrieved successfully", samples);
 });
 

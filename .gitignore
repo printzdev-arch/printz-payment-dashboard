@@ -1,55 +1,192 @@
-# Dependencies
+# ===================================================
+# Dependencies & Package Managers
+# ===================================================
 node_modules/
 */node_modules/
+jspm_packages/
+.pnp
+.pnp.js
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
-# Nested duplicate folders & local working directories
+# ===================================================
+# Local Working Directories & Nested Duplicates
+# ===================================================
 backend/backend/
 New folder/
+New\ folder/
 
-
-# Environment variables & secrets
+# ===================================================
+# Environment Variables & Secrets
+# ===================================================
+*.local
 .env
 .env.*
-!.env.example
-!.env.template
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging.local
 *.env
 
-# Build outputs
+# Preserve example and template configs
+!.env.example
+!.env.template
+!.env.sample
+!.env.defaults
+
+# ===================================================
+# Build & Distribution Outputs
+# ===================================================
 build/
 dist/
+dist-ssr/
+out/
+.next/
+.vite/
 */dist/
 */build/
+*/out/
+*/.vite/
+*.tsbuildinfo
 
-# Logs
+# ===================================================
+# File Uploads, Runtime Storage & Temporary Files
+# ===================================================
+uploads/*
+!uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+temp_uploads/
+tmp/
+temp/
+.cache/
+.eslintcache
+.stylelintcache
+.npm/
+.parcel-cache/
+.turbo/
+
+# ===================================================
+# Logs & Process Diagnostics
+# ===================================================
 logs/
+*/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# IDE & Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# ===================================================
+# Runtime Data & Process IDs
+# ===================================================
+pids/
+*.pid
+*.seed
+*.pid.lock
 
-# Operating System files
-.DS_Store
-Thumbs.db
-ehthumbs.db
-[Dd]esktop.ini
+# ===================================================
+# Database Dumps, SQLite & Local Storage
+# ===================================================
+dump/
+*.dump
+*.dump.json
+*.bson
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.rdb
+_export_summary.json
 
-# Testing & Coverage
+# ===================================================
+# Test Coverage & Reports
+# ===================================================
 coverage/
+*/coverage/
 .nyc_output/
+test-results/
+test-reports/
+playwright-report/
+blob-report/
+cypress/videos/
+cypress/screenshots/
+*.lcov
 
-# Credentials
+# ===================================================
+# Keys, Certificates & Sensitive Credentials
+# ===================================================
 *.pem
 *.key
 *.crt
 *.cert
+*.pfx
+*.p12
+*.p8
+*.keystore
+*.jks
+id_rsa*
 serviceAccountKey*.json
 *-service-account.json
 credentials.json
+secrets.json
+
+# ===================================================
+# Archives & Compressed Files
+# ===================================================
 *.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ===================================================
+# IDE, Editor & Tool Specific Files
+# ===================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# ===================================================
+# Operating System Files
+# ===================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+Network Trash Folder/
+Temporary Items/
+
+# ===================================================
+# Keep Gitkeep Files Everywhere
+# ===================================================
+!.gitkeep

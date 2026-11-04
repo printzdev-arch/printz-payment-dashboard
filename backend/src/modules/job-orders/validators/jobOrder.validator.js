@@ -3,10 +3,20 @@ const { validate } = require("../../auth/validators/auth.validator");
 
 const createJobValidator = [
   body("branchId").notEmpty().withMessage("branchId is required"),
+  body("quantity").optional({ nullable: true }).isFloat({ gt: 0 }).withMessage("quantity must be greater than 0"),
+  body("dueDate").optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage("dueDate must be a valid date"),
+  body("items").optional().isArray().withMessage("items must be an array"),
+  body("items.*.quantity").optional().isFloat({ gt: 0 }).withMessage("item quantity must be greater than 0"),
+  body("items.*.unitPrice").optional().isFloat({ min: 0 }).withMessage("item unitPrice cannot be negative"),
   validate,
 ];
 
 const updateJobValidator = [
+  body("quantity").optional({ nullable: true }).isFloat({ gt: 0 }).withMessage("quantity must be greater than 0"),
+  body("dueDate").optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage("dueDate must be a valid date"),
+  body("items").optional().isArray().withMessage("items must be an array"),
+  body("items.*.quantity").optional().isFloat({ gt: 0 }).withMessage("item quantity must be greater than 0"),
+  body("items.*.unitPrice").optional().isFloat({ min: 0 }).withMessage("item unitPrice cannot be negative"),
   validate,
 ];
 
@@ -28,10 +38,6 @@ const rejectEstimateValidator = [
   validate,
 ];
 
-const skipDesignValidator = [
-  validate,
-];
-
 const holdCancelValidator = [
   validate,
 ];
@@ -48,7 +54,6 @@ module.exports = {
   estimateValidator,
   approveEstimateValidator,
   rejectEstimateValidator,
-  skipDesignValidator,
   holdCancelValidator,
   fileUploadValidator,
 };

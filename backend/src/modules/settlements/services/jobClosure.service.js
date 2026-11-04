@@ -59,9 +59,11 @@ class JobClosureService {
       job.currentStage === "COMPLETED";
 
     if (!isJobDelivered) {
-      job.status = "DELIVERED";
-      job.currentStage = "DELIVERY";
+      throw ErrorHelper.conflict("This job order has not been delivered yet. Deliver it before closing.");
     }
+
+    // 2b. The balance must be collected before the job order is closed
+    await require("../../invoices/services/invoice.service").assertBalanceSettled(job, "close this job order");
 
     // 3. Verify & Reconcile Invoices & Settlement
     const invoices = await Invoice.find({
@@ -74,7 +76,7 @@ class JobClosureService {
     if (invoices.length > 0) {
       for (const inv of invoices) {
         if (inv.status === INVOICE_STATUS.DRAFT) {
-          inv.status = INVOICE_STATUS.FINALIZED;
+          throw ErrorHelper.conflict("Finalize the invoice before closing this job order.");
         }
         const validPayments = await paymentRepository.findValidPaymentsByInvoiceId(inv._id);
         const amountPaid = Math.round((validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + Number.EPSILON) * 100) / 100;

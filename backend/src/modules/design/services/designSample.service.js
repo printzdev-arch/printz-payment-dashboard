@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 const jobOrderRepository = require("../../job-orders/models/JobOrder");
 const jobApprovalRepository = require("../../job-orders/models/JobApproval");
 const jobSampleRepository = require("../models/JobSample");
@@ -11,6 +12,7 @@ const JobWorkflowService = require("../../job-orders/services/jobWorkflow.servic
 const ProductionStateService = require("../../production/services/productionState.service");
 const { emitJobEvent } = require("../../job-orders/events/jobEvents.emitter");
 const ErrorHelper = require("../../../utils/ApiError");
+const DesignHelper = require("../helpers/DesignHelper");
 
 function sanitizeProofFile(fileUrl, prefix = "proof") {
   if (!fileUrl || typeof fileUrl !== "string" || !fileUrl.startsWith("data:")) {
@@ -35,6 +37,42 @@ function sanitizeProofFile(fileUrl, prefix = "proof") {
 
 class DesignSampleService {
   /**
+   * Who may upload, edit and submit proofs for a job: its own designer, or a manager of the branch.
+   */
+  static assertCanWorkOnProof(job, user) {
+    if (!user) throw ErrorHelper.unauthorized("Authentication required.");
+    if (DesignHelper.isManagerOrAdmin(user)) {
+      DesignHelper.assertBranchAccess(job, user);
+      return;
+    }
+    const assigned = job.designerId ? String(job.designerId._id || job.designerId) : "";
+    const empId = user.employeeId ? String(user.employeeId) : null;
+    if (assigned && (assigned === String(user._id) || (empId && assigned === empId))) return;
+    throw ErrorHelper.forbidden("This job is not assigned to you.");
+  }
+
+  /**
+   * Who may decide on a proof (approve it, or send it back for changes):
+   *  - a manager or admin of the branch, who records the decision (always allowed);
+   *  - the customer through their own approval link, unless the customer is a walk-in: a walk-in customer
+   *    has no link and approves in person, so only the manager can approve their proof.
+   * The designer who made the proof can never approve it.
+   */
+  static async assertCanDecide(job, user) {
+    if (!user) throw ErrorHelper.unauthorized("Authentication required.");
+    if (user.isCustomerApproval) {
+      if (await DesignHelper.isWalkInCustomer(job)) {
+        throw ErrorHelper.forbidden("A walk-in customer approves the proof in person: only the branch manager can approve it.");
+      }
+      return;
+    }
+    if (!DesignHelper.isManagerOrAdmin(user)) {
+      throw ErrorHelper.forbidden("Only a manager can approve or return a design proof.");
+    }
+    DesignHelper.assertBranchAccess(job, user);
+  }
+
+  /**
    * Upload sample artwork draft.
    */
   static async uploadSample(jobId, sampleData = {}, user) {
@@ -42,6 +80,8 @@ class DesignSampleService {
 
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+
+    this.assertCanWorkOnProof(job, user);
 
     if (!["DESIGN_IN_PROGRESS", "REVISION"].includes(job.currentStage)) {
       throw ErrorHelper.conflict(`Cannot upload a sample at stage '${job.currentStage}'. Expected DESIGN_IN_PROGRESS or REVISION.`);
@@ -89,6 +129,10 @@ class DesignSampleService {
   static async patchSample(jobId, sampleId, sampleData = {}, user) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
+    const sampleJob = await jobOrderRepository.findById(jobId);
+    if (!sampleJob) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+    this.assertCanWorkOnProof(sampleJob, user);
+
     const sample = await jobSampleRepository.findById(sampleId);
     if (!sample || String(sample.jobOrderId) !== String(jobId)) {
       throw ErrorHelper.notFound(`Job Sample not found with ID: ${sampleId}`);
@@ -120,6 +164,8 @@ class DesignSampleService {
       throw ErrorHelper.notFound(`Job Sample not found with ID: ${sampleId}`);
     }
 
+    this.assertCanWorkOnProof(job, user);
+
     if (sample.status !== "DRAFT") {
       throw ErrorHelper.conflict("Sample has already been submitted.");
     }
@@ -142,6 +188,9 @@ class DesignSampleService {
       requestedFrom: job.customerId,
       requestedBy: user._id,
     });
+
+    // A walk-in customer has no approval link: the branch manager approves the proof in person
+    const walkIn = await DesignHelper.isWalkInCustomer(job);
 
     // ── Generate Cryptographic Approval Token ──
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -174,7 +223,7 @@ class DesignSampleService {
 
     // ── Dispatch via WhatsApp Notification Provider ──
     const phoneToNotify = sample.customerPhone || job.customerPhone;
-    if (phoneToNotify && submitData.shareViaWhatsapp !== false) {
+    if (!walkIn && phoneToNotify && submitData.shareViaWhatsapp !== false) {
       try {
         const waRes = await WhatsAppService.sendDesignApprovalMessage({
           to: phoneToNotify,
@@ -198,6 +247,7 @@ class DesignSampleService {
       }
     } else {
       tokenDoc.whatsappStatus = "DISABLED";
+      if (walkIn) tokenDoc.status = "REVOKED";
       await tokenDoc.save();
     }
 
@@ -245,7 +295,7 @@ class DesignSampleService {
 
     // Attach transient approval link and token details for response
     const resultObj = sample.toObject ? sample.toObject() : { ...sample };
-    resultObj.approvalToken = {
+    resultObj.approvalToken = walkIn ? null : {
       token: rawToken,
       tokenPrefix: tokenDoc.tokenPrefix,
       approvalUrl,
@@ -281,15 +331,22 @@ class DesignSampleService {
   /**
    * List all samples across all jobs for manager sample review & approval.
    */
-  static async listAllSamples(limit = 50) {
-    const samples = await jobSampleRepository.find({})
+  static async listAllSamples(limit = 50, user = null) {
+    // Only jobs that need design, only the user's own branch (a designer: only their own jobs)
+    const jobFilter = { jobType: /design/i };
+    const branchId = DesignHelper.scopeBranchId(user);
+    if (branchId) jobFilter.branchId = new mongoose.Types.ObjectId(branchId);
+    if (DesignHelper.isDesigner(user)) jobFilter.designerId = user._id;
+    const visibleJobIds = await jobOrderRepository.find(jobFilter).distinct("_id");
+
+    const samples = await jobSampleRepository.find({ jobOrderId: { $in: visibleJobIds } })
       .sort({ updatedAt: -1, createdAt: -1 })
-      .limit(Number(limit) || 50)
+      .limit(Math.min(Number(limit) || 50, 200))
       .populate("submittedBy", "name username email role")
       .populate("approvedBy", "name username email role")
       .populate({
         path: "jobOrderId",
-        select: "jobNo title customerName customerSnapshot currentStage stage priority items designerId designerName designStatus remarks customerRequirements dueDate designProofUrl",
+        select: "jobNo title customerId customerName customerSnapshot currentStage stage priority items designerId designerName designStatus remarks customerRequirements dueDate designProofUrl",
         populate: {
           path: "designerId",
           select: "name email username role",
@@ -297,6 +354,7 @@ class DesignSampleService {
       });
 
     const proofJobs = await jobOrderRepository.find({
+      ...jobFilter,
       $or: [
         { currentStage: { $in: ["SAMPLE_APPROVAL", "CUSTOMER_PROOF", "REVISION", "COMPLETED", "PRODUCTION_PLANNING"] } },
         { stage: { $in: ["SAMPLE_APPROVAL", "CUSTOMER_PROOF", "REVISION", "COMPLETED", "PRODUCTION_PLANNING"] } },
@@ -304,7 +362,8 @@ class DesignSampleService {
       ],
     })
       .populate("designerId", "name email username role")
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .limit(200);
 
     const seenJobIds = new Set();
     const result = [];
@@ -326,7 +385,7 @@ class DesignSampleService {
         designerEmail: job.designerId?.email || s.submittedBy?.email || "",
         versionNo: s.versionNo || 1,
         revisionNo: s.revisionNo || 0,
-        fileUrl: s.fileUrl || job.designProofUrl || "/uploads/approved_artwork.pdf",
+        fileUrl: s.fileUrl || job.designProofUrl || null,
         comments: s.comments || "",
         status: s.status, // "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUIRED"
         customerFeedback: s.customerFeedback || job.customerFeedback || (s.status === "APPROVED" ? `Approved by Customer (${job.customerName || "Customer"})` : ""),
@@ -359,7 +418,7 @@ class DesignSampleService {
         designerEmail: pj.designerId?.email || "",
         versionNo: 1,
         revisionNo: 0,
-        fileUrl: pj.designProofUrl || "/uploads/approved_artwork.pdf",
+        fileUrl: pj.designProofUrl || null,
         comments: pj.remarks || "Sample design submitted for proof approval",
         status: isCompleted ? "APPROVED" : isRevision ? "REVISION_REQUIRED" : "SUBMITTED",
         customerFeedback: isCompleted ? `Approved by Customer (${pj.customerName})` : "",
@@ -373,6 +432,12 @@ class DesignSampleService {
       });
     }
 
+    // Mark proofs of walk-in customers: those are approved in person by the manager
+    const walkProbe = await DesignHelper.markWalkIn(result.map((r) => ({ customerId: r.jobOrder?.customerId })));
+    result.forEach((r, i) => {
+      r.isWalkInCustomer = walkProbe[i].isWalkInCustomer;
+    });
+
     return result.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
   }
 
@@ -382,6 +447,11 @@ class DesignSampleService {
   static async rejectSampleDesign(jobId, data = {}, user = null) {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+
+    await this.assertCanDecide(job, user);
+    if (job.currentStage !== "SAMPLE_APPROVAL") {
+      throw ErrorHelper.conflict("A proof can be returned for changes only while it is waiting for approval.");
+    }
 
     const now = new Date();
     const reason = data.reason || data.revisionReason || "Sample design returned for revision";
@@ -421,22 +491,13 @@ class DesignSampleService {
       revisionStartedAt: null,
     };
 
-    try {
-      await JobWorkflowService.transition(job._id, "REVISION", {
-        actorId: user?._id,
-        relatedSampleId: latestSample?._id,
-        reason,
-        user,
-        patch,
-      });
-    } catch {
-      await jobOrderRepository.findOneAndUpdate(
-        { _id: job._id },
-        {
-          $set: patch,
-        }
-      );
-    }
+    await JobWorkflowService.transition(job._id, "REVISION", {
+      actorId: user?._id,
+      relatedSampleId: latestSample?._id,
+      reason,
+      user,
+      patch,
+    });
 
     await jobOrderRepository.findOneAndUpdate(
       { _id: job._id },
@@ -459,6 +520,8 @@ class DesignSampleService {
     if (!sample || String(sample.jobOrderId) !== String(jobId)) {
       throw ErrorHelper.notFound(`Job Sample not found with ID: ${sampleId}`);
     }
+
+    await this.assertCanDecide(job, user);
 
     if (sample.status !== "SUBMITTED" || job.currentStage !== "SAMPLE_APPROVAL") {
       throw ErrorHelper.conflict("Sample is not currently awaiting a decision in SAMPLE_APPROVAL stage.");
@@ -547,6 +610,8 @@ class DesignSampleService {
         try {
           const InvoiceService = require("../../invoices/services/invoice.service");
           await InvoiceService.createDraft({ jobOrderId: job._id, regenerate: true }, user);
+          // Paid in full with the invoice: nothing left to collect, so the order is complete
+          await InvoiceService.completeDesignOnlyIfSettled(job._id, user);
         } catch (invErr) {
           console.warn("[DesignSample] Auto invoice update notice:", invErr.message);
         }
@@ -654,25 +719,12 @@ class DesignSampleService {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
 
-    if (user) {
-      const isPrivileged = [
-        "admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"
-      ].includes(user.role);
-      if (!isPrivileged && user.role === "designer") {
-        const assignment = await jobAssignmentRepository.findOne({
-          jobOrderId: job._id,
-          assignmentType: "DESIGNER",
-          currentAssignment: true,
-          status: "ACTIVE",
-        });
-        const assignedId = assignment
-          ? String(assignment.employeeId?._id || assignment.employeeId)
-          : (job.designerId ? String(job.designerId) : null);
-
-        if (!assignedId || assignedId !== String(user._id)) {
-          throw ErrorHelper.forbidden("This job is not assigned to you.");
-        }
-      }
+    // Only a manager (or the customer's own link) approves; the designer who made the proof cannot
+    await this.assertCanDecide(job, user);
+    if (job.currentStage !== "SAMPLE_APPROVAL") {
+      throw ErrorHelper.conflict(
+        `The design can be approved only while the proof is waiting for approval (this job is at '${job.currentStage}').`
+      );
     }
 
     const now = new Date();
@@ -692,18 +744,7 @@ class DesignSampleService {
       latestSample.customerFeedback = effectiveFeedback;
       await latestSample.save();
     } else {
-      // Create a default approved sample record so production has the approved artwork reference
-      latestSample = await jobSampleRepository.create({
-        jobOrderId: job._id,
-        versionNo: 1,
-        revisionNo: 0,
-        fileUrl: data.fileUrl || "/uploads/approved_artwork.pdf",
-        comments: data.notes || "Customer approved artwork proof",
-        status: "APPROVED",
-        approvedAt: now,
-        approvedBy: user?._id || null,
-        customerFeedback: effectiveFeedback,
-      });
+      throw ErrorHelper.conflict("No design proof has been submitted for this job order yet.");
     }
 
     // 2. Mark any pending approvals as APPROVED
@@ -785,6 +826,8 @@ class DesignSampleService {
       try {
         const InvoiceService = require("../../invoices/services/invoice.service");
         await InvoiceService.createDraft({ jobOrderId: job._id, regenerate: true }, user);
+        // Paid in full with the invoice: nothing left to collect, so the order is complete
+        await InvoiceService.completeDesignOnlyIfSettled(job._id, user);
       } catch (invErr) {
         console.warn("[DesignSample] Auto invoice update notice:", invErr.message);
       }
@@ -879,7 +922,7 @@ class DesignSampleService {
     return {
       success: true,
       message: isDesignOnly
-        ? `Customer approved artwork! Balance in Invoice: RM ${balanceDue.toFixed(2)} — please collect remaining balance in Invoice.`
+        ? `Customer approved artwork! Balance in Invoice: ₹${balanceDue.toFixed(2)} — please collect remaining balance in Invoice.`
         : "Customer approved artwork! Proceeding to Production.",
       jobId: String(job._id),
       jobNo: job.jobNo,
@@ -897,8 +940,18 @@ class DesignSampleService {
   static async submitProofDirect(jobId, data = {}, user = null) {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+    this.assertCanWorkOnProof(job, user);
 
-    const fileUrl = sanitizeProofFile(data.fileUrl || job.designProofUrl || "/uploads/approved_artwork.pdf");
+    if (!["DESIGN_IN_PROGRESS", "REVISION"].includes(job.currentStage)) {
+      throw ErrorHelper.conflict(
+        `A proof can be submitted only while the design is in progress (this job is at '${job.currentStage}').`
+      );
+    }
+
+    const fileUrl = sanitizeProofFile(data.fileUrl || job.designProofUrl || "");
+    if (!fileUrl) {
+      throw ErrorHelper.badRequest("Attach the proof file before submitting it for approval.");
+    }
     const comments = data.notes || data.comments || "Artwork proof submitted for review";
 
     let draft = await jobSampleRepository.findOne({ jobOrderId: job._id, status: "DRAFT" });
@@ -911,7 +964,7 @@ class DesignSampleService {
       draft.comments = comments;
       draft.status = "SUBMITTED";
       draft.submittedAt = new Date();
-      if (user?._id) draft.submittedBy = user._id;
+      draft.submittedBy = user._id;
       draft.customerPhone = data.customerPhone || job.customerPhone || "";
       sample = await draft.save();
     } else {
@@ -923,101 +976,97 @@ class DesignSampleService {
         comments,
         status: "SUBMITTED",
         submittedAt: new Date(),
-        submittedBy: user?._id || null,
+        submittedBy: user._id,
         customerPhone: data.customerPhone || job.customerPhone || "",
       });
     }
 
-    // Create pending approval record
-    const approvalNo = `APP-SMP-${job.jobNo || job._id}-V${versionNo}`;
     await jobApprovalRepository.create({
-      approvalNo,
+      approvalNo: `APP-SMP-${job.jobNo || job._id}-V${versionNo}`,
       jobOrderId: job._id,
       approvalType: "SAMPLE",
       versionNo,
       status: "PENDING",
       requestedFrom: job.customerId,
-      requestedBy: user?._id || null,
+      requestedBy: user._id,
     });
 
-    // Create cryptographic approval token
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-    await DesignApprovalToken.updateMany(
-      { jobOrderId: job._id, status: "ACTIVE" },
-      { $set: { status: "SUPERSEDED" } }
-    );
-    const baseUrl = WhatsAppService.approvalBaseUrl ? WhatsAppService.approvalBaseUrl.replace(/\/+$/, "") : "http://localhost:3000";
-    const approvalUrl = `${baseUrl}/design-approvals/${rawToken}`;
-    const expiryHours = parseInt(process.env.APPROVAL_TOKEN_EXPIRY_HOURS || "48", 10);
-    const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
+    // A walk-in customer has no approval link: the branch manager approves the proof in person
+    const walkIn = await DesignHelper.isWalkInCustomer(job);
+    let rawToken = null;
+    let approvalUrl = null;
+    let whatsappStatus = "DISABLED";
 
-    const tokenDoc = await DesignApprovalToken.create({
-      jobOrderId: job._id,
-      sampleId: sample._id,
-      versionNo,
-      tokenHash,
-      tokenPrefix: rawToken.slice(0, 8),
-      customerPhone: sample.customerPhone || job.customerPhone || "",
-      customerName: job.customerName || job.customerSnapshot?.name || "",
-      expiresAt,
-      status: "ACTIVE",
-      approvalUrl: `${baseUrl}/design-approvals`,
-      whatsappStatus: "SENT",
-      whatsappSentAt: new Date(),
-    });
-
-    // Send WhatsApp notification if customer phone is available
-    const phoneToNotify = sample.customerPhone || job.customerPhone;
-    if (phoneToNotify) {
-      try {
-        await WhatsAppService.sendDesignApprovalMessage({
-          to: phoneToNotify,
-          customerName: job.customerName || job.customerSnapshot?.name || "Customer",
-          jobNo: job.jobNo || String(job._id),
-          versionNo,
-          approvalUrl,
-          sampleComments: comments,
-        });
-      } catch (waErr) {
-        console.warn("[DesignSampleService] WhatsApp send warning:", waErr.message);
-      }
-    }
-
-    const patch = {
-      currentStage: "SAMPLE_APPROVAL",
-      stage: "SAMPLE_APPROVAL",
-      designStatus: "PENDING_SAMPLE_APPROVAL",
-      designProofUrl: fileUrl,
-      isRevisionStarted: false,
-      revisionStartedAt: null,
-    };
-
-    try {
-      await JobWorkflowService.transition(job._id, "SAMPLE_APPROVAL", {
-        actorId: user?._id,
-        relatedSampleId: sample._id,
-        user,
-        patch,
-      });
-    } catch {
-      await jobOrderRepository.findOneAndUpdate(
-        { _id: job._id },
-        { $set: patch }
+    if (!walkIn) {
+      rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      await DesignApprovalToken.updateMany(
+        { jobOrderId: job._id, status: "ACTIVE" },
+        { $set: { status: "SUPERSEDED" } }
       );
+      const baseUrl = WhatsAppService.approvalBaseUrl ? WhatsAppService.approvalBaseUrl.replace(/\/+$/, "") : "http://localhost:3000";
+      approvalUrl = `${baseUrl}/design-approvals/${rawToken}`;
+      const expiryHours = parseInt(process.env.APPROVAL_TOKEN_EXPIRY_HOURS || "48", 10);
+      const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
+
+      const tokenDoc = await DesignApprovalToken.create({
+        jobOrderId: job._id,
+        sampleId: sample._id,
+        versionNo,
+        tokenHash,
+        tokenPrefix: rawToken.slice(0, 8),
+        customerPhone: sample.customerPhone || job.customerPhone || "",
+        customerName: job.customerName || job.customerSnapshot?.name || "",
+        expiresAt,
+        status: "ACTIVE",
+        approvalUrl: `${baseUrl}/design-approvals`,
+        whatsappStatus: "PENDING",
+      });
+
+      const phoneToNotify = sample.customerPhone || job.customerPhone;
+      if (phoneToNotify) {
+        try {
+          const waRes = await WhatsAppService.sendDesignApprovalMessage({
+            to: phoneToNotify,
+            customerName: job.customerName || job.customerSnapshot?.name || "Customer",
+            jobNo: job.jobNo || String(job._id),
+            versionNo,
+            approvalUrl,
+            sampleComments: comments,
+          });
+          tokenDoc.whatsappStatus = waRes.status || (waRes.success ? "SENT" : "FAILED");
+          tokenDoc.whatsappSentAt = waRes.delivered || waRes.simulated ? new Date() : null;
+          tokenDoc.whatsappError = waRes.error || null;
+        } catch (waErr) {
+          console.warn("[DesignSampleService] WhatsApp send warning:", waErr.message);
+          tokenDoc.whatsappStatus = "FAILED";
+          tokenDoc.whatsappError = waErr.message;
+        }
+      } else {
+        tokenDoc.whatsappStatus = "DISABLED";
+      }
+      await tokenDoc.save();
+      whatsappStatus = tokenDoc.whatsappStatus;
     }
 
-    await jobOrderRepository.findOneAndUpdate(
-      { _id: job._id },
-      { $set: patch }
-    );
+    await JobWorkflowService.transition(job._id, "SAMPLE_APPROVAL", {
+      actorId: user._id,
+      relatedSampleId: sample._id,
+      user,
+      patch: {
+        designStatus: "PENDING_SAMPLE_APPROVAL",
+        designProofUrl: fileUrl,
+        isRevisionStarted: false,
+        revisionStartedAt: null,
+      },
+    });
 
     emitJobEvent("sample.submitted", {
       jobId: String(job._id),
       sampleId: String(sample._id),
       versionNo,
       approvalUrl,
-      whatsappStatus: tokenDoc.whatsappStatus,
+      whatsappStatus,
     });
 
     return {
@@ -1027,6 +1076,7 @@ class DesignSampleService {
       versionNo,
       approvalUrl,
       token: rawToken,
+      walkIn,
       sample,
     };
   }

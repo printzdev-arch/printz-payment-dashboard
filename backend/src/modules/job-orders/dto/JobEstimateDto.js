@@ -20,7 +20,6 @@ class EstimateDto {
 class ApproveEstimateDto {
   constructor(data = {}) {
     this.comments = data.comments || "";
-    this.skipDesign = Boolean(data.skipDesign);
   }
 }
 

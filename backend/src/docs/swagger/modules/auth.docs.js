@@ -35,13 +35,11 @@ module.exports = {
           properties: {
             accessToken: {
               type: "string",
-              description: "Short-lived JWT. Send it as `Authorization: Bearer <accessToken>` on every other request (use the Authorize button).",
-              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJyb2xlIjoiQURNSU4iLCJicmFuY2giOiJCTiIsImVtYWlsIjoiYWRtaW5AcHJpbnR6LnNob3AiLCJpYXQiOjE3OTM2ODE4MzAsImV4cCI6MTc5MzY4MjczMH0.fcImxdj-11iBO5_ZnN0xmtk4vpyXqO5NkqcW-FKJfjo",
             },
             refreshToken: {
               type: "string",
-              description: "Long-lived token. Send it only to `POST /auth/refresh` to get a new access token.",
-              example: "d9e8f7c6b5a4...",
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJlbWFpbCI6ImFkbWluQHByaW50ei5zaG9wIiwiaWF0IjoxNzkzNjgxODMwLCJleHAiOjE3OTQyODY2MzB9.at8qZnq-rXx9xY0orw7vOTH2N-hfr_eH75kABjZjY3w",
             },
           },
         },
@@ -55,11 +53,16 @@ module.exports = {
         message: { type: "string", example: "Token refreshed successfully" },
         data: {
           type: "object",
-          required: ["accessToken"],
-          description: "The refresh token is rotated, so the response carries the replacement pair.",
+          required: ["accessToken", "refreshToken"],
           properties: {
-            accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
-            refreshToken: { type: "string", example: "a1b2c3d4e5f6..." },
+            accessToken: {
+              type: "string",
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJyb2xlIjoiQURNSU4iLCJicmFuY2giOiJCTiIsImVtYWlsIjoiYWRtaW5AcHJpbnR6LnNob3AiLCJpYXQiOjE3OTM2ODE4MzAsImV4cCI6MTc5MzY4MjczMH0.fcImxdj-11iBO5_ZnN0xmtk4vpyXqO5NkqcW-FKJfjo",
+            },
+            refreshToken: {
+              type: "string",
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJlbWFpbCI6ImFkbWluQHByaW50ei5zaG9wIiwiaWF0IjoxNzkzNjgxODMwLCJleHAiOjE3OTQyODY2MzB9.at8qZnq-rXx9xY0orw7vOTH2N-hfr_eH75kABjZjY3w",
+            },
           },
         },
       },
@@ -70,8 +73,7 @@ module.exports = {
       properties: {
         refreshToken: {
           type: "string",
-          example: "d9e8f7c6b5a4...",
-          description: "Long-lived refresh token obtained during login",
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJlbWFpbCI6ImFkbWluQHByaW50ei5zaG9wIiwiaWF0IjoxNzkzNjgxODMwLCJleHAiOjE3OTQyODY2MzB9.at8qZnq-rXx9xY0orw7vOTH2N-hfr_eH75kABjZjY3w",
         },
       },
     },
@@ -80,8 +82,7 @@ module.exports = {
       properties: {
         refreshToken: {
           type: "string",
-          example: "d9e8f7c6b5a4...",
-          description: "Refresh token to invalidate",
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWM3NDRiZGRhMzA3MDhhNzc5MjM1Y2EiLCJlbWFpbCI6ImFkbWluQHByaW50ei5zaG9wIiwiaWF0IjoxNzkzNjgxODMwLCJleHAiOjE3OTQyODY2MzB9.at8qZnq-rXx9xY0orw7vOTH2N-hfr_eH75kABjZjY3w",
         },
       },
     },
@@ -153,8 +154,7 @@ module.exports = {
         tags: ["Authentication"],
         summary: "Login User",
         operationId: "loginUser",
-        description:
-          "Authenticates employee or admin credentials. This is the only call that issues the access token and the refresh token. Copy the `accessToken` into the Authorize button to call the other endpoints.",
+        description: "Authenticates user credentials and returns access and refresh tokens.",
         security: [],
         requestBody: {
           required: true,
@@ -223,7 +223,7 @@ module.exports = {
         tags: ["Authentication"],
         summary: "Refresh Access Token",
         operationId: "refreshAccessToken",
-        description: "Exchanges a valid long-lived refresh token for a newly signed access token.",
+        description: "Exchanges a valid refresh token for a newly signed access token and refresh token.",
         security: [],
         requestBody: {
           required: true,
@@ -246,7 +246,7 @@ module.exports = {
         tags: ["Authentication"],
         summary: "Refresh Access Token (alias)",
         operationId: "refreshAccessTokenAlias",
-        description: "Same as `POST /auth/refresh`.",
+        description: "Refresh access token.",
         security: [],
         requestBody: {
           required: true,

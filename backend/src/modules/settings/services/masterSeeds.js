@@ -123,8 +123,6 @@ const INITIAL_MASTER_ITEMS = [
   // deliveryMethods
   { category: "deliveryMethods", name: "Branch Counter Self-Pickup", order: 1, isDefault: true },
   { category: "deliveryMethods", name: "Local Dispatch / Delivery", order: 2 },
-  { category: "deliveryMethods", name: "Express Courier Service", order: 3 },
-  { category: "deliveryMethods", name: "Lalamove / Grab Express", order: 4 },
 
   // paymentMethods
   { category: "paymentMethods", name: "Cash", order: 1, isDefault: true },

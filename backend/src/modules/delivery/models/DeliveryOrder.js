@@ -45,6 +45,11 @@ const deliveryOrderSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    // The customer's delivery method from the job order (what decides deliveryType)
+    deliveryMethod: {
+      type: String,
+      default: "",
+    },
     deliveryType: {
       type: String,
       enum: ["DELIVERY", "COUNTER_PICKUP", "COURIER"],

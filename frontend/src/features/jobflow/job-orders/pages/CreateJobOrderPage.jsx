@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation, useParams } from "react-router-dom";
 import {
   Save,
   CheckCircle,
@@ -34,6 +34,32 @@ const getManagerBranch = () => {
   return "Main Branch";
 };
 
+const getManagerBranchId = () => {
+  try {
+    const directBranchId = localStorage.getItem("userBranchId");
+    if (directBranchId && /^[0-9a-fA-F]{24}$/.test(String(directBranchId).trim())) {
+      return String(directBranchId).trim();
+    }
+    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+    const uBranchId = userObj.branchId || (Array.isArray(userObj.branchIds) && userObj.branchIds[0]);
+    if (uBranchId && /^[0-9a-fA-F]{24}$/.test(String(uBranchId).trim())) {
+      return String(uBranchId).trim();
+    }
+    const printzUser = JSON.parse(localStorage.getItem("printz_user") || "{}");
+    const pBranchId = printzUser.branchId || (Array.isArray(printzUser.branchIds) && printzUser.branchIds[0]);
+    if (pBranchId && /^[0-9a-fA-F]{24}$/.test(String(pBranchId).trim())) {
+      return String(pBranchId).trim();
+    }
+  } catch (e) {}
+  return null;
+};
+
+// Orders are either collected at the branch or dispatched; the master list is not used here
+const DELIVERY_METHODS = [{ name: "Branch Counter Self-Pickup" }, { name: "Local Dispatch / Delivery" }];
+
+const MAX_UPLOAD_MB = 25;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
 export const DEFAULT_PRODUCT_PRICES = {
   "Business Cards": 0.40,
   "Flyers / Leaflets": 0.50,
@@ -64,14 +90,43 @@ export const getProductDefaultPrice = (productType, size = "", masterList = []) 
     if (s.includes("A3")) return 10.00;
     return 15.00;
   }
-  return DEFAULT_PRODUCT_PRICES[productType] || 0.40;
+  // Unknown product: no invented price, the user enters it
+  return DEFAULT_PRODUCT_PRICES[productType] || 0;
 };
+
+// Date input needs yyyy-mm-dd in the user's own calendar day
+const toDateInputValue = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+// Job type is stored as free text; map it back to one of the three dropdown values
+const normalizeJobType = (value) => {
+  const t = String(value || "").toUpperCase();
+  const hasPrint = t.includes("PRINT");
+  const hasDesign = t.includes("DESIGN");
+  if (hasPrint && hasDesign) return "Print & Design";
+  if (hasDesign) return "Design Only";
+  if (hasPrint) return "Print Only";
+  return "";
+};
+
+// Only these stages (before the estimate is approved) can still be edited
+const EDITABLE_STAGES = ["ENQUIRY", "ESTIMATION", "ESTIMATE_APPROVAL"];
 
 export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const preselectedCustomerId = searchParams.get("customerId");
+  // /jobflow/jobs/:id/edit opens this page in edit mode
+  const { id: editJobId } = useParams();
+  const isEditMode = Boolean(editJobId) && !isModal;
+  const [editJobNo, setEditJobNo] = useState("");
+  const [editLoading, setEditLoading] = useState(isEditMode);
 
   const storedUser = (() => {
     try {
@@ -83,6 +138,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   const isDesigner = (storedUser.role || "").toLowerCase() === "designer" || location.pathname.includes("designer-jobs");
 
   const managerBranch = getManagerBranch();
+  const managerBranchId = getManagerBranchId();
+  // Only admins may pick another branch; managers and designers stay on their assigned branch
+  const isBranchLocked = isEditMode || !["admin", "super_admin"].includes(String(storedUser.role || "").toLowerCase());
   const masterDefaults = useMasterDefaults();
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState([]);
@@ -132,12 +190,14 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     customerCode: "",
     customerPhone: "",
     customerEmail: "",
+    branchId: managerBranchId || "",
     branchName: managerBranch || "Main Branch",
     jobType: "",
     jobTitle: "",
     targetDueDate: "",
     deliveryMethod: "",
-    referenceNo: "",
+    // Print Only jobs can skip quality control; it is on for every job by default
+    qcRequired: true,
     remarks: "",
 
     productType: "",
@@ -159,6 +219,128 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     uploadedFiles: [],
     specialInstructions: "",
   });
+
+  // Edit mode: fetch the existing job order and fill the form with it
+  useEffect(() => {
+    if (!isEditMode) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await jobFlowApi.getJobOrderById(editJobId);
+        const job = res?.data || res;
+        if (cancelled) return;
+        if (!job || !(job._id || job.id)) throw new Error("Job order not found");
+
+        const stage = String(job.currentStage || job.stage || "").toUpperCase();
+        const editable =
+          job.canEdit !== undefined
+            ? job.canEdit
+            : job.estimationStatus !== "APPROVED" && EDITABLE_STAGES.includes(stage);
+        if (!editable) {
+          toast.error("This job order can no longer be edited because its estimate has been approved.");
+          navigate("/jobflow/jobs", { replace: true });
+          return;
+        }
+
+        const specs = job.specs || {};
+        const firstItem = (job.items && job.items[0]) || {};
+        const itemSpecs = firstItem.specifications || {};
+        const pick = (key) => specs[key] ?? itemSpecs[key] ?? firstItem[key] ?? "";
+
+        let finishing = Array.isArray(job.finishingServices) ? job.finishingServices : [];
+        if (finishing.length === 0 && Array.isArray(job.items)) {
+          finishing = job.items
+            .filter((it) => it.itemType === "FINISHING" || String(it.itemName || "").toLowerCase().startsWith("finishing"))
+            .map((it) => ({
+              name: String(it.itemName || "").replace(/^finishing:\s*/i, ""),
+              config: String(it.description || "").replace(/\s*\(.*\)\s*$/, "") || "Standard",
+              unitPrice: Number(it.unitRate || it.unitPrice || 0),
+              quantity: Number(it.quantity || 0),
+              unit: String(it.unit || "sheets").toLowerCase(),
+            }));
+        }
+        const finishingServices = finishing.map((f, idx) => {
+          const quantity = Number(f.quantity) || Number(job.quantity) || 1;
+          const unitPrice = Number(f.unitPrice) || 0;
+          return {
+            ...f,
+            id: f.id || `edit-${idx}-${Date.now()}`,
+            name: f.name,
+            config: f.config || "Standard",
+            unit: f.unit || "sheets",
+            quantity,
+            unitPrice,
+            total: Math.round(quantity * unitPrice * 100) / 100,
+            qtyManual: true,
+          };
+        });
+
+        const jobQty = Number(job.quantity) || Number(specs.quantity) || Number(firstItem.quantity) || "";
+        const unitPrice = specs.unitPrice ?? firstItem.unitRate ?? firstItem.unitPrice ?? "";
+        const branchObj = job.branchId && typeof job.branchId === "object" ? job.branchId : null;
+        const snapshot = job.customerSnapshot || {};
+        const customerRef = job.customerId && typeof job.customerId === "object" ? job.customerId : null;
+        const customerIdValue = String(customerRef?._id || job.customerId || "");
+
+        setEditJobNo(job.jobNo || "");
+        setFormData((prev) => ({
+          ...prev,
+          customerId: customerIdValue,
+          customerName: job.customerName || snapshot.name || customerRef?.name || "",
+          customerCode: customerRef?.customerCode || "",
+          customerPhone: job.customerPhone || snapshot.mobile || "",
+          customerEmail: job.customerEmail || snapshot.email || "",
+          branchId: String(branchObj?._id || job.branchId || ""),
+          branchName: job.branchName || branchObj?.name || prev.branchName,
+          jobType: normalizeJobType(job.jobType || specs.jobType),
+          jobTitle: job.title || "",
+          targetDueDate: toDateInputValue(job.dueDate),
+          deliveryMethod: job.deliveryMethod || "",
+          qcRequired: job.qcRequired !== false,
+          remarks: job.remarks || job.notes || "",
+          specialInstructions: job.specialInstructions || "",
+          productType: pick("productType"),
+          quantity: jobQty,
+          unitPrice: unitPrice === "" ? "" : Number(unitPrice),
+          unitPriceManuallyEdited: unitPrice !== "",
+          paperType: pick("paperType"),
+          paperGsm: pick("paperGsm"),
+          size: pick("size"),
+          color: pick("color"),
+          printingSide: pick("printingSide"),
+          finishingServices,
+          additionalServices: Array.isArray(job.additionalServices) ? job.additionalServices : [],
+          uploadedFiles: Array.isArray(job.attachments) ? job.attachments : [],
+        }));
+
+        // Fill the customer box with "CODE - Name" (the code comes from the customer record)
+        let label = job.customerName || snapshot.name || "";
+        if (customerIdValue) {
+          try {
+            const custRes = await jobFlowApi.getCustomerById(customerIdValue);
+            const cust = custRes?.data || custRes;
+            if (!cancelled && cust && (cust._id || cust.id)) {
+              setCustomers((prev) => (prev.some((c) => (c._id || c.id) === (cust._id || cust.id)) ? prev : [cust, ...prev]));
+              const code = cust.customerCode || cust.code || "";
+              setFormData((prev) => ({ ...prev, customerCode: code }));
+              label = `${code} - ${cust.name || cust.companyName || label}`.replace(/^ - /, "");
+            }
+          } catch (_) {}
+        }
+        if (!cancelled) setCustomerSearchTerm(label);
+      } catch (err) {
+        if (cancelled) return;
+        toast.error(err.response?.data?.message || "Could not load the job order for editing.");
+        navigate("/jobflow/jobs", { replace: true });
+      } finally {
+        if (!cancelled) setEditLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editJobId]);
 
   const selectCustomer = (cust) => {
     setFormData((prev) => ({
@@ -209,7 +391,30 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
     jobFlowApi.getBranches()
       .then((res) => {
-        if (res?.data && Array.isArray(res.data)) setBranches(res.data);
+        if (res?.data && Array.isArray(res.data)) {
+          const list = res.data;
+          setBranches(list);
+
+          // Resolve and bind branch manager's branch
+          const mgrBranchName = getManagerBranch();
+          const mgrBranchId = getManagerBranchId();
+          const matchedBranch = list.find((b) => {
+            const bId = (b._id || b.id || "").toString();
+            if (mgrBranchId && bId === mgrBranchId) return true;
+            const bName = (b.name || b.branchName || "").trim().toLowerCase();
+            const bCode = (b.code || b.branchCode || "").trim().toLowerCase();
+            const target = (mgrBranchName || "").trim().toLowerCase();
+            return bName === target || bCode === target;
+          });
+
+          if (matchedBranch && !isEditMode) {
+            setFormData((prev) => ({
+              ...prev,
+              branchId: matchedBranch._id || matchedBranch.id,
+              branchName: matchedBranch.branchName || matchedBranch.name || prev.branchName,
+            }));
+          }
+        }
       })
       .catch(() => {});
   }, [preselectedCustomerId]);
@@ -233,10 +438,26 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
       if (field === "productType" || field === "size") {
         const pType = field === "productType" ? value : prev.productType;
         const pSize = field === "size" ? value : prev.size;
-        if (!prev.unitPriceManuallyEdited) {
-          const autoRate = getProductDefaultPrice(pType, pSize, masterDefaults.productTypes);
-          if (autoRate > 0) updated.unitPrice = autoRate;
+        // A different product starts from its own price again; a size change keeps a manual price
+        if (field === "productType") updated.unitPriceManuallyEdited = false;
+        if (!updated.unitPriceManuallyEdited) {
+          updated.unitPrice = getProductDefaultPrice(pType, pSize, masterDefaults.productTypes) || "";
         }
+      }
+      if (field === "quantity") {
+        const newQty = Number(value) > 0 ? Number(value) : "";
+        if (newQty && prev.finishingServices.length > 0) {
+          // Rows whose quantity was typed by hand (e.g. packs) keep it
+          updated.finishingServices = prev.finishingServices.map((s) =>
+            s.qtyManual
+              ? s
+              : { ...s, quantity: newQty, total: Math.round(newQty * Number(s.unitPrice || 0) * 100) / 100 }
+          );
+        }
+      }
+      // QC can only be switched off for Print Only; any other type goes back to "QC required"
+      if (field === "jobType" && value !== "Print Only") {
+        updated.qcRequired = true;
       }
       if (field === "unitPrice") {
         updated.unitPriceManuallyEdited = true;
@@ -245,34 +466,74 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     });
   };
 
-  const addQuickFinishing = (name, defaultPrice = 0.50, unit = "sheets") => {
-    const existing = formData.finishingServices.find((s) => s.name === name);
-    if (existing) {
-      toast.info(`${name} is already in the list.`);
-      return;
-    }
-    const defaultConf =
-      name.toLowerCase().includes("lamination") ? "Matte" :
-      name.toLowerCase().includes("foil") ? "Gold Foil Stamping" :
-      name.toLowerCase().includes("uv") ? "Spot UV (Front)" :
-      name.toLowerCase().includes("pack") ? "Shrink Wrap" :
-      name.toLowerCase().includes("bind") ? "Spiral (Black)" :
-      "Standard";
+  const availableFinishingServices = (
+    masterDefaults.finishingServicesList.length > 0
+      ? masterDefaults.finishingServicesList.map((s) => s.name)
+      : [
+          "Lamination",
+          "Cutting",
+          "Trimming",
+          "Binding",
+          "Folding",
+          "Creasing",
+          "Die Cutting",
+          "Foiling",
+          "UV Coating",
+          "Mounting",
+          "Perforation",
+          "Numbering",
+          "Packing",
+        ]
+  );
 
-    const newService = {
+  const getDefaultConfig = (name) => {
+    const n = String(name || "").toLowerCase();
+    if (n.includes("lamination")) return "Matte";
+    if (n.includes("foil")) return "Gold Foil Stamping";
+    if (n.includes("uv")) return "Spot UV (Front)";
+    if (n.includes("pack")) return "Shrink Wrap";
+    if (n.includes("bind")) return "Spiral (Black)";
+    if (n.includes("fold") || n.includes("creas")) return "Half Fold";
+    if (n.includes("cut") || n.includes("trim")) return "Trim to 90 x 54 mm";
+    return "Standard";
+  };
+
+  const handleAddFinishingRow = () => {
+    const currentQty = Number(formData.quantity) > 0 ? Number(formData.quantity) : 1;
+    const unused = availableFinishingServices.find(
+      (s) => !formData.finishingServices.some((f) => f.name === s)
+    ) || availableFinishingServices[0] || "Lamination";
+
+    const newRow = {
       id: Date.now(),
-      name,
-      config: defaultConf,
-      unitPrice: defaultPrice,
-      quantity: formData.quantity || 500,
-      total: (formData.quantity || 500) * defaultPrice,
-      unit,
+      name: unused,
+      config: getDefaultConfig(unused),
+      unitPrice: 0,
+      quantity: currentQty,
+      total: 0,
+      unit: "sheets",
     };
+
     setFormData((prev) => ({
       ...prev,
-      finishingServices: [...prev.finishingServices, newService],
+      finishingServices: [...prev.finishingServices, newRow],
     }));
-    toast.success(`Added ${name}`);
+  };
+
+  const handleFinishingServiceChange = (id, newName) => {
+    setFormData((prev) => ({
+      ...prev,
+      finishingServices: prev.finishingServices.map((s) => {
+        if (s.id === id) {
+          return {
+            ...s,
+            name: newName,
+            config: getDefaultConfig(newName),
+          };
+        }
+        return s;
+      }),
+    }));
   };
 
   const removeFinishingService = (id) => {
@@ -282,16 +543,17 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     }));
   };
 
-  const currentQuantity = Number(formData.quantity) > 0 ? Number(formData.quantity) : 1;
-  const currentUnitPrice = Number(formData.unitPrice) > 0
-    ? Number(formData.unitPrice)
-    : getProductDefaultPrice(formData.productType, formData.size, masterDefaults.productTypes);
-  const productCost = Math.round((Number(formData.quantity) > 0 ? Number(formData.quantity) : 1) * currentUnitPrice * 100) / 100;
+  const currentQuantity = Number(formData.quantity) > 0 ? Number(formData.quantity) : 0;
+  // An empty price box means "use the default"; a typed 0 stays 0
+  const currentUnitPrice =
+    formData.unitPrice !== "" && formData.unitPrice !== null && Number.isFinite(Number(formData.unitPrice))
+      ? Number(formData.unitPrice)
+      : getProductDefaultPrice(formData.productType, formData.size, masterDefaults.productTypes);
+  const productCost = Math.round(currentQuantity * currentUnitPrice * 100) / 100;
 
-  const finishingTotal = formData.finishingServices.reduce(
-    (sum, s) => sum + (Number(s.total) || (Number(s.quantity || 0) * Number(s.unitPrice || 0))),
-    0
-  );
+  // Row totals are always quantity x price, never a cached value
+  const finishingRowTotal = (s) => Math.round(Number(s.quantity || 0) * Number(s.unitPrice || 0) * 100) / 100;
+  const finishingTotal = Math.round(formData.finishingServices.reduce((sum, s) => sum + finishingRowTotal(s), 0) * 100) / 100;
 
   const grandTotal = Math.round((productCost + finishingTotal) * 100) / 100;
 
@@ -299,17 +561,29 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const newEntries = files.map((f) => ({
+    const accepted = files.filter((f) => f.size <= MAX_UPLOAD_BYTES);
+    if (accepted.length < files.length) {
+      toast.error(`Files larger than ${MAX_UPLOAD_MB} MB were skipped.`);
+    }
+    if (accepted.length === 0) {
+      e.target.value = "";
+      return;
+    }
+
+    // Keep the real File so it can be uploaded once the job order exists
+    const newEntries = accepted.map((f) => ({
       name: f.name,
       size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
       type: "Artwork File",
+      file: f,
     }));
 
     setFormData((prev) => ({
       ...prev,
       uploadedFiles: [...prev.uploadedFiles, ...newEntries],
     }));
-    toast.success(`${files.length} file(s) attached.`);
+    toast.success(`${accepted.length} file(s) attached.`);
+    e.target.value = "";
   };
 
   const removeFile = (idx) => {
@@ -324,27 +598,65 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
       toast.error("Please select or specify a customer.");
       return;
     }
+    if (!formData.jobTitle?.trim()) {
+      toast.error("Please enter a Job Title.");
+      return;
+    }
+    // Every field marked with * must be filled
+    const requiredFields = [
+      [formData.jobType, "Job Type"],
+      [formData.deliveryMethod, "Delivery Method"],
+      [formData.productType, "Product Type"],
+      [formData.paperType, "Paper Type"],
+      [formData.paperGsm, "Paper GSM"],
+      [formData.size, "Size"],
+      [formData.color, "Color"],
+      [formData.printingSide, "Printing Side"],
+    ];
+    const missing = requiredFields.find(([value]) => !value);
+    if (missing) {
+      toast.error(`Please select ${missing[1]}.`);
+      return;
+    }
+    if (!formData.quantity || Number(formData.quantity) <= 0) {
+      toast.error("Please enter a valid Quantity greater than 0.");
+      return;
+    }
+    if (!formData.targetDueDate) {
+      toast.error("Please select a Target Due Date.");
+      return;
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (!isEditMode && formData.targetDueDate < todayStr) {
+      toast.error("Target Due Date cannot be in the past.");
+      return;
+    }
+    if (formData.unitPrice !== "" && Number(formData.unitPrice) < 0) {
+      toast.error("Unit Price cannot be negative.");
+      return;
+    }
 
     setLoading(true);
     try {
       let selectedBranchId = formData.branchId;
+      // Strictly resolve to branch manager's branch if missing or invalid
       if (!selectedBranchId || !/^[0-9a-fA-F]{24}$/.test(selectedBranchId)) {
-        try {
-          const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-          selectedBranchId = userObj.branchId || (userObj.branchIds && userObj.branchIds[0]);
-        } catch (_) {}
+        selectedBranchId = getManagerBranchId();
       }
       if (!selectedBranchId || !/^[0-9a-fA-F]{24}$/.test(selectedBranchId)) {
         const mgrBranch = getManagerBranch();
         const matched = branches.find(
           (b) =>
-            (b.name && b.name.toLowerCase().includes((formData.branchName || mgrBranch).toLowerCase())) ||
-            (b.branchName && b.branchName.toLowerCase().includes((formData.branchName || mgrBranch).toLowerCase()))
+            (b.name && b.name.toLowerCase().includes(mgrBranch.toLowerCase())) ||
+            (b.branchName && b.branchName.toLowerCase().includes(mgrBranch.toLowerCase())) ||
+            (b.code && b.code.toLowerCase().includes(mgrBranch.toLowerCase()))
         );
         if (matched) selectedBranchId = matched._id || matched.id;
       }
-      if (!selectedBranchId && branches.length > 0) {
-        selectedBranchId = branches[0]?._id || branches[0]?.id;
+      if (!selectedBranchId || !/^[0-9a-fA-F]{24}$/.test(selectedBranchId)) {
+        toast.error("Your branch could not be determined. Please log in again.");
+        setLoading(false);
+        return;
       }
 
       const payload = {
@@ -354,26 +666,30 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         customerPhone: formData.customerPhone,
         customerEmail: formData.customerEmail,
         branchName: formData.branchName,
-        jobType: formData.jobType || "Print Only",
+        jobType: formData.jobType,
         title: formData.jobTitle || "Custom Print Order",
         dueDate: formData.targetDueDate,
         deliveryMethod: formData.deliveryMethod,
-        referenceNo: formData.referenceNo,
+        qcRequired: formData.jobType === "Print Only" ? formData.qcRequired !== false : true,
+        quantity: Number(formData.quantity),
+        remarks: formData.remarks,
         notes: formData.remarks,
         specialInstructions: formData.specialInstructions,
         status: isDraft ? "DRAFT" : "SUBMITTED",
-        subtotal: grandTotal,
+        subtotal: productCost,
         grandTotal: grandTotal,
         estimatedPrice: grandTotal,
         totalAmount: grandTotal,
         items: [
           {
+            lineNo: 1,
             itemName: formData.jobTitle || `${formData.productType || "Custom Print Order"} - ${Number(formData.quantity) || 1} pcs`,
             quantity: Number(formData.quantity) || 1,
             unitPrice: currentUnitPrice,
             unitRate: currentUnitPrice,
             amount: productCost,
             totalPrice: productCost,
+            productType: formData.productType,
             specifications: {
               productType: formData.productType,
               paperType: formData.paperType,
@@ -395,11 +711,24 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
             })),
             needsProduction: true,
           },
+          ...(formData.finishingServices || []).map((svc, idx) => ({
+            lineNo: idx + 2,
+            itemType: "FINISHING",
+            itemName: `Finishing: ${svc.name}`,
+            description: `${svc.config || "Standard"} (${Number(svc.quantity) || Number(formData.quantity) || 1} ${svc.unit || "sheets"})`,
+            quantity: Number(svc.quantity) || Number(formData.quantity) || 1,
+            unit: (svc.unit || "PCS").toUpperCase(),
+            unitPrice: Number(svc.unitPrice) || 0,
+            unitRate: Number(svc.unitPrice) || 0,
+            amount: finishingRowTotal(svc),
+            totalPrice: finishingRowTotal(svc),
+            needsProduction: true,
+          })),
         ],
         specs: {
-          jobType: formData.jobType || "Print Only",
+          jobType: formData.jobType,
           productType: formData.productType,
-          quantity: Number(formData.quantity) || 1,
+          quantity: Number(formData.quantity),
           unitPrice: currentUnitPrice,
           productCost: productCost,
           paperType: formData.paperType,
@@ -412,18 +741,50 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         },
         finishingServices: formData.finishingServices,
         additionalServices: formData.additionalServices,
-        attachments: formData.uploadedFiles,
+        // The File objects themselves are uploaded after the job exists; only the names are sent here
+        attachments: formData.uploadedFiles.map(({ file, ...meta }) => meta),
       };
 
-      const res = await jobFlowApi.createJobOrder(payload);
-      toast.success(isDraft ? "Job saved as draft." : "Job Order created successfully!");
-      const newId = res?.data?._id || res?.data?.id || (res?.data && typeof res.data === "string" ? res.data : "");
+      const res = isEditMode ? await jobFlowApi.updateJobOrder(editJobId, payload) : await jobFlowApi.createJobOrder(payload);
+      toast.success(isEditMode ? "Job Order updated successfully!" : isDraft ? "Job saved as draft." : "Job Order created successfully!");
+      const newId = isEditMode ? editJobId : res?.data?._id || res?.data?.id || (res?.data && typeof res.data === "string" ? res.data : "");
+
+      if (newId) {
+        const failedUploads = [];
+        for (const entry of formData.uploadedFiles) {
+          if (!entry.file) continue;
+          try {
+            const body = new FormData();
+            body.append("file", entry.file);
+            body.append("entityType", "JOB_ORDER");
+            body.append("entityId", newId);
+            const up = await jobFlowApi.uploadAttachment(body);
+            const att = up?.data || up || {};
+            await jobFlowApi.uploadJobFile(newId, {
+              fileName: entry.file.name,
+              fileCategory: "REFERENCE",
+              fileSize: entry.file.size,
+              mimeType: entry.file.type,
+              attachmentId: att._id || att.id || null,
+              fileUrl: att.fileUrl || att.url || "",
+            });
+          } catch (_) {
+            failedUploads.push(entry.name);
+          }
+        }
+        if (failedUploads.length > 0) {
+          toast.warn(`Job ${isEditMode ? "updated" : "created"}, but these files could not be uploaded: ${failedUploads.join(", ")}`);
+        }
+      }
       if (newId) {
         try {
           localStorage.setItem("printz_active_job_id", newId);
         } catch (_) {}
       }
-      if (isDraft) {
+      if (isEditMode) {
+        // The backend submits the edited order for estimate approval again, so nothing else to create here
+        navigate(`/jobflow/estimates?jobId=${newId}`);
+      } else if (isDraft) {
         navigate(`/jobflow/jobs${newId ? `?id=${newId}` : ""}`);
       } else {
         if (newId) {
@@ -439,6 +800,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 unitPrice: baseRate,
                 quantity: qty,
                 amount: productCost,
+                totalPrice: productCost,
                 unit: "PCS",
                 taxRate: 0,
               },
@@ -450,12 +812,17 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 unitPrice: Number(svc.unitPrice) || 0,
                 quantity: Number(svc.quantity) || qty,
                 unit: (svc.unit || "PCS").toUpperCase(),
+                amount: finishingRowTotal(svc),
+                totalPrice: finishingRowTotal(svc),
                 taxRate: 0,
               })),
             ];
             await jobFlowApi.submitEstimate(newId, {
               items: estimateItems,
               finishingServices: formData.finishingServices || [],
+              subtotal: grandTotal,
+              grandTotal: grandTotal,
+              total: grandTotal,
               discountAmount: 0,
               taxRate: 0,
               taxAmount: 0,
@@ -477,7 +844,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         }
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create job order");
+      toast.error(err.response?.data?.message || (isEditMode ? "Failed to update job order" : "Failed to create job order"));
     } finally {
       setLoading(false);
     }
@@ -486,6 +853,8 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   const handleCancelClick = () => {
     if (onClose) {
       onClose();
+    } else if (isEditMode) {
+      navigate(-1);
     } else {
       navigate(isDesigner ? "/jobflow/designer-jobs" : "/jobflow/jobs");
     }
@@ -500,6 +869,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         <div className="jf-card">
           <div className="jf-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 className="jf-card-title">Basic Details</h3>
+            {!isEditMode && (
             <button
               type="button"
               onClick={(e) => {
@@ -523,6 +893,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
             >
               <Plus size={14} /> Create Customer
             </button>
+            )}
           </div>
 
           <div className="jf-card-body-stretch">
@@ -530,10 +901,10 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               {/* Row 1: Customer (Spans 2 columns) */}
               <div className="jf-form-group" style={{ gridColumn: "1 / -1", position: "relative" }} ref={customerDropdownRef}>
                 <label
-                  className="jf-label jf-label-required"
+                  className="jf-label"
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                 >
-                  <span>Customer</span>
+                  <span className="jf-label-required">Customer</span>
                   {formData.customerId && (
                     <span style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600 }}>
                       ✓ Selected: {formData.customerCode}
@@ -555,15 +926,20 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <input
                     type="text"
                     className="jf-input"
-                    style={{ paddingLeft: "2.25rem", paddingRight: "4rem" }}
+                    style={{ paddingLeft: "2.25rem", paddingRight: isEditMode ? "0.75rem" : "4rem" }}
                     placeholder="Search customer by name, code or phone..."
                     value={customerSearchTerm}
-                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                    // The customer of an existing job order cannot be changed
+                    readOnly={isEditMode}
+                    disabled={isEditMode}
+                    title={isEditMode ? "Customer cannot be changed when editing a job order" : undefined}
+                    onFocus={() => !isEditMode && setIsCustomerDropdownOpen(true)}
                     onChange={(e) => {
                       setCustomerSearchTerm(e.target.value);
                       setIsCustomerDropdownOpen(true);
                     }}
                   />
+                  {!isEditMode && (
                   <div
                     style={{
                       position: "absolute",
@@ -618,10 +994,11 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       <ChevronDown size={16} />
                     </button>
                   </div>
+                  )}
                 </div>
 
                 {/* Autocomplete Dropdown */}
-                {isCustomerDropdownOpen && (
+                {isCustomerDropdownOpen && !isEditMode && (
                   <div
                     style={{
                       position: "absolute",
@@ -700,28 +1077,43 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               {/* Row 2: Branch & Job Type */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Branch</label>
-                <select
-                  className="jf-select"
-                  value={formData.branchName}
-                  onChange={(e) => {
-                    const bName = e.target.value;
-                    const matched = branches.find((b) => (b.branchName || b.name) === bName);
-                    setFormData((prev) => ({
-                      ...prev,
-                      branchName: bName,
-                      branchId: matched?._id || matched?.id || prev.branchId,
-                    }));
-                  }}
-                >
-                  {branches.length === 0 && (
-                    <option value={managerBranch}>{managerBranch} (Your Branch)</option>
-                  )}
-                  {branches.map((b) => (
-                    <option key={b._id || b.id} value={b.branchName || b.name}>
-                      {b.branchName || b.name} ({b.code || b.branchCode || "BR"})
-                    </option>
-                  ))}
-                </select>
+                {isBranchLocked ? (
+                  <input
+                    type="text"
+                    className="jf-input"
+                    value={(() => {
+                      const b = branches.find((x) => (x._id || x.id) === formData.branchId);
+                      const code = b?.code || b?.branchCode;
+                      return `${formData.branchName || managerBranch}${code ? ` (${code})` : ""}`;
+                    })()}
+                    readOnly
+                    disabled
+                    title="Job orders are created for your assigned branch"
+                  />
+                ) : (
+                  <select
+                    className="jf-select"
+                    value={formData.branchName}
+                    onChange={(e) => {
+                      const bName = e.target.value;
+                      const matched = branches.find((b) => (b.branchName || b.name) === bName);
+                      setFormData((prev) => ({
+                        ...prev,
+                        branchName: bName,
+                        branchId: matched?._id || matched?.id || prev.branchId,
+                      }));
+                    }}
+                  >
+                    {branches.length === 0 && (
+                      <option value={managerBranch}>{managerBranch} (Your Branch)</option>
+                    )}
+                    {branches.map((b) => (
+                      <option key={b._id || b.id} value={b.branchName || b.name}>
+                        {b.branchName || b.name} ({b.code || b.branchCode || "BR"})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="jf-form-group">
@@ -739,21 +1131,6 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <option value="Print Only">Print Only (Artwork Provided)</option>
                   <option value="Design Only">Design Only</option>
                 </select>
-                {formData.jobType === "Print Only" && (
-                  <div style={{ fontSize: "0.74rem", color: "#6b21a8", marginTop: "4px", background: "#f5f3ff", padding: "4px 8px", borderRadius: "6px", border: "1px solid #ddd6fe" }}>
-                    ⚡ <strong>Print Only:</strong> Goes directly till Invoice with <strong>Full Amount payment</strong> (No Advance). Order winds up & completes directly after invoice (does not go to production).
-                  </div>
-                )}
-                {formData.jobType === "Design Only" && (
-                  <div style={{ fontSize: "0.74rem", color: "#1d4ed8", marginTop: "4px", background: "#eff6ff", padding: "4px 8px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
-                    🎨 <strong>Design Only:</strong> Goes till Design Sample Approval. Once sample is approved, order <strong>Closes & Completes</strong>.
-                  </div>
-                )}
-                {formData.jobType === "Print & Design" && (
-                  <div style={{ fontSize: "0.74rem", color: "#065f46", marginTop: "4px", background: "#ecfdf5", padding: "4px 8px", borderRadius: "6px", border: "1px solid #a7f3d0" }}>
-                    🔄 <strong>Print & Design:</strong> Full end-to-end pipeline (Estimation → Advance Invoice → Design → Sample Approval → Production → Delivery).
-                  </div>
-                )}
               </div>
 
               {/* Row 3: Job Title (Spans 2 columns) */}
@@ -789,14 +1166,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   onChange={(e) => handleInputChange("deliveryMethod", e.target.value)}
                 >
                   <option value="">Select Delivery Method</option>
-                  {(masterDefaults.deliveryMethods.length > 0
-                    ? masterDefaults.deliveryMethods
-                    : [
-                        { name: "Branch Counter Self-Pickup" },
-                        { name: "Local Dispatch / Delivery" },
-                        { name: "Express Courier Service" },
-                      ]
-                  ).map((dm) => (
+                  {DELIVERY_METHODS.map((dm) => (
                     <option key={dm.name} value={dm.name}>
                       {dm.name}
                     </option>
@@ -804,19 +1174,29 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 </select>
               </div>
 
-              {/* Row 5: Reference No & Remarks */}
-              <div className="jf-form-group">
-                <label className="jf-label">Reference No. (Optional)</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  placeholder="e.g. PO-12345"
-                  value={formData.referenceNo}
-                  onChange={(e) => handleInputChange("referenceNo", e.target.value)}
-                />
-              </div>
+              {/* Row 5: Quality check toggle (Print Only only) */}
+              {formData.jobType === "Print Only" && (
+                <div className="jf-form-group" style={{ gridColumn: "1 / -1" }}>
+                 
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                    <label
+                      style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontWeight: 600, fontSize: "0.875rem" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.qcRequired !== false}
+                        onChange={(e) => handleInputChange("qcRequired", e.target.checked)}
+                        style={{ width: 18, height: 18, accentColor: "#059669" }}
+                      />
+                      QC required for this job
+                    </label>
+                   
+                  </div>
+                </div>
+              )}
 
-              <div className="jf-form-group">
+              {/* Row 6: Remarks */}
+              <div className="jf-form-group" style={{ gridColumn: "1 / -1" }}>
                 <label className="jf-label">Remarks (Optional)</label>
                 <input
                   type="text"
@@ -971,7 +1351,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               </div>
 
               <div className="jf-form-group">
-                <label className="jf-label">Unit Price (RM)</label>
+                <label className="jf-label">Unit Price (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -999,9 +1379,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   }}
                 >
                   <span style={{ fontSize: "0.8125rem", color: "#166534" }}>
-                    {formData.quantity || 1} pcs × RM {currentUnitPrice.toFixed(2)}
+                    {currentQuantity} pcs × ₹{currentUnitPrice.toFixed(2)}
                   </span>
-                  <strong style={{ fontSize: "1rem", color: "#15803d" }}>RM {productCost.toFixed(2)}</strong>
+                  <strong style={{ fontSize: "1rem", color: "#15803d" }}>₹{productCost.toFixed(2)}</strong>
                 </div>
               </div>
             </div>
@@ -1009,250 +1389,287 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         </div>
 
         {/* ========================================================================= */}
-        {/* CARD 3: Add Finishing Services (Row 2, Column 1)                           */}
+        {/* ROW 2: Finishing Services (Wider ~65%) & Upload Artwork (Narrower ~35%)   */}
         {/* ========================================================================= */}
-        <div className="jf-card">
-          <div className="jf-card-header">
-            <h3 className="jf-card-title">Add Finishing Services</h3>
-          </div>
-
-          <div className="jf-card-body-stretch">
-            {/* Quick Add Chips */}
-            <div style={{ marginBottom: "1rem" }}>
-              <span className="jf-label">Quick Add (Common Services):</span>
-              <div className="jf-chips-wrap">
-                {(masterDefaults.finishingServicesList.length > 0
-                  ? masterDefaults.finishingServicesList.map((s) => s.name)
-                  : [
-                      "Lamination",
-                      "Cutting",
-                      "Trimming",
-                      "Binding",
-                      "Folding",
-                      "Creasing",
-                      "Die Cutting",
-                      "Foiling",
-                      "UV Coating",
-                      "Mounting",
-                      "Perforation",
-                      "Numbering",
-                      "Packing",
-                    ]
-                ).map((svc) => (
-                  <button
-                    key={svc}
-                    type="button"
-                    className="jf-chip-btn"
-                    onClick={() => addQuickFinishing(svc)}
-                  >
-                    + {svc}
-                  </button>
-                ))}
-              </div>
+        <div className="jf-finishing-upload-row">
+          {/* CARD 3: Finishing Services (Wider) */}
+          <div className="jf-card">
+            <div className="jf-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className="jf-card-title">Finishing Services</h3>
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary jf-btn-sm"
+                style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+                onClick={handleAddFinishingRow}
+              >
+                <Plus size={14} /> Add Service
+              </button>
             </div>
 
-            {/* Finishing Services Table (Static 3 rows, scrollable for 4+ rows) */}
-            <div className="jf-table-scroll-3rows" style={{ marginBottom: "1rem" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "28px", padding: "0.5rem 0.5rem" }}>#</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Finishing Service</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Config</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Price</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Qty</th>
-                    <th style={{ padding: "0.5rem 0.5rem" }}>Total</th>
-                    <th style={{ padding: "0.5rem 0.5rem", textAlign: "right" }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.finishingServices.map((svc, idx) => (
-                    <tr key={svc.id}>
-                      <td style={{ padding: "0.35rem 0.5rem" }}>{idx + 1}</td>
-                      <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}><strong>{svc.name}</strong></td>
-                      <td style={{ padding: "0.35rem 0.5rem" }}>
-                        <select
-                          className="jf-select"
-                          style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "28px", width: "auto", minWidth: "125px" }}
-                          value={svc.config}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setFormData((prev) => ({
-                              ...prev,
-                              finishingServices: prev.finishingServices.map((s) => s.id === svc.id ? { ...s, config: val } : s),
-                            }));
-                          }}
-                        >
-                          {String(svc.name || "").toLowerCase().includes("lamination") ? (
-                            <>
-                              <option value="Matte">Matte</option>
-                              <option value="Gloss">Gloss</option>
-                              <option value="Velvet Soft Touch">Velvet Soft Touch</option>
-                              <option value="Holographic Rainbow">Holographic Rainbow</option>
-                              <option value="Thermal Matte">Thermal Matte</option>
-                              <option value="Thermal Gloss">Thermal Gloss</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("foil") ? (
-                            <>
-                              <option value="Gold Foil Stamping">Gold Foil Stamping</option>
-                              <option value="Silver Foil Stamping">Silver Foil Stamping</option>
-                              <option value="Rose Gold Foil">Rose Gold Foil</option>
-                              <option value="Holographic Foil">Holographic Foil</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("uv") ? (
-                            <>
-                              <option value="Spot UV (Front)">Spot UV (Front)</option>
-                              <option value="Spot UV (Both Sides)">Spot UV (Both Sides)</option>
-                              <option value="Raised Spot UV">Raised Spot UV</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("cut") || String(svc.name || "").toLowerCase().includes("trim") ? (
-                            <>
-                              <option value="Trim to 90 x 54 mm">Trim to 90 x 54 mm</option>
-                              <option value="Die-Cut Round Corners">Die-Cut Round Corners</option>
-                              <option value="Custom Die-Cut">Custom Die-Cut</option>
-                              <option value="Straight Cut">Straight Cut</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("bind") ? (
-                            <>
-                              <option value="Spiral (Black)">Spiral (Black)</option>
-                              <option value="Wire-O Binding">Wire-O Binding</option>
-                              <option value="Saddle Stitching">Saddle Stitching</option>
-                              <option value="Perfect Binding">Perfect Binding</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("fold") || String(svc.name || "").toLowerCase().includes("creas") ? (
-                            <>
-                              <option value="Half Fold">Half Fold</option>
-                              <option value="Tri-Fold (Letter)">Tri-Fold (Letter)</option>
-                              <option value="Z-Fold">Z-Fold</option>
-                              <option value="Creasing Line">Creasing Line</option>
-                            </>
-                          ) : String(svc.name || "").toLowerCase().includes("pack") ? (
-                            <>
-                              <option value="Shrink Wrap">Shrink Wrap</option>
-                              <option value="Carton Packaging">Carton Packaging</option>
-                              <option value="Bundle Packing">Bundle Packing</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="Standard">Standard</option>
-                              <option value="Custom Specification">Custom Specification</option>
-                            </>
-                          )}
-                        </select>
-                      </td>
-                      <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>RM {svc.unitPrice.toFixed(2)}</td>
-                      <td style={{ padding: "0.35rem 0.5rem" }}>{svc.quantity}</td>
-                      <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}><strong>RM {svc.total.toFixed(2)}</strong></td>
-                      <td style={{ padding: "0.35rem 0.5rem", textAlign: "right" }}>
-                        <button
-                          type="button"
-                          className="jf-btn jf-btn-danger-outline jf-btn-sm"
-                          style={{ padding: "2px 6px" }}
-                          onClick={() => removeFinishingService(svc.id)}
-                        >
+            <div className="jf-card-body-stretch">
+              {/* Finishing Services Table */}
+              <div className="jf-table-scroll-3rows" style={{ marginBottom: "1rem" }}>
+                <table className="jf-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "28px", padding: "0.5rem 0.5rem", textAlign: "center" }}>#</th>
+                      <th style={{ padding: "0.5rem 0.5rem", minWidth: "140px" }}>Finishing Service</th>
+                      <th style={{ padding: "0.5rem 0.5rem", minWidth: "140px" }}>Config</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "95px" }}>Price</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "80px" }}>Qty</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "105px" }}>Total</th>
+                      <th style={{ padding: "0.5rem 0.5rem", width: "45px", textAlign: "center" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.finishingServices.map((svc, idx) => (
+                      <tr key={svc.id}>
+                        <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>{idx + 1}</td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <select
+                            className="jf-select"
+                            style={{ padding: "0.2rem 0.4rem", fontSize: "0.78125rem", height: "30px", width: "100%", fontWeight: 600 }}
+                            value={svc.name}
+                            onChange={(e) => handleFinishingServiceChange(svc.id, e.target.value)}
+                          >
+                            {availableFinishingServices.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <select
+                            className="jf-select"
+                            style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
+                            value={svc.config}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((prev) => ({
+                                ...prev,
+                                finishingServices: prev.finishingServices.map((s) => s.id === svc.id ? { ...s, config: val } : s),
+                              }));
+                            }}
+                          >
+                            {String(svc.name || "").toLowerCase().includes("lamination") ? (
+                              <>
+                                <option value="Matte">Matte</option>
+                                <option value="Gloss">Gloss</option>
+                                <option value="Velvet Soft Touch">Velvet Soft Touch</option>
+                                <option value="Holographic Rainbow">Holographic Rainbow</option>
+                                <option value="Thermal Matte">Thermal Matte</option>
+                                <option value="Thermal Gloss">Thermal Gloss</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("foil") ? (
+                              <>
+                                <option value="Gold Foil Stamping">Gold Foil Stamping</option>
+                                <option value="Silver Foil Stamping">Silver Foil Stamping</option>
+                                <option value="Rose Gold Foil">Rose Gold Foil</option>
+                                <option value="Holographic Foil">Holographic Foil</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("uv") ? (
+                              <>
+                                <option value="Spot UV (Front)">Spot UV (Front)</option>
+                                <option value="Spot UV (Both Sides)">Spot UV (Both Sides)</option>
+                                <option value="Raised Spot UV">Raised Spot UV</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("cut") || String(svc.name || "").toLowerCase().includes("trim") ? (
+                              <>
+                                <option value="Trim to 90 x 54 mm">Trim to 90 x 54 mm</option>
+                                <option value="Die-Cut Round Corners">Die-Cut Round Corners</option>
+                                <option value="Custom Die-Cut">Custom Die-Cut</option>
+                                <option value="Straight Cut">Straight Cut</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("bind") ? (
+                              <>
+                                <option value="Spiral (Black)">Spiral (Black)</option>
+                                <option value="Wire-O Binding">Wire-O Binding</option>
+                                <option value="Saddle Stitching">Saddle Stitching</option>
+                                <option value="Perfect Binding">Perfect Binding</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("fold") || String(svc.name || "").toLowerCase().includes("creas") ? (
+                              <>
+                                <option value="Half Fold">Half Fold</option>
+                                <option value="Tri-Fold (Letter)">Tri-Fold (Letter)</option>
+                                <option value="Z-Fold">Z-Fold</option>
+                                <option value="Creasing Line">Creasing Line</option>
+                              </>
+                            ) : String(svc.name || "").toLowerCase().includes("pack") ? (
+                              <>
+                                <option value="Shrink Wrap">Shrink Wrap</option>
+                                <option value="Carton Packaging">Carton Packaging</option>
+                                <option value="Bundle Packing">Bundle Packing</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Standard">Standard</option>
+                                <option value="Custom Specification">Custom Specification</option>
+                              </>
+                            )}
+                          </select>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="jf-input"
+                              style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
+                              value={svc.unitPrice}
+                              onChange={(e) => {
+                                const p = e.target.value === "" ? 0 : Number(e.target.value);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  finishingServices: prev.finishingServices.map((s) =>
+                                    s.id === svc.id ? { ...s, unitPrice: p, total: Math.round(Number(s.quantity || 1) * p * 100) / 100 } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                          </div>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                          <input
+                            type="number"
+                            min="1"
+                            className="jf-input"
+                            style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
+                            value={svc.quantity}
+                            onChange={(e) => {
+                              const q = e.target.value === "" ? 1 : Number(e.target.value);
+                              setFormData((prev) => ({
+                                ...prev,
+                                finishingServices: prev.finishingServices.map((s) =>
+                                  s.id === svc.id ? { ...s, quantity: q, qtyManual: true, total: Math.round(q * Number(s.unitPrice || 0) * 100) / 100 } : s
+                                ),
+                              }));
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>
+                          <strong>₹{finishingRowTotal(svc).toFixed(2)}</strong>
+                        </td>
+                        <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>
+                          <button
+                            type="button"
+                            className="jf-btn jf-btn-danger-outline jf-btn-sm"
+                            style={{ padding: "3px 7px" }}
+                            onClick={() => removeFinishingService(svc.id)}
+                            title="Remove finishing service"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {formData.finishingServices.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: "center", color: "#64748b", padding: "2rem 1rem" }}>
+                          <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.85rem" }}>No finishing services added yet.</p>
+                          <button
+                            type="button"
+                            className="jf-btn jf-btn-secondary jf-btn-sm"
+                            onClick={handleAddFinishingRow}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+                          >
+                            <Plus size={14} /> Add Finishing Service
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Total Bar pinned to bottom */}
+              <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f0fdf4", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Total Estimated Cost:</span>
+                  <span style={{ fontSize: "0.75rem", color: "#15803d" }}>
+                    Product: ₹{productCost.toFixed(2)} {finishingTotal > 0 ? `+ Finishing: ₹${finishingTotal.toFixed(2)}` : "(Finishing: ₹0.00)"}
+                  </span>
+                </div>
+                <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>₹{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 4: Upload Artwork & References (Narrower) */}
+          <div className="jf-card">
+            <div className="jf-card-header">
+              <h3 className="jf-card-title">Upload Artwork & References</h3>
+            </div>
+
+            <div className="jf-card-body-stretch">
+              {/* Dropzone */}
+              <label className="jf-dropzone" style={{ display: "block", marginBottom: "1rem", padding: "1rem" }}>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.ai,.psd,.cdr"
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                />
+                <Upload size={26} style={{ color: "var(--jf-primary)", margin: "0 auto 0.4rem" }} />
+                <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.8125rem" }}>
+                  Click to <span style={{ color: "var(--jf-primary)", textDecoration: "underline" }}>browse</span> and attach files
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "#475569", marginTop: "2px" }}>
+                  PDF, JPG, PNG, AI, PSD, CDR (Max {MAX_UPLOAD_MB}MB each)
+                </div>
+              </label>
+
+              {/* Uploaded Files List */}
+              {formData.uploadedFiles.length > 0 && (
+                <div style={{ marginBottom: "1rem" }}>
+                  <h4 style={{ fontSize: "0.8125rem", margin: "0 0 0.5rem 0", color: "#0f172a", fontWeight: 600 }}>
+                    Uploaded Files ({formData.uploadedFiles.length})
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "140px", overflowY: "auto" }}>
+                    {formData.uploadedFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0.5rem 0.75rem",
+                          border: "1px solid var(--jf-border)",
+                          borderRadius: "6px",
+                          background: "#f8fafc",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <FileText size={16} style={{ color: "#ef4444" }} />
+                          <div>
+                            <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{file.name}</div>
+                            <div style={{ fontSize: "0.75rem", color: "#475569" }}>{file.size} • {file.type}</div>
+                          </div>
+                        </div>
+                        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" style={{ padding: "2px 6px" }} onClick={() => removeFile(idx)}>
                           <Trash2 size={13} />
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {formData.finishingServices.length === 0 && (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: "center", color: "#475569", padding: "2rem" }}>
-                        No finishing services added yet. Click a chip above to add.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Total Bar pinned to bottom */}
-            <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f0fdf4", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Total Estimated Cost:</span>
-                <span style={{ fontSize: "0.75rem", color: "#15803d" }}>
-                  Product: RM {productCost.toFixed(2)} {finishingTotal > 0 ? `+ Finishing: RM ${finishingTotal.toFixed(2)}` : "(Finishing: RM 0.00)"}
-                </span>
-              </div>
-              <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>RM {grandTotal.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* CARD 4: Upload Artwork & References (Row 2, Column 2)                      */}
-        {/* ========================================================================= */}
-        <div className="jf-card">
-          <div className="jf-card-header">
-            <h3 className="jf-card-title">Upload Artwork & References</h3>
-          </div>
-
-          <div className="jf-card-body-stretch">
-            {/* Dropzone */}
-            <label className="jf-dropzone" style={{ display: "block", marginBottom: "1rem", padding: "1.25rem 1rem" }}>
-              <input
-                type="file"
-                multiple
-                accept=".pdf,.png,.jpg,.jpeg,.ai,.psd"
-                onChange={handleFileUpload}
-                style={{ display: "none" }}
-              />
-              <Upload size={28} style={{ color: "var(--jf-primary)", margin: "0 auto 0.5rem" }} />
-              <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.875rem" }}>
-                Drag and drop files here or <span style={{ color: "var(--jf-primary)", textDecoration: "underline" }}>click to upload</span>
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "4px" }}>
-                Supported formats: PDF, JPG, PNG, AI, PSD, CDR (Max 10MB)
-              </div>
-            </label>
-
-            {/* Uploaded Files List */}
-            {formData.uploadedFiles.length > 0 && (
-              <div style={{ marginBottom: "1rem" }}>
-                <h4 style={{ fontSize: "0.8125rem", margin: "0 0 0.5rem 0", color: "#0f172a", fontWeight: 600 }}>
-                  Uploaded Files ({formData.uploadedFiles.length})
-                </h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "140px", overflowY: "auto" }}>
-                  {formData.uploadedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "0.5rem 0.75rem",
-                        border: "1px solid var(--jf-border)",
-                        borderRadius: "6px",
-                        background: "#f8fafc",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <FileText size={16} style={{ color: "#ef4444" }} />
-                        <div>
-                          <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{file.name}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{file.size} • {file.type}</div>
-                        </div>
                       </div>
-                      <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" style={{ padding: "2px 6px" }} onClick={() => removeFile(idx)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Special Instructions pinned to bottom */}
-            <div className="jf-form-group" style={{ marginTop: "auto" }}>
-              <label className="jf-label">Special Instructions (Optional)</label>
-              <textarea
-                className="jf-textarea"
-                rows={3}
-                value={formData.specialInstructions}
-                onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
-                placeholder="Mention specific Pantone codes, packaging requirements or sample signoff instructions..."
-                style={{ minHeight: "68px" }}
-              />
+              {/* Special Instructions pinned to bottom */}
+              <div className="jf-form-group" style={{ marginTop: "auto" }}>
+                <label className="jf-label">Special Instructions (Optional)</label>
+                <textarea
+                  className="jf-textarea"
+                  rows={3}
+                  value={formData.specialInstructions}
+                  onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
+                  placeholder="Mention specific Pantone codes, packaging requirements or sample signoff instructions..."
+                  style={{ minHeight: "68px" }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1297,7 +1714,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 <div><strong>Quantity:</strong> {formData.quantity ? `${formData.quantity} pcs` : "-"}</div>
                 <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.4rem", display: "flex", justifyContent: "space-between" }}>
                   <strong>Product Cost:</strong>
-                  <strong style={{ color: "#15803d" }}>RM {productCost.toFixed(2)}</strong>
+                  <strong style={{ color: "#15803d" }}>₹{productCost.toFixed(2)}</strong>
                 </div>
               </div>
             </div>
@@ -1322,16 +1739,16 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               <div><span style={{ color: "#475569" }}>Due Date:</span> {formData.targetDueDate || "-"}</div>
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.5rem", marginTop: "0.25rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Product Cost ({formData.quantity || 1} pcs @ RM {currentUnitPrice.toFixed(2)}):</span>
-                  <strong style={{ color: "#0f172a" }}>RM {productCost.toFixed(2)}</strong>
+                  <span style={{ color: "#475569" }}>Product Cost ({currentQuantity} pcs @ ₹{currentUnitPrice.toFixed(2)}):</span>
+                  <strong style={{ color: "#0f172a" }}>₹{productCost.toFixed(2)}</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
                   <span style={{ color: "#475569" }}>Finishing Services Total:</span>
-                  <span style={{ color: "#475569" }}>RM {finishingTotal.toFixed(2)}</span>
+                  <span style={{ color: "#475569" }}>₹{finishingTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #cbd5e1", paddingTop: "0.4rem", marginTop: "0.15rem" }}>
                   <strong style={{ color: "#0f172a", fontSize: "0.875rem" }}>Estimated Order Total:</strong>
-                  <strong style={{ color: "#15803d", fontSize: "1.125rem" }}>RM {grandTotal.toFixed(2)}</strong>
+                  <strong style={{ color: "#15803d", fontSize: "1.125rem" }}>₹{grandTotal.toFixed(2)}</strong>
                 </div>
               </div>
             </div>
@@ -1348,9 +1765,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 type="button"
                 className="jf-btn jf-btn-primary"
                 onClick={() => handleSubmitJob(false)}
-                disabled={loading}
+                disabled={loading || editLoading}
               >
-                <CheckCircle size={16} /> {loading ? "Creating..." : (isDesigner ? "Create Designer Job" : "Create Job Order")}
+                <CheckCircle size={16} /> {loading ? (isEditMode ? "Saving..." : "Creating...") : isEditMode ? "Save Changes" : isDesigner ? "Create Designer Job" : "Create Job Order"}
               </button>
             </div>
           </div>
@@ -1381,7 +1798,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
   return (
     <JobFlowLayout
-      title={isDesigner ? "Create Designer Job Order" : "Create Job Order"}
+      title={isEditMode ? `Edit Job Order${editJobNo ? ` - ${editJobNo}` : ""}` : isDesigner ? "Create Designer Job Order" : "Create Job Order"}
       actions={
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
@@ -1395,9 +1812,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
             type="button"
             className="jf-btn jf-btn-primary jf-btn-sm"
             onClick={() => handleSubmitJob(false)}
-            disabled={loading}
+            disabled={loading || editLoading}
           >
-            <CheckCircle size={14} /> {loading ? "Creating..." : (isDesigner ? "Create Designer Job" : "Create Job Order")}
+            <CheckCircle size={14} /> {loading ? (isEditMode ? "Saving..." : "Creating...") : isEditMode ? "Save Changes" : isDesigner ? "Create Designer Job" : "Create Job Order"}
           </button>
         </div>
       }

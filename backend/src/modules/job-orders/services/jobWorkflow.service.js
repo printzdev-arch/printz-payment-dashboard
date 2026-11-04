@@ -3,6 +3,7 @@ const jobWorkflowEventRepository = require("../models/JobWorkflowEvent");
 const ProductionStateService = require("../../production/services/productionState.service");
 const { STAGE_STATUS, JOB_STAGES, JOB_STATUSES } = require("../constants/jobStages");
 const { TRANSITIONS } = require("../constants/jobTransitions");
+const { getFlowViolation } = require("../constants/jobFlows");
 const { emitJobEvent } = require("../events/jobEvents.emitter");
 const ErrorHelper = require("../../../utils/ApiError");
 
@@ -27,6 +28,11 @@ class JobWorkflowService {
       throw ErrorHelper.conflict(
         `Invalid stage transition: '${currentStage}' -> '${toStage}' is not permitted.`
       );
+    }
+
+    const flowViolation = getFlowViolation(job, currentStage, toStage);
+    if (flowViolation) {
+      throw ErrorHelper.conflict(`Invalid stage transition: '${currentStage}' -> '${toStage}'. ${flowViolation}`);
     }
 
     const fromStage = currentStage;

@@ -1,30 +1,45 @@
+const mongoose = require("mongoose");
 const jobOrderRepository = require("../../job-orders/models/JobOrder");
 const jobAssignmentRepository = require("../models/JobAssignment");
 const JobWorkflowService = require("../../job-orders/services/jobWorkflow.service");
 const ProductionStateService = require("../../production/services/productionState.service");
 const { emitJobEvent } = require("../../job-orders/events/jobEvents.emitter");
+const DesignHelper = require("../helpers/DesignHelper");
 const ErrorHelper = require("../../../utils/ApiError");
 
+const sameUser = (assignedId, user) => {
+  const empId = user?.employeeId ? String(user.employeeId) : null;
+  return assignedId === String(user?._id) || (empId && assignedId === empId);
+};
+
 class DesignWorkService {
-  static async getActiveAssignment(jobId, user) {
+  /**
+   * The current assignment of the job, if the user may act on it: the assigned designer, or a manager / admin
+   * of the job's branch.
+   */
+  static async getActiveAssignment(jobId, user, { designerOnly = false } = {}) {
+    const job = await jobOrderRepository.findById(jobId);
+    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+
     const assignment = await jobAssignmentRepository.findOne({
       jobOrderId: jobId,
       assignmentType: "DESIGNER",
       currentAssignment: true,
       status: "ACTIVE",
     });
-
     if (!assignment) {
       throw ErrorHelper.notFound("No active designer assignment found for this Job Order.");
     }
 
     const assignedId = String(assignment.employeeId?._id || assignment.employeeId);
-    const isPrivileged = ["admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"].includes(user.role);
-    if (!isPrivileged && assignedId !== String(user._id)) {
-      throw ErrorHelper.forbidden("This job is not assigned to you.");
-    }
+    const isAssigned = sameUser(assignedId, user);
 
-    return assignment;
+    if (isAssigned) return assignment;
+    if (!designerOnly && DesignHelper.isManagerOrAdmin(user)) {
+      DesignHelper.assertBranchAccess(job, user);
+      return assignment;
+    }
+    throw ErrorHelper.forbidden("This job is not assigned to you.");
   }
 
   /**
@@ -40,20 +55,15 @@ class DesignWorkService {
       await assignment.save();
     }
 
-    // Advance job stage to DESIGN_IN_PROGRESS so status updates from Assigned to In Progress / Accepted
-    try {
+    const job = await jobOrderRepository.findById(jobId);
+    if (String(job.currentStage).toUpperCase() === "DESIGN_ASSIGNED") {
       await JobWorkflowService.transition(jobId, "DESIGN_IN_PROGRESS", {
         actorId: user._id,
         user,
-        patch: {
-          designStatus: "IN_PROGRESS",
-        },
+        patch: { designStatus: "IN_PROGRESS" },
       });
-    } catch (err) {
-      await jobOrderRepository.findOneAndUpdate(
-        { _id: jobId },
-        { $set: { currentStage: "DESIGN_IN_PROGRESS", status: "DESIGN", designStatus: "IN_PROGRESS" } }
-      );
+    } else if (!["DESIGN_IN_PROGRESS", "REVISION"].includes(String(job.currentStage).toUpperCase())) {
+      throw ErrorHelper.conflict(`This job order is at stage '${job.currentStage}' and cannot be accepted for design.`);
     }
 
     await ProductionStateService.logAudit({
@@ -70,7 +80,8 @@ class DesignWorkService {
   }
 
   /**
-   * Designer rejects assigned job (before acceptance).
+   * Designer rejects assigned job (before acceptance). Only the assigned designer can reject;
+   * a manager changes the designer with reassign instead.
    */
   static async reject(jobId, rejectionReason, user) {
     let cleanReason = "";
@@ -84,19 +95,12 @@ class DesignWorkService {
       throw ErrorHelper.badRequest("Rejection reason is required.");
     }
 
-    const assignment = await this.getActiveAssignment(jobId, user);
+    const assignment = await this.getActiveAssignment(jobId, user, { designerOnly: true });
     if (assignment.acceptedAt) {
       throw ErrorHelper.conflict("An accepted assignment cannot be rejected; it can only be changed by reassign.");
     }
 
     const now = new Date();
-    assignment.status = "REJECTED";
-    assignment.rejectedAt = now;
-    assignment.releasedAt = now;
-    assignment.currentAssignment = false;
-    assignment.rejectionReason = cleanReason;
-    await assignment.save();
-
     await JobWorkflowService.transition(jobId, "DESIGN_QUEUE", {
       actorId: user._id,
       reason: cleanReason,
@@ -110,19 +114,12 @@ class DesignWorkService {
       user,
     });
 
-    // Explicitly guarantee JobOrder fields are cleared & rejection reason persisted
-    await jobOrderRepository.findOneAndUpdate(
-      { _id: jobId },
-      {
-        $set: {
-          designerId: null,
-          designerName: "",
-          assignedAt: null,
-          designStatus: "REJECTED",
-          designRejectionReason: cleanReason,
-        },
-      }
-    );
+    assignment.status = "REJECTED";
+    assignment.rejectedAt = now;
+    assignment.releasedAt = now;
+    assignment.currentAssignment = false;
+    assignment.rejectionReason = cleanReason;
+    await assignment.save();
 
     await ProductionStateService.logAudit({
       action: "REJECT",
@@ -150,23 +147,23 @@ class DesignWorkService {
     const job = await jobOrderRepository.findById(jobId);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
 
+    const stage = String(job.currentStage || "").toUpperCase();
     const isRevision = Boolean(
-      job && (
-        job.designStatus === "REJECTED_SAMPLE" ||
+      job.designStatus === "REJECTED_SAMPLE" ||
         job.designStatus === "STARTED_REVISION" ||
         job.designStatus === "REVISION" ||
-        job.currentStage === "REVISION" ||
-        job.stage === "REVISION"
-      )
+        stage === "REVISION"
     );
 
     if (isRevision) {
-      // Validate authorization: must be assigned designer or manager/admin
-      const isPrivileged = ["admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"].includes(user.role);
+      // Only the designer of the job (or a manager of its branch) may start the revision
       const assignedId = job.designerId ? String(job.designerId._id || job.designerId) : "";
-      const isAssigned = assignedId && assignedId === String(user._id);
-      if (!isPrivileged && !isAssigned) {
-        throw ErrorHelper.forbidden("Unauthorized: Revision can only be started by the assigned designer.");
+      const isAssigned = assignedId && sameUser(assignedId, user);
+      if (!isAssigned) {
+        if (!DesignHelper.isManagerOrAdmin(user)) {
+          throw ErrorHelper.forbidden("Unauthorized: Revision can only be started by the assigned designer.");
+        }
+        DesignHelper.assertBranchAccess(job, user);
       }
 
       // Prevent multiple simultaneous starts for the same revision
@@ -180,12 +177,7 @@ class DesignWorkService {
         isRevisionStarted: true,
         revisionStartedAt: job.revisionStartedAt || now,
       };
-
-      const updated = await jobOrderRepository.findOneAndUpdate(
-        { _id: jobId },
-        { $set: patch },
-        { new: true }
-      );
+      const updated = await jobOrderRepository.findOneAndUpdate({ _id: jobId }, { $set: patch }, { new: true });
 
       await ProductionStateService.logAudit({
         action: "START_REVISION",
@@ -199,87 +191,63 @@ class DesignWorkService {
       return updated || job;
     }
 
-    // Normal job start (first-time work from PENDING_DESIGNER_APPROVAL or ASSIGNED)
-    try {
-      const assignment = await this.getActiveAssignment(jobId, user);
-      if (assignment && !assignment.acceptedAt) {
-        assignment.acceptedAt = new Date();
-        await assignment.save();
-      }
-    } catch {
-      // Direct assignment or revision job without active acceptance lock
+    // First-time start: only the assigned designer (or a manager of the branch), and only from the assigned stage
+    const assignment = await this.getActiveAssignment(jobId, user);
+    if (!assignment.acceptedAt) {
+      assignment.acceptedAt = new Date();
+      await assignment.save();
     }
 
-    const patch = {
-      designStatus: "IN_PROGRESS",
-    };
-
-    let updated;
-    try {
-      updated = await JobWorkflowService.transition(jobId, "DESIGN_IN_PROGRESS", {
-        actorId: user._id,
-        user,
-        patch,
-      });
-    } catch {
-      updated = await jobOrderRepository.findOneAndUpdate(
-        { _id: jobId },
-        {
-          $set: {
-            currentStage: "DESIGN_IN_PROGRESS",
-            stage: "DESIGN_IN_PROGRESS",
-            ...patch,
-          },
-        },
-        { new: true }
-      );
+    if (stage === "DESIGN_IN_PROGRESS") return job;
+    if (stage !== "DESIGN_ASSIGNED") {
+      throw ErrorHelper.conflict(`This job order is at stage '${job.currentStage}' and design work cannot be started.`);
     }
 
-    // Explicitly guarantee fields are saved on JobOrder
-    await jobOrderRepository.findOneAndUpdate(
-      { _id: jobId },
-      { $set: patch }
-    );
+    const updated = await JobWorkflowService.transition(jobId, "DESIGN_IN_PROGRESS", {
+      actorId: user._id,
+      user,
+      patch: { designStatus: "IN_PROGRESS" },
+    });
 
     emitJobEvent("design.started", { jobId: String(jobId), isRevision: false });
     return updated || job;
   }
 
   /**
-   * List jobs assigned to current designer or target designer (or all designers if privileged/requested).
+   * Jobs assigned to the current designer. A manager can look at one designer or at all of them,
+   * limited to their own branch. A designer always gets only their own jobs.
    */
   static async myJobs(user, state = null, targetDesignerId = null) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
-    const mongoose = require("mongoose");
     const match = {
       assignmentType: "DESIGNER",
       status: "ACTIVE",
       currentAssignment: true,
     };
 
-    if (targetDesignerId && targetDesignerId !== "all") {
+    const privileged = DesignHelper.isManagerOrAdmin(user);
+    if (!privileged) {
+      match.employeeId = user._id;
+    } else if (targetDesignerId && targetDesignerId !== "all") {
       match.employeeId = mongoose.Types.ObjectId.isValid(targetDesignerId)
         ? new mongoose.Types.ObjectId(targetDesignerId)
         : targetDesignerId;
-    } else if (!targetDesignerId) {
-      const isPrivileged = [
-        "admin", "superadmin", "SUPER_ADMIN", "manager", "branch_manager", "BRANCH_MANAGER", "store_manager"
-      ].includes(user.role);
-      if (!isPrivileged) {
-        match.employeeId = user._id;
-      }
     }
 
     if (state === "PENDING") match.acceptedAt = null;
     if (state === "ACCEPTED") match.acceptedAt = { $ne: null };
 
+    const branchId = privileged ? DesignHelper.scopeBranchId(user) : null;
+
     return jobAssignmentRepository.aggregate([
       { $match: match },
       { $lookup: { from: "jobOrders", localField: "jobOrderId", foreignField: "_id", as: "job" } },
       { $unwind: "$job" },
+      ...(branchId ? [{ $match: { "job.branchId": new mongoose.Types.ObjectId(branchId) } }] : []),
       { $lookup: { from: "users", localField: "employeeId", foreignField: "_id", as: "designerUser" } },
       { $unwind: { path: "$designerUser", preserveNullAndEmptyArrays: true } },
+      { $project: { "designerUser.password": 0 } },
       { $sort: { "job.dueDate": 1, assignedAt: 1 } },
     ]);
   }

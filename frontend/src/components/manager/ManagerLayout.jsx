@@ -41,7 +41,6 @@ import {
   CreditCard,
   Activity,
   Sliders,
-  Edit2,
   UserCheck,
   MessageCircle,
   FileCheck,
@@ -145,12 +144,8 @@ const getManagerPageTitle = (pathname, search = "") => {
   if (pathname.includes("/delivery") || pathname.includes("/jobflow/delivery")) {
     const params = new URLSearchParams(search);
     const tab = (params.get("tab") || "").toUpperCase();
-    if (tab === "REVIEW") return "Delivery - Ready for Review";
-    if (tab === "ASSIGNED") return "Delivery - Assigned Staff";
-    if (tab === "PACKED") return "Delivery - Packed & Verified";
-    if (tab === "OUT_FOR_DELIVERY") return "Delivery - Out for Delivery";
-    if (tab === "DELIVERED") return "Delivery - Delivered";
-    return "Delivery Management";
+    if (tab === "DELIVERED") return "Delivery - Delivered & Paid";
+    return "Delivery Dispatch Queue";
   }
   if (pathname.includes("/invoice") || pathname.includes("/invoices") || pathname.includes("/jobflow/invoice")) {
     return "Commercial Tax Invoicing";
@@ -165,25 +160,18 @@ const getManagerPageTitle = (pathname, search = "") => {
   if (pathname.includes("/qc") || pathname.includes("/quality-control") || pathname.includes("/jobflow/qc")) {
     const params = new URLSearchParams(search);
     const tab = params.get("tab");
-    if (tab === "15A" || tab === "queue" || tab === "overview") return "QC Queue & Overview";
-    if (tab === "15B" || tab === "inspection" || tab === "form") return "QC Inspection Form";
-    if (tab === "16A" || tab === "rework") return "Operation Rework";
-    if (tab === "16B" || tab === "reprints" || tab === "reprint") return "Reprint Approvals";
-    return "Quality Control & Rework";
+    if (tab === "history" || tab === "reports") return "QC History & Reports";
+    return "QC Inspection Queue";
   }
   if (pathname.includes("/production") || pathname.includes("/jobflow/production")) {
     const params = new URLSearchParams(search);
     const tab = params.get("tab");
-    if (tab === "overview" || pathname.includes("/production/dashboard")) return "Production Dashboard";
     if (tab === "orders" || tab === "details" || pathname.includes("/production/orders")) return "Production Orders";
-    if (tab === "planning" || pathname.includes("/production/planning") || pathname.includes("production-planning")) return "Production Planning";
     if (tab === "queue" || pathname.includes("/production/queue")) return "Operation Queue";
-    if (tab === "completed" || pathname.includes("/production/completed")) return "Completed Production";
     if (tab === "rework" || pathname.includes("/production/rework")) return "Rework & Reprint";
     if (tab === "reprints" || pathname.includes("/production/reprints")) return "Rework & Reprint";
-    if (tab === "machines" || pathname.includes("/production/machines")) return "Machine & Operator Tracking";
     if (tab === "reports" || pathname.includes("/production/reports")) return "Production Reports";
-    return "Production Operations";
+    return "Production Orders";
   }
   if (pathname.includes("/designer-jobs/new") || pathname.includes("/jobflow/designer-jobs/new")) {
     return "Designer Job Create";
@@ -362,10 +350,10 @@ const ManagerLayout = ({ children }) => {
     effectiveRole === "designer" ||
     location.pathname.startsWith("/design") ||
     location.pathname.startsWith("/designer") ||
-    ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah"].some((name) =>
+    ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah", "guna"].some((name) =>
       effectiveName.includes(name)
     ) ||
-    ["ali.hassan", "siti.rahman", "kumar.anil", "john.lee", "nur.aisyah"].some((prefix) =>
+    ["ali.hassan", "siti.rahman", "kumar.anil", "john.lee", "nur.aisyah", "guna@"].some((prefix) =>
       effectiveEmail.includes(prefix)
     );
 
@@ -553,25 +541,17 @@ const ManagerLayout = ({ children }) => {
     const tab = params.get("tab");
     if (tab === "details") return "orders";
     if (tab) return tab;
-    if (
-      location.pathname.includes("/production/planning") ||
-      location.pathname.includes("production-planning")
-    ) {
-      return "planning";
-    }
     if (location.pathname.includes("/production/orders")) return "orders";
     if (location.pathname.includes("/production/queue")) return "queue";
-    if (location.pathname.includes("/production/completed")) return "completed";
     if (location.pathname.includes("/production/rework")) return "rework";
     if (location.pathname.includes("/production/reprints")) return "reprints";
-    if (location.pathname.includes("/production/machines")) return "machines";
     if (location.pathname.includes("/production/reports")) return "reports";
-    return "overview";
+    return "orders";
   })();
 
   const handleProductionClick = (e) => {
     if (!isProductionRoute) {
-      navigate("/jobflow/production?tab=overview");
+      navigate("/production/orders");
       setIsProductionToggled(true);
     } else {
       setIsProductionToggled(!isProductionOpen);
@@ -596,26 +576,10 @@ const ManagerLayout = ({ children }) => {
     if (!isQcRoute) return "";
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
-    if (tab === "15A" || tab === "queue" || tab === "overview" || tab === "dashboard") return "overview";
-    if (tab === "15B" || tab === "form" || tab === "inspection") return "inspection";
-    if (tab === "16A" || tab === "rework" || tab === "rework-requests") return "rework-requests";
-    if (tab === "16B" || tab === "reprints" || tab === "reprint" || tab === "reprint-approvals") return "reprint-approvals";
-    if (tab === "incoming") return "incoming";
-    if (tab === "passed") return "passed";
-    if (tab === "failed") return "failed";
-    if (tab === "reinspection") return "reinspection";
-    if (tab === "history") return "history";
-    if (tab === "reports") return "reports";
-    if (location.pathname.includes("/qc/incoming")) return "incoming";
-    if (location.pathname.includes("/qc/inspection")) return "inspection";
-    if (location.pathname.includes("/qc/passed")) return "passed";
-    if (location.pathname.includes("/qc/failed")) return "failed";
-    if (location.pathname.includes("/qc/rework")) return "rework-requests";
-    if (location.pathname.includes("/qc/reprint")) return "reprint-approvals";
-    if (location.pathname.includes("/qc/reinspection")) return "reinspection";
-    if (location.pathname.includes("/qc/history")) return "history";
-    if (location.pathname.includes("/qc/reports")) return "reports";
-    return tab || "overview";
+    if (tab === "history" || tab === "reports" || location.pathname.includes("/qc/history") || location.pathname.includes("/qc/reports")) {
+      return "history";
+    }
+    return "overview";
   })();
 
   const handleQcClick = () => {
@@ -652,7 +616,8 @@ const ManagerLayout = ({ children }) => {
 
   const handleDeliveryClick = () => {
     if (!isDeliveryRoute) {
-      navigate("/jobflow/delivery?tab=REVIEW");
+      const savedTab = sessionStorage.getItem("delivery_active_tab") || "REVIEW";
+      navigate(`/jobflow/delivery?tab=${savedTab}`);
       setIsDeliveryToggled(true);
     } else {
       setIsDeliveryToggled(!isDeliveryOpen);
@@ -858,7 +823,7 @@ const ManagerLayout = ({ children }) => {
     try {
       localStorage.removeItem("userBranchName");
       await logout();
-      navigate(isDesigner ? "/designer/login" : "/login");
+      navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -1618,20 +1583,6 @@ const ManagerLayout = ({ children }) => {
                   </li>
                   <li className="sidebar-dropdown-item">
                     <Link
-                      to="/jobflow/design?view=workbench"
-                      className={`sidebar-dropdown-link ${currentDesignTab === "workbench" || currentDesignTab === "workspace" ? "active" : ""}`}
-                    >
-                      <div className="sidebar-dropdown-link-left">
-                        <Edit2 size={13} className="sidebar-dropdown-icon" />
-                        <span className="sidebar-dropdown-text">Design Workbench</span>
-                      </div>
-                      {(currentDesignTab === "workbench" || currentDesignTab === "workspace") && (
-                        <span className="sidebar-dropdown-active-dot" />
-                      )}
-                    </Link>
-                  </li>
-                  <li className="sidebar-dropdown-item">
-                    <Link
                       to="/jobflow/design?view=my-jobs"
                       className={`sidebar-dropdown-link ${currentDesignTab === "my-jobs" ? "active" : ""}`}
                     >
@@ -1700,27 +1651,7 @@ const ManagerLayout = ({ children }) => {
                 </NavLink>
               </li>
 
-              {/* 2. Design Workbench */}
-              <li className="sidebar-nav-item">
-                <NavLink
-                  to="/jobflow/design?view=workbench"
-                  className={`sidebar-link ${
-                    isDesignRoute && (currentDesignTab === "workbench" || currentDesignTab === "workspace")
-                      ? "active-link"
-                      : ""
-                  }`}
-                >
-                  <div className="sidebar-link-content">
-                    <Edit2 size={18} className="sidebar-link-icon" />
-                    <span>Design Workbench</span>
-                  </div>
-                  {isDesignRoute && (currentDesignTab === "workbench" || currentDesignTab === "workspace") && (
-                    <ChevronRight size={15} className="sidebar-active-arrow" />
-                  )}
-                </NavLink>
-              </li>
-
-              {/* 3. Customer Review */}
+              {/* 2. Customer Review */}
               <li className="sidebar-nav-item">
                 <NavLink
                   to="/jobflow/design?view=customer-proof"
@@ -1821,22 +1752,7 @@ const ManagerLayout = ({ children }) => {
 
                 <MotionAccordion isOpen={isProductionOpen}>
                   <ul className="sidebar-dropdown-list">
-                    {/* OVERVIEW */}
-                    <li className="sidebar-dropdown-section-header">Overview</li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/production/dashboard"
-                        className={`sidebar-dropdown-link ${currentProductionTab === "overview" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <LayoutDashboard size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Production Dashboard</span>
-                        </div>
-                        {currentProductionTab === "overview" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
+                    {/* 1. Production Orders */}
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/production/orders"
@@ -1851,23 +1767,8 @@ const ManagerLayout = ({ children }) => {
                         )}
                       </Link>
                     </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/production/planning"
-                        className={`sidebar-dropdown-link ${currentProductionTab === "planning" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Calendar size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Production Planning</span>
-                        </div>
-                        {currentProductionTab === "planning" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
 
-                    {/* EXECUTION */}
-                    <li className="sidebar-dropdown-section-header">Execution</li>
+                    {/* 2. Operation Queue */}
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/production/queue"
@@ -1882,23 +1783,8 @@ const ManagerLayout = ({ children }) => {
                         )}
                       </Link>
                     </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/production/completed"
-                        className={`sidebar-dropdown-link ${currentProductionTab === "completed" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <CheckCircle size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Completed Production</span>
-                        </div>
-                        {currentProductionTab === "completed" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
 
-                    {/* REWORK MANAGEMENT: one page, with Rework and Reprint tabs inside */}
-                    <li className="sidebar-dropdown-section-header">Rework Management</li>
+                    {/* 3. Rework & Reprint */}
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/production/rework"
@@ -1916,22 +1802,7 @@ const ManagerLayout = ({ children }) => {
                       </Link>
                     </li>
 
-                    {/* MONITORING */}
-                    <li className="sidebar-dropdown-section-header">Monitoring</li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/production/machines"
-                        className={`sidebar-dropdown-link ${currentProductionTab === "machines" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Monitor size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Machine & Operator Tracking</span>
-                        </div>
-                        {currentProductionTab === "machines" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
+                    {/* 4. Production Reports */}
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/production/reports"
@@ -2008,129 +1879,23 @@ const ManagerLayout = ({ children }) => {
 
                 <MotionAccordion isOpen={isQcOpen}>
                   <ul className="sidebar-dropdown-list">
-                    {/* OVERVIEW */}
-                    <li className="sidebar-dropdown-section-header">Overview</li>
+                    {/* 1. QC Inspection Queue */}
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/jobflow/qc?tab=overview"
-                        className={`sidebar-dropdown-link ${currentQcTab === "overview" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <LayoutDashboard size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">QC Dashboard</span>
-                        </div>
-                        {currentQcTab === "overview" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=incoming"
-                        className={`sidebar-dropdown-link ${currentQcTab === "incoming" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Package size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Incoming QC Queue</span>
-                        </div>
-                        {currentQcTab === "incoming" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-
-                    {/* INSPECTION */}
-                    <li className="sidebar-dropdown-section-header">Inspection</li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=inspection"
-                        className={`sidebar-dropdown-link ${currentQcTab === "inspection" ? "active" : ""}`}
+                        className={`sidebar-dropdown-link ${currentQcTab !== "history" ? "active" : ""}`}
                       >
                         <div className="sidebar-dropdown-link-left">
                           <FileCheck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">QC Inspection</span>
+                          <span className="sidebar-dropdown-text">QC Inspection Queue</span>
                         </div>
-                        {currentQcTab === "inspection" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=passed"
-                        className={`sidebar-dropdown-link ${currentQcTab === "passed" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <CheckCircle2 size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Passed Inspections</span>
-                        </div>
-                        {currentQcTab === "passed" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=failed"
-                        className={`sidebar-dropdown-link ${currentQcTab === "failed" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <AlertTriangle size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Failed Inspections</span>
-                        </div>
-                        {currentQcTab === "failed" && (
+                        {currentQcTab !== "history" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>
                     </li>
 
-                    {/* SMART REWORK */}
-                    <li className="sidebar-dropdown-section-header">Smart Rework</li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=rework-requests"
-                        className={`sidebar-dropdown-link ${currentQcTab === "rework-requests" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <RotateCcw size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Rework Requests</span>
-                        </div>
-                        {currentQcTab === "rework-requests" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=reprint-approvals"
-                        className={`sidebar-dropdown-link ${currentQcTab === "reprint-approvals" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <ShieldCheck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Reprint Approvals</span>
-                        </div>
-                        {currentQcTab === "reprint-approvals" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=reinspection"
-                        className={`sidebar-dropdown-link ${currentQcTab === "reinspection" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <RefreshCw size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">QC Reinspection Queue</span>
-                        </div>
-                        {currentQcTab === "reinspection" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-
-                    {/* MONITORING */}
-                    <li className="sidebar-dropdown-section-header">Monitoring</li>
+                    {/* 2. QC History & Reports */}
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/jobflow/qc?tab=history"
@@ -2138,23 +1903,9 @@ const ManagerLayout = ({ children }) => {
                       >
                         <div className="sidebar-dropdown-link-left">
                           <Clock size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">QC History</span>
+                          <span className="sidebar-dropdown-text">QC History & Reports</span>
                         </div>
                         {currentQcTab === "history" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/qc?tab=reports"
-                        className={`sidebar-dropdown-link ${currentQcTab === "reports" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <BarChart2 size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">QC Reports</span>
-                        </div>
-                        {currentQcTab === "reports" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>
@@ -2224,59 +1975,13 @@ const ManagerLayout = ({ children }) => {
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/jobflow/delivery?tab=REVIEW"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "REVIEW" ? "active" : ""
-                          }`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <ShieldCheck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Ready for Review</span>
-                        </div>
-                        {currentDeliveryTab === "REVIEW" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/delivery?tab=ASSIGNED"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "ASSIGNED" ? "active" : ""
-                          }`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Send size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Assigned Staff</span>
-                        </div>
-                        {currentDeliveryTab === "ASSIGNED" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/delivery?tab=PACKED"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "PACKED" ? "active" : ""
-                          }`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <PackageCheck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Packed & Verified</span>
-                        </div>
-                        {currentDeliveryTab === "PACKED" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/delivery?tab=OUT_FOR_DELIVERY"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "OUT_FOR_DELIVERY" ? "active" : ""
-                          }`}
+                        className={`sidebar-dropdown-link ${currentDeliveryTab !== "DELIVERED" && currentDeliveryTab !== "CLOSURE" ? "active" : ""}`}
                       >
                         <div className="sidebar-dropdown-link-left">
                           <Truck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Out for Delivery</span>
+                          <span className="sidebar-dropdown-text">Delivery Dispatch Queue</span>
                         </div>
-                        {currentDeliveryTab === "OUT_FOR_DELIVERY" && (
+                        {currentDeliveryTab !== "DELIVERED" && currentDeliveryTab !== "CLOSURE" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>
@@ -2284,106 +1989,27 @@ const ManagerLayout = ({ children }) => {
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/jobflow/delivery?tab=DELIVERED"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "DELIVERED" ? "active" : ""
-                          }`}
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "DELIVERED" ? "active" : ""}`}
                       >
                         <div className="sidebar-dropdown-link-left">
                           <CheckCircle size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Delivered</span>
+                          <span className="sidebar-dropdown-text">Delivered & Paid</span>
                         </div>
                         {currentDeliveryTab === "DELIVERED" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>
                     </li>
-                  </ul>
-                </MotionAccordion>
-              </li>
-
-              {/* JobFlow - Settlement with Submenu */}
-              <li className="sidebar-nav-item">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleSettlementClick}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleSettlementClick();
-                    }
-                  }}
-                  className={`sidebar-link ${isSettlementRoute ? "active-link" : ""}`}
-                  style={{
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    ...(isSettlementRoute
-                      ? {
-                        backgroundColor: "rgba(22, 163, 74, 0.15)",
-                        borderLeft: "3px solid #16a34a",
-                        color: "#ffffff",
-                      }
-                      : {}),
-                  }}
-                >
-                  <div className="sidebar-link-content">
-                    <CreditCard
-                      size={18}
-                      className="sidebar-link-icon"
-                      style={isSettlementRoute ? { color: "#16a34a" } : {}}
-                    />
-                    <span>Settlement</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSettlementToggleClick}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      padding: "4px",
-                      cursor: "pointer",
-                      color: isSettlementRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "transform 0.2s ease",
-                      transform: isSettlementOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                    aria-label="Toggle Settlement submenu"
-                  >
-                    <ChevronDown size={15} className="sidebar-link-icon" />
-                  </button>
-                </div>
-
-                <MotionAccordion isOpen={isSettlementOpen}>
-                  <ul className="sidebar-dropdown-list">
                     <li className="sidebar-dropdown-item">
                       <Link
-                        to="/jobflow/settlement?tab=OUTSTANDING_BOARD"
-                        className={`sidebar-dropdown-link ${currentSettlementTab === "OUTSTANDING_BOARD" ? "active" : ""
-                          }`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <CreditCard size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Outstanding Invoices</span>
-                        </div>
-                        {currentSettlementTab === "OUTSTANDING_BOARD" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/settlement?tab=CLOSURE_QUEUE"
-                        className={`sidebar-dropdown-link ${currentSettlementTab === "CLOSURE_QUEUE" ? "active" : ""
-                          }`}
+                        to="/jobflow/delivery?tab=CLOSURE"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "CLOSURE" ? "active" : ""}`}
                       >
                         <div className="sidebar-dropdown-link-left">
                           <Lock size={13} className="sidebar-dropdown-icon" />
                           <span className="sidebar-dropdown-text">Job Closure</span>
                         </div>
-                        {currentSettlementTab === "CLOSURE_QUEUE" && (
+                        {currentDeliveryTab === "CLOSURE" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>

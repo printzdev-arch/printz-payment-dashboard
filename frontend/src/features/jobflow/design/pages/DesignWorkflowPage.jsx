@@ -65,246 +65,6 @@ const getInitials = (name = "") => {
   return name.slice(0, 2).toUpperCase();
 };
 
-// Default designers fallback matching the 6 active staff
-const INITIAL_DESIGNERS = [
-  { _id: "des-01", name: "Ali Hassan", email: "ali.hassan@printz.com", code: "EMP-001", specialization: "Senior Graphic Designer", color: "#2563eb", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-  { _id: "des-02", name: "Siti Rahman", email: "siti.rahman@printz.com", code: "EMP-002", specialization: "Lead Brand Designer", color: "#7c3aed", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-  { _id: "des-03", name: "Kumar Anil", email: "kumar.anil@printz.com", code: "EMP-003", specialization: "Packaging & 3D Specialist", color: "#059669", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-  { _id: "des-04", name: "John Lee", email: "john.lee@printz.com", code: "EMP-004", specialization: "Creative Visualizer", color: "#d97706", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-  { _id: "des-05", name: "Nur Aisyah", email: "nur.aisyah@printz.com", code: "EMP-005", specialization: "Typography & Layout Designer", color: "#db2777", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-  { _id: "des-06", name: "Guna", email: "guna@gmail.com", code: "EMP-006", specialization: "UI & Product Packaging Designer", color: "#0891b2", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-];
-
-// Rich starter invitations & active workbench jobs populated for each designer
-const INITIAL_DESIGNER_JOBS = [
-  // Ali Hassan (des-01)
-  {
-    _id: "demo-ali-01",
-    jobNo: "JO-20250810-001",
-    customerName: "ABC Marketing Sdn Bhd",
-    title: "Corporate Tri-Fold Brochure",
-    priority: "High",
-    designerName: "Ali Hassan",
-    designerId: "des-01",
-    designerEmail: "ali.hassan@printz.com",
-    status: "Assigned",
-    stage: "DESIGN_ASSIGNED",
-    slaDue: "Tomorrow, 5:00 PM",
-    quantity: 1000,
-    size: "A4 (210 × 297 mm) Tri-fold",
-    color: "4C / 4C Full Color",
-    paperType: "150gsm Gloss Art Paper",
-    specialInstructions: "Use corporate blue (#1e40af). Emphasize headline on front cover and place QR code on back panel.",
-  },
-  {
-    _id: "demo-ali-02",
-    jobNo: "JO-20250811-002",
-    customerName: "Starlight Cafe",
-    title: "Artisan Menu Board & Tent Cards",
-    priority: "Normal",
-    designerName: "Ali Hassan",
-    designerId: "des-01",
-    designerEmail: "ali.hassan@printz.com",
-    status: "In Progress",
-    stage: "DESIGN_IN_PROGRESS",
-    slaDue: "18 Oct 2026",
-    quantity: 250,
-    size: "A3 Menu + A6 Tent Cards",
-    color: "4C / 0C Single Side",
-    paperType: "300gsm Matt Art Card + Matte Lamination",
-    specialInstructions: "Chalkboard texture background with elegant gold serif accents.",
-  },
-
-  // Siti Rahman (des-02)
-  {
-    _id: "demo-siti-01",
-    jobNo: "JO-20250812-003",
-    customerName: "Zenith Luxury Group",
-    title: "Premium Brand Identity & Gift Box",
-    priority: "High",
-    designerName: "Siti Rahman",
-    designerId: "des-02",
-    designerEmail: "siti.rahman@printz.com",
-    status: "Assigned",
-    stage: "DESIGN_ASSIGNED",
-    slaDue: "Today, 6:00 PM",
-    quantity: 500,
-    size: "Custom Rigid Box 220 × 160 × 60 mm",
-    color: "Pantone 871C (Gold) + Rich Black",
-    paperType: "157gsm Art Paper wrapped over 2mm Greyboard",
-    specialInstructions: "Hot stamp gold foil for logo mark. Maintain 5mm safe margin around magnetic closure.",
-  },
-  {
-    _id: "demo-siti-02",
-    jobNo: "JO-20250813-004",
-    customerName: "Global Trade Logistics",
-    title: "Annual Sustainability Report 2026",
-    priority: "Normal",
-    designerName: "Siti Rahman",
-    designerId: "des-02",
-    designerEmail: "siti.rahman@printz.com",
-    status: "In Progress",
-    stage: "DESIGN_IN_PROGRESS",
-    slaDue: "20 Oct 2026",
-    quantity: 350,
-    size: "A4 Portrait (40 pages)",
-    color: "4C / 4C Full Color",
-    paperType: "FSC Certified Recycled 120gsm Uncoated",
-    specialInstructions: "Include infographic vector charts for carbon offset section.",
-  },
-
-  // Kumar Anil (des-03)
-  {
-    _id: "demo-kumar-01",
-    jobNo: "JO-20250814-005",
-    customerName: "EcoClean Malaysia",
-    title: "Die-Cut Bottle Label & Outer Sleeve",
-    priority: "High",
-    designerName: "Kumar Anil",
-    designerId: "des-03",
-    designerEmail: "kumar.anil@printz.com",
-    status: "Assigned",
-    stage: "DESIGN_ASSIGNED",
-    slaDue: "Tomorrow, 2:00 PM",
-    quantity: 3000,
-    size: "Die-Cut 140 × 90 mm + Sleeve",
-    color: "CMYK + Spot UV White",
-    paperType: "Waterproof Synthetic PP Sticker",
-    specialInstructions: "Barcode must adhere to EAN-13 standards. 3mm circular bleed required.",
-  },
-  {
-    _id: "demo-kumar-02",
-    jobNo: "JO-20250815-006",
-    customerName: "FreshBite Snack House",
-    title: "Custom Stand-up Food Pouch",
-    priority: "Normal",
-    designerName: "Kumar Anil",
-    designerId: "des-03",
-    designerEmail: "kumar.anil@printz.com",
-    status: "In Progress",
-    stage: "DESIGN_IN_PROGRESS",
-    slaDue: "19 Oct 2026",
-    quantity: 2000,
-    size: "160 × 240 × 70 mm Zipper Pouch",
-    color: "6 Colors Gravure CMYK + White + Metallic",
-    paperType: "Kraft Paper + Aluminum Barrier Foil",
-    specialInstructions: "Transparent product window on lower right corner.",
-  },
-
-  // John Lee (des-04)
-  {
-    _id: "demo-john-01",
-    jobNo: "JO-20250816-007",
-    customerName: "Apex Tech Summit 2026",
-    title: "Keynote Stage Backdrop & Roll-Up Banners",
-    priority: "High",
-    designerName: "John Lee",
-    designerId: "des-04",
-    designerEmail: "john.lee@printz.com",
-    status: "Assigned",
-    stage: "DESIGN_ASSIGNED",
-    slaDue: "Today, 4:00 PM",
-    quantity: 4,
-    size: "Backdrop: 6 × 3 meters | Banners: 850 × 2000 mm",
-    color: "CMYK Large-Format UV",
-    paperType: "440gsm Heavy Duty Tarpaulin & Synthetic Film",
-    specialInstructions: "Sponsor logos at top banner must be strictly aligned and sized proportionally.",
-  },
-  {
-    _id: "demo-john-02",
-    jobNo: "JO-20250817-008",
-    customerName: "Pulse Concert Series",
-    title: "VIP Hologram Event Passes & Lanyards",
-    priority: "Normal",
-    designerName: "John Lee",
-    designerId: "des-04",
-    designerEmail: "john.lee@printz.com",
-    status: "In Progress",
-    stage: "DESIGN_IN_PROGRESS",
-    slaDue: "21 Oct 2026",
-    quantity: 600,
-    size: "CR80 85.6 × 54 mm",
-    color: "CMYK + Holographic Foil Overlay",
-    paperType: "Solid PVC 0.76mm Plastic Card",
-    specialInstructions: "Variable QR code positioning for scanner entry gates.",
-  },
-
-  // Nur Aisyah (des-05)
-  {
-    _id: "demo-nur-01",
-    jobNo: "JO-20250818-009",
-    customerName: "Heritage Publishing House",
-    title: "Historical Monograph Book Jacket & Interior",
-    priority: "Normal",
-    designerName: "Nur Aisyah",
-    designerId: "des-05",
-    designerEmail: "nur.aisyah@printz.com",
-    status: "Assigned",
-    stage: "DESIGN_ASSIGNED",
-    slaDue: "22 Oct 2026",
-    quantity: 800,
-    size: "Royal Octavo (156 × 234 mm)",
-    color: "1C / 1C Interior + 4C Foil Jacket",
-    paperType: "Munken Pure Cream 90gsm + Cloth Cover with French Flaps",
-    specialInstructions: "Use classical serif font pairing (Adobe Caslon Pro & Garamond).",
-  },
-  {
-    _id: "demo-nur-02",
-    jobNo: "JO-20250819-010",
-    customerName: "Bloom Organic Skincare",
-    title: "Spring Season Product Catalog",
-    priority: "High",
-    designerName: "Nur Aisyah",
-    designerId: "des-05",
-    designerEmail: "nur.aisyah@printz.com",
-    status: "In Progress",
-    stage: "DESIGN_IN_PROGRESS",
-    slaDue: "Tomorrow, 11:00 AM",
-    quantity: 1200,
-    size: "Square 210 × 210 mm (24 pages)",
-    color: "4C / 4C Full Color",
-    paperType: "200gsm Silk Cover / 130gsm Silk Inner",
-    specialInstructions: "Soft pastel peach and mint tones. Preserve delicate drop shadows on cosmetics mockup photos.",
-  },
-
-  // Guna (des-06)
-  {
-    _id: "demo-guna-01",
-    jobNo: "JO-20250820-011",
-    customerName: "Apex Retail Solutions",
-    title: "Eco Kraft Shopping Bags & Hangtags",
-    priority: "Normal",
-    designerName: "Guna",
-    designerId: "des-06",
-    designerEmail: "guna@gmail.com",
-    status: "Assigned",
-    stage: "DESIGN_ASSIGNED",
-    slaDue: "24 Oct 2026",
-    quantity: 1500,
-    size: "320 × 260 × 120 mm",
-    color: "2C Pantone Earth Tone",
-    paperType: "180gsm Unbleached Recycled Kraft Paper",
-    specialInstructions: "Include FSC recycling symbol on bottom gusset.",
-  },
-  {
-    _id: "demo-guna-02",
-    jobNo: "JO-20250821-012",
-    customerName: "Nova Tech Summit",
-    title: "Conference Badges & Agenda Booklet",
-    priority: "High",
-    designerName: "Guna",
-    designerId: "des-06",
-    designerEmail: "guna@gmail.com",
-    status: "In Progress",
-    stage: "DESIGN_IN_PROGRESS",
-    slaDue: "Today, 6:00 PM",
-    quantity: 450,
-    size: "A6 Booklet + PVC RFID Badges",
-    color: "CMYK + Spot UV on cover",
-    paperType: "250gsm Art Card Cover / 100gsm Woodfree Text",
-    specialInstructions: "High contrast typography for dark stage environments.",
-  },
-];
 
 export const DesignWorkflowPage = () => {
   const navigate = useNavigate();
@@ -325,14 +85,15 @@ export const DesignWorkflowPage = () => {
   const effectiveName = (currentUser?.name || storedUser?.name || localStorage.getItem("userName") || "").toLowerCase();
   const effectiveEmail = (currentUser?.email || storedUser?.email || localStorage.getItem("userEmail") || "").toLowerCase();
 
+  // Same people the server lets run the queue and approve proofs
   const isManagerOrAdmin = [
     "manager",
+    "branch_manager",
+    "branch_manager1",
+    "store_manager",
     "admin",
+    "super_admin",
     "superadmin",
-    "owner",
-    "supervisor",
-    "cashier",
-    "sales",
   ].includes(effectiveRole);
 
   const isDesignerUser =
@@ -547,7 +308,12 @@ export const DesignWorkflowPage = () => {
   const handleDownloadProof = () => {
     toast.info("Preparing design proof for download...");
     const link = document.createElement("a");
-    link.href = uploadedSampleUrl || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000";
+    const proofFile = uploadedSampleUrl || currentWorkbenchJob?.designProofUrl || currentWorkbenchJob?.raw?.designProofUrl;
+    if (!proofFile) {
+      toast.error("There is no proof file to download yet.");
+      return;
+    }
+    link.href = proofFile;
     link.download = `${currentWorkbenchJob.jobNo || "JO-20250810-001"}_Proof.jpg`;
     link.target = "_blank";
     link.click();
@@ -590,32 +356,26 @@ export const DesignWorkflowPage = () => {
       uploadedSampleUrl ||
       currentWorkbenchJob.raw?.designProofUrl ||
       currentWorkbenchJob.designProofUrl ||
-      "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800";
+      "";
+    if (!proofUrl) {
+      toast.error("Upload the proof file before sending it for approval.");
+      return;
+    }
 
     let submitResult = null;
     let approvalUrl = "";
 
     try {
-      if (jobId && typeof jobId === "string" && jobId.length === 24) {
-        const res = await jobFlowApi.submitSampleProof(jobId, {
-          fileUrl: proofUrl,
-          notes: designNotes,
-        });
-        submitResult = res?.data?.data || res?.data || res || {};
-        approvalUrl =
-          submitResult?.approvalUrl ||
-          (submitResult?.token
-            ? `http://localhost:3000/design-approvals/${submitResult.token}`
-            : `http://localhost:3000/approve-design?jobId=${jobId}`);
-      }
+      const res = await jobFlowApi.submitSampleProof(jobId, {
+        fileUrl: proofUrl,
+        notes: designNotes,
+      });
+      submitResult = res?.data?.data || res?.data || res || {};
+      // A walk-in customer has no approval link: the manager approves the proof in person
+      approvalUrl = submitResult?.approvalUrl || "";
     } catch (err) {
-      console.warn("Submit proof warning:", err);
-      // Fallback approval URL for local dev simulation
-      approvalUrl = `http://localhost:3000/approve-design?jobId=${jobId || "demo"}`;
-    }
-
-    if (!approvalUrl) {
-      approvalUrl = `http://localhost:3000/approve-design?jobId=${jobId || "demo"}`;
+      toast.error(err.response?.data?.message || "The proof could not be submitted for approval.");
+      return;
     }
 
     // Build the updated job object with Pending Sample Approvals status
@@ -725,13 +485,8 @@ export const DesignWorkflowPage = () => {
   const [savingGlobalMaxLoad, setSavingGlobalMaxLoad] = useState(false);
 
   // Designer Queue states
-  const [designers, setDesigners] = useState(INITIAL_DESIGNERS);
+  const [designers, setDesigners] = useState([]);
   const [nextDesignerId, setNextDesignerId] = useState(null);
-  const [isAddDesignerOpen, setIsAddDesignerOpen] = useState(false);
-  const [newDesignerName, setNewDesignerName] = useState("");
-  const [newDesignerEmail, setNewDesignerEmail] = useState("");
-  const [newDesignerMaxLoad, setNewDesignerMaxLoad] = useState(5);
-  const [addingDesigner, setAddingDesigner] = useState(false);
   const [editingDesignerId, setEditingDesignerId] = useState(null);
   const [editingDesignerLoad, setEditingDesignerLoad] = useState(5);
   const [savingDesignerId, setSavingDesignerId] = useState(null);
@@ -778,6 +533,13 @@ export const DesignWorkflowPage = () => {
   // Action for designer to start revision/redesign work
   const handleStartRedesign = async (job) => {
     const jId = String(job._id || job.id);
+    try {
+      await jobFlowApi.startDesignWork(jId);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "The revision could not be started.");
+      return;
+    }
+
     setStartedRevisionJobIds((prev) => {
       const next = new Set(prev);
       next.add(jId);
@@ -788,28 +550,14 @@ export const DesignWorkflowPage = () => {
     });
 
     setJobs((prevJobs) =>
-      prevJobs.map((j) => {
-        if (String(j._id) === jId) {
-          return {
-            ...j,
-            designStatus: "STARTED_REVISION",
-            isRevisionStarted: true,
-            revisionStartedAt: new Date().toISOString(),
-          };
-        }
-        return j;
-      })
+      prevJobs.map((j) =>
+        String(j._id) === jId
+          ? { ...j, designStatus: "STARTED_REVISION", isRevisionStarted: true, revisionStartedAt: new Date().toISOString() }
+          : j
+      )
     );
 
     toast.success(`Revision workflow started for ${job.jobNo}! Button updated to Open to Workbench.`);
-
-    try {
-      if (jId && typeof jId === "string" && jId.length === 24) {
-        await jobFlowApi.startDesignWork(jId);
-      }
-    } catch (err) {
-      console.warn("Backend start design warning:", err);
-    }
   };
 
   const [proofList, setProofList] = useState([
@@ -931,7 +679,7 @@ export const DesignWorkflowPage = () => {
 
         const cleanProofUrl = (url) => {
           if (!url || typeof url !== "string") return null;
-          if (url.includes("proofs.com")) return "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800";
+          if (url.includes("proofs.com")) return null;
           return url;
         };
 
@@ -940,7 +688,7 @@ export const DesignWorkflowPage = () => {
           cleanProofUrl(single.raw?.rejectedSampleUrl) ||
           cleanProofUrl(single.designProofUrl) ||
           cleanProofUrl(single.raw?.designProofUrl) ||
-          "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800";
+          null;
 
         const rejectionDate =
           single.sampleRejectedAt ||
@@ -994,10 +742,14 @@ export const DesignWorkflowPage = () => {
         };
       });
 
-      // Merge with INITIAL_DESIGNER_JOBS so each designer has ready invitations and workbench jobs
-      const existingJobNos = new Set(mapped.map((j) => j.jobNo));
-      const starterJobs = INITIAL_DESIGNER_JOBS.filter((j) => !existingJobNos.has(j.jobNo));
-      const combined = [...mapped, ...starterJobs];
+      // Filter out any Print Only jobs from design queue completely
+      const designEligibleMapped = mapped.filter((j) => {
+        const jobTypeStr = String(j.raw?.jobType || j.raw?.specs?.jobType || "").toUpperCase();
+        const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
+        return !isPrintOnly;
+      });
+
+      const combined = designEligibleMapped;
 
       setJobs(combined);
 
@@ -1039,27 +791,11 @@ export const DesignWorkflowPage = () => {
           poolRes?.data?.designers ||
           (Array.isArray(poolRes?.data) ? poolRes.data : null) ||
           (Array.isArray(poolRes) ? poolRes : []);
-        if (Array.isArray(rawDesigners) && rawDesigners.length > 0) {
-          const validEmails = [
-            "ali.hassan@printz.com",
-            "siti.rahman@printz.com",
-            "kumar.anil@printz.com",
-            "john.lee@printz.com",
-            "nur.aisyah@printz.com",
-            "guna@gmail.com",
-          ];
-          const filtered = rawDesigners.filter((d) => {
-            const em = (d.email || "").toLowerCase().trim();
-            const nm = (d.name || "").toLowerCase().trim();
-            return (
-              validEmails.includes(em) ||
-              validEmails.some((ve) => nm && ve.split("@")[0].replace(".", " ").includes(nm))
-            );
-          });
-          const finalList = filtered.length > 0 ? filtered : rawDesigners;
-          setDesigners(finalList);
-          if (finalList[0]?.maxLoad) {
-            setGlobalMaxLoad(finalList[0].maxLoad);
+        // The pool is the six branch designers, exactly as the server returns them
+        if (Array.isArray(rawDesigners)) {
+          setDesigners(rawDesigners);
+          if (rawDesigners[0]?.maxLoad) {
+            setGlobalMaxLoad(rawDesigners[0].maxLoad);
           }
         }
         if (poolRes?.nextDesigner) {
@@ -1618,7 +1354,7 @@ export const DesignWorkflowPage = () => {
                 : Number(selectedSampleForDecision?.jobOrder?.balanceDue || 0));
 
           toast.success(
-            `Customer approved design for #${selectedSampleForDecision.jobNo || targetJobId}! Balance in Invoice: RM ${bal.toFixed(2)} — please collect remaining balance in Invoice.`,
+            `Customer approved design for #${selectedSampleForDecision.jobNo || targetJobId}! Balance in Invoice: ₹${bal.toFixed(2)} — please collect remaining balance in Invoice.`,
             { autoClose: 9000 }
           );
         } else {
@@ -1731,34 +1467,6 @@ export const DesignWorkflowPage = () => {
     }
   };
 
-  // Add designer to pool
-  const handleAddDesigner = async (e) => {
-    e.preventDefault();
-    if (!newDesignerName.trim()) {
-      toast.error("Designer name is required");
-      return;
-    }
-    setAddingDesigner(true);
-    try {
-      await jobFlowApi.addDesignerToPool({
-        name: newDesignerName.trim(),
-        email: newDesignerEmail.trim() || undefined,
-        maxLoad: Number(newDesignerMaxLoad) || 5,
-      });
-      toast.success(`Designer ${newDesignerName} added successfully!`);
-      setIsAddDesignerOpen(false);
-      setNewDesignerName("");
-      setNewDesignerEmail("");
-      setNewDesignerMaxLoad(5);
-      await fetchDesignData();
-    } catch (err) {
-      console.error("Failed to add designer:", err);
-      toast.error(err.response?.data?.message || "Failed to add designer");
-    } finally {
-      setAddingDesigner(false);
-    }
-  };
-
   // Update specific designer limit
   const handleUpdateDesignerLimit = async (desId, newLimit) => {
     setSavingDesignerId(desId);
@@ -1808,27 +1516,27 @@ export const DesignWorkflowPage = () => {
   // Sub-tab workflows for "My Jobs"
   const handleApproveDesign = async (job) => {
     const jobIdStr = String(job._id || job.id);
-    setApprovedJobIds((prev) => new Set(prev).add(jobIdStr));
-    setJobs((prev) =>
-      prev.map((j) => (String(j._id || j.id) === jobIdStr ? { ...j, status: "In Progress", stage: "DESIGN_IN_PROGRESS" } : j))
-    );
     try {
       await jobFlowApi.acceptDesignAssignment(job._id || job.id);
+      setApprovedJobIds((prev) => new Set(prev).add(jobIdStr));
+      setJobs((prev) =>
+        prev.map((j) => (String(j._id || j.id) === jobIdStr ? { ...j, status: "In Progress", stage: "DESIGN_IN_PROGRESS" } : j))
+      );
       toast.success(`Design assignment for ${job.jobNo} accepted! Workbench is now unlocked.`);
-    } catch {
-      toast.success(`Design assignment for ${job.jobNo} accepted! Workbench is now unlocked.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "This design assignment could not be accepted.");
+    } finally {
+      fetchDesignData();
     }
   };
 
   const handleRejectAssignment = async (jobId, reason) => {
-    const jobIdStr = String(jobId);
-    setJobs((prev) => prev.filter((j) => String(j._id || j.id) !== jobIdStr));
     setIsRejectModalOpen(false);
     try {
       await jobFlowApi.rejectDesignAssignment(jobId, reason);
       toast.success("Design rejected. Returned to supervisor queue.");
-    } catch {
-      toast.success("Design rejected. Returned to supervisor queue.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "This design assignment could not be rejected.");
     } finally {
       fetchDesignData();
     }
@@ -1836,6 +1544,10 @@ export const DesignWorkflowPage = () => {
 
 
   const handleCustomerApprove = async () => {
+    if (!isManagerOrAdmin) {
+      toast.error("Only a manager can approve a design proof.");
+      return;
+    }
     const targetJob = currentWorkbenchJob || selectedJob;
     const jobId = targetJob?._id || targetJob?.id;
     setApprovingProof(true);
@@ -1877,6 +1589,10 @@ export const DesignWorkflowPage = () => {
   };
 
   const handleCustomerReject = async () => {
+    if (!isManagerOrAdmin) {
+      toast.error("Only a manager can return a design proof for changes.");
+      return;
+    }
     const targetJob = currentWorkbenchJob || selectedJob;
     const jobId = targetJob?._id || targetJob?.id;
     const reason = prompt("Enter customer revision feedback / required adjustments:") || "Customer requested revision of artwork proof";
@@ -2988,17 +2704,8 @@ export const DesignWorkflowPage = () => {
                   <Users size={18} style={{ color: "#2563eb" }} />
                   <span>Designer Queue</span>
                 </h4>
-                <p className="dq-designer-queue-subtitle">
-                  Active designers available for Round Robin allocation. Manage capacity and individual max loads.
-                </p>
+                
               </div>
-              <button
-                type="button"
-                className="dq-btn-add-designer"
-                onClick={() => setIsAddDesignerOpen(true)}
-              >
-                <Plus size={15} /> Add Designer
-              </button>
             </div>
 
             <div style={{ overflowX: "auto" }}>
@@ -3319,9 +3026,7 @@ export const DesignWorkflowPage = () => {
                   <strong style={{ fontSize: "0.9375rem", color: "#1e3a8a" }}>
                     All Designers Queue (Unified Overview)
                   </strong>
-                  <div style={{ fontSize: "0.8125rem", color: "#475569", marginTop: "0.15rem" }}>
-                    Showing all jobs across all designer queues. Click any designer pill above to filter to their individual profile.
-                  </div>
+                  
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
@@ -4703,7 +4408,7 @@ export const DesignWorkflowPage = () => {
                 {/* Action Buttons */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#475569" }}>
-                    Customer Simulation & Review Actions:
+                    Proof approval (branch manager):
                   </div>
                   {isProofJobApproved ? (
                     <div style={{ display: "flex", gap: "0.75rem", width: "100%" }}>
@@ -4736,16 +4441,17 @@ export const DesignWorkflowPage = () => {
                         type="button"
                         className="jf-btn jf-btn-primary"
                         style={{ background: "#15803d", borderColor: "#15803d", padding: "0.65rem 1rem" }}
-                        disabled={approvingProof}
+                        disabled={approvingProof || !isManagerOrAdmin}
                         onClick={handleCustomerApprove}
                       >
-                        <Check size={16} /> {approvingProof ? "Processing..." : "Simulate Customer Approval (WhatsApp)"}
+                        <Check size={16} /> {approvingProof ? "Processing..." : isManagerOrAdmin ? "Approve Proof (Manager)" : "Waiting for manager approval"}
                       </button>
 
                       <button
                         type="button"
                         className="jf-btn jf-btn-secondary"
                         style={{ color: "#dc2626", borderColor: "#fecaca", padding: "0.65rem 1rem" }}
+                        disabled={!isManagerOrAdmin}
                         onClick={handleCustomerReject}
                       >
                         <RotateCcw size={16} /> Customer Requests Revision
@@ -4833,99 +4539,6 @@ export const DesignWorkflowPage = () => {
         job={selectedJob}
         onConfirmReject={handleRejectAssignment}
       />
-
-      {/* ──────────────── ADD DESIGNER MODAL ──────────────── */}
-      {isAddDesignerOpen && (
-        <div className="dq-modal-overlay" onClick={() => setIsAddDesignerOpen(false)}>
-          <div
-            className="dq-modal-drawer"
-            style={{ maxWidth: "440px" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="dq-modal-header">
-              <h3 className="dq-modal-title">Add Designer to Pool</h3>
-              <button
-                type="button"
-                className="jf-btn-icon"
-                onClick={() => setIsAddDesignerOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddDesigner}>
-              <div className="dq-modal-body" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.35rem", color: "#1e293b" }}>
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="jf-input"
-                    placeholder="e.g. Sarah Tan"
-                    value={newDesignerName}
-                    onChange={(e) => setNewDesignerName(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.35rem", color: "#1e293b" }}>
-                    Email Address (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    className="jf-input"
-                    placeholder="e.g. sarah.tan@printz.com"
-                    value={newDesignerEmail}
-                    onChange={(e) => setNewDesignerEmail(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.35rem", color: "#1e293b" }}>
-                    Max Concurrent Load Limit
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    className="jf-input"
-                    value={newDesignerMaxLoad}
-                    onChange={(e) => setNewDesignerMaxLoad(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "1rem 1.25rem",
-                  borderTop: "1px solid #f1f5f9",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "0.5rem",
-                  background: "#f8fafc",
-                }}
-              >
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary"
-                  onClick={() => setIsAddDesignerOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="jf-btn jf-btn-primary"
-                  disabled={addingDesigner}
-                >
-                  {addingDesigner ? "Saving..." : "Add Designer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ──────────────── CUSTOMER FILE PREVIEW MODAL ──────────────── */}
       {previewModalFile && (

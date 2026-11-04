@@ -3,7 +3,7 @@ const Estimate = require("../models/Estimate");
 const JobOrder = require("../../job-orders/models/JobOrder");
 const Customer = require("../../customers/models/Customer");
 const ErrorHelper = require("../../../utils/ApiError");
-const { getDatePrefix } = require("../../../utils/dateUtils");
+const { resolveEstimate } = require("../utils/resolveEstimate");
 
 class EstimateService {
   /**
@@ -125,15 +125,9 @@ class EstimateService {
 
     const grandTotal = payload.grandTotal !== undefined ? Number(payload.grandTotal) : taxableAmount + taxAmount;
 
-    // Generate estimate number: EST-YYYYMMDD-XXXX
-    const datePrefix = getDatePrefix();
-    const countEstimates = await Estimate.countDocuments();
-    const estimateNo = `EST-${datePrefix}-${String(countEstimates + 1).padStart(4, "0")}`;
-
     const versionNo = Number(payload.versionNumber) || (payload.version ? parseInt(String(payload.version).replace(/\D/g, "")) : 1) || 1;
 
     const estimate = await Estimate.create({
-      estimateNo,
       jobOrderId: jobOrderId && mongoose.Types.ObjectId.isValid(String(jobOrderId)) ? jobOrderId : null,
       branchId: mongoose.Types.ObjectId.isValid(String(branchId)) ? branchId : user?.branchId,
       customerId: customerId && mongoose.Types.ObjectId.isValid(String(customerId)) ? customerId : null,
@@ -192,32 +186,34 @@ class EstimateService {
       Estimate.countDocuments(filter),
     ]);
 
+    // Show the job order number on every estimate row
+    const jobIds = items.map((e) => e.jobOrderId).filter(Boolean);
+    const jobs = jobIds.length ? await JobOrder.find({ _id: { $in: jobIds } }).select("jobNo").lean() : [];
+    const jobNoById = new Map(jobs.map((j) => [String(j._id), j.jobNo]));
+
     const enriched = items.map((e) => ({
       ...e,
       id: e._id,
+      jobNo: jobNoById.get(String(e.jobOrderId)) || null,
     }));
 
     return { items: enriched, estimates: enriched, total, page, limit };
   }
 
   /**
-   * Get single estimate by ID or estimateNo
+   * Get single estimate by ID or job order number
    */
   static async getEstimateById(id) {
-    let estimate = null;
-    if (mongoose.Types.ObjectId.isValid(String(id))) {
-      estimate = await Estimate.findById(id).lean();
-    }
-    if (!estimate) {
-      estimate = await Estimate.findOne({ estimateNo: String(id).toUpperCase() }).lean();
-    }
+    const estimate = await resolveEstimate(id, { lean: true });
     if (!estimate) {
       throw ErrorHelper.notFound(`Estimate not found with identifier: ${id}`);
     }
 
+    const job = estimate.jobOrderId ? await JobOrder.findById(estimate.jobOrderId).select("jobNo").lean() : null;
     return {
       ...estimate,
       id: estimate._id,
+      jobNo: job?.jobNo || null,
     };
   }
 

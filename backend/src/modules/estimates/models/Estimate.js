@@ -113,14 +113,6 @@ const estimateCustomerSnapshotSchema = new mongoose.Schema(
 
 const estimateSchema = new mongoose.Schema(
   {
-    estimateNo: {
-      type: String,
-      required: [true, "Estimate number is required"],
-      unique: true,
-      trim: true,
-      uppercase: true,
-      index: true,
-    },
     jobOrderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "JobOrder",

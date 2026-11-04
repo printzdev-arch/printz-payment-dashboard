@@ -14,6 +14,8 @@ const DeliveryProofService = require("./deliveryProof.service");
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
 const WhatsAppService = require("../../../utils/integrations/WhatsAppService");
 const ErrorHelper = require("../../../utils/ApiError");
+const DeliveryHelper = require("../helpers/DeliveryHelper");
+const { nextDeliveryNo } = require("../../invoices/utils/documentNumbers");
 const { getDatePrefix, getTodayDateString } = require("../../../utils/dateUtils");
 
 class DeliveryOrderService {
@@ -90,51 +92,17 @@ class DeliveryOrderService {
     }
 
     if (activeProdOrders.length > 0) {
-      // 1. Every non-cancelled production order must have reached QC_PASSED or COMPLETED
-      const incompleteOrders = activeProdOrders.filter(
-        (p) => !["COMPLETED", "QC_PASSED"].includes(p.status)
-      );
-      if (incompleteOrders.length > 0) {
-        const statuses = incompleteOrders.map((p) => p.status).join(", ");
-        throw ErrorHelper.badRequest(
-          `Cannot proceed with delivery: Production operations are not completed (found orders in status: ${statuses}).`
-        );
-      }
-
-      // 2. All operations for these production orders must be COMPLETED or SKIPPED
       const orderIds = activeProdOrders.map((p) => p._id);
-      const pendingOps = await ProductionOperation.find({
-        productionOrderId: { $in: orderIds },
-        status: { $in: ["PENDING", "RUNNING", "FAILED"] },
-      }).lean();
-
-      if (pendingOps.length > 0) {
-        const opNames = pendingOps.map((op) => `${op.operationName || op.operationCode} (${op.status})`).join(", ");
-        throw ErrorHelper.badRequest(
-          `Cannot proceed with delivery: Incomplete production operations found: ${opNames}.`
-        );
-      }
-
-      // 3. For any order in QC_PASSED, ensure the latest QC inspection is not FAIL or ISSUE
       const latestQcChecks = await QualityCheck.find({
         productionOrderId: { $in: orderIds },
       })
         .sort({ checkedAt: -1 })
         .lean();
 
-      const latestByOrder = {};
-      latestQcChecks.forEach((qc) => {
-        const oId = qc.productionOrderId.toString();
-        if (!latestByOrder[oId]) {
-          latestByOrder[oId] = qc;
-        }
-      });
-
-      for (const p of activeProdOrders) {
-        const latestQc = latestByOrder[p._id.toString()];
-        if (latestQc && ["FAIL", "ISSUE"].includes(latestQc.result)) {
+      for (const qc of latestQcChecks) {
+        if (["FAIL", "ISSUE"].includes(qc.result)) {
           throw ErrorHelper.badRequest(
-            `Cannot proceed with delivery: Quality control failed for order ${p.productionNo} (${latestQc.result}). Requires resolution.`
+            `Cannot proceed with delivery: Quality control check failed (${qc.result}). Requires resolution.`
           );
         }
       }
@@ -222,13 +190,13 @@ class DeliveryOrderService {
    * Enforces branch authorization and checks production & QC completion.
    */
   static async getReadyJobsForDelivery(query = {}, user = null) {
+    // A job is ready for delivery once production (and QC, when the job has it) is done.
+    // A Design Only job has nothing to deliver, so it never shows here.
+    const READY_STAGES = ["READY", "READY_FOR_DELIVERY", "DELIVERY"];
     const filter = {
-      $or: [
-        { currentStage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { stage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { status: { $in: ["READY", "READY_FOR_DELIVERY"] } },
-      ],
-      status: { $nin: ["CANCELLED", "DELIVERED", "ON_HOLD", "DRAFT"] },
+      $or: [{ currentStage: { $in: READY_STAGES } }, { stage: { $in: READY_STAGES } }],
+      status: { $nin: ["CANCELLED", "DELIVERED", "COMPLETED", "CLOSED", "ON_HOLD", "DRAFT"] },
+      jobType: { $not: /^\s*design[\s_-]*only/i },
     };
 
     if (user) {
@@ -249,11 +217,7 @@ class DeliveryOrderService {
 
     if (query.search) {
       const term = query.search.trim();
-      const stageOr = filter.$or || [
-        { currentStage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { stage: { $in: ["READY", "DELIVERY", "READY_FOR_DELIVERY"] } },
-        { status: { $in: ["READY", "READY_FOR_DELIVERY"] } },
-      ];
+      const stageOr = filter.$or;
       filter.$and = [
         { $or: stageOr },
         {
@@ -269,33 +233,45 @@ class DeliveryOrderService {
     }
 
     const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 20;
+    const limit = parseInt(query.limit, 10) || 50;
     const skip = (page - 1) * limit;
 
     const candidateJobs = await JobOrder.find(filter)
       .populate("branchId", "name code")
-      .sort({ updatedAt: -1 })
+      .sort({ createdAt: -1, orderDate: -1, updatedAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // Verify production completeness for each candidate
+    // Verify candidate eligibility (exclude only if active reprint or failing QC)
     const eligibleJobs = [];
     for (const job of candidateJobs) {
       try {
-        await this.assertJobProductionComplete(job._id);
+        const [openReprints, failingQc] = await Promise.all([
+          ReprintRequest.countDocuments({
+            jobOrderId: job._id,
+            status: { $in: ["REQUESTED", "APPROVED", "IN_PRODUCTION"] },
+          }),
+          QualityCheck.findOne({
+            jobOrderId: job._id,
+          }).sort({ createdAt: -1 }).lean(),
+        ]);
+
+        if (openReprints > 0) continue;
+        if (failingQc && ["FAIL", "ISSUE"].includes(failingQc.result)) continue;
+
         eligibleJobs.push(job);
       } catch (_) {
-        // Incomplete production or QC, not eligible for delivery
+        eligibleJobs.push(job);
       }
     }
 
-    // Attach existing delivery order if any
+    // Attach existing delivery order and invoice if any
     const jobIds = eligibleJobs.map((j) => j._id);
-    const deliveryOrders = await deliveryOrderRepository.findAll({
-      jobOrderId: { $in: jobIds },
-      limit: 100,
-    });
+    const [deliveryOrders, existingInvoices] = await Promise.all([
+      deliveryOrderRepository.findAll({ jobOrderId: { $in: jobIds }, limit: 100 }),
+      mongoose.model("Invoice").find({ jobOrderId: { $in: jobIds }, status: { $ne: "CANCELLED" } }).lean(),
+    ]);
 
     const deliveryMap = {};
     (deliveryOrders.items || []).forEach((d) => {
@@ -303,11 +279,33 @@ class DeliveryOrderService {
       if (jId) deliveryMap[jId] = d;
     });
 
-    const enrichedJobs = eligibleJobs.map((job) => ({
-      ...job,
-      deliveryOrder: deliveryMap[job._id.toString()] || null,
-      isDeliveryPrepared: Boolean(deliveryMap[job._id.toString()]),
-    }));
+    const invoiceMap = {};
+    (existingInvoices || []).forEach((inv) => {
+      if (inv.jobOrderId) invoiceMap[inv.jobOrderId.toString()] = inv;
+    });
+
+    const enrichedJobs = eligibleJobs.map((job) => {
+      const inv = invoiceMap[job._id.toString()];
+      const grandTotal = inv && Number(inv.grandTotal) > 0 ? Number(inv.grandTotal) : Number(job.grandTotal || job.totalAmount || 0);
+      const advancePaid = inv && Number(inv.advanceApplied || inv.advancePaid) > 0 ? Number(inv.advanceApplied || inv.advancePaid) : Number(job.advancePaid || 0);
+      const isPaid = inv?.status === "PAID" || job.paymentStatus === "PAID" || (inv && Number(inv.balanceDue) <= 0);
+      const balanceDue = isPaid ? 0 : (inv && inv.balanceDue !== undefined && inv.balanceDue !== null ? Number(inv.balanceDue) : Math.max(0, Math.round((grandTotal - advancePaid) * 100) / 100));
+
+      return {
+        ...job,
+        // How the customer wants it: counter pickup or dispatch (set when the job order was created)
+        deliveryType: DeliveryHelper.typeForJob(job),
+        deliveryMethod: job.deliveryMethod || "",
+        grandTotal,
+        advancePaid,
+        balanceDue,
+        invoiceNo: inv ? (inv.invoiceNumber || inv.invoiceNo) : job.invoiceNo,
+        invoiceId: inv ? inv._id : job.invoiceId,
+        invoice: inv || null,
+        deliveryOrder: deliveryMap[job._id.toString()] || null,
+        isDeliveryPrepared: Boolean(deliveryMap[job._id.toString()]),
+      };
+    });
 
     const total = await JobOrder.countDocuments(filter);
     return { items: enrichedJobs, total, page, limit };
@@ -371,19 +369,7 @@ class DeliveryOrderService {
     let deliveryOrder = await deliveryOrderRepository.findOne({ jobOrderId });
 
     if (!deliveryOrder) {
-      // Auto-generate DO-xxxxx sequence
-      let deliveryNo;
-      try {
-        deliveryNo = await numberSequenceService.generateBusinessNumber("DELIVERY_ORDER", {
-          prefix: "DO",
-          padLength: 5,
-          branchId: job.branchId?.toString(),
-        });
-      } catch (_) {
-        const datePrefix = getDatePrefix();
-        const count = await deliveryOrderRepository.countDocuments();
-        deliveryNo = `DO-${datePrefix}-${String(count + 1).padStart(4, "0")}`;
-      }
+      const deliveryNo = await nextDeliveryNo();
 
       deliveryOrder = await deliveryOrderRepository.create({
         deliveryNo,
@@ -392,7 +378,10 @@ class DeliveryOrderService {
         customerId: job.customerId ? String(job.customerId) : null,
         customerName: job.customerName || "Customer",
         customerPhone: job.customerPhone || "",
-        deliveryAddress: job.customerSnapshot?.address || "",
+        // Counter pickup has no address; a dispatch uses the customer's address (it can be completed later)
+        deliveryAddress: DeliveryHelper.typeForJob(job) === "COUNTER_PICKUP" ? "" : job.customerSnapshot?.address || "",
+        deliveryType: DeliveryHelper.typeForJob(job),
+        deliveryMethod: job.deliveryMethod || "",
         quantity: finalQuantity,
         items: mappedItems,
         status: "READY",
@@ -404,6 +393,8 @@ class DeliveryOrderService {
     } else {
       // Safe sync: Only synchronize items and quantity if DO is in READY status
       if (deliveryOrder.status === "READY") {
+        deliveryOrder.deliveryType = DeliveryHelper.typeForJob(job);
+        deliveryOrder.deliveryMethod = job.deliveryMethod || "";
         deliveryOrder.quantity = finalQuantity;
         if (!deliveryOrder.items || deliveryOrder.items.length === 0 || mappedItems.length > 0) {
           deliveryOrder.items = mappedItems;
@@ -459,21 +450,10 @@ class DeliveryOrderService {
       return this.updateDeliveryDetails(existing._id, data, user);
     }
 
-    // Generate DO-xxxxx sequence
-    let deliveryNo = data.deliveryNo;
-    if (!deliveryNo) {
-      try {
-        deliveryNo = await numberSequenceService.generateBusinessNumber("DELIVERY_ORDER", {
-          prefix: "DO",
-          padLength: 5,
-          branchId: (data.branchId || job.branchId)?.toString(),
-        });
-      } catch (_) {
-        const datePrefix = getDatePrefix();
-        const count = await deliveryOrderRepository.countDocuments();
-        deliveryNo = `DO-${datePrefix}-${String(count + 1).padStart(4, "0")}`;
-      }
-    }
+    const deliveryNo = await nextDeliveryNo();
+    // The type is the customer's choice on the job order, never chosen again here
+    const orderType = DeliveryHelper.typeForJob(job);
+    const isPickupOrder = DeliveryHelper.isPickup(orderType);
 
     const pickupOtp = data.pickupOtp || Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -497,6 +477,13 @@ class DeliveryOrderService {
               ? mappedItems.reduce((s, it) => s + (it.quantity || 0), 0)
               : (job.totalQuantity || 1)));
 
+    const hasAssignedStaff =
+      !isPickupOrder &&
+      Boolean(
+        (data.deliveryPersonName && data.deliveryPersonName.trim() && data.deliveryPersonName !== "Unassigned" && data.deliveryPersonName !== "-") ||
+          data.assignedEmployeeId
+      );
+
     const orderData = {
       deliveryNo,
       jobOrderId: job._id,
@@ -504,16 +491,19 @@ class DeliveryOrderService {
       customerId: data.customerId || (job.customerId ? String(job.customerId) : null),
       customerName: data.customerName || job.customerName || "Customer",
       customerPhone: data.customerPhone || job.customerPhone || "",
-      deliveryAddress: data.deliveryAddress || job.customerSnapshot?.address || "",
-      deliveryType: data.deliveryType || "DELIVERY",
+      deliveryAddress: isPickupOrder ? "" : data.deliveryAddress || job.customerSnapshot?.address || "",
+      deliveryType: orderType,
+      deliveryMethod: job.deliveryMethod || "",
       quantity: finalQuantity,
       items: (data.items && data.items.length > 0) ? data.items : mappedItems,
-      status: "READY",
-      deliveryPersonName: data.deliveryPersonName || "",
-      deliveryPersonPhone: data.deliveryPersonPhone || "",
-      assignedEmployeeId: data.assignedEmployeeId || null,
-      vehicleNumber: data.vehicleNumber || data.vehicle || "",
-      vehicle: data.vehicle || data.vehicleNumber || "",
+      status: hasAssignedStaff ? "ASSIGNED" : "READY",
+      assignedAt: hasAssignedStaff ? new Date() : null,
+      assignedBy: hasAssignedStaff && user ? user._id : null,
+      deliveryPersonName: isPickupOrder ? "" : data.deliveryPersonName || "",
+      deliveryPersonPhone: isPickupOrder ? "" : data.deliveryPersonPhone || "",
+      assignedEmployeeId: isPickupOrder ? null : data.assignedEmployeeId || null,
+      vehicleNumber: isPickupOrder ? "" : data.vehicleNumber || data.vehicle || "",
+      vehicle: isPickupOrder ? "" : data.vehicle || data.vehicleNumber || "",
       deliveryTime: data.deliveryTime || "",
       instructions: data.instructions || "",
       expectedDeliveryDate: data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate) : null,
@@ -552,14 +542,12 @@ class DeliveryOrderService {
       throw ErrorHelper.badRequest(`Cannot modify delivery order in status '${order.status}'`);
     }
 
+    // The delivery type (pickup or dispatch) follows the customer's choice and cannot be changed here.
+    // A counter pickup has no delivery person, vehicle or address.
+    const isPickupOrder = DeliveryHelper.isPickup(order);
+    const dispatchOnly = ["deliveryPersonName", "deliveryPersonPhone", "assignedEmployeeId", "vehicleNumber", "vehicle", "deliveryAddress"];
     const allowedFields = [
-      "deliveryPersonName",
-      "deliveryPersonPhone",
-      "assignedEmployeeId",
-      "vehicleNumber",
-      "vehicle",
-      "deliveryAddress",
-      "deliveryType",
+      ...(isPickupOrder ? [] : dispatchOnly),
       "deliveryTime",
       "instructions",
       "expectedDeliveryDate",
@@ -582,6 +570,13 @@ class DeliveryOrderService {
 
     if (data.vehicle && !data.vehicleNumber) {
       order.vehicleNumber = data.vehicle;
+    }
+
+    const hasAssignedStaff = !isPickupOrder && DeliveryHelper.hasStaff(order);
+    if (hasAssignedStaff && order.status === "READY") {
+      order.status = "ASSIGNED";
+      order.assignedAt = new Date();
+      if (user) order.assignedBy = user._id;
     }
 
     await order.save();
@@ -609,6 +604,12 @@ class DeliveryOrderService {
     }
 
     this.assertBranchAccess(order.branchId, user);
+
+    if (DeliveryHelper.isPickup(order)) {
+      throw ErrorHelper.badRequest(
+        "This is a counter pickup order: the customer collects it at the branch, so no delivery person is assigned."
+      );
+    }
 
     // Eligible only from READY or ASSIGNED
     if (order.status !== "READY" && order.status !== "ASSIGNED") {
@@ -827,6 +828,11 @@ class DeliveryOrderService {
       );
     }
 
+    // A dispatch needs its delivery person before it is packed; a counter pickup does not
+    if (!DeliveryHelper.isPickup(order) && !DeliveryHelper.hasStaff(order)) {
+      throw ErrorHelper.badRequest("Assign a delivery person before packing this dispatch order.");
+    }
+
     // Verify production and QC completeness
     await this.assertJobProductionComplete(order.jobOrderId);
 
@@ -892,6 +898,21 @@ class DeliveryOrderService {
       return order;
     }
 
+    if (DeliveryHelper.isPickup(order)) {
+      throw ErrorHelper.badRequest(
+        "A counter pickup order is not dispatched: pack it, then hand it over to the customer at the counter."
+      );
+    }
+    if (!DeliveryHelper.hasStaff(order)) {
+      throw ErrorHelper.badRequest("Assign a delivery person before dispatching this order.");
+    }
+    if (!String(order.deliveryAddress || "").trim()) {
+      throw ErrorHelper.badRequest("Enter the delivery address before dispatching this order.");
+    }
+
+    // The balance is settled first, then the goods are handed over
+    await require("../../invoices/services/invoice.service").assertBalanceSettled(order.jobOrderId, "dispatch this order");
+
     // Auto-complete packing if dispatched directly from READY, REVIEWED, or ASSIGNED
     if (order.status !== "PACKED") {
       if (!order.packedAt) {
@@ -901,9 +922,6 @@ class DeliveryOrderService {
       }
     }
 
-    if (dispatchData.deliveryType) {
-      order.deliveryType = dispatchData.deliveryType;
-    }
     if (dispatchData.dispatchNotes || dispatchData.notes || dispatchData.remarks) {
       order.dispatchNotes = dispatchData.dispatchNotes || dispatchData.notes || dispatchData.remarks;
     }
@@ -965,10 +983,14 @@ class DeliveryOrderService {
       throw ErrorHelper.badRequest("Cannot record evidence for a CANCELLED delivery order.");
     }
 
-    // Must be in OUT_FOR_DELIVERY state (or counter pickup packed)
-    if (order.status !== "OUT_FOR_DELIVERY") {
+    // A dispatch is handed over by the delivery person once it is out for delivery;
+    // a counter pickup is handed over at the counter once it is packed.
+    const handoverStatus = DeliveryHelper.isPickup(order) ? "PACKED" : "OUT_FOR_DELIVERY";
+    if (order.status !== handoverStatus) {
       throw ErrorHelper.badRequest(
-        `Cannot record handover evidence before order is dispatched. Expected status OUT_FOR_DELIVERY, current status is '${order.status}'.`
+        DeliveryHelper.isPickup(order)
+          ? `Cannot record handover evidence before the order is packed. Expected status PACKED, current status is '${order.status}'.`
+          : `Cannot record handover evidence before order is dispatched. Expected status OUT_FOR_DELIVERY, current status is '${order.status}'.`
       );
     }
 
@@ -1023,7 +1045,7 @@ class DeliveryOrderService {
         recipientName: finalRecipient,
         recipientPhone: recipientPhone || order.recipientPhone || order.customerPhone || "",
         recipientRelationship,
-        deliveryType: deliveryType || order.deliveryType || "DELIVERY",
+        deliveryType: order.deliveryType || "DELIVERY",
         signatureUrl: signatureUrl || order.signatureUrl || null,
         otp: otp || null,
         otpVerified,
@@ -1089,12 +1111,20 @@ class DeliveryOrderService {
       throw ErrorHelper.badRequest("Cannot deliver a CANCELLED delivery order.");
     }
 
-    // Must be in OUT_FOR_DELIVERY status
-    if (order.status !== "OUT_FOR_DELIVERY") {
+    // A dispatch is delivered from OUT_FOR_DELIVERY; a counter pickup is handed over from PACKED
+    if (DeliveryHelper.isPickup(order)) {
+      if (order.status !== "PACKED") {
+        throw ErrorHelper.badRequest(
+          `Cannot hand over a counter pickup order before it is packed. Current status is '${order.status}'.`
+        );
+      }
+    } else if (order.status !== "OUT_FOR_DELIVERY") {
       throw ErrorHelper.badRequest(
         `Cannot deliver order before it is dispatched (OUT_FOR_DELIVERY). Current status is '${order.status}'.`
       );
     }
+
+    await require("../../invoices/services/invoice.service").assertBalanceSettled(order.jobOrderId, "complete this delivery");
 
     const finalRecipient = (data.receivedBy || order.receivedBy || order.recipientName || "").trim();
     if (!finalRecipient) {

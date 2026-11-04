@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, CheckCircle, ShieldCheck, KeyRound, PenTool, Camera, User, Phone, Image as ImageIcon, Trash2 } from "lucide-react";
+import { X, CheckCircle, ShieldCheck, KeyRound, PenTool, Camera, User, Phone, Image as ImageIcon, Trash2, CreditCard, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import deliveryApi from "../api/deliveryApi";
 
@@ -20,6 +20,12 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
   const [proofSubmitted, setProofSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Mandatory Payment Settlement state
+  const initialBalance = Number(deliveryOrder?.balanceDue !== undefined ? deliveryOrder.balanceDue : (deliveryOrder?.raw?.balanceDue || 0));
+  const [paymentCollected, setPaymentCollected] = useState(false);
+  const [paymentMode, setPaymentMode] = useState("CASH");
+  const [paymentReference, setPaymentReference] = useState("");
+
   // Canvas drawing ref
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -35,6 +41,11 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
       setPhotoData(deliveryOrder.photoUrl || "");
       setProofSubmitted(Boolean(deliveryOrder.proofSubmitted));
       setHandoverNotes("Received in good condition");
+      const bal = Number(deliveryOrder.balanceDue !== undefined ? deliveryOrder.balanceDue : (deliveryOrder.raw?.balanceDue || 0));
+      const isAlreadyPaid = deliveryOrder.paymentStatus === "PAID" || bal <= 0;
+      setPaymentCollected(isAlreadyPaid);
+      setPaymentMode("CASH");
+      setPaymentReference(deliveryOrder.paymentReference || "");
     }
   }, [deliveryOrder]);
 
@@ -174,14 +185,24 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
       return;
     }
 
+    if (initialBalance > 0 && !paymentCollected) {
+      toast.error("Rule Enforced: Payment must be collected before handing over the order to customer!");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await deliveryApi.deliverDeliveryOrder(deliveryOrder._id || deliveryOrder.id, {
         recipientName,
         receivedBy: recipientRelationship === "SELF" ? "Customer" : `${recipientRelationship} (${recipientName})`,
+        paymentCollected: true,
+        paymentMode,
+        paymentReference,
+        collectedAmount: initialBalance,
+        status: "DELIVERED",
       });
       const updated = res?.data || res;
-      toast.success(`Delivery Order ${deliveryOrder.deliveryNo} is marked DELIVERED! Status: DELIVERED`);
+      toast.success(`Delivery Order ${deliveryOrder.deliveryNo} is marked DELIVERED & PAID!`);
       if (onDelivered) onDelivered(updated);
       onClose();
     } catch (err) {
@@ -257,6 +278,86 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
                   disabled={loading || !otpInput.trim()}
                 >
                   Verify OTP
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mandatory Payment Settlement Check */}
+          <div style={{
+            background: paymentCollected || initialBalance <= 0 ? "#f0fdf4" : "#fff1f2",
+            border: `1.5px solid ${paymentCollected || initialBalance <= 0 ? "#86efac" : "#fca5a5"}`,
+            borderRadius: "10px",
+            padding: "1rem 1.15rem",
+            marginBottom: "1.25rem"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 700, color: paymentCollected || initialBalance <= 0 ? "#15803d" : "#991b1b" }}>
+                <CreditCard size={18} />
+                <span>Mandatory Rule: Balance Payment Collection</span>
+              </div>
+              {paymentCollected || initialBalance <= 0 ? (
+                <span style={{ fontSize: "0.78rem", background: "#dcfce7", color: "#15803d", padding: "0.25rem 0.65rem", borderRadius: "9999px", fontWeight: 700 }}>
+                  ✓ Balance Paid & Verified
+                </span>
+              ) : (
+                <span style={{ fontSize: "0.78rem", background: "#fee2e2", color: "#b91c1c", padding: "0.25rem 0.65rem", borderRadius: "9999px", fontWeight: 700 }}>
+                  Balance Due: ₹{initialBalance.toFixed(2)}
+                </span>
+              )}
+            </div>
+
+            {initialBalance <= 0 ? (
+              <div style={{ fontSize: "0.85rem", color: "#166534" }}>
+                ✓ Order has 100% full payment settled (Balance: ₹0.00). Ready for handover release.
+              </div>
+            ) : !paymentCollected ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                <div style={{ fontSize: "0.83rem", color: "#881337", lineHeight: 1.4 }}>
+                  Payment must be collected <strong>before handing over</strong> the order to the customer. Total to collect: <strong>₹{initialBalance.toFixed(2)}</strong>
+                </div>
+                <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginTop: "0.25rem" }}>
+                  <select
+                    className="jf-select"
+                    style={{ maxWidth: "160px", fontWeight: 600 }}
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value)}
+                  >
+                    <option value="CASH">Cash</option>
+                    <option value="UPI">UPI / QR Code</option>
+                    <option value="CARD">Debit / Credit Card</option>
+                    <option value="BANK">Bank Transfer</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="jf-input"
+                    placeholder="Transaction Reference / Note"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    style={{ flex: 1, minWidth: "180px" }}
+                  />
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-primary"
+                    style={{ background: "#059669", borderColor: "#059669", fontWeight: 700, padding: "0.55rem 1rem" }}
+                    onClick={() => {
+                      setPaymentCollected(true);
+                      toast.success(`Balance of ₹${initialBalance.toFixed(2)} recorded via ${paymentMode}!`);
+                    }}
+                  >
+                    ✓ Confirm Payment Collected
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem", color: "#166534" }}>
+                <span>Balance of <strong>₹{initialBalance.toFixed(2)}</strong> confirmed received via <strong>{paymentMode}</strong>{paymentReference ? ` (Ref: ${paymentReference})` : ""}.</span>
+                <button
+                  type="button"
+                  style={{ background: "none", border: "none", color: "#b91c1c", textDecoration: "underline", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}
+                  onClick={() => setPaymentCollected(false)}
+                >
+                  Change Payment
                 </button>
               </div>
             )}
@@ -412,10 +513,17 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
             type="button"
             className="jf-btn jf-btn-primary"
             onClick={handleMarkDelivered}
-            disabled={loading || !recipientName.trim()}
-            style={{ background: "#059669", borderColor: "#059669" }}
+            disabled={loading || !recipientName.trim() || (initialBalance > 0 && !paymentCollected)}
+            style={{
+              background: initialBalance > 0 && !paymentCollected ? "#94a3b8" : "#059669",
+              borderColor: initialBalance > 0 && !paymentCollected ? "#94a3b8" : "#059669",
+              cursor: initialBalance > 0 && !paymentCollected ? "not-allowed" : "pointer",
+              fontWeight: 700,
+              padding: "0.6rem 1.4rem"
+            }}
+            title={initialBalance > 0 && !paymentCollected ? "Collect balance payment first" : "Complete handover and mark delivered & paid"}
           >
-            {loading ? "Delivering..." : "✓ Confirm Handover (DELIVERED)"}
+            {loading ? "Delivering..." : (initialBalance > 0 && !paymentCollected ? `Collect Balance (₹${initialBalance.toFixed(2)}) to Handover` : "✓ Handover Complete (DELIVERED & PAID)")}
           </button>
         </div>
       </div>

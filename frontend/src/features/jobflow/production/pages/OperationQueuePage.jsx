@@ -43,17 +43,14 @@ import "../styles/production-theme.css";
 /* Constants                                                                  */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 10;
 
 const DEFAULT_FILTERS = { search: "", operation: "ALL", priority: "ALL", machine: "ALL" };
 const PRIORITY_OPTIONS = ["URGENT", "HIGH", "NORMAL", "LOW"];
 
-// status: sent to the server (matches the row's availability status or status)
-// keys: which counts from /queue/counts belong to this tab
 const STATUS_TABS = [
   { id: "ALL", label: "All", icon: Layers, status: "", keys: null },
   { id: "AVAILABLE", label: "Available", icon: Clock, status: "READY", keys: ["READY"] },
-  // Operations that cannot start yet because an earlier step is not finished
   { id: "WAITING", label: "Waiting", icon: Hourglass, status: "BLOCKED", keys: ["BLOCKED"] },
   { id: "IN_PROGRESS", label: "In Progress", icon: Play, status: "IN_PROGRESS", keys: ["IN_PROGRESS"] },
   { id: "PAUSED", label: "Paused", icon: Pause, status: "PAUSED,ON_HOLD", keys: ["PAUSED", "ON_HOLD"] },
@@ -177,7 +174,7 @@ function PageHeader({ title: heading, subtitle, children }) {
         </div>
         <div>
           <h2 className="oq-title">{heading}</h2>
-          <p className="oq-subtitle">{subtitle}</p>
+          {subtitle && <p className="oq-subtitle">{subtitle}</p>}
         </div>
       </div>
       {children}
@@ -187,28 +184,32 @@ function PageHeader({ title: heading, subtitle, children }) {
 
 function StatusTabs({ activeTab, counts, onChange }) {
   return (
-    <nav className="oq-tabs" aria-label="Queue filters">
-      {STATUS_TABS.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = activeTab === tab.id;
-        const count = counts[tab.id];
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            className={`oq-tab ${isActive ? "oq-tab--active" : ""}`}
-            aria-pressed={isActive}
-            onClick={() => onChange(tab.id)}
-          >
-            <Icon size={17} />
-            <span>
-              {tab.label}
-              {count !== undefined ? ` (${count})` : ""}
-            </span>
-          </button>
-        );
-      })}
-    </nav>
+    <div className="oq-tabs-wrap">
+      <nav className="oq-tabs" aria-label="Queue filters">
+        {STATUS_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          const count = counts[tab.id];
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`oq-tab ${isActive ? "oq-tab--active" : ""}`}
+              aria-pressed={isActive}
+              onClick={(e) => {
+                onChange(tab.id);
+                // keep the chosen tab in view when the strip scrolls (mobile)
+                e.currentTarget.scrollIntoView?.({ behavior: "smooth", inline: "center", block: "nearest" });
+              }}
+            >
+              <Icon size={16} />
+              <span>{tab.label}</span>
+              {count !== undefined && <span className="oq-tab-count">{count}</span>}
+            </button>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
@@ -295,7 +296,13 @@ function rowButton(row) {
   }
 }
 
-function QueueTable({ rows, loading, error, onOpen, onReset, onRetry }) {
+/*
+  Column visibility (see CSS):
+    oq-col-lg  → hidden below 1280px (Operator)
+    oq-col-md  → hidden below 1024px (Customer, shown under the product instead)
+    ≤ 768px    → every row becomes a card and all fields come back
+*/
+function QueueTable({ rows, loading, error, offset, onOpen, onReset, onRetry }) {
   return (
     <section className="oq-card oq-card--flush">
       <div className="oq-table-wrap">
@@ -303,13 +310,13 @@ function QueueTable({ rows, loading, error, onOpen, onReset, onRetry }) {
           <thead>
             <tr>
               <th className="oq-col-num">#</th>
-              <th>Job / PO</th>
-              <th>Customer</th>
+              <th>Job Order No</th>
+              <th className="oq-col-md">Customer</th>
               <th>Product</th>
               <th>Operation</th>
               <th className="oq-td-center">Required Qty</th>
               <th>Machine</th>
-              <th>Operator</th>
+              <th className="oq-col-lg">Operator</th>
               <th className="oq-td-center">Priority</th>
               <th className="oq-td-center">Status</th>
               <th className="oq-td-center">Action</th>
@@ -344,14 +351,28 @@ function QueueTable({ rows, loading, error, onOpen, onReset, onRetry }) {
               rows.map((row, index) => {
                 const btn = rowButton(row);
                 return (
-                  <tr key={row.id} onClick={() => onOpen(row)}>
-                    <td className="oq-col-num">{index + 1}</td>
-                    <td data-label="Job / PO">
-                      <span className="oq-strong">{row.productionNo || "—"}</span>
-                      <span className="oq-sub">{row.jobNo || "—"}</span>
+                  <tr
+                    key={row.id}
+                    tabIndex={0}
+                    onClick={() => onOpen(row)}
+                    onKeyDown={(e) => {
+                      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        onOpen(row);
+                      }
+                    }}
+                  >
+                    <td className="oq-col-num">{offset + index + 1}</td>
+                    <td className="oq-td-job" data-label="Job Order No">
+                      <span className="oq-strong">{row.jobNo || row.productionNo || "—"}</span>
                     </td>
-                    <td data-label="Customer">{row.customerName || "—"}</td>
-                    <td data-label="Product">{row.productName || "—"}</td>
+                    <td className="oq-col-md" data-label="Customer">
+                      {row.customerName || "—"}
+                    </td>
+                    <td className="oq-td-product" data-label="Product">
+                      {row.productName || "—"}
+                      <span className="oq-sub oq-show-md">{row.customerName || "—"}</span>
+                    </td>
                     <td data-label="Operation">
                       <span className="oq-op">
                         <span className="oq-op-icon">
@@ -366,11 +387,13 @@ function QueueTable({ rows, loading, error, onOpen, onReset, onRetry }) {
                       {num(row.plannedQty)}
                     </td>
                     <td data-label="Machine">{row.machine || "—"}</td>
-                    <td data-label="Operator">{row.operator || "—"}</td>
+                    <td className="oq-col-lg" data-label="Operator">
+                      {row.operator || "—"}
+                    </td>
                     <td data-label="Priority" className="oq-td-center">
                       <PriorityBadge priority={row.priority} />
                     </td>
-                    <td data-label="Status" className="oq-td-center">
+                    <td data-label="Status" className="oq-td-center oq-td-status">
                       <StatusBadge status={row.availabilityStatus} />
                     </td>
                     <td className="oq-td-center oq-td-action" onClick={(e) => e.stopPropagation()}>
@@ -396,21 +419,27 @@ function QueueTable({ rows, loading, error, onOpen, onReset, onRetry }) {
 
 function Pager({ page, total, onChange }) {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (total <= PAGE_SIZE) return null;
+  const currentPage = Math.min(page, pages);
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
   return (
     <div className="oq2-pager">
       <span>
-        Page {page} of {pages} · {total} operations
+        {total === 0
+          ? "Showing 0 operations"
+          : `Showing ${startIdx + 1} to ${Math.min(startIdx + PAGE_SIZE, total)} of ${total} operations`}
       </span>
-      <div>
-        <button type="button" className="oq-btn oq-btn--reset oq-btn--row" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <button type="button" className="oq-btn oq-btn--reset oq-btn--row" disabled={currentPage <= 1} onClick={() => onChange(currentPage - 1)}>
           <ChevronLeft size={14} /> Previous
         </button>
+        <span style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 0.25rem" }}>
+          Page {currentPage} of {pages}
+        </span>
         <button
           type="button"
           className="oq-btn oq-btn--reset oq-btn--row"
-          disabled={page >= pages}
-          onClick={() => onChange(page + 1)}
+          disabled={currentPage >= pages}
+          onClick={() => onChange(currentPage + 1)}
         >
           Next <ChevronRight size={14} />
         </button>
@@ -439,9 +468,7 @@ function TaskSummary({ row }) {
 
       <div className="oq-summary-main">
         <div className="oq-summary-ids">
-          <span>{row.productionNo || "—"}</span>
-          <span className="oq-divider">|</span>
-          <span>{row.jobNo || "—"}</span>
+          <span>{row.jobNo || row.productionNo || "—"}</span>
         </div>
         <h3 className="oq-summary-title">{row.productName || "—"}</h3>
         <p className="oq-summary-desc">
@@ -509,7 +536,7 @@ function DetailsCard({ row }) {
         <div className="oq2-note">Waiting for the earlier operations in this order to finish.</div>
       )}
       {row.availabilityStatus === "ON_HOLD" && (
-        <div className="oq2-note oq2-note--warn">The production order is on hold. Operations cannot continue.</div>
+        <div className="oq2-note oq2-note--warn">The job order is on hold. Operations cannot continue.</div>
       )}
     </section>
   );
@@ -602,7 +629,7 @@ function OperationDetailView({ row, busy, detailTab, onDetailTabChange, onBack, 
   const tone = STATUS_TONE[row.availabilityStatus] || "pending";
   return (
     <div className="oq-page">
-      <PageHeader title="Operation Execution" >
+      <PageHeader title="Operation Execution" subtitle={`${row.jobNo || row.productionNo || "—"} · ${row.operationName || row.operationCode || ""}`}>
         <span className={`oq-status-pill oq-status-pill--${tone}`}>
           <span className={`oq-dot oq-dot--${tone}`} />
           {STATUS_LABEL[row.availabilityStatus] || row.availabilityStatus}
@@ -708,8 +735,8 @@ export default function OperationQueuePage() {
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         if (aTime !== bTime) return bTime - aTime;
 
-        if (a.productionNo !== b.productionNo) {
-          return String(b.productionNo || "").localeCompare(String(a.productionNo || ""));
+        if (a.jobNo !== b.jobNo) {
+          return String(b.jobNo || "").localeCompare(String(a.jobNo || ""));
         }
 
         return (a.sequenceNo || 0) - (b.sequenceNo || 0);
@@ -739,28 +766,22 @@ export default function OperationQueuePage() {
   };
 
   /* After an action, re-read the open operation so the view shows its new state */
-  const reselect = useCallback(
-    async (row) => {
-      try {
-        const res = await productionApi.getOperationQueue({ search: row.productionNo, limit: 200 });
-        const list = Array.isArray(res?.data) ? res.data : res?.items || [];
-        const fresh = list.find((r) => r.id === row.id);
-        setSelected(fresh || null);
-        if (!fresh) toast.info("This operation has left the queue.");
-      } catch (e) {
-        setSelected(null);
-      }
-    },
-    []
-  );
+  const reselect = useCallback(async (row) => {
+    try {
+      const res = await productionApi.getOperationQueue({ search: row.jobNo || row.productionNo, limit: 200 });
+      const list = Array.isArray(res?.data) ? res.data : res?.items || [];
+      const fresh = list.find((r) => r.id === row.id);
+      setSelected(fresh || null);
+      if (!fresh) toast.info("This operation has left the queue.");
+    } catch (e) {
+      setSelected(null);
+    }
+  }, []);
 
   const afterAction = async (row) => {
     refreshAll();
     await reselect(row);
   };
-
-  /* Every filter runs on the server, so paging and the tab counts stay accurate */
-  const visibleRows = rows;
 
   // Dropdown options come from the whole queue, not just the page on screen
   const machines = counts?.machines || [];
@@ -793,6 +814,7 @@ export default function OperationQueuePage() {
   const openRow = (row) => {
     setSelected(row);
     setDetailTab("EXECUTION");
+    window.scrollTo?.({ top: 0 });
   };
 
   /* Actions that need no form run straight away; the rest open a modal */
@@ -873,7 +895,7 @@ export default function OperationQueuePage() {
   /* ── List view ── */
   return (
     <div className="oq-page">
-      <PageHeader title="Production Tracking"/>
+      <PageHeader title="Production Tracking" subtitle="Start, pause and complete operations across all job orders" />
 
       <StatusTabs activeTab={tab} counts={tabCounts} onChange={changeTab} />
 
@@ -888,9 +910,10 @@ export default function OperationQueuePage() {
       />
 
       <QueueTable
-        rows={visibleRows}
+        rows={rows}
         loading={loading}
         error={error}
+        offset={(page - 1) * PAGE_SIZE}
         onOpen={openRow}
         onReset={resetFilters}
         onRetry={refreshAll}

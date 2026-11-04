@@ -30,7 +30,6 @@ class CreateJobDto {
     this.notes = data.notes || data.remarks || "";
     this.specialInstructions = data.specialInstructions || "";
     this.deliveryMethod = data.deliveryMethod || "";
-    this.referenceNo = data.referenceNo || "";
     this.discountAmount = Number(data.discountAmount) || 0;
     this.items = Array.isArray(data.items) ? data.items : [];
     this.specs = typeof data.specs === "object" && data.specs !== null ? data.specs : {};

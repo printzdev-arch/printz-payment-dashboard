@@ -105,6 +105,17 @@ const userSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    employeeCode: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    // Most design jobs a designer can hold at once (used for designers only)
+    maxLoad: {
+      type: Number,
+      default: 5,
+      min: 1,
+    },
     mustChangePassword: {
       type: Boolean,
       default: false,

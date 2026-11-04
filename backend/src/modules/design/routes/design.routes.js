@@ -4,6 +4,8 @@ const designAllocationController = require("../controllers/designAllocation.cont
 const designWorkController = require("../controllers/designWork.controller");
 const designSampleController = require("../controllers/designSample.controller");
 const { authenticate } = require("../../../middleware/auth.middleware");
+const DesignHelper = require("../helpers/DesignHelper");
+const ErrorHelper = require("../../../utils/ApiError");
 const { authorizePermission } = require("../../../middleware/permission.middleware");
 const {
   assignValidator,
@@ -15,6 +17,12 @@ const {
 // All routes require authentication
 router.use(authenticate);
 
+// Running the queue (assigning designers, pool settings) is for branch managers and admins only
+const managerOnly = (req, res, next) => {
+  if (DesignHelper.isManagerOrAdmin(req.user)) return next();
+  return next(ErrorHelper.forbidden("Only a manager or admin can do this."));
+};
+
 // ──────────────── Queue & Designer Pool & Workload ────────────────
 router.get(
   "/queue",
@@ -24,6 +32,7 @@ router.get(
 
 router.post(
   "/queue/auto-assign",
+  managerOnly,
   authorizePermission("design", "update"),
   designAllocationController.autoAssignQueue
 );
@@ -34,20 +43,16 @@ router.get(
   designAllocationController.getDesignerPool
 );
 
-router.post(
-  "/pool/designer",
-  authorizePermission("design", "update"),
-  designAllocationController.addDesigner
-);
-
 router.patch(
   "/pool/designer/:id",
+  managerOnly,
   authorizePermission("design", "update"),
   designAllocationController.updateDesigner
 );
 
 router.patch(
   "/settings/max-load",
+  managerOnly,
   authorizePermission("design", "update"),
   designAllocationController.updateGlobalMaxLoad
 );
@@ -80,6 +85,7 @@ router.get(
 // ──────────────── Allocation / Reallocation Per Job ────────────────
 router.post(
   "/jobs/:id/auto-allocate",
+  managerOnly,
   authorizePermission("design", "update"),
   designAllocationController.autoAllocate
 );
@@ -87,6 +93,7 @@ router.post(
 router.post(
   "/jobs/:id/assign",
   assignValidator,
+  managerOnly,
   authorizePermission("design", "update"),
   designAllocationController.assignDesigner
 );
@@ -94,6 +101,7 @@ router.post(
 router.post(
   "/jobs/:id/reassign",
   reassignValidator,
+  managerOnly,
   authorizePermission("design", "update"),
   designAllocationController.reassignDesigner
 );
