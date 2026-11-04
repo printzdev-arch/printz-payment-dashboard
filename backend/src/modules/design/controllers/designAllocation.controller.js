@@ -6,11 +6,11 @@ const DesignAllocationService = require("../services/designAllocation.service");
  * Design Allocation Controller
  */
 const autoAllocate = asyncHandler(async (req, res) => {
-  const result = await DesignAllocationService.autoAllocate(req.params.id);
+  const result = await DesignAllocationService.autoAllocate(req.params.id, req.user);
   if (!result || !result.assigned) {
     return ResponseHelper.error(
       res,
-      `Could not allocate designer: ${result?.reason || "No eligible designer available"}`,
+      result?.message || `Could not allocate designer: ${result?.reason || "No eligible designer available"}`,
       409,
       "CONFLICT"
     );
@@ -19,7 +19,7 @@ const autoAllocate = asyncHandler(async (req, res) => {
 });
 
 const autoAssignQueue = asyncHandler(async (req, res) => {
-  const results = await DesignAllocationService.autoAssignQueue();
+  const results = await DesignAllocationService.autoAssignQueue(req.user);
   return ResponseHelper.ok(res, "Queue auto-assignment processed", results);
 });
 
@@ -31,6 +31,14 @@ const assignDesigner = asyncHandler(async (req, res) => {
     employeeId,
     req.user
   );
+  if (result && result.assigned === false) {
+    return ResponseHelper.error(
+      res,
+      result.message || `Could not assign a designer: ${result.reason || "No eligible designer available"}`,
+      409,
+      "CONFLICT"
+    );
+  }
   return ResponseHelper.ok(res, "Designer assigned successfully", result);
 });
 
@@ -46,17 +54,17 @@ const reassignDesigner = asyncHandler(async (req, res) => {
 });
 
 const getAssignmentHistory = asyncHandler(async (req, res) => {
-  const history = await DesignAllocationService.history(req.params.id);
+  const history = await DesignAllocationService.history(req.params.id, req.user);
   return ResponseHelper.ok(res, "Assignment history retrieved successfully", history);
 });
 
 const getDesignQueue = asyncHandler(async (req, res) => {
-  const queue = await DesignAllocationService.queue(req.query);
+  const queue = await DesignAllocationService.queue(req.query, req.user);
   return ResponseHelper.ok(res, "Design queue retrieved successfully", queue);
 });
 
 const getDesignerPool = asyncHandler(async (req, res) => {
-  const pool = await DesignAllocationService.pool(req.query.branchId);
+  const pool = await DesignAllocationService.pool(req.user);
   return ResponseHelper.ok(res, "Designer pool retrieved successfully", pool);
 });
 
@@ -66,18 +74,13 @@ const getWorkload = asyncHandler(async (req, res) => {
 });
 
 const getRecentAssignments = asyncHandler(async (req, res) => {
-  const assignments = await DesignAllocationService.recentAssignments(req.query.limit || 10);
+  const assignments = await DesignAllocationService.recentAssignments(req.query.limit || 10, req.user);
   return ResponseHelper.ok(res, "Recent designer assignments retrieved successfully", assignments);
 });
 
 const getRejectedAssignments = asyncHandler(async (req, res) => {
-  const rejected = await DesignAllocationService.rejectedAssignments(req.query.limit || 50);
+  const rejected = await DesignAllocationService.rejectedAssignments(req.query.limit || 50, req.user);
   return ResponseHelper.ok(res, "Rejected assignments retrieved successfully", rejected);
-});
-
-const addDesigner = asyncHandler(async (req, res) => {
-  const designer = await DesignAllocationService.addDesigner(req.body);
-  return ResponseHelper.created(res, "Designer added to pool successfully", designer);
 });
 
 const updateDesigner = asyncHandler(async (req, res) => {
@@ -101,7 +104,6 @@ module.exports = {
   getWorkload,
   getRecentAssignments,
   getRejectedAssignments,
-  addDesigner,
   updateDesigner,
   updateGlobalMaxLoad,
 };

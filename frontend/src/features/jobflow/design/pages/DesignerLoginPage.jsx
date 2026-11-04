@@ -213,36 +213,8 @@ export const DesignerLoginPage = () => {
       toast.success(`Welcome to PrintZ Studio, ${user?.name || selectedDesigner.name}!`);
       navigate("/jobflow/design?view=my-jobs");
     } catch (err) {
-      console.warn("Designer login API error, using seamless simulation fallback:", err);
-      // Instant login fallback for prototype/demo
-      const des =
-        designersList.find(
-          (d) =>
-            d.email.toLowerCase() === identifier.toLowerCase() ||
-            d.code.toLowerCase() === identifier.toLowerCase()
-        ) || selectedDesigner;
-
-      if (des) {
-        const dummyUser = {
-          name: des.name,
-          email: des.email,
-          role: "designer",
-          token: "mock_designer_token_" + Date.now(),
-        };
-        localStorage.setItem("token", dummyUser.token);
-        localStorage.setItem("printz_auth_token", dummyUser.token);
-        localStorage.setItem("printz_user", JSON.stringify(dummyUser));
-        localStorage.setItem("user", JSON.stringify(dummyUser));
-        localStorage.setItem("userRole", "designer");
-        localStorage.setItem("userName", des.name);
-        localStorage.setItem("userEmail", des.email);
-
-        toast.success(`Welcome to PrintZ Studio, ${des.name}!`);
-        navigate("/jobflow/design?view=my-jobs");
-        return;
-      }
-      const msg = err.response?.data?.message || err.message || "Failed to sign in. Please verify credentials.";
-      toast.error(msg);
+      // A wrong password or an unknown designer is refused; there is no offline sign-in
+      toast.error(err.response?.data?.message || err.message || "Failed to sign in. Please verify credentials.");
     } finally {
       setLoading(false);
     }

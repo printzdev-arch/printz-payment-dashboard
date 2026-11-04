@@ -572,9 +572,6 @@ const endpoints = {
     decision: "APPROVED",
     customerFeedback: "Proof verified and approved by marketing lead. Proceed with printing.",
   },
-  "POST /job-orders/{id}/skip-design": {
-    notes: "Certified print-ready PDF provided directly by customer design agency",
-  },
 
   // ── 07 Design & Proofing ──
   "POST /design/jobs/{id}/assign": schemas.AssignDesignerRequest,

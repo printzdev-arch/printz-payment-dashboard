@@ -151,21 +151,20 @@ class ProductionOrderService {
       scopeQueryToUser(query, user)
     );
 
-    // Filter out orders for Print Only or Design Only jobs (they do not undergo production),
-    // and cleanup any standalone orders erroneously created for finishing services
+    // Design Only jobs do not undergo production, so their orders are not listed (nothing is deleted by a read).
+    // Standalone orders erroneously created for finishing services are cleaned up
     const filteredItems = [];
     const deleteIds = [];
     for (const item of items) {
       const job = item.jobOrderId && typeof item.jobOrderId === "object" ? item.jobOrderId : {};
       const jobTypeStr = String(job.jobType || "").toUpperCase();
-      const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
       const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
       const pName = String(item.specificationsSnapshot?.productName || "").toUpperCase().trim();
       const isFinishingPO = pName.startsWith("FINISHING:") || pName.startsWith("FINISHING -") || pName.startsWith("FINISHING ");
 
-      if (isPrintOnly || isDesignOnly || isFinishingPO) {
+      if (isFinishingPO) {
         deleteIds.push(item._id);
-      } else {
+      } else if (!isDesignOnly) {
         filteredItems.push(item);
       }
     }

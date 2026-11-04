@@ -140,6 +140,16 @@ const invoiceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // The invoice-level discount as entered: a percentage or a fixed amount (rupees)
+    invoiceDiscountType: {
+      type: String,
+      enum: ["FIXED", "PERCENTAGE"],
+      default: "FIXED",
+    },
+    invoiceDiscountValue: {
+      type: Number,
+      default: 0,
+    },
     additionalChargesTotal: {
       type: Number,
       default: 0,
@@ -183,6 +193,28 @@ const invoiceSchema = new mongoose.Schema(
     advanceApplied: {
       type: Number,
       default: 0,
+    },
+    // The one GST rate (percent) applied to every item and charge of this invoice
+    gstRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    // FULL: the whole invoice is paid when it is finalized. ADVANCE: part is paid now, the rest is settled before delivery.
+    paymentPlan: {
+      type: String,
+      enum: ["FULL", "ADVANCE"],
+      default: "ADVANCE",
+    },
+    // How the advance / full payment entered on the invoice was received; used when it is recorded as a payment
+    paymentMode: {
+      type: String,
+      default: "CASH",
+    },
+    paymentReference: {
+      type: String,
+      default: "",
     },
     amountPaid: {
       type: Number,

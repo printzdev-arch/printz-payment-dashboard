@@ -6,7 +6,6 @@ const PREFIX_MAP = Object.freeze({
   CUSTOMER: "CUS",
   EMPLOYEE: "EMP",
   JOB_ORDER: "JOB",
-  ESTIMATE: "EST",
   INVOICE: "INV",
   APPROVAL: "APR",
   SALE_RECEIPT: "SR",

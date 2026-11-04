@@ -55,7 +55,14 @@ const resetPassword = asyncHandler(async (req, res) => {
 const getDesignersList = asyncHandler(async (req, res) => {
   const DesignAllocationService = require("../../design/services/designAllocation.service");
   const pool = await DesignAllocationService.pool();
-  const designers = pool.designers || [];
+  // The login screen only needs who the designers are, not their workload
+  const designers = (pool.designers || []).map((d) => ({
+    _id: d._id,
+    employeeId: d.employeeId,
+    employeeCode: d.employeeCode,
+    name: d.name,
+    email: d.email,
+  }));
   return ResponseHelper.success(res, designers, "Designers list retrieved successfully");
 });
 

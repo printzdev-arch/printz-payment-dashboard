@@ -1275,7 +1275,7 @@ export const QualityControlPage = ({ embedded = false }) => {
       key: "scrapCost",
       label: "Scrap Cost",
       sortable: true,
-      render: (val) => <strong className="qc-loss">RM {Number(val).toFixed(2)}</strong>,
+      render: (val) => <strong className="qc-loss">₹{Number(val).toFixed(2)}</strong>,
     },
     {
       key: "status",
@@ -1965,7 +1965,7 @@ export const QualityControlPage = ({ embedded = false }) => {
                   <div className="qc-reason-box">
                     <div className="qc-between">
                       <strong style={{ color: "#991b1b", fontSize: ".875rem" }}>Defect Cause</strong>
-                      <span className="qc-loss">RM {Number(selectedReprint.scrapCost || 0).toFixed(2)}</span>
+                      <span className="qc-loss">₹{Number(selectedReprint.scrapCost || 0).toFixed(2)}</span>
                     </div>
                     <p>{selectedReprint.reason}</p>
                   </div>

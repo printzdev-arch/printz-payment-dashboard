@@ -8,7 +8,6 @@ export const printQuotation = (estimate) => {
   const rawJob = estimate.raw || estimate;
   const specs = rawJob.specs || rawJob.specifications || estimate.specs || rawJob.items?.[0]?.specifications || {};
   const jobNo = estimate.jobNo || rawJob.jobNo || rawJob.orderNumber || "N/A";
-  const estimateNo = estimate.estimateNo || `EST-${jobNo}`;
   const customerName =
     estimate.customerName ||
     rawJob.customerName ||
@@ -176,8 +175,8 @@ export const printQuotation = (estimate) => {
           ${it.spec ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 3px;">${it.spec}</div>` : ""}
         </td>
         <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: center; font-weight: 600;">${it.qty} ${it.unit}</td>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">RM ${Number(it.rate || 0).toFixed(2)}</td>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f172a;">RM ${Number(it.amount || 0).toFixed(2)}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${Number(it.rate || 0).toFixed(2)}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f172a;">₹${Number(it.amount || 0).toFixed(2)}</td>
       </tr>
     `
     )
@@ -202,7 +201,7 @@ export const printQuotation = (estimate) => {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Commercial Quotation - ${estimateNo}</title>
+      <title>Commercial Quotation - ${jobNo}</title>
       <style>
         @page { size: A4; margin: 12mm; }
         * { box-sizing: border-box; }
@@ -420,7 +419,7 @@ export const printQuotation = (estimate) => {
           </div>
           <div class="quote-title">
             <h1>COMMERCIAL QUOTATION</h1>
-            <div class="quote-badge">${estimateNo}</div>
+            <div class="quote-badge">${jobNo}</div>
           </div>
         </div>
 
@@ -471,27 +470,27 @@ export const printQuotation = (estimate) => {
           <div class="totals-box">
             <div class="total-row">
               <span>Base Product Cost:</span>
-              <span>RM ${productBaseCost.toFixed(2)}</span>
+              <span>₹${productBaseCost.toFixed(2)}</span>
             </div>
             ${
               finishingTotal > 0
                 ? `<div class="total-row">
                     <span>Finishing Services Total:</span>
-                    <span>RM ${finishingTotal.toFixed(2)}</span>
+                    <span>₹${finishingTotal.toFixed(2)}</span>
                   </div>`
                 : ""
             }
             <div class="total-row" style="font-weight: 600; color: #0f172a;">
               <span>Subtotal:</span>
-              <span>RM ${itemsSubtotal.toFixed(2)}</span>
+              <span>₹${itemsSubtotal.toFixed(2)}</span>
             </div>
             <div class="total-row">
               <span>Tax / GST:</span>
-              <span>RM 0.00 (Exempt)</span>
+              <span>₹0.00 (Exempt)</span>
             </div>
             <div class="grand-total-row">
               <span>Grand Total:</span>
-              <span>RM ${grandTotal.toFixed(2)}</span>
+              <span>₹${grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>

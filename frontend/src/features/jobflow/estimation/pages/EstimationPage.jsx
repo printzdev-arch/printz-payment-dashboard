@@ -20,6 +20,7 @@ export const EstimationPage = () => {
   const [estimates, setEstimates] = useState([]);
   const [selectedEstimate, setSelectedEstimate] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewViewOnly, setReviewViewOnly] = useState(false);
 
   useEffect(() => {
     fetchEstimates();
@@ -116,7 +117,6 @@ export const EstimationPage = () => {
 
         return {
           _id: job._id || job.id,
-          estimateNo: `EST-${job.jobNo || job.orderNumber || (job._id || "").slice(-6)}`,
           jobNo: job.jobNo || job.orderNumber || "JO-NEW",
           jobType: job.jobType || job.specs?.jobType || "Print & Design",
           customerName: job.customerName || job.customerSnapshot?.name || job.customerId?.name || "Client",
@@ -265,37 +265,30 @@ export const EstimationPage = () => {
         <JobFlowDataTable
           columns={[
             {
-              key: "estimateNo",
-              label: "Estimate No",
-              sortable: true,
-              width: "150px",
-              render: (val, row) => (
-                <span
-                  style={{
-                    fontWeight: 700,
-                    color: "var(--jf-primary, #15803d)",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    textUnderlineOffset: "2px",
-                  }}
-                  onClick={() => {
-                    setSelectedEstimate(row);
-                    setIsReviewModalOpen(true);
-                  }}
-                  title="Click to view estimate details"
-                >
-                  {val || "-"}
-                </span>
-              ),
-            },
-            {
               key: "jobNo",
               label: "Job No",
               sortable: true,
               width: "150px",
               render: (val, row) => (
                 <div>
-                  <span style={{ fontWeight: 600, color: "#1e293b", display: "block" }}>{val || "-"}</span>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: "var(--jf-primary, #15803d)",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      textUnderlineOffset: "2px",
+                      display: "block",
+                    }}
+                    onClick={() => {
+                      setSelectedEstimate(row);
+                      setReviewViewOnly(false);
+                      setIsReviewModalOpen(true);
+                    }}
+                    title="Click to view estimate details"
+                  >
+                    {val || "-"}
+                  </span>
                   <div style={{ marginTop: "4px" }}>
                     <JobTypeBadge jobType={row.jobType || "Print & Design"} size="sm" />
                   </div>
@@ -335,9 +328,9 @@ export const EstimationPage = () => {
             },
             {
               key: "amount",
-              label: "Amount (RM)",
+              label: "Amount (₹)",
               sortable: true,
-              render: (val) => <strong>RM {(Number(val) || 0).toFixed(2)}</strong>,
+              render: (val) => <strong>₹{(Number(val) || 0).toFixed(2)}</strong>,
             },
             {
               key: "status",
@@ -367,6 +360,7 @@ export const EstimationPage = () => {
                       className="jf-btn jf-btn-secondary jf-btn-sm"
                       onClick={() => {
                         setSelectedEstimate(est);
+                        setReviewViewOnly(true);
                         setIsReviewModalOpen(true);
                       }}
                       title="View Estimate"
@@ -380,6 +374,7 @@ export const EstimationPage = () => {
                       className="jf-btn jf-btn-primary jf-btn-sm"
                       onClick={() => {
                         setSelectedEstimate(est);
+                        setReviewViewOnly(false);
                         setIsReviewModalOpen(true);
                       }}
                     >
@@ -413,6 +408,7 @@ export const EstimationPage = () => {
           onClose={() => setIsReviewModalOpen(false)}
           estimate={selectedEstimate}
           onApprove={handleApproveEstimate}
+          viewOnly={reviewViewOnly}
         />
       )}
     </JobFlowLayout>

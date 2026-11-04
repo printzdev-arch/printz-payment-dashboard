@@ -37,12 +37,6 @@ const replaceItems = asyncHandler(async (req, res) => {
   return ResponseHelper.ok(res, "Job Order items updated successfully", items);
 });
 
-const skipDesign = asyncHandler(async (req, res) => {
-  const reason = req.body.reason || "Direct print-ready artwork provided";
-  const updated = await JobOrderService.skipDesign(req.params.id, reason, req.user);
-  return ResponseHelper.ok(res, "Design skipped; Job Order moved to PRODUCTION_PLANNING", updated);
-});
-
 const holdJobOrder = asyncHandler(async (req, res) => {
   const held = await JobOrderService.hold(req.params.id, req.body.reason, req.user);
   return ResponseHelper.ok(res, "Job Order placed on hold", held);
@@ -79,7 +73,6 @@ module.exports = {
   getJobOrderById,
   updateJobOrder,
   replaceItems,
-  skipDesign,
   holdJobOrder,
   resumeJobOrder,
   cancelJobOrder,

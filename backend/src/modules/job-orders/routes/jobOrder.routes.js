@@ -16,7 +16,6 @@ const {
   estimateValidator,
   approveEstimateValidator,
   rejectEstimateValidator,
-  skipDesignValidator,
   holdCancelValidator,
   fileUploadValidator,
 } = require("../validators/jobOrder.validator");
@@ -106,13 +105,7 @@ router.post(
   jobEstimateController.rejectEstimate
 );
 
-// Workflow controls (Skip Design, Hold, Resume, Cancel)
-router.post(
-  "/:id/skip-design",
-  skipDesignValidator,
-  authorizePermission("job", "update"),
-  jobOrderController.skipDesign
-);
+// Workflow controls (Hold, Resume, Cancel)
 
 router.post(
   "/:id/hold",

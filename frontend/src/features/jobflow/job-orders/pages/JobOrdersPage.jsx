@@ -15,7 +15,6 @@ import {
   FastForward,
 } from "lucide-react";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
-import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal";
@@ -92,18 +91,6 @@ export const JobOrdersPage = () => {
     }
   };
 
-  const handleSkipDesign = async (job) => {
-    if (window.confirm(`Skip design workflow for Job ${job.jobNo}? It will proceed straight to Production Planning.`)) {
-      try {
-        await jobFlowApi.skipDesign(job._id || job.id, { reason: "Customer provided print-ready file" });
-        toast.success("Design skipped. Job released to Production Planning.");
-        fetchJobs();
-      } catch (err) {
-        toast.error(err.response?.data?.message || "Failed to skip design");
-      }
-    }
-  };
-
   return (
     <JobFlowLayout
       title="Job Orders"
@@ -141,30 +128,6 @@ export const JobOrdersPage = () => {
           <option value="COMPLETED">Completed</option>
         </select>
 
-        <select
-          className="jf-select"
-          style={{width:"150px"}}
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="READY">Ready</option>
-          <option value="COMPLETED">Completed</option>
-        </select>
-
-        <button
-          type="button"
-          className="jf-btn jf-btn-secondary jf-btn-sm"
-          onClick={() => {
-            setSearchQuery("");
-            setStageFilter("all");
-            setStatusFilter("all");
-          }}
-        >
-          <RotateCcw size={14} /> Reset
-        </button>
       </div>
 
       {/* Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}
@@ -174,15 +137,13 @@ export const JobOrdersPage = () => {
             key: "jobNo",
             label: "Job No",
             sortable: true,
-            width: "150px",
+            minWidth: "180px",
             render: (val, row) => (
-              <div>
-                <strong style={{ color: "var(--jf-primary-dark)", display: "block" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
+                <strong style={{ color: "var(--jf-primary-dark)", whiteSpace: "nowrap" }}>
                   {val || row.orderNumber}
                 </strong>
-                <div style={{ marginTop: "4px" }}>
-                  <JobTypeBadge jobType={row.jobType || "Print & Design"} size="sm" />
-                </div>
+                <JobTypeBadge jobType={row.jobType || "Print & Design"} size="sm" />
               </div>
             ),
           },
@@ -190,77 +151,77 @@ export const JobOrdersPage = () => {
             key: "customerName",
             label: "Customer",
             sortable: true,
-            render: (val, row) => val || row.customerId?.name || "Client",
+            minWidth: "140px",
+            render: (val, row) => (
+              <span style={{ color: "#0f172a", fontWeight: 600 }}>
+                {val || row.customerId?.name || "Client"}
+              </span>
+            ),
           },
           {
-            key: "title",
-            label: "Title / Item",
+            key: "productName",
+            label: "Product Name",
             sortable: true,
-            render: (val, row) => (
-              <div>
-                <div style={{ fontWeight: 600 }}>{val || row.jobTitle}</div>
-                <span style={{ fontSize: "0.75rem", color: "#475569" }}>{row.jobType}</span>
-              </div>
-            ),
+            minWidth: "160px",
+            render: (_, row) => {
+              const productName =
+                row.productType ||
+                row.specs?.productType ||
+                row.items?.[0]?.specifications?.productType ||
+                row.items?.[0]?.productType ||
+                row.title ||
+                row.jobTitle ||
+                "-";
+              return (
+                <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                  {productName}
+                </div>
+              );
+            },
           },
           {
             key: "quantity",
             label: "Qty",
             sortable: true,
             width: "80px",
-            render: (val, row) => (val || row.specs?.quantity || 500).toLocaleString(),
+            render: (val, row) => (
+              <span style={{ color: "#0f172a", fontWeight: 600 }}>
+                {(val || row.specs?.quantity || 500).toLocaleString()}
+              </span>
+            ),
           },
           {
             key: "dueDate",
             label: "Due Date",
             sortable: true,
-            render: (val) => (val ? new Date(val).toLocaleDateString() : "-"),
+            width: "110px",
+            render: (val) => (
+              <span style={{ color: "#0f172a", fontWeight: 600, whiteSpace: "nowrap" }}>
+                {val ? new Date(val).toLocaleDateString() : "-"}
+              </span>
+            ),
           },
           {
             key: "stage",
             label: "Stage",
             sortable: true,
+            width: "130px",
             render: (val, row) => {
-              const jobTypeStr = String(row.jobType || row.specs?.jobType || "").toUpperCase();
-              const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
-              const hasCompleted =
-                isDesignOnly &&
-                (row.designStatus === "COMPLETED" ||
-                  val === "PRODUCTION_PLANNING" ||
-                  row.currentStage === "PRODUCTION_PLANNING" ||
-                  val === "COMPLETED" ||
-                  row.currentStage === "COMPLETED");
-              const effectiveStage = hasCompleted ? "COMPLETED" : (row.currentStage || val || "ENQUIRY");
+              const effectiveStage = row.currentStage || row.stage || val || "ENQUIRY";
+              const isCompleted = String(effectiveStage).toUpperCase() === "COMPLETED";
               return (
-                <span className={`jf-badge ${hasCompleted ? "jf-badge-green" : "jf-badge-blue"}`}>
+                <span className={`jf-badge ${isCompleted ? "jf-badge-green" : "jf-badge-blue"}`}>
                   {effectiveStage}
                 </span>
               );
             },
           },
           {
-            key: "status",
-            label: "Status",
-            sortable: true,
-            render: (val, row) => {
-              const jobTypeStr = String(row.jobType || row.specs?.jobType || "").toUpperCase();
-              const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
-              const hasCompleted =
-                isDesignOnly &&
-                (row.designStatus === "COMPLETED" ||
-                  val === "PRODUCTION_PLANNING" ||
-                  row.currentStage === "PRODUCTION_PLANNING" ||
-                  val === "COMPLETED" ||
-                  row.currentStage === "COMPLETED");
-              const effectiveStatus = hasCompleted ? "COMPLETED" : (row.currentStage || val || "PENDING");
-              return <StatusBadge status={effectiveStatus} />;
-            },
-          },
-          {
             key: "actions",
             label: "Actions",
             sortable: false,
-            align: "right",
+            width: "90px",
+            align: "center",
             render: (_, row) => (
               <button
                 type="button"

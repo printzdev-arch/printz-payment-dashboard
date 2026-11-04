@@ -174,9 +174,7 @@ class JobEstimateService {
         { status: "EXPIRED", decidedAt: new Date() }
       );
 
-      const estNo = `EST-${job.jobNo || String(job._id).slice(-6).toUpperCase()}-V${versionNo}`;
       const estimateRecord = await Estimate.create({
-        estimateNo: estNo,
         jobOrderId: job._id,
         branchId: job.branchId,
         customerId: job.customerId,
@@ -346,22 +344,12 @@ class JobEstimateService {
 
     const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
     const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-    const isDesignOnly = jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT");
-
-    let nextStage = "DESIGN_QUEUE";
-    if (isPrintOnly) {
-      nextStage = "PRODUCTION_PLANNING";
-    } else if (job.source === "DESIGNER") {
-      nextStage = "DESIGN_IN_PROGRESS";
-    }
-    if (approveData.skipDesign) {
-      nextStage = "PRODUCTION_PLANNING";
-    }
 
     const patch = {
       estimationStatus: "APPROVED",
-      currentStage: isPrintOnly ? "PRODUCTION_PLANNING" : "ESTIMATE_APPROVAL",
-      stage: isPrintOnly ? "PRODUCTION_PLANNING" : "ESTIMATE_APPROVAL",
+      // Print Only has no production step: it waits at ESTIMATE_APPROVAL for the invoice, like every other type
+      currentStage: "ESTIMATE_APPROVAL",
+      stage: "ESTIMATE_APPROVAL",
       designStatus: isPrintOnly ? "NOT_REQUIRED" : (isDesigner ? "ASSIGNED" : "UNASSIGNED"),
       ...(pricing.subtotal !== undefined ? { subtotal: pricing.subtotal } : {}),
       ...(pricing.discountAmount !== undefined ? { discountAmount: pricing.discountAmount } : {}),
@@ -417,15 +405,6 @@ class JobEstimateService {
     // Ensure all pricing fields are persisted on the job
     await jobOrderRepository.update(job._id, patch);
 
-    if (isPrintOnly) {
-      try {
-        const ProductionPlanningService = require("../../production/services/productionPlanning.service");
-        await ProductionPlanningService.createUnassignedOrder(job._id, user);
-      } catch (poErr) {
-        // non-blocking
-      }
-    }
-
     await ProductionStateService.logAudit({
       action: "APPROVE",
       resource: "JobEstimate",
@@ -434,7 +413,6 @@ class JobEstimateService {
       branchId: job.branchId,
       details: {
         versionNo: approval.versionNo,
-        skipDesign: Boolean(approveData.skipDesign),
         pricing,
       },
     });

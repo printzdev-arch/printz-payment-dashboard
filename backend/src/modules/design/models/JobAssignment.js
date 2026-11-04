@@ -62,7 +62,7 @@ const jobAssignmentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["ACTIVE", "REJECTED", "REASSIGNED", "COMPLETED", "CANCELLED"],
+      enum: ["ACTIVE", "REJECTED", "REASSIGNED", "REPLACED", "COMPLETED", "CANCELLED"],
       default: "ACTIVE",
       index: true,
     },

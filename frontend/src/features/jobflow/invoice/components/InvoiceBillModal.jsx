@@ -73,8 +73,9 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
   );
 
   const jobTypeStr = String(doc.jobType || doc.raw?.jobType || doc.jobOrderId?.jobType || "").toUpperCase();
-  const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-  const isPaid = isPrintOnly || balanceDue <= 0 || doc.status === "PAID" || doc.paymentStatus === "PAID";
+  // Paid in full when the invoice was finalized (full-payment plan), as opposed to an advance with a balance
+  const isPrintOnly = String(doc.paymentPlan || "").toUpperCase() === "FULL" && balanceDue <= 0;
+  const isPaid = balanceDue <= 0 || doc.status === "PAID" || doc.paymentStatus === "PAID";
 
   const handlePrint = () => {
     const printWin = window.open("", "_blank", "width=850,height=950");

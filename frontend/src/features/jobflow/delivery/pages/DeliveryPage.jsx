@@ -210,8 +210,10 @@ export const DeliveryPage = ({ embedded = false }) => {
           jobNo: jObj?.jobNo || d.jobNo || "JO-CURRENT",
           customerName: d.customerName || jObj?.customerName || "Customer",
           customerPhone: d.customerPhone || jObj?.customerPhone || "N/A",
-          deliveryAddress: d.deliveryAddress || jObj?.customerSnapshot?.address || "Counter Pickup",
+          deliveryAddress: d.deliveryType === "COUNTER_PICKUP" ? "" : d.deliveryAddress || jObj?.customerSnapshot?.address || "",
           deliveryType: d.deliveryType || "DELIVERY",
+          deliveryMethod: d.deliveryMethod || jObj?.deliveryMethod || "",
+          assignedEmployeeId: d.assignedEmployeeId,
           deliveryPersonName: d.deliveryPersonName || d.driverName || "Unassigned",
           deliveryPersonPhone: d.deliveryPersonPhone || d.driverPhone || "",
           vehicle: d.vehicle || d.vehicleNumber || "",
@@ -261,7 +263,9 @@ export const DeliveryPage = ({ embedded = false }) => {
           jobNo: j.jobNo || j.orderNumber || `JO-${jId.slice(-6)}`,
           customerName: j.customerName || j.customerSnapshot?.name || j.customer?.name || "Customer",
           customerPhone: j.customerPhone || j.customerSnapshot?.mobile || j.customer?.mobile || "N/A",
-          deliveryAddress: j.deliveryAddress || j.customerSnapshot?.address || "Counter Pickup",
+          deliveryAddress: j.deliveryAddress || j.customerSnapshot?.address || "",
+          deliveryType: j.deliveryType || matchedDO?.deliveryType || "DELIVERY",
+          deliveryMethod: j.deliveryMethod || matchedDO?.deliveryMethod || "",
           title: j.title || j.productType || "Print Order",
           quantity: j.quantity || 500,
           grandTotal: jobTotal,
@@ -334,6 +338,22 @@ export const DeliveryPage = ({ embedded = false }) => {
     }
   };
 
+  // Counter pickup: pack the order (if not packed yet), then open the handover screen
+  const handlePickupHandover = async (d) => {
+    try {
+      if (d.status !== "PACKED") {
+        setLoading(true);
+        await deliveryApi.packDeliveryOrder(d._id || d.id, {});
+        await loadAllData();
+      }
+      setSelectedDOForHandover({ ...d, status: "PACKED" });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to pack the pickup order");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Open Settlement for a delivery order
   const handleOpenSettlement = async (d) => {
     const directInv = d.raw?.invoiceId || d.raw?.invoice?._id || d.raw?.invoice?.id;
@@ -355,8 +375,13 @@ export const DeliveryPage = ({ embedded = false }) => {
   };
 
   // Helper: check if a DO has actually been assigned to a delivery staff member
+  const isPickupRow = (x) => x?.deliveryType === "COUNTER_PICKUP";
+  const typeLabel = (x) => (isPickupRow(x) ? "Counter Pickup" : "Dispatch Delivery");
+
   const isActuallyAssigned = (d) => {
     if (!d) return false;
+    // A counter pickup needs no delivery person: it is ready to pack / hand over as soon as the order exists
+    if (isPickupRow(d)) return d.status === "READY" || d.status === "REVIEWED" || d.status === "PACKED";
     if (d.status === "READY" || d.status === "CANCELLED") return false;
     const staff = String(d.deliveryPersonName || "").trim();
     const hasStaff = Boolean(staff && staff !== "Unassigned" && staff !== "-" && staff !== "undefined");
@@ -601,8 +626,8 @@ export const DeliveryPage = ({ embedded = false }) => {
                           </span>
                         </td>
                         <td data-label="Delivery">
-                          <span className={`delivery-method-pill ${job.deliveryAddress === "Counter Pickup" ? "pickup" : "internal"}`}>
-                            {job.deliveryAddress === "Counter Pickup" ? "Counter Pickup" : "Home Delivery"}
+                          <span className={`delivery-method-pill ${isPickupRow(job) ? "pickup" : "internal"}`}>
+                            {typeLabel(job)}
                           </span>
                         </td>
                         <td data-label="Total">
@@ -614,7 +639,9 @@ export const DeliveryPage = ({ embedded = false }) => {
                         <td data-label="Status">
                           {job.deliveryOrder ? (
                             isActuallyAssigned(job.deliveryOrder) ? (
-                              <span className="dlv-chip-success">✓ DO Created & Assigned ({job.deliveryOrder.deliveryNo})</span>
+                              <span className="dlv-chip-success">
+                                {isPickupRow(job) ? "✓ Pickup Order Ready" : "✓ DO Created & Assigned"} ({job.deliveryOrder.deliveryNo})
+                              </span>
                             ) : (
                               <span style={{
                                 background: "#fef3c7",
@@ -733,39 +760,57 @@ export const DeliveryPage = ({ embedded = false }) => {
                           </div>
                         </td>
                         <td data-label="Type & Address">
-                          <span className={`delivery-method-pill ${d.deliveryType === "COUNTER_PICKUP" ? "pickup" : "internal"}`}>
-                            {d.deliveryType}
+                          <span className={`delivery-method-pill ${isPickupRow(d) ? "pickup" : "internal"}`}>
+                            {typeLabel(d)}
                           </span>
-                          <div className="dlv-sub dlv-ellipsis">{d.deliveryAddress}</div>
+                          <div className="dlv-sub dlv-ellipsis">{isPickupRow(d) ? "Collect at branch counter" : d.deliveryAddress}</div>
                         </td>
                         <td data-label="Staff">
-                          <div className="dlv-primary dlv-inline">
-                            <UserCheck size={14} className="dlv-muted-icon" /> {d.deliveryPersonName}
-                          </div>
-                          <div className="dlv-sub">{d.vehicle || d.deliveryPersonPhone}</div>
+                          {isPickupRow(d) ? (
+                            <div className="dlv-sub">Not needed (customer collects)</div>
+                          ) : (
+                            <>
+                              <div className="dlv-primary dlv-inline">
+                                <UserCheck size={14} className="dlv-muted-icon" /> {d.deliveryPersonName}
+                              </div>
+                              <div className="dlv-sub">{d.vehicle || d.deliveryPersonPhone}</div>
+                            </>
+                          )}
                         </td>
                         <td data-label="Status">
                           <StatusBadge status={d.status} domain="delivery" />
                         </td>
                         <td className="dlv-right dlv-actions-cell">
-                          <div className="dlv-btn-group">
+                          {isPickupRow(d) ? (
                             <button
                               type="button"
-                              className="dlv-btn dlv-btn-ghost"
-                              onClick={() => setSelectedDOForAssign(d)}
-                            >
-                              Re-assign
-                            </button>
-                            <button
-                              type="button"
-                              className="dlv-btn dlv-btn-primary"
-                              onClick={() => handleDispatchOrder(d)}
+                              className="dlv-btn dlv-btn-success"
+                              onClick={() => handlePickupHandover(d)}
                               disabled={loading}
-                              title="Dispatch order and mark Out for Delivery"
+                              title="Pack the order and hand it over to the customer at the counter"
                             >
-                              <Truck size={14} /> Dispatch (Out for Delivery)
+                              <PackageCheck size={14} /> {d.status === "PACKED" ? "Hand Over at Counter" : "Pack & Hand Over"}
                             </button>
-                          </div>
+                          ) : (
+                            <div className="dlv-btn-group">
+                              <button
+                                type="button"
+                                className="dlv-btn dlv-btn-ghost"
+                                onClick={() => setSelectedDOForAssign(d)}
+                              >
+                                Re-assign
+                              </button>
+                              <button
+                                type="button"
+                                className="dlv-btn dlv-btn-primary"
+                                onClick={() => handleDispatchOrder(d)}
+                                disabled={loading}
+                                title="Dispatch order and mark Out for Delivery"
+                              >
+                                <Truck size={14} /> Dispatch (Out for Delivery)
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -941,8 +986,8 @@ export const DeliveryPage = ({ embedded = false }) => {
                           </div>
                         </td>
                         <td data-label="Type">
-                          <span className={`delivery-method-pill ${d.deliveryType === "COUNTER_PICKUP" ? "pickup" : "internal"}`}>
-                            {d.deliveryType}
+                          <span className={`delivery-method-pill ${isPickupRow(d) ? "pickup" : "internal"}`}>
+                            {typeLabel(d)}
                           </span>
                         </td>
                         <td data-label="Proof">

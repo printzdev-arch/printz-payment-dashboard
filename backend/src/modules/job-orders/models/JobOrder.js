@@ -240,6 +240,11 @@ const jobOrderSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Print Only jobs may skip quality control; every other job type always goes through QC
+    qcRequired: {
+      type: Boolean,
+      default: true,
+    },
     referenceNo: {
       type: String,
       default: "",
@@ -408,25 +413,9 @@ jobOrderSchema.statics.findAll = async function (query = {}) {
         item.status = targetStatus;
         item.designStatus = "COMPLETED";
 
-        this.updateOne(
-          { _id: item._id },
-          {
-            $set: {
-              currentStage: targetStage,
-              stage: targetStage,
-              status: targetStatus,
-              designStatus: "COMPLETED",
-            },
-          }
-        ).catch(() => {});
+        // Display correction only: a list read must not write to the database or delete production orders.
+        // The stored stage is moved by the design approval and invoice steps.
       }
-
-      try {
-        const ProductionOrder = mongoose.models.ProductionOrder || mongoose.model("ProductionOrder");
-        if (ProductionOrder) {
-          ProductionOrder.deleteMany({ jobOrderId: item._id }).catch(() => {});
-        }
-      } catch (e) {}
     }
   });
 

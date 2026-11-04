@@ -389,15 +389,14 @@ export const InvoicePage = () => {
       sortable: true,
       render: (val, row) => {
         const isSettled = row.isSettled || Number(row.balanceDue) <= 0 || row.invoice?.status === "PAID" || row.invoice?.paymentStatus === "PAID";
-        const isPrintOnly = String(row.jobType || "").toUpperCase().includes("PRINT") && !String(row.jobType || "").toUpperCase().includes("DESIGN");
-        if (isPrintOnly || isSettled) {
+        if (isSettled) {
           return (
             <div>
               <span style={{ color: isSettled ? "#059669" : "#6b21a8", fontWeight: 700, fontSize: "0.85rem" }}>
                 Full: ₹ {Number(row.estimateAmount || 0).toFixed(2)}
               </span>
               <div style={{ fontSize: "0.68rem", color: isSettled ? "#059669" : "#6b21a8", fontWeight: 600 }}>
-                {isSettled ? "100% Fully Settled" : "100% Payment (No Advance)"}
+                {"100% Fully Settled"}
               </div>
             </div>
           );

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const customerPortalController = require("../controllers/customerPortal.controller");
+const { authenticate } = require("../../../middleware/auth.middleware");
 
 // Customer portal routes (can be public or authenticated)
 router.get("/estimates/:id", customerPortalController.getCustomerEstimate);
@@ -8,6 +9,6 @@ router.post("/estimates/:id/accept", customerPortalController.acceptCustomerEsti
 router.post("/estimates/:id/reject", customerPortalController.rejectCustomerEstimate);
 
 router.get("/design-approvals", customerPortalController.getCustomerDesignApprovals);
-router.post("/design-approvals/:id/approve", customerPortalController.approveCustomerDesign);
+router.post("/design-approvals/:id/approve", authenticate, customerPortalController.approveCustomerDesign);
 
 module.exports = router;

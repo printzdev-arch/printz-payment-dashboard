@@ -479,3 +479,9 @@ body .jf-create-job-grid [style*="position: absolute"][style*="max-height: 260px
     transition: none;
   }
 }
+
+/* Ensure crisp, dark, highly readable text across all table cells */
+body .jf-table tbody td {
+  color: #0f172a !important;
+  font-weight: 500;
+}

@@ -782,32 +782,6 @@ module.exports = {
         },
       },
     },
-    "/job-orders/{id}/skip-design": {
-      post: {
-        tags: ["Job Orders"],
-        summary: "Skip Design Workflow",
-        operationId: "skipJobDesignWorkflow",
-        description: "Advances job order directly to PRODUCTION_PLANNING if artwork is already print-ready.",
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: { notes: { type: "string", example: "Customer supplied print-ready vector artwork" } },
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: "Design workflow skipped",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
     "/job-orders/{id}/sla": {
       get: {
         tags: ["SLA & Performance"],

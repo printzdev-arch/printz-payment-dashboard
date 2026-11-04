@@ -155,7 +155,6 @@ const mapRow = (row) => {
     productionNo: row.productionNo,
     jobNo: row.jobNo || "",
     jobId: row.jobOrderId || row.jobId,
-    estimateNo: row.estimateNo || "",
     customerName: row.customerName || "ΓÇö",
     customerSource: row.customerSource || "",
     companyName: row.customerCompany || row.customerName || "",

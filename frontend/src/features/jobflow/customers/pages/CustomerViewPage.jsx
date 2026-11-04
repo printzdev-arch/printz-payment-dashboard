@@ -357,14 +357,14 @@ export const CustomerViewPage = () => {
             <div style={{ background: "#f0fdf4", padding: "0.875rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
               <span style={{ fontSize: "0.75rem", color: "#166534" }}>Total Invoiced</span>
               <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#15803d" }}>
-                RM {(Number(stats.totalInvoiced) || 0).toFixed(2)}
+                ₹{(Number(stats.totalInvoiced) || 0).toFixed(2)}
               </div>
             </div>
 
             <div style={{ background: "#fef2f2", padding: "0.875rem", borderRadius: "8px", border: "1px solid #fecaca" }}>
               <span style={{ fontSize: "0.75rem", color: "#991b1b" }}>Outstanding Balance</span>
               <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#dc2626" }}>
-                RM {(Number(stats.outstanding) || 0).toFixed(2)}
+                ₹{(Number(stats.outstanding) || 0).toFixed(2)}
               </div>
             </div>
           </div>
@@ -372,7 +372,7 @@ export const CustomerViewPage = () => {
           <div style={{ padding: "0.75rem", background: "#f8fafc", borderRadius: "6px", border: "1px solid var(--jf-border)", fontSize: "0.8125rem", color: "#475569" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
               <span>Advance Payments Collected:</span>
-              <strong>RM {(Number(stats.advancePaid) || 0).toFixed(2)}</strong>
+              <strong>₹{(Number(stats.advancePaid) || 0).toFixed(2)}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>Completed Orders:</span>
@@ -439,9 +439,9 @@ export const CustomerViewPage = () => {
             },
             {
               key: "totalAmount",
-              label: "Amount (RM)",
+              label: "Amount (₹)",
               sortable: true,
-              render: (val, row) => `RM ${(Number(val || row.estimatedCost) || 0).toFixed(2)}`,
+              render: (val, row) => `₹${(Number(val || row.estimatedCost) || 0).toFixed(2)}`,
             },
             {
               key: "currentStage",

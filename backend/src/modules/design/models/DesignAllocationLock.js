@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
 
+/**
+ * One document per lock name. `lockedUntil` makes the lock expire by itself, so a crashed
+ * server can never leave the designer allocation stuck.
+ */
 const designAllocationLockSchema = new mongoose.Schema(
   {
     _id: {
@@ -10,6 +14,14 @@ const designAllocationLockSchema = new mongoose.Schema(
     n: {
       type: Number,
       default: 0,
+    },
+    owner: {
+      type: String,
+      default: null,
+    },
+    lockedUntil: {
+      type: Date,
+      default: null,
     },
   },
   {

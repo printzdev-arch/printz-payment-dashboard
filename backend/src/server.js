@@ -16,6 +16,21 @@ const startServer = async () => {
     // Connect to Database
     await connectDB();
 
+    // The six branch designers of the sample-design pool must have a login (created only when missing)
+    try {
+      const created = await require("./modules/design/services/designAllocation.service").ensureBranchDesigners();
+      if (created.length > 0) console.log(`[Design] Created branch designer logins: ${created.join(", ")}`);
+    } catch (e) {
+      console.warn("[Server] ensureBranchDesigners notice:", e.message);
+    }
+
+    // The estimate number was removed; drop its old unique index so new estimates (which have no number) can be saved
+    try {
+      await require("./modules/estimates/models/Estimate").collection.dropIndex("estimateNo_1");
+    } catch (e) {
+      // Index already gone (or collection not created yet)
+    }
+
     // Ensure default Central Manufacturing Unit exists and retail branches are linked
     try {
       const { ensureManufacturingUnit } = require("./modules/sale-orders/services/saleOrder.service");

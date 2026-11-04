@@ -85,8 +85,9 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
         (job.deliveryType === "COUNTER_PICKUP" ? "Counter Pickup - Main Branch" : "")
       );
 
+      // The type follows the delivery method chosen on the job order; it is not picked here.
       const dType = doObj.deliveryType || job.deliveryType || "DELIVERY";
-      setDeliveryType(dType === "COUNTER_PICKUP" ? "COUNTER_PICKUP" : (dType === "COURIER" ? "COURIER" : "DELIVERY"));
+      setDeliveryType(dType === "COUNTER_PICKUP" ? "COUNTER_PICKUP" : "DELIVERY");
 
       if (doObj.expectedDeliveryDate) {
         setExpectedDeliveryDate(new Date(doObj.expectedDeliveryDate).toISOString().slice(0, 16));
@@ -143,7 +144,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
       toast.error("Customer contact phone is required");
       return;
     }
-    if (!deliveryPersonName.trim()) {
+    if (!isPickup && !deliveryPersonName.trim()) {
       toast.error("Staff selection is compulsory! Please select or enter a delivery staff member.");
       return;
     }
@@ -176,17 +177,17 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
         deliveryType,
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
-        deliveryAddress: deliveryType === "COUNTER_PICKUP" ? "Counter Pickup - Store Front" : deliveryAddress.trim(),
-        deliveryPersonName: deliveryPersonName.trim(),
-        deliveryPersonPhone: deliveryPersonPhone.trim(),
-        vehicle: vehicle.trim(),
+        deliveryAddress: isPickup ? "" : deliveryAddress.trim(),
+        deliveryPersonName: isPickup ? "" : deliveryPersonName.trim(),
+        deliveryPersonPhone: isPickup ? "" : deliveryPersonPhone.trim(),
+        vehicle: isPickup ? "" : vehicle.trim(),
         expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate).toISOString() : new Date().toISOString(),
         instructions: instructions.trim(),
         managerNotes: managerNotes.trim(),
         items,
       };
 
-      if (selectedEmployeeId && selectedEmployeeId !== "CUSTOM" && /^[0-9a-fA-F]{24}$/.test(selectedEmployeeId)) {
+      if (!isPickup && selectedEmployeeId && selectedEmployeeId !== "CUSTOM" && /^[0-9a-fA-F]{24}$/.test(selectedEmployeeId)) {
         payload.assignedEmployeeId = selectedEmployeeId;
       }
 
@@ -204,7 +205,9 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
 
   const deliveryOrderNo = job.deliveryOrder?.deliveryNo || job.deliveryNo;
   const balanceDue = Number(job.balanceDue !== undefined ? job.balanceDue : (job.grandTotal ? Math.max(0, job.grandTotal - (job.advancePaid || 0)) : 0));
-  const isStaffValid = Boolean(deliveryPersonName.trim());
+  const isPickup = deliveryType === "COUNTER_PICKUP";
+  // A counter pickup is collected by the customer, so only a dispatch needs a delivery person.
+  const isStaffValid = isPickup || Boolean(deliveryPersonName.trim());
 
   return (
     <div
@@ -395,23 +398,18 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                 <label className="jf-label jf-label-required" style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
                   Delivery Method *
                 </label>
-                <select
-                  className="jf-select"
-                  value={deliveryType}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setDeliveryType(next);
-                    if (next === "COUNTER_PICKUP") {
-                      setDeliveryAddress("Counter Pickup - Store Front");
-                    }
-                  }}
-                  disabled={isReadOnly}
+                <input
+                  type="text"
+                  className="jf-input"
+                  readOnly
+                  disabled
+                  value={isPickup ? "Branch Counter Self-Pickup" : "Local Dispatch / Delivery"}
+                  title="Set by the customer's delivery method on the job order"
                   style={{ height: "40px", fontWeight: 600 }}
-                >
-                  <option value="DELIVERY">Doorstep / Office Delivery</option>
-                  <option value="COUNTER_PICKUP">Counter Pickup (Branch)</option>
-                  <option value="COURIER">External Courier (Lalamove / Dunzo)</option>
-                </select>
+                />
+                <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: 4 }}>
+                  Chosen on the job order{job.deliveryMethod ? ` (${job.deliveryMethod})` : ""} - cannot be changed here.
+                </div>
               </div>
 
               <div className="jf-form-group">
@@ -491,7 +489,8 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
               </div>
             )}
 
-            {/* ── Compulsory Staff Assignment Card ── */}
+            {/* ── Staff Assignment Card (dispatch only) ── */}
+            {!isPickup && (
             <div
               style={{
                 background: isStaffValid ? "#f0fdf4" : "#fff1f2",
@@ -632,6 +631,13 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                 </div>
               </div>
             </div>
+            )}
+
+            {isPickup && (
+              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "0.75rem 1rem", fontSize: "0.85rem", color: "#1e40af" }}>
+                Counter pickup: no delivery person or address is needed. Pack the order, then hand it over to the customer at the branch counter once the balance is settled.
+              </div>
+            )}
 
             {/* Special Instructions & Items in Compact Row */}
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1rem" }}>
@@ -726,7 +732,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                     "Generating DO..."
                   ) : isStaffValid ? (
                     <>
-                      <Truck size={16} /> Generate Delivery Order & Assign
+                      <Truck size={16} /> {isPickup ? "Generate Pickup Order" : "Generate Delivery Order & Assign"}
                     </>
                   ) : (
                     "Assign Staff to Generate DO"

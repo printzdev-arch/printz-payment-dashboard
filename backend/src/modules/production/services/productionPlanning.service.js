@@ -166,10 +166,6 @@ class ProductionPlanningService {
     if (!job) return null;
 
     const jobTypeStr = String(job.jobType || "").toUpperCase();
-    if (jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN")) {
-      // Print Only winds up directly after invoice, never enters production
-      return [];
-    }
     if (jobTypeStr.includes("DESIGN") && !jobTypeStr.includes("PRINT")) {
       // Design Only winds up directly after sample approval, never enters production
       return [];
@@ -727,7 +723,6 @@ class ProductionPlanningService {
       notes: order.notes || "",
       productionManager: order.productionManager || "",
       approvedSample: order.approvedSample || null,
-      estimateNo: job.estimateNo || "",
       unit: job.unit || snapshot.unit || "pcs",
       dueDate: job.dueDate || order.plannedEnd || null,
       designStatus: "APPROVED",

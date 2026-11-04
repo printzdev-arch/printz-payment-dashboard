@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Estimate = require("../../estimates/models/Estimate");
+const { resolveEstimate } = require("../../estimates/utils/resolveEstimate");
 const JobOrder = require("../../job-orders/models/JobOrder");
 const { JobItem } = require("../../job-orders/models/JobItem");
 const JobAssignment = require("../../design/models/JobAssignment");
@@ -11,13 +12,7 @@ class CustomerPortalService {
    * Get single estimate for customer
    */
   static async getEstimate(id) {
-    let estimate = null;
-    if (mongoose.Types.ObjectId.isValid(String(id))) {
-      estimate = await Estimate.findById(id).lean();
-    }
-    if (!estimate) {
-      estimate = await Estimate.findOne({ estimateNo: String(id).toUpperCase() }).lean();
-    }
+    const estimate = await resolveEstimate(id, { lean: true });
     if (!estimate) {
       throw ErrorHelper.notFound(`Quotation not found with identifier: ${id}`);
     }
@@ -32,13 +27,7 @@ class CustomerPortalService {
    * Accept an estimate
    */
   static async acceptEstimate(id, payload = {}, user = null) {
-    let estimate = null;
-    if (mongoose.Types.ObjectId.isValid(String(id))) {
-      estimate = await Estimate.findById(id);
-    }
-    if (!estimate) {
-      estimate = await Estimate.findOne({ estimateNo: String(id).toUpperCase() });
-    }
+    const estimate = await resolveEstimate(id);
     if (!estimate) {
       throw ErrorHelper.notFound(`Estimate not found: ${id}`);
     }
@@ -106,13 +95,7 @@ class CustomerPortalService {
    * Reject an estimate
    */
   static async rejectEstimate(id, payload = {}, user = null) {
-    let estimate = null;
-    if (mongoose.Types.ObjectId.isValid(String(id))) {
-      estimate = await Estimate.findById(id);
-    }
-    if (!estimate) {
-      estimate = await Estimate.findOne({ estimateNo: String(id).toUpperCase() });
-    }
+    const estimate = await resolveEstimate(id);
     if (!estimate) {
       throw ErrorHelper.notFound(`Estimate not found: ${id}`);
     }
@@ -202,45 +185,26 @@ class CustomerPortalService {
    * Customer approves proof
    */
   static async approveDesign(id, payload = {}, user = null) {
+    let jobOrderId = null;
     let assignment = null;
     if (mongoose.Types.ObjectId.isValid(String(id))) {
       assignment = await JobAssignment.findById(id);
-    }
-
-    let jobOrderId = assignment?.jobOrderId;
-    if (!jobOrderId) {
-      // Maybe id is jobOrderId or jobNo
-      if (mongoose.Types.ObjectId.isValid(String(id))) {
+      jobOrderId = assignment?.jobOrderId || null;
+      if (!jobOrderId) {
         const job = await JobOrder.findById(id);
         if (job) jobOrderId = job._id;
       }
-      if (!jobOrderId) {
-        const job = await JobOrder.findOne({ jobNo: String(id) });
-        if (job) jobOrderId = job._id;
-      }
     }
-
-    if (assignment) {
-      assignment.status = "COMPLETED";
-      await assignment.save();
+    if (!jobOrderId) {
+      const job = await JobOrder.findOne({ jobNo: String(id) });
+      if (job) jobOrderId = job._id;
     }
+    if (!jobOrderId) throw ErrorHelper.notFound(`Design approval not found: ${id}`);
 
-    if (jobOrderId) {
-      const job = await JobOrder.findById(jobOrderId);
-      if (job) {
-        job.currentStage = "PRODUCTION_PLANNING";
-        job.stage = "PRODUCTION_PLANNING";
-        job.status = "PRODUCTION";
-        await job.save();
-      }
-    }
-
-    return {
-      success: true,
-      message: "Customer proof approved successfully; Job Order transitioned to PRODUCTION_PLANNING",
-      id,
-      jobOrderId,
-    };
+    // One approval path: manager only, only while the proof waits for approval, with a real proof
+    const DesignSampleService = require("../../design/services/designSample.service");
+    const result = await DesignSampleService.approveDesign(jobOrderId, payload, user);
+    return { ...result, id, jobOrderId };
   }
 }
 

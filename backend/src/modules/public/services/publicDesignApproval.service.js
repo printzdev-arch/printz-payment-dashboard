@@ -7,6 +7,7 @@ const jobSampleRepository = require("../../design/models/JobSample");
 const Notification = require("../../notifications/models/Notification");
 const DesignSampleService = require("../../design/services/designSample.service");
 const ErrorHelper = require("../../../utils/ApiError");
+const DesignHelper = require("../../design/helpers/DesignHelper");
 const { emitJobEvent } = require("../../job-orders/events/jobEvents.emitter");
 
 class PublicDesignApprovalService {
@@ -61,6 +62,10 @@ class PublicDesignApprovalService {
 
     if (!sample) {
       throw ErrorHelper.notFound("The associated design sample could not be found.");
+    }
+
+    if (await DesignHelper.isWalkInCustomer(job)) {
+      throw ErrorHelper.forbidden("This proof is approved in person with the branch manager.");
     }
 
     return { tokenDoc, job, sample };
@@ -149,6 +154,15 @@ class PublicDesignApprovalService {
 
     const tokenHash = this.hashToken(rawToken);
     const now = new Date();
+
+    // A walk-in customer approves the proof in person with the branch manager, never through a link
+    const earlyToken = await DesignApprovalToken.findOne({ tokenHash });
+    if (earlyToken) {
+      const earlyJob = await jobOrderRepository.findById(earlyToken.jobOrderId);
+      if (earlyJob && (await DesignHelper.isWalkInCustomer(earlyJob))) {
+        throw ErrorHelper.forbidden("A walk-in customer approves the proof in person: only the branch manager can approve it.");
+      }
+    }
 
     // 1. Atomic lock: Update only if ACTIVE and unexpired
     const updatedToken = await DesignApprovalToken.findOneAndUpdate(

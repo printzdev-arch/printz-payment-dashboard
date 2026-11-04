@@ -163,6 +163,7 @@ const pageTitleMapping = {
   "/jobs": "Job Orders",
   "/v3/jobs": "Job Orders",
   "/jobflow/jobs/new": "Create Job Order",
+  "/jobflow/jobs/edit": "Edit Job Order",
   "/jobs/new": "Create Job Order",
   "/v3/jobs/new": "Create Job Order",
   "/jobflow/estimates": "Quotations & Estimates",
@@ -1017,6 +1018,19 @@ const AppContent = () => {
           }
         />
 <Route
+          path="/jobflow/jobs/:id/edit"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "designer"]}
+              component={() => (
+                <ManagerLayout>
+                  <CreateJobOrderPage />
+                </ManagerLayout>
+              )}
+            />
+          }
+        />
+        <Route
           path="/jobflow/jobs/new"
           element={
             <PrivateRoute

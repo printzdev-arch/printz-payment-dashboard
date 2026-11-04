@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const DeliveryHelper = require("../../delivery/helpers/DeliveryHelper");
 const qualityCheckRepository = require("../models/QualityCheck");
 const productionOrderRepository = require("../models/ProductionOrder");
 const reprintRequestRepository = require("../models/ReprintRequest");
@@ -395,6 +396,11 @@ class QualityCheckService {
           branchId: order.branchId,
           customerId: job?.customerId || null,
           customerName: job?.customerName || "Customer",
+          customerPhone: job?.customerPhone || "",
+          // Pickup or dispatch follows the delivery method the customer chose on the job order
+          deliveryType: DeliveryHelper.typeForJob(job),
+          deliveryMethod: job?.deliveryMethod || "",
+          deliveryAddress: DeliveryHelper.isPickup(DeliveryHelper.typeForJob(job)) ? "" : job?.customerSnapshot?.address || "",
           quantity,
           status: "READY",
         }

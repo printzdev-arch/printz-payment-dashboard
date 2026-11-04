@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+const mongoose = require("mongoose");
 const jobOrderRepository = require("../../job-orders/models/JobOrder");
 const jobAssignmentRepository = require("../models/JobAssignment");
 const DesignAllocationLock = require("../models/DesignAllocationLock");
@@ -5,9 +7,15 @@ const User = require("../../auth/models/User");
 const JobWorkflowService = require("../../job-orders/services/jobWorkflow.service");
 const ProductionStateService = require("../../production/services/productionState.service");
 const { emitJobEvent } = require("../../job-orders/events/jobEvents.emitter");
+const { getFlowType, FLOW_TYPES } = require("../../job-orders/constants/jobFlows");
+const { startOfISTDay, endOfISTDay } = require("../../../utils/dateUtils");
+const DesignHelper = require("../helpers/DesignHelper");
 const ErrorHelper = require("../../../utils/ApiError");
-const mongoose = require("mongoose");
 
+/**
+ * The sample-design pool of the branches: these six designers take the design work of every branch.
+ * Manufacturing-unit designers are a separate pool and live in the manufacturing module (sale-orders / mfg).
+ */
 const BRANCH_DESIGNERS = [
   { name: "Ali Hassan", email: "ali.hassan@printz.com", employeeCode: "EMP-001" },
   { name: "Siti Rahman", email: "siti.rahman@printz.com", employeeCode: "EMP-002" },
@@ -16,181 +24,105 @@ const BRANCH_DESIGNERS = [
   { name: "Nur Aisyah", email: "nur.aisyah@printz.com", employeeCode: "EMP-005" },
   { name: "Guna", email: "guna@gmail.com", employeeCode: "EMP-006" },
 ];
-const BRANCH_DESIGNER_EMAILS = new Set(BRANCH_DESIGNERS.map((d) => d.email.toLowerCase()));
+const BRANCH_DESIGNER_EMAILS = BRANCH_DESIGNERS.map((d) => d.email.toLowerCase());
+const DEFAULT_MAX_LOAD = 5;
+const MAX_LOAD_LIMIT = 50;
+
+// Stages in which a job is the design team's responsibility
+const DESIGN_STAGES = ["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "REVISION"];
+// A designer can be put on a job only while it waits in the queue (or before the designer accepted it)
+const ASSIGNABLE_STAGES = ["DESIGN_QUEUE", "DESIGN_ASSIGNED"];
+// A job already being designed can be handed to another designer
+const REASSIGNABLE_STAGES = ["DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "REVISION"];
+
+const LOCK_NAME = "DESIGNER_RR";
+const LOCK_TTL_MS = 15000;
+const LOCK_WAIT_MS = 10000;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const asObjectId = (id) => (mongoose.Types.ObjectId.isValid(String(id)) ? new mongoose.Types.ObjectId(String(id)) : id);
+const idOf = (v) => String(v?._id || v || "");
+
+// Allocations run one after another inside this process; the database lock covers several server processes
+let localChain = Promise.resolve();
 
 class DesignAllocationService {
   /**
-   * Concurrency lock to serialize round robin allocations.
+   * Run `fn` while holding the designer-allocation lock, so round robin and the max-load check never see
+   * a half-finished allocation.
    */
-  static async lock() {
-    return DesignAllocationLock.findOneAndUpdate(
-      { _id: "DESIGNER_RR" },
-      { $inc: { n: 1 } },
-      { upsert: true, new: true }
-    );
-    
+  static withLock(fn) {
+    const run = async () => {
+      const owner = crypto.randomBytes(8).toString("hex");
+      const deadline = Date.now() + LOCK_WAIT_MS;
+      for (;;) {
+        const now = new Date();
+        try {
+          const got = await DesignAllocationLock.findOneAndUpdate(
+            { _id: LOCK_NAME, $or: [{ lockedUntil: null }, { lockedUntil: { $lt: now } }] },
+            { $set: { owner, lockedUntil: new Date(now.getTime() + LOCK_TTL_MS) }, $inc: { n: 1 } },
+            { upsert: true, new: true }
+          );
+          if (got && got.owner === owner) break;
+        } catch (err) {
+          // E11000: another process holds the lock (the upsert tried to create it again). Wait and retry.
+          if (err && err.code !== 11000) throw err;
+        }
+        if (Date.now() > deadline) {
+          throw ErrorHelper.conflict("The designer allocation is busy. Please try again in a moment.");
+        }
+        await sleep(40);
+      }
+      try {
+        return await fn();
+      } finally {
+        await DesignAllocationLock.updateOne({ _id: LOCK_NAME, owner }, { $set: { owner: null, lockedUntil: null } }).catch(() => {});
+      }
+    };
+    const result = localChain.then(run, run);
+    localChain = result.catch(() => {});
+    return result;
   }
 
   /**
-   * Evaluate designer pool eligibility.
+   * Make sure the six branch designers have a login. Safe to run any number of times: it only creates
+   * the ones that are missing. Called when the server starts, never while reading the pool.
    */
-  static async evaluate(jobId = null, branchId = null) {
-    const Employee = require("../../employees/models/Employee");
-    const targetBranchId = branchId ? (branchId._id || branchId) : null;
-    const targetBranchStr = targetBranchId ? String(targetBranchId) : null;
-
-    let employeeFilter = {
-      isActive: true,
-      employmentStatus: "ACTIVE",
-    };
-    let employeeCandidates = await Employee.find(employeeFilter).sort({ employeeCode: 1 }).lean();
-
-    let designers = [];
-    if (employeeCandidates && employeeCandidates.length > 0) {
-      for (const emp of employeeCandidates) {
-        let u = await User.findOne({
-          $or: [{ employeeId: emp._id }, { email: emp.email }]
-        }).lean();
-
-        if (u && (u.role === "designer" || (emp.department && emp.department.toLowerCase().includes("design")))) {
-          const branchMatches = !targetBranchStr ||
-            !emp.branchId ||
-            String(emp.branchId) === targetBranchStr ||
-            (u.branchId && String(u.branchId) === targetBranchStr) ||
-            (Array.isArray(u.branchIds) && u.branchIds.map(String).includes(targetBranchStr));
-
-          if (branchMatches || !targetBranchStr) {
-            designers.push({
-              _id: u._id,
-              userId: u._id,
-              employeeId: u._id,
-              employeeCode: emp.employeeCode || u.employeeCode || u.email,
-              name: u.name || emp.name,
-              role: u.role || "designer",
-              branchId: u.branchId || emp.branchId,
-              isDesigner: true,
-              email: u.email || emp.email,
-              maxLoad: u.maxLoad || 5,
-              isActive: u.isActive !== false,
-            });
-          }
-        }
-      }
-    }
-
-    // Also include active users with role: 'designer'
-    const userFilter = { role: "designer", isActive: { $ne: false } };
-    const userDesigners = await User.find(userFilter).sort({ name: 1 }).lean();
-    for (const u of userDesigners) {
-      const branchMatches = !targetBranchStr ||
-        !u.branchId ||
-        String(u.branchId) === targetBranchStr ||
-        (Array.isArray(u.branchIds) && u.branchIds.map(String).includes(targetBranchStr)) ||
-        (Array.isArray(u.branchIds) && u.branchIds.length === 0);
-
-      if (branchMatches || !targetBranchStr) {
-        designers.push({
-          _id: u._id,
-          userId: u._id,
-          employeeId: u._id,
-          employeeCode: u.employeeCode || u.email || String(u._id),
-          name: u.name || u.username,
-          role: u.role,
-          branchId: u.branchId,
-          isDesigner: true,
-          email: u.email,
-          maxLoad: u.maxLoad || 5,
-          isActive: u.isActive !== false,
-        });
-      }
-    }
-
-    // If targetBranch was specified but no branch-matching designers found,
-    // fallback to all active designers across the pool so jobs are never stuck unassigned
-    if (designers.length === 0 && targetBranchStr) {
-      for (const u of userDesigners) {
-        designers.push({
-          _id: u._id,
-          userId: u._id,
-          employeeId: u._id,
-          employeeCode: u.employeeCode || u.email || String(u._id),
-          name: u.name || u.username,
-          role: u.role,
-          branchId: u.branchId,
-          isDesigner: true,
-          email: u.email,
-          maxLoad: u.maxLoad || 5,
-          isActive: u.isActive !== false,
-        });
-      }
-    }
-
-    // Deduplicate designers strictly by User _id and name
-    const seenIds = new Set();
-    const seenNames = new Set();
-    const uniqueDesigners = [];
-    for (const d of designers) {
-      const idKey = String(d._id);
-      const nameKey = (d.name || "").trim().toLowerCase();
-      if (!nameKey || seenIds.has(idKey) || seenNames.has(nameKey)) continue;
-      seenIds.add(idKey);
-      seenNames.add(nameKey);
-      uniqueDesigners.push(d);
-    }
-
-    // Keep ONLY the 6 specified branch designers (excluding mfg designers or others)
-    let filteredDesigners = uniqueDesigners.filter((d) => {
-      const em = (d.email || "").toLowerCase().trim();
-      return BRANCH_DESIGNER_EMAILS.has(em);
-    });
-
-    // Ensure all 6 branch designers are present in the pool
-    for (const bDes of BRANCH_DESIGNERS) {
-      const exists = filteredDesigners.some((d) => (d.email || "").toLowerCase().trim() === bDes.email.toLowerCase());
-      if (!exists) {
-        let u = await User.findOne({
-          $or: [
-            { email: bDes.email.toLowerCase() },
-            { name: bDes.name },
-            { username: bDes.email.split("@")[0].toLowerCase() },
-          ],
-        });
-
-        let realId = u ? u._id : null;
-        if (!realId) {
-          try {
-            const newUser = await User.create({
-              name: bDes.name,
-              email: bDes.email.toLowerCase(),
-              username: bDes.email.split("@")[0].toLowerCase(),
-              password: "Password@123",
-              role: "designer",
-              isActive: true,
-              branchId: targetBranchId || null,
-            });
-            realId = newUser._id;
-          } catch (createErr) {
-            const foundAfterErr = await User.findOne({ email: bDes.email.toLowerCase() });
-            realId = foundAfterErr ? foundAfterErr._id : new mongoose.Types.ObjectId();
-          }
-        }
-
-        filteredDesigners.push({
-          _id: realId,
-          userId: realId,
-          employeeId: realId,
-          employeeCode: bDes.employeeCode,
-          name: bDes.name,
+  static async ensureBranchDesigners() {
+    const password = process.env.DESIGNER_DEFAULT_PASSWORD || "Password@123";
+    const created = [];
+    for (const d of BRANCH_DESIGNERS) {
+      const email = d.email.toLowerCase();
+      const existing = await User.findOne({ email }).select("_id").lean();
+      if (existing) continue;
+      try {
+        const user = await User.create({
+          name: d.name,
+          email,
+          username: email.split("@")[0],
+          password,
           role: "designer",
-          isDesigner: true,
-          email: bDes.email,
-          maxLoad: 5,
+          employeeCode: d.employeeCode,
           isActive: true,
+          maxLoad: DEFAULT_MAX_LOAD,
         });
+        created.push(user.email);
+      } catch (err) {
+        if (!/duplicate key|E11000/i.test(err.message || "")) throw err;
       }
     }
+    return created;
+  }
 
-    designers = filteredDesigners;
+  /** The designers of the pool with their current load and whether they can take a job right now. */
+  static async evaluate(jobId = null) {
+    const users = await User.find({
+      role: "designer",
+      email: { $in: BRANCH_DESIGNER_EMAILS },
+      isActive: { $ne: false },
+    }).lean();
+    // Fixed rotation order, so round robin is predictable
+    users.sort((a, b) => BRANCH_DESIGNER_EMAILS.indexOf(String(a.email).toLowerCase()) - BRANCH_DESIGNER_EMAILS.indexOf(String(b.email).toLowerCase()));
 
     let rejectedSet = new Set();
     if (jobId) {
@@ -199,149 +131,142 @@ class DesignAllocationService {
         assignmentType: "DESIGNER",
         status: "REJECTED",
       });
-      rejectedSet = new Set(rejectedList.map((a) => String(a.employeeId?._id || a.employeeId)));
+      rejectedSet = new Set(rejectedList.map((a) => idOf(a.employeeId)));
     }
 
     const openAgg = await jobAssignmentRepository.aggregate([
       { $match: { assignmentType: "DESIGNER", status: "ACTIVE", currentAssignment: true } },
       { $group: { _id: "$employeeId", n: { $sum: 1 } } },
     ]);
-
     const openMap = new Map(openAgg.map((r) => [String(r._id), Number(r.n)]));
 
-    const candidates = [];
-    for (const d of designers) {
-      const dId = String(d._id);
+    return users.map((u) => {
+      const dId = String(u._id);
       const openJobs = openMap.get(dId) || 0;
-      const designerLimit = Number(d.maxLoad) || 5;
+      const designerLimit = Number(u.maxLoad) > 0 ? Number(u.maxLoad) : DEFAULT_MAX_LOAD;
       let reason = null;
-
-      if (rejectedSet.has(dId)) {
-        reason = "REJECTED_THIS_JOB";
-      } else if (openJobs >= designerLimit) {
-        reason = "MAX_CONCURRENT_REACHED";
-      }
-
-      candidates.push({
-        _id: d._id,
-        employeeId: d._id, // User._id for consistency with ref: "User"
-        userId: d._id,
-        employeeCode: d.employeeCode,
-        name: d.name,
-        email: d.email,
+      if (rejectedSet.has(dId)) reason = "REJECTED_THIS_JOB";
+      else if (openJobs >= designerLimit) reason = "MAX_CONCURRENT_REACHED";
+      return {
+        _id: u._id,
+        employeeId: u._id,
+        userId: u._id,
+        employeeCode: u.employeeCode || u.email,
+        name: u.name,
+        email: u.email,
         maxLoad: designerLimit,
-        isActive: d.isActive !== false,
+        isActive: u.isActive !== false,
         eligible: !reason,
         reason,
         openJobs,
         currentLoad: openJobs,
-      });
-    }
-
-    return candidates;
+      };
+    });
   }
 
-  /**
-   * Pick next eligible candidate using strict Round Robin.
-   */
+  /** Next eligible designer after the one served last (strict round robin). */
   static pick(candidates, lastAssignedId = null, excludeIds = []) {
     if (!candidates || candidates.length === 0) return null;
-
     const excludeSet = new Set((excludeIds || []).map((id) => String(id)));
-    const eligibleCands = candidates.filter((c) => c.eligible && !excludeSet.has(String(c.employeeId)));
-    if (eligibleCands.length === 0) return null;
+    const usable = (c) => c.eligible && !excludeSet.has(String(c.employeeId));
+    if (!candidates.some(usable)) return null;
 
     const lastStr = lastAssignedId ? String(lastAssignedId) : null;
     const idx = lastStr ? candidates.findIndex((c) => String(c.employeeId) === lastStr) : -1;
-
-    for (let i = 1; i <= candidates.length; i++) {
+    for (let i = 1; i <= candidates.length; i += 1) {
       const c = candidates[(idx + i + candidates.length) % candidates.length];
-      if (c && c.eligible && !excludeSet.has(String(c.employeeId))) {
-        return c.employeeId;
-      }
+      if (c && usable(c)) return c.employeeId;
     }
-
-    return eligibleCands[0].employeeId;
+    return null;
   }
 
   static async lastRoundRobin() {
-    const JobAssignment = require("../models/JobAssignment");
-    const assignments = await JobAssignment.find({
-      assignmentType: "DESIGNER",
-      assignmentMethod: "ROUND_ROBIN",
-    })
+    const assignments = await jobAssignmentRepository
+      .find({ assignmentType: "DESIGNER", assignmentMethod: "ROUND_ROBIN" })
       .sort({ createdAt: -1 })
       .limit(1);
     return assignments[0] || null;
   }
 
-  /**
-   * Automatically allocate designer from queue.
-   */
-  static async autoAllocate(jobId) {
-    await this.lock();
-
-    const job = await jobOrderRepository.findById(jobId);
-    if (!job) {
-      return { jobId: String(jobId), assigned: false, reason: "NOT_FOUND" };
+  /** A job can only be given to a designer from the design stages, and only if it needs design at all. */
+  static checkAllocatable(job, allowedStages) {
+    if (getFlowType(job) === FLOW_TYPES.PRINT_ONLY) {
+      return { ok: false, reason: "PRINT_ONLY_NO_DESIGN_REQUIRED", message: "Print Only jobs have no design stage, so no designer can be assigned." };
     }
-
-    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
-    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-    if (isPrintOnly) {
-      job.designStatus = "NOT_REQUIRED";
-      await job.save();
-      return { jobId: String(job._id), assigned: false, reason: "PRINT_ONLY_NO_DESIGN_OR_PRODUCTION_REQUIRED" };
+    const stage = String(job.currentStage || job.stage || "").toUpperCase();
+    if (!allowedStages.includes(stage)) {
+      return {
+        ok: false,
+        reason: "JOB_NOT_IN_DESIGN_QUEUE",
+        message: `This job order is at stage '${stage}'. A designer can be assigned only while it is in the design queue.`,
+      };
     }
-    if (job.currentStage !== "DESIGN_QUEUE" && job.currentStage !== "DESIGN_ASSIGNED") {
-      job.currentStage = "DESIGN_QUEUE";
-      await job.save();
-    }
-
-    const candidates = await this.evaluate(job._id, job.branchId);
-    const last = await this.lastRoundRobin();
-    const pickId = this.pick(candidates, last?.employeeId?._id || last?.employeeId);
-
-    if (!pickId) {
-      emitJobEvent("design.noEligibleDesigner", { jobId: String(job._id), jobNo: job.jobNo });
-      return { jobId: String(job._id), assigned: false, reason: "NO_ELIGIBLE_DESIGNER" };
-    }
-
-    const assignment = await this.createAssignment(job, pickId, "ROUND_ROBIN", null);
-    let designerName = "";
-    try {
-      const designerUser = await User.findById(pickId).lean();
-      designerName = designerUser?.name || "";
-    } catch (_) {}
-    return {
-      jobId: String(job._id),
-      assigned: true,
-      employeeId: String(pickId),
-      assignedDesignerId: pickId,
-      designerName,
-      assignment,
-    };
+    return { ok: true };
   }
 
-  /**
-   * Sequentially auto-assign all jobs currently waiting in DESIGN_QUEUE.
-   */
-  static async autoAssignQueue() {
-    const queuedJobs = await jobOrderRepository.find({
-      currentStage: "DESIGN_QUEUE",
+  /** Resolve the designer to use: it must be a member of the pool (id, email, code or name). */
+  static async resolvePoolDesigner(identifier) {
+    const candidates = await this.evaluate();
+    const key = String(identifier || "").trim().toLowerCase();
+    const found = candidates.find(
+      (c) =>
+        String(c._id) === String(identifier) ||
+        String(c.email || "").toLowerCase() === key ||
+        String(c.employeeCode || "").toLowerCase() === key ||
+        String(c.name || "").trim().toLowerCase() === key
+    );
+    if (!found) {
+      throw ErrorHelper.notFound(`Designer not found in the designer pool: ${identifier}`);
+    }
+    return found;
+  }
+
+  /** Give the next designer in the rotation the job. */
+  static async autoAllocate(jobId, user = null) {
+    return this.withLock(async () => {
+      const job = await jobOrderRepository.findById(jobId);
+      if (!job) return { jobId: String(jobId), assigned: false, reason: "NOT_FOUND" };
+      DesignHelper.assertBranchAccess(job, user);
+
+      const check = this.checkAllocatable(job, ["DESIGN_QUEUE"]);
+      if (!check.ok) return { jobId: String(job._id), assigned: false, reason: check.reason, message: check.message };
+
+      const candidates = await this.evaluate(job._id);
+      const last = await this.lastRoundRobin();
+      const pickId = this.pick(candidates, last?.employeeId?._id || last?.employeeId);
+      if (!pickId) {
+        emitJobEvent("design.noEligibleDesigner", { jobId: String(job._id), jobNo: job.jobNo });
+        return { jobId: String(job._id), assigned: false, reason: "NO_ELIGIBLE_DESIGNER" };
+      }
+
+      const assignment = await this.createAssignment(job, pickId, "ROUND_ROBIN", user?._id || null);
+      const picked = candidates.find((c) => String(c._id) === String(pickId));
+      return {
+        jobId: String(job._id),
+        assigned: true,
+        employeeId: String(pickId),
+        assignedDesignerId: pickId,
+        designerName: picked?.name || "",
+        assignment,
+      };
     });
+  }
+
+  /** Auto-assign every job waiting in the design queue (the user's own branch for a manager). */
+  static async autoAssignQueue(user = null) {
+    const filter = { currentStage: "DESIGN_QUEUE", jobType: /design/i };
+    const branchId = DesignHelper.scopeBranchId(user);
+    if (branchId) filter.branchId = asObjectId(branchId);
+    const queuedJobs = await jobOrderRepository.find(filter).sort({ createdAt: 1 }).limit(200).lean();
 
     const results = [];
     for (const j of queuedJobs) {
-      const res = await this.autoAllocate(j._id);
-      results.push(res);
+      results.push(await this.autoAllocate(j._id, user));
     }
     return results;
   }
 
-  /**
-   * Assign designer (Round Robin or Manual).
-   */
+  /** Assign a designer: round robin, or a chosen designer of the pool. */
   static async assign(jobId, method = "ROUND_ROBIN", employeeId = null, user = null) {
     if (typeof method === "object" && method !== null && !employeeId && !user) {
       user = employeeId;
@@ -355,184 +280,102 @@ class DesignAllocationService {
     }
 
     if (method === "ROUND_ROBIN") {
-      return this.autoAllocate(jobId);
+      return this.autoAllocate(jobId, user);
     }
-
     if (!employeeId) {
       throw ErrorHelper.badRequest("employeeId is required for MANUAL assignment.");
     }
 
-    await this.lock();
-    const job = await jobOrderRepository.findById(jobId);
-    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+    return this.withLock(async () => {
+      const job = await jobOrderRepository.findById(jobId);
+      if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+      DesignHelper.assertBranchAccess(job, user);
 
-    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
-    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-    if (isPrintOnly) {
-      throw ErrorHelper.badRequest("Cannot assign designer to a Print Only job. Print Only orders bypass design and proceed directly to production.");
-    }
+      const check = this.checkAllocatable(job, ASSIGNABLE_STAGES);
+      if (!check.ok) throw ErrorHelper.conflict(check.message);
 
-    if (job.currentStage !== "DESIGN_QUEUE" && job.currentStage !== "DESIGN_ASSIGNED") {
-      job.currentStage = "DESIGN_QUEUE";
-      await job.save();
-    }
-
-    const mongoose = require("mongoose");
-    let employee = await User.findByIdFlexible(employeeId);
-    if (!employee && mongoose.Types.ObjectId.isValid(employeeId)) {
-      employee = await User.findById(new mongoose.Types.ObjectId(employeeId));
-    }
-    if (!employee) {
-      const Employee = require("../../employees/models/Employee");
-      let empDoc = null;
-      if (mongoose.Types.ObjectId.isValid(employeeId)) {
-        empDoc = await Employee.findById(new mongoose.Types.ObjectId(employeeId));
-      }
-      if (!empDoc) {
-        empDoc = await Employee.findOne({
-          $or: [
-            { employeeCode: String(employeeId) },
-            { email: String(employeeId).toLowerCase() },
-            { name: String(employeeId) },
-          ],
-        });
-      }
-      if (empDoc) {
-        employee = (await User.findByIdFlexible(empDoc._id)) || (await User.findByIdFlexible(empDoc.email)) || {
-          _id: empDoc._id,
-          name: empDoc.name,
-        };
-      }
-    }
-    if (!employee) {
-      employee = await User.findOne({
-        $or: [
-          { email: String(employeeId).toLowerCase() },
-          { name: String(employeeId) },
-          { username: String(employeeId).toLowerCase() },
-        ],
-      });
-    }
-    if (!employee) throw ErrorHelper.notFound(`Employee not found with ID: ${employeeId}`);
-
-    const assignment = await this.createAssignment(job, employee._id, "MANUAL", user?._id);
-    let designerName = employee?.name || "";
-    return {
-      jobId: String(job._id),
-      assigned: true,
-      employeeId: String(employee._id),
-      assignedDesignerId: employee._id,
-      designerName,
-      assignment,
-    };
+      const designer = await this.resolvePoolDesigner(employeeId);
+      const assignment = await this.createAssignment(job, designer._id, "MANUAL", user?._id || null);
+      return {
+        jobId: String(job._id),
+        assigned: true,
+        employeeId: String(designer._id),
+        assignedDesignerId: designer._id,
+        designerName: designer.name || "",
+        assignment,
+      };
+    });
   }
 
-  /**
-   * Reassign designer on an active job.
-   */
+  /** Hand a job that is already with a designer to another designer. */
   static async reassign(jobId, target = "ROUND_ROBIN", reason = "Reassigned", user = null) {
     if (typeof reason === "object" && reason !== null && !user) {
       user = reason;
       reason = "Reassigned";
     }
 
-    await this.lock();
-    const job = await jobOrderRepository.findById(jobId);
-    if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+    return this.withLock(async () => {
+      const job = await jobOrderRepository.findById(jobId);
+      if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${jobId}`);
+      DesignHelper.assertBranchAccess(job, user);
 
-    const jobTypeStr = String(job.jobType || job.specs?.jobType || "").toUpperCase();
-    const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
-    if (isPrintOnly) {
-      throw ErrorHelper.badRequest("Cannot assign designer to a Print Only job. Print Only orders bypass design and proceed directly to production.");
-    }
+      const check = this.checkAllocatable(job, REASSIGNABLE_STAGES);
+      if (!check.ok) throw ErrorHelper.conflict(check.message);
 
-    const current = await jobAssignmentRepository.findOne({
-      jobOrderId: job._id,
-      assignmentType: "DESIGNER",
-      currentAssignment: true,
-      status: "ACTIVE",
-    });
+      const current = await jobAssignmentRepository.findOne({
+        jobOrderId: job._id,
+        assignmentType: "DESIGNER",
+        currentAssignment: true,
+        status: "ACTIVE",
+      });
 
-    const previousAssignments = await jobAssignmentRepository.find({
-      jobOrderId: job._id,
-      assignmentType: "DESIGNER",
-    }).sort({ createdAt: -1 });
+      const excludeIds = [];
+      if (current?.employeeId) excludeIds.push(idOf(current.employeeId));
 
-    const excludeIds = [];
-    if (current?.employeeId) excludeIds.push(current.employeeId);
-    if (!current && previousAssignments.length > 0) {
-      for (const pa of previousAssignments) {
-        if (pa.status === "REJECTED" && pa.employeeId) {
-          excludeIds.push(pa.employeeId);
+      let nextId = null;
+      let employeeName = "";
+      if (target === "ROUND_ROBIN") {
+        const candidates = await this.evaluate(job._id);
+        const last = await this.lastRoundRobin();
+        nextId = this.pick(candidates, last?.employeeId?._id || last?.employeeId, excludeIds);
+        if (!nextId) {
+          throw ErrorHelper.conflict("NO_ELIGIBLE_DESIGNER: No other eligible designer available for rotation.");
         }
-      }
-    }
-
-    let nextId = null;
-    let employeeName = "";
-    if (target === "ROUND_ROBIN") {
-      const candidates = await this.evaluate(job._id, job.branchId);
-      const last = await this.lastRoundRobin();
-      nextId = this.pick(candidates, last?.employeeId?._id || last?.employeeId, excludeIds);
-      if (!nextId) {
-        throw ErrorHelper.conflict("NO_ELIGIBLE_DESIGNER: No other eligible designer available for rotation.");
-      }
-      try {
-        const pickedUser = await User.findById(nextId).lean();
-        employeeName = pickedUser?.name || "";
-      } catch (_) {}
-    } else {
-      if (current && String(target) === String(current.employeeId)) {
-        throw ErrorHelper.badRequest("Job is already assigned to this designer.");
-      }
-      let employee = (await User.findByIdFlexible?.(target)) || (await User.findById(target));
-      if (!employee) {
-        const Employee = require("../../employees/models/Employee");
-        const empDoc = await Employee.findById(target);
-        if (empDoc) {
-          employee = (await User.findOne({
-            $or: [
-              { employeeId: empDoc._id },
-              { employeeId: String(empDoc._id) },
-              { email: empDoc.email },
-            ],
-          })) || { _id: empDoc._id, name: empDoc.name };
+        employeeName = candidates.find((c) => String(c._id) === String(nextId))?.name || "";
+      } else {
+        const designer = await this.resolvePoolDesigner(target);
+        if (current && String(designer._id) === idOf(current.employeeId)) {
+          throw ErrorHelper.badRequest("Job is already assigned to this designer.");
         }
+        nextId = designer._id;
+        employeeName = designer.name || "";
       }
-      if (!employee) {
-        employee = await User.findOne({
-          $or: [{ email: target }, { name: target }, { username: target }],
-        });
+
+      if (current) {
+        current.status = "REASSIGNED";
+        current.releasedAt = new Date();
+        current.currentAssignment = false;
+        await current.save();
       }
-      if (!employee) throw ErrorHelper.notFound(`Target designer not found with ID: ${target}`);
-      nextId = employee._id;
-      employeeName = employee.name || "";
-    }
 
-    if (current) {
-      current.status = "REASSIGNED";
-      current.releasedAt = new Date();
-      current.currentAssignment = false;
-      await current.save();
-    }
+      const newAssignment = await this.createAssignment(job, nextId, "REASSIGN", user?._id || null, reason);
 
-    const newAssignment = await this.createAssignment(job, nextId, "REASSIGN", user?._id, reason);
+      emitJobEvent("design.reassigned", {
+        jobId: String(job._id),
+        from: current ? String(current.employeeId) : null,
+        to: String(nextId),
+        reason,
+      });
 
-    emitJobEvent("design.reassigned", {
-      jobId: String(job._id),
-      from: current ? String(current.employeeId) : null,
-      to: String(nextId),
-      reason,
+      return {
+        jobId: String(job._id),
+        assigned: true,
+        employeeId: String(nextId),
+        assignedDesignerId: nextId,
+        designerName: employeeName,
+        assignment: newAssignment,
+      };
     });
-
-    return {
-      jobId: String(job._id),
-      assigned: true,
-      employeeId: String(nextId),
-      assignedDesignerId: nextId,
-      designerName: employeeName,
-      assignment: newAssignment,
-    };
   }
 
   static async createAssignment(job, employeeId, method, assignedBy = null, reason = "") {
@@ -542,7 +385,7 @@ class DesignAllocationService {
       { $set: { currentAssignment: false, status: "REPLACED", releasedAt: new Date() } }
     );
 
-    const lastSeq = await jobAssignmentRepository.findOne({ jobOrderId: job._id });
+    const lastSeq = await jobAssignmentRepository.findOne({ jobOrderId: job._id }).sort({ sequenceNo: -1 });
     const now = new Date();
 
     const assignment = await jobAssignmentRepository.create({
@@ -569,37 +412,24 @@ class DesignAllocationService {
       reason,
       patch: {
         designerId: employeeId,
-        designerName: designerName,
+        designerName,
         assignedAt: now,
         designStatus: "PENDING_DESIGNER_APPROVAL",
         designRejectionReason: "",
       },
     };
 
-    if (job.currentStage === "DESIGN_ASSIGNED") {
-      await JobWorkflowService.touch(job._id, ctx);
-    } else {
-      await JobWorkflowService.transition(job._id, "DESIGN_ASSIGNED", ctx);
-    }
-
-    job.designerId = employeeId;
-    if (designerName) job.designerName = designerName;
-    job.designStatus = "PENDING_DESIGNER_APPROVAL";
-    job.designRejectionReason = "";
-    await job.save();
-
-    await jobOrderRepository.findOneAndUpdate(
-      { _id: job._id },
-      {
-        $set: {
-          designerId: employeeId,
-          designerName,
-          assignedAt: now,
-          designStatus: "PENDING_DESIGNER_APPROVAL",
-          designRejectionReason: "",
-        },
+    try {
+      if (String(job.currentStage).toUpperCase() === "DESIGN_ASSIGNED") {
+        await JobWorkflowService.touch(job._id, ctx);
+      } else {
+        await JobWorkflowService.transition(job._id, "DESIGN_ASSIGNED", ctx);
       }
-    );
+    } catch (err) {
+      // Do not leave an active assignment behind for a job that could not move
+      await jobAssignmentRepository.deleteOne({ _id: assignment._id });
+      throw err;
+    }
 
     await ProductionStateService.logAudit({
       action: "ASSIGN",
@@ -621,61 +451,81 @@ class DesignAllocationService {
     return assignment;
   }
 
-  static async history(jobId) {
-    return jobAssignmentRepository.find({ jobOrderId: jobId })
+  /** Ids of the job orders a user may see (all for an admin, the own branch for a manager). */
+  static async visibleJobIds(user) {
+    const branchId = DesignHelper.scopeBranchId(user);
+    if (!branchId) return null;
+    return jobOrderRepository.find({ branchId: asObjectId(branchId) }).distinct("_id");
+  }
+
+  static async history(jobId, user = null) {
+    const job = await jobOrderRepository.findById(jobId);
+    if (job) DesignHelper.assertBranchAccess(job, user);
+    return jobAssignmentRepository
+      .find({ jobOrderId: jobId })
       .populate("employeeId", "name username email code role")
       .populate("assignedBy", "name username email")
       .sort({ createdAt: -1 });
   }
 
-  static async recentAssignments(limit = 10) {
-    const JobAssignment = require("../models/JobAssignment");
-    return JobAssignment.find({ assignmentType: "DESIGNER" })
+  static async recentAssignments(limit = 10, user = null) {
+    const ids = await this.visibleJobIds(user);
+    const filter = { assignmentType: "DESIGNER" };
+    if (ids) filter.jobOrderId = { $in: ids };
+    if (DesignHelper.isDesigner(user)) filter.employeeId = asObjectId(user._id);
+    return jobAssignmentRepository
+      .find(filter)
       .sort({ assignedAt: -1, createdAt: -1 })
-      .limit(Number(limit) || 10)
+      .limit(Math.min(Number(limit) || 10, 100))
       .populate("employeeId", "name username email code role")
       .populate("jobOrderId", "jobNo title customerName customerSnapshot currentStage priority items");
   }
 
-  static async rejectedAssignments(limit = 50) {
-    const JobAssignment = require("../models/JobAssignment");
-    const assignments = await JobAssignment.find({
-      assignmentType: "DESIGNER",
-      status: "REJECTED",
-    })
+  static async rejectedAssignments(limit = 50, user = null) {
+    const cap = Math.min(Number(limit) || 50, 200);
+    const ids = await this.visibleJobIds(user);
+    const isDesigner = DesignHelper.isDesigner(user);
+    const scope = ids ? { jobOrderId: { $in: ids } } : {};
+    if (isDesigner) scope.employeeId = asObjectId(user._id);
+    const jobScope = ids ? { _id: { $in: ids } } : {};
+
+    const assignments = await jobAssignmentRepository
+      .find({ assignmentType: "DESIGNER", status: "REJECTED", ...scope })
       .sort({ rejectedAt: -1, createdAt: -1 })
-      .limit(Number(limit) || 50)
+      .limit(cap)
       .populate("employeeId", "name username email code role")
       .populate({
         path: "jobOrderId",
         select: "jobNo title customerName customerSnapshot currentStage stage priority items designerId designerName designStatus designRejectionReason dueDate remarks customerRequirements specs",
-        populate: {
-          path: "designerId",
-          select: "name email username role",
-        },
+        populate: { path: "designerId", select: "name email username role" },
       });
 
-    const rejectedJobs = await jobOrderRepository.find({
-      $or: [
-        { designStatus: "REJECTED" },
-        { designRejectionReason: { $exists: true, $nin: ["", null] } },
-      ],
-    })
+    // Only a job still waiting for a designer after a rejection is "pending reallocation"
+    const rejectedJobs = isDesigner ? [] : await jobOrderRepository
+      .find({
+        ...jobScope,
+        currentStage: { $in: DESIGN_STAGES },
+        $or: [{ designStatus: "REJECTED" }, { designRejectionReason: { $exists: true, $nin: ["", null] } }],
+      })
       .populate("designerId", "name email username role")
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .limit(cap);
 
     const seenJobIds = new Set();
     const result = [];
 
+    const describe = (job) => {
+      const currentDesigner = job.designerId?.name || job.designerName || null;
+      const isPending = !currentDesigner || job.currentStage === "DESIGN_QUEUE";
+      return { currentDesigner, isPending };
+    };
+
     for (const a of assignments) {
       if (!a.jobOrderId) continue;
-      const jId = String(a.jobOrderId._id || a.jobOrderId);
+      const jId = idOf(a.jobOrderId);
       seenJobIds.add(jId);
-
       const job = a.jobOrderId;
-      const currentDesigner = job.designerId?.name || job.designerName || null;
-      const isPending = !currentDesigner || currentDesigner === "- Unassigned" || job.currentStage === "DESIGN_QUEUE";
-
+      const { currentDesigner, isPending } = describe(job);
       result.push({
         _id: String(a._id),
         assignmentId: String(a._id),
@@ -688,7 +538,7 @@ class DesignAllocationService {
         rejectedByEmail: a.employeeId?.email || "",
         rejectionReason: a.rejectionReason || job.designRejectionReason || "No reason specified",
         rejectedAt: a.rejectedAt || a.updatedAt || a.createdAt,
-        currentDesigner: currentDesigner,
+        currentDesigner,
         currentStage: job.currentStage || "DESIGN_QUEUE",
         isPendingReallocation: isPending,
         status: isPending ? "Pending Reallocation" : "Assigned",
@@ -700,10 +550,7 @@ class DesignAllocationService {
       const jId = String(j._id);
       if (seenJobIds.has(jId)) continue;
       seenJobIds.add(jId);
-
-      const currentDesigner = j.designerId?.name || j.designerName || null;
-      const isPending = !currentDesigner || currentDesigner === "- Unassigned" || j.currentStage === "DESIGN_QUEUE";
-
+      const { currentDesigner, isPending } = describe(j);
       result.push({
         _id: `job-rej-${jId}`,
         assignmentId: null,
@@ -716,7 +563,7 @@ class DesignAllocationService {
         rejectedByEmail: "",
         rejectionReason: j.designRejectionReason || "No reason specified",
         rejectedAt: j.updatedAt || j.createdAt,
-        currentDesigner: currentDesigner,
+        currentDesigner,
         currentStage: j.currentStage || "DESIGN_QUEUE",
         isPendingReallocation: isPending,
         status: isPending ? "Pending Reallocation" : "Assigned",
@@ -724,43 +571,48 @@ class DesignAllocationService {
       });
     }
 
-    return result.sort((a, b) => new Date(b.rejectedAt) - new Date(a.rejectedAt));
+    return result.sort((a, b) => new Date(b.rejectedAt) - new Date(a.rejectedAt)).slice(0, cap);
   }
 
-  static async queue(filters = {}) {
-    let query = {};
-    if (filters && filters.stage && filters.stage !== "all") {
-      if (filters.stage === "completed") {
-        query = {
-          $or: [
-            { currentStage: { $in: ["PRODUCTION_PLANNING", "COMPLETED"] } },
-            { designStatus: "COMPLETED" },
-          ],
-        };
-      } else {
-        query.currentStage = filters.stage;
-      }
+  /**
+   * The design queue: jobs in a design stage, plus recently approved designs.
+   * Only jobs that need design (Design Only, Print & Design) are listed, and a manager sees only their own branch.
+   */
+  static async queue(filters = {}, user = null) {
+    const query = { jobType: /design/i };
+
+    const stage = filters && filters.stage && filters.stage !== "all" ? String(filters.stage) : null;
+    if (stage === "completed") {
+      query.designStatus = "COMPLETED";
+    } else if (stage) {
+      if (!DESIGN_STAGES.includes(stage)) return [];
+      query.currentStage = stage;
     } else {
-      query = {
-        $or: [
-          { currentStage: { $in: ["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "REVISION", "CUSTOMER_PROOF", "PRODUCTION_PLANNING", "COMPLETED"] } },
-          { designStatus: { $in: ["UNASSIGNED", "PENDING_DESIGNER_APPROVAL", "IN_PROGRESS", "REJECTED", "PENDING_SAMPLE_APPROVAL", "COMPLETED", "REJECTED_SAMPLE", "STARTED_REVISION", "REVISION", "ASSIGNED"] } },
-        ],
-      };
+      query.$or = [{ currentStage: { $in: DESIGN_STAGES } }, { designStatus: "COMPLETED" }];
     }
-    if (filters && filters.branchId) {
-      query.branchId = filters.branchId;
-    }
-    const list = await jobOrderRepository.find(query)
+
+    const branchId = DesignHelper.scopeBranchId(user, filters && filters.branchId);
+    if (branchId) query.branchId = asObjectId(branchId);
+    // A designer sees only the jobs given to them
+    if (DesignHelper.isDesigner(user)) query.designerId = asObjectId(user._id);
+
+    const limit = Math.min(Math.max(Number(filters && filters.limit) || 300, 1), 500);
+    const page = Math.max(Number(filters && filters.page) || 1, 1);
+
+    const list = await jobOrderRepository
+      .find(query)
       .sort({ updatedAt: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .populate("designerId", "name email username role")
       .populate("branchId", "name code")
       .lean();
-    return list || [];
+    // The page needs to know which proofs are approved in person by the manager (walk-in customers)
+    return DesignHelper.markWalkIn(list || []);
   }
 
-  static async pool(branchId = null) {
-    const candidates = await this.evaluate(null, branchId);
+  static async pool(user = null) {
+    const candidates = await this.evaluate(null);
     const last = await this.lastRoundRobin();
     const nextId = this.pick(candidates, last?.employeeId?._id || last?.employeeId);
     return {
@@ -770,81 +622,79 @@ class DesignAllocationService {
     };
   }
 
+  /**
+   * Open work per designer. "Overdue" means due before today and "due today" means due during today
+   * (a job due today is never counted as both).
+   */
   static async workload(branchId = null, user = null) {
-    const match = { assignmentType: "DESIGNER", status: "ACTIVE", currentAssignment: true };
-    const now = new Date();
-    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(now); endOfDay.setHours(23, 59, 59, 999);
+    const scopedBranch = DesignHelper.scopeBranchId(user, branchId);
+    const startOfToday = startOfISTDay(new Date());
+    const endOfToday = endOfISTDay(new Date());
 
-    return jobAssignmentRepository.aggregate([
-      { $match: match },
+    const rows = await jobAssignmentRepository.aggregate([
+      { $match: { assignmentType: "DESIGNER", status: "ACTIVE", currentAssignment: true } },
       { $lookup: { from: "jobOrders", localField: "jobOrderId", foreignField: "_id", as: "job" } },
       { $unwind: "$job" },
-      ...(branchId ? [{ $match: { "job.branchId": branchId } }] : []),
+      ...(scopedBranch ? [{ $match: { "job.branchId": asObjectId(scopedBranch) } }] : []),
       {
         $group: {
           _id: "$employeeId",
           open: { $sum: 1 },
-          pendingAcceptance: { $sum: { $cond: [{ $eq: ["$acceptedAt", null] }, 1, 0] } },
-          overdue: { $sum: { $cond: [{ $and: [{ $ne: ["$job.dueDate", null] }, { $lt: ["$job.dueDate", now] }] }, 1, 0] } },
-          dueToday: { $sum: { $cond: [{ $and: [{ $gte: ["$job.dueDate", startOfDay] }, { $lte: ["$job.dueDate", endOfDay] }] }, 1, 0] } },
+          pendingAcceptance: { $sum: { $cond: [{ $eq: [{ $ifNull: ["$acceptedAt", null] }, null] }, 1, 0] } },
+          overdue: { $sum: { $cond: [{ $and: [{ $ne: [{ $ifNull: ["$job.dueDate", null] }, null] }, { $lt: ["$job.dueDate", startOfToday] }] }, 1, 0] } },
+          dueToday: { $sum: { $cond: [{ $and: [{ $gte: ["$job.dueDate", startOfToday] }, { $lte: ["$job.dueDate", endOfToday] }] }, 1, 0] } },
         },
       },
-      { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "employee" } },
-      { $unwind: { path: "$employee", preserveNullAndEmptyArrays: true } },
     ]);
-  }
+    const byDesigner = new Map(rows.map((r) => [String(r._id), r]));
 
-  static async addDesigner(data = {}) {
-    const User = require("../../auth/models/User");
-    const name = (data.name || "").trim();
-    if (!name) throw new Error("Designer name is required");
-
-    const email = data.email || `${name.toLowerCase().replace(/ /g, ".")}@printz.com`;
-    const username = name.toLowerCase().replace(/ /g, "_");
-    const maxLoad = Number(data.maxLoad) || 5;
-
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = await User.create({
-        name,
-        username,
-        email,
-        password: "TempPassword123!",
-        role: "designer",
-        maxLoad,
-        isActive: true,
+    // Every designer of the pool is listed, also the ones with nothing open
+    const designers = await User.find({ role: "designer", email: { $in: BRANCH_DESIGNER_EMAILS } }).select("-password").lean();
+    return designers
+      .sort((a, b) => BRANCH_DESIGNER_EMAILS.indexOf(String(a.email).toLowerCase()) - BRANCH_DESIGNER_EMAILS.indexOf(String(b.email).toLowerCase()))
+      .map((u) => {
+        const r = byDesigner.get(String(u._id)) || {};
+        return {
+          _id: u._id,
+          open: r.open || 0,
+          pendingAcceptance: r.pendingAcceptance || 0,
+          overdue: r.overdue || 0,
+          dueToday: r.dueToday || 0,
+          employee: u,
+        };
       });
-    } else {
-      user.name = name;
-      user.role = "designer";
-      user.maxLoad = maxLoad;
-      user.isActive = true;
-      await user.save();
-    }
-    return user;
   }
 
+  /** Change a pool designer's work limit or availability. Names, emails and accounts are never edited here. */
   static async updateDesigner(id, data = {}) {
-    const User = require("../../auth/models/User");
-    const update = {};
-    if (data.maxLoad !== undefined) update.maxLoad = Number(data.maxLoad);
-    if (data.isActive !== undefined) update.isActive = Boolean(data.isActive);
-    if (data.name) update.name = data.name;
+    const designer = await User.findOne({ _id: asObjectId(id), role: "designer", email: { $in: BRANCH_DESIGNER_EMAILS } });
+    if (!designer) throw ErrorHelper.notFound("Designer not found in the designer pool.");
 
-    const updated = await User.findByIdAndUpdate(id, { $set: update }, { new: true });
-    return updated;
+    if (data.maxLoad !== undefined) {
+      const limit = Number(data.maxLoad);
+      if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LOAD_LIMIT) {
+        throw ErrorHelper.badRequest(`Max load must be a whole number from 1 to ${MAX_LOAD_LIMIT}.`);
+      }
+      designer.maxLoad = limit;
+    }
+    if (data.isActive !== undefined) designer.isActive = Boolean(data.isActive);
+    await designer.save();
+
+    const { password, ...safe } = designer.toObject();
+    return safe;
   }
 
   static async updateGlobalMaxLoad(maxLoad) {
-    const User = require("../../auth/models/User");
-    const limit = Number(maxLoad) || 5;
-    await User.updateMany(
-      { role: "designer" },
-      { $set: { maxLoad: limit } }
-    );
+    const limit = Number(maxLoad);
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LOAD_LIMIT) {
+      throw ErrorHelper.badRequest(`Max load must be a whole number from 1 to ${MAX_LOAD_LIMIT}.`);
+    }
+    await User.updateMany({ role: "designer", email: { $in: BRANCH_DESIGNER_EMAILS } }, { $set: { maxLoad: limit } });
     return { success: true, maxLoad: limit };
   }
 }
+
+DesignAllocationService.BRANCH_DESIGNERS = BRANCH_DESIGNERS;
+DesignAllocationService.DESIGN_STAGES = DESIGN_STAGES;
 
 module.exports = DesignAllocationService;

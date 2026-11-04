@@ -198,15 +198,15 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "#f8fafc", borderRadius: "6px" }}>
                     <span style={{ fontSize: "0.875rem", color: "#475569" }}>Total Invoiced</span>
-                    <strong style={{ fontSize: "1.125rem", color: "#0f172a" }}>RM {(customer.totalInvoiced || 18450).toFixed(2)}</strong>
+                    <strong style={{ fontSize: "1.125rem", color: "#0f172a" }}>₹{(customer.totalInvoiced || 18450).toFixed(2)}</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
                     <span style={{ fontSize: "0.875rem", color: "#166534" }}>Total Paid</span>
-                    <strong style={{ fontSize: "1.125rem", color: "#15803d" }}>RM {(customer.totalPaid || 16800).toFixed(2)}</strong>
+                    <strong style={{ fontSize: "1.125rem", color: "#15803d" }}>₹{(customer.totalPaid || 16800).toFixed(2)}</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "#fef2f2", borderRadius: "6px", border: "1px solid #fecaca" }}>
                     <span style={{ fontSize: "0.875rem", color: "#991b1b" }}>Outstanding</span>
-                    <strong style={{ fontSize: "1.125rem", color: "#dc2626" }}>RM {(customer.outstanding || 1650).toFixed(2)}</strong>
+                    <strong style={{ fontSize: "1.125rem", color: "#dc2626" }}>₹{(customer.outstanding || 1650).toFixed(2)}</strong>
                   </div>
                 </div>
               </div>
@@ -256,7 +256,7 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                     key: "totalAmount",
                     label: "Amount",
                     sortable: true,
-                    render: (val) => `RM ${(Number(val) || 0).toFixed(2)}`,
+                    render: (val) => `₹${(Number(val) || 0).toFixed(2)}`,
                   },
                   {
                     key: "stage",

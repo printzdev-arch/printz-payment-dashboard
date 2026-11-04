@@ -12,8 +12,53 @@ const InvoiceCalculationService = require("./invoiceCalculation.service");
 const InvoicePdfService = require("./invoicePdf.service");
 const { INVOICE_STATUS, INVOICE_TYPE, VARIANCE_POLICY } = require("../constants/invoice");
 const ErrorHelper = require("../../../utils/ApiError");
+const Payment = require("../models/Payment");
+const { nextInvoiceNumber, nextPaymentNo } = require("../utils/documentNumbers");
+const { getFlowType, FLOW_TYPES } = require("../../job-orders/constants/jobFlows");
 
-// Singletons injected above
+// Stages a job can only reach after its estimate has been approved
+const POST_APPROVAL_STAGES = [
+  "DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "REVISION",
+  "PRODUCTION_PLANNING", "PRINTING", "FINISHING", "PACKING", "QC", "REWORK", "REPRINT",
+  "READY", "DELIVERY", "COMPLETED", "DELIVERED", "INVOICED", "CLOSED",
+];
+
+const isEstimateApproved = (job) =>
+  job.estimationStatus === "APPROVED" ||
+  POST_APPROVAL_STAGES.includes(String(job.currentStage || job.stage || "").toUpperCase());
+
+const PAYMENT_MODES = ["CASH", "CARD", "UPI", "BANK"];
+const normalizeMode = (mode) => {
+  const m = String(mode || "CASH").toUpperCase();
+  return PAYMENT_MODES.includes(m) ? m : "CASH";
+};
+const round2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+
+// The GST rate (percent) of an invoice: one rate for everything on it
+const resolveGstRate = (requested, fallback = 0) => {
+  const raw = requested !== undefined && requested !== null && requested !== "" ? requested : fallback;
+  const rate = Number(raw);
+  if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+    throw ErrorHelper.badRequest("GST rate must be a number from 0 to 100.");
+  }
+  return rate;
+};
+
+
+// Full payment or advance. When nothing is chosen, a Print Only invoice defaults to full payment.
+const normalizePlan = (plan, job) => {
+  const p = String(plan || "").toUpperCase();
+  if (p === "FULL" || p === "ADVANCE") return p;
+  return getFlowType(job) === FLOW_TYPES.PRINT_ONLY ? "FULL" : "ADVANCE";
+};
+
+// A full-payment invoice counts everything as received now
+const applyPaymentPlan = (calc, plan) => {
+  if (plan !== "FULL") return calc;
+  calc.advanceApplied = calc.grandTotal;
+  calc.balanceDue = Math.max(0, round2(calc.grandTotal - calc.advanceApplied - (calc.paidAmount || 0)));
+  return calc;
+};
 
 class InvoiceService {
   /**
@@ -52,13 +97,15 @@ class InvoiceService {
   static async getPendingEligibleJobOrders(query = {}, authContext = {}) {
     const filter = {
       status: { $nin: ["CANCELLED"] },
-      $or: [
-        { estimationStatus: "APPROVED" },
-        { currentStage: { $in: ["READY", "READY_FOR_DELIVERY", "DELIVERY", "DELIVERED", "COMPLETED"] } },
-        { stage: { $in: ["READY", "READY_FOR_DELIVERY", "DELIVERY", "DELIVERED", "COMPLETED"] } },
-        { status: { $in: ["READY", "READY_FOR_DELIVERY", "DELIVERY", "DELIVERED", "COMPLETED", "APPROVED"] } },
-        { grandTotal: { $gt: 0 } },
-        { estimatedPrice: { $gt: 0 } },
+      // Only jobs whose estimate has been approved can be invoiced
+      $and: [
+        {
+          $or: [
+            { estimationStatus: "APPROVED" },
+            { currentStage: { $in: POST_APPROVAL_STAGES } },
+            { stage: { $in: POST_APPROVAL_STAGES } },
+          ],
+        },
       ],
     };
 
@@ -70,8 +117,8 @@ class InvoiceService {
 
     if (query.customerId) filter.customerId = query.customerId;
     if (query.search) {
-      const reg = new RegExp(query.search, "i");
-      filter.$or = [{ jobNo: reg }, { "customerSnapshot.name": reg }];
+      const reg = new RegExp(String(query.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      filter.$and.push({ $or: [{ jobNo: reg }, { "customerSnapshot.name": reg }] });
     }
 
     const page = Math.max(1, Number(query.page) || 1);
@@ -191,7 +238,7 @@ class InvoiceService {
 
     const reasons = [];
     if (job.status === "CANCELLED") reasons.push("JOB_CANCELLED");
-    if (job.estimationStatus !== "APPROVED") reasons.push("ESTIMATE_NOT_APPROVED");
+    if (!isEstimateApproved(job)) reasons.push("ESTIMATE_NOT_APPROVED");
 
     // Check existing invoice
     const existingInvoice = await invoiceRepository.findActiveByJobOrderId(job._id);
@@ -351,16 +398,8 @@ class InvoiceService {
     if (job.status === "CANCELLED") {
       throw ErrorHelper.conflict("Cannot create invoice: Job Order is CANCELLED.");
     }
-    const isEligibleForInvoice =
-      job.estimationStatus === "APPROVED" ||
-      (Number(job.grandTotal) > 0 || Number(job.estimatedPrice) > 0) ||
-      ["READY", "READY_FOR_DELIVERY", "DELIVERY", "DELIVERED", "COMPLETED", "APPROVED"].includes(job.status) ||
-      ["READY", "READY_FOR_DELIVERY", "DELIVERY", "DELIVERED", "COMPLETED"].includes(job.currentStage) ||
-      ["READY", "READY_FOR_DELIVERY", "DELIVERY", "DELIVERED", "COMPLETED"].includes(job.stage) ||
-      (Array.isArray(payload.items) && payload.items.length > 0);
-
-    if (!isEligibleForInvoice) {
-      throw ErrorHelper.conflict("Cannot create invoice: Job order must have an approved estimate, valid pricing, or completed production/delivery stage.");
+    if (!isEstimateApproved(job)) {
+      throw ErrorHelper.conflict("Cannot create invoice: the estimate of this job order has not been approved yet.");
     }
 
     const [branch, customer, jobItems, deliveryOrder] = await Promise.all([
@@ -385,58 +424,22 @@ class InvoiceService {
       address: branch.address,
     } : {};
 
-    // Map items: Prioritize manual items if provided by client/modal
-    let draftItems = [];
-    if (Array.isArray(payload.items) && payload.items.length > 0) {
-      draftItems = payload.items.map((it) => ({
-        jobOrderItemId: it.jobOrderItemId || it._id || null,
+    // The invoice bills exactly what the approved estimate contains: the product and its finishing lines.
+    // Nothing about the lines can be changed here: not the wording, quantity, price, nor the lines themselves.
+    const eligibility = await this.getJobOrderEligibility(job._id, authContext);
+    const draftItems = (eligibility.items || []).map((it) => ({
+        jobOrderItemId: it.jobOrderItemId || null,
         itemId: it.itemId || null,
-        itemCode: it.itemCode || "",
-        itemName: it.itemName || it.title || "Print Item",
+        itemCode: "",
+        itemName: it.itemName || "Print Item",
         description: it.description || "",
         unit: it.unit || "PCS",
-        quantity: Math.max(1, Number(it.quantity) || 1),
-        unitPrice: Math.max(0, Number(it.unitPrice || it.unitRate) || 0),
-        taxRate: Number(it.taxRate) || 0,
-        discountType: it.discountType || "FIXED",
-        discountValue: Number(it.discountValue) || 0,
-      }));
-    } else {
-      const sourceItems = jobItems.length > 0 ? jobItems : (job.items || []);
-      if (sourceItems.length > 0) {
-        draftItems = sourceItems.map((it) => ({
-          jobOrderItemId: it._id,
-          itemId: it.itemId || null,
-          itemCode: it.itemCode || "",
-          itemName: it.itemName || it.title || "Print Item",
-          description: it.description || "",
-          unit: it.unit || "PCS",
-          quantity: Number(it.quantity) || 1,
-          unitPrice: Number(it.unitRate || it.unitPrice) || 0,
-          taxRate: Number(it.taxRate) || 0,
-          discountType: "FIXED",
-          discountValue: 0,
-        }));
-      } else {
-        const fallbackQty = Math.max(1, Number(job.quantity) || 1);
-        const fallbackPrice = (Number(job.grandTotal || job.estimatedPrice || 0)) / fallbackQty;
-        draftItems = [
-          {
-            jobOrderItemId: null,
-            itemId: null,
-            itemCode: "",
-            itemName: job.title || "Print Order",
-            description: job.customerRequirements || "",
-            unit: "PCS",
-            quantity: fallbackQty,
-            unitPrice: fallbackPrice > 0 ? Number(fallbackPrice.toFixed(2)) : 0,
-            taxRate: Number(job.taxRate) || 0,
-            discountType: "FIXED",
-            discountValue: 0,
-          },
-        ];
-      }
-    }
+        quantity: Number(it.quantity) || 0,
+        unitPrice: Number(it.unitRate || it.unitPrice) || 0,
+        taxRate: 0,
+        discountType: "FIXED",
+        discountValue: 0,
+    }));
 
     const estimateAmount = job.estimatedPrice || job.grandTotal || 0;
 
@@ -463,9 +466,16 @@ class InvoiceService {
           customerSnapshot: existingActive.customerSnapshot || customerSnapshot,
           branchSnapshot: existingActive.branchSnapshot || branchSnapshot,
           estimateAmount,
-          advanceReceived: advanceAlreadyReceived,
+          advanceReceived: Math.max(advanceAlreadyReceived, await Payment.sumInvoiceTimePayments(existingActive._id)),
           paidAmount: paidSoFar,
+          discountType: payload.discountType !== undefined ? payload.discountType : existingActive.invoiceDiscountType,
+          discountValue: payload.discountValue !== undefined ? payload.discountValue : existingActive.invoiceDiscountValue,
+          gstRate: resolveGstRate(payload.gstRate, existingActive.gstRate),
         });
+        existingActive.gstRate = resolveGstRate(payload.gstRate, existingActive.gstRate);
+        const regeneratePlan = normalizePlan(payload.paymentPlan !== undefined ? payload.paymentPlan : existingActive.paymentPlan, job);
+        applyPaymentPlan(calc, regeneratePlan);
+        existingActive.paymentPlan = regeneratePlan;
 
         existingActive.items = calc.items;
         existingActive.additionalCharges = calc.additionalCharges;
@@ -484,6 +494,10 @@ class InvoiceService {
         existingActive.varianceAmount = calc.varianceAmount;
         existingActive.variancePercentage = calc.variancePercentage;
         existingActive.approvalRequired = calc.approvalRequired;
+        existingActive.invoiceDiscountType = String(payload.discountType !== undefined ? payload.discountType : existingActive.invoiceDiscountType || "FIXED").toUpperCase() === "PERCENTAGE" ? "PERCENTAGE" : "FIXED";
+        existingActive.invoiceDiscountValue = Number(payload.discountValue !== undefined ? payload.discountValue : existingActive.invoiceDiscountValue) || 0;
+        if (payload.paymentMode !== undefined) existingActive.paymentMode = normalizeMode(payload.paymentMode);
+        if (payload.paymentReference !== undefined) existingActive.paymentReference = String(payload.paymentReference || "");
         existingActive.status = INVOICE_STATUS.DRAFT; // Reset to DRAFT so user can review and finalize
         existingActive.remarks = remarks || existingActive.remarks || "Regenerated Final Settlement Invoice";
         existingActive.updatedBy = user?._id || null;
@@ -523,7 +537,12 @@ class InvoiceService {
         ? Number(payload.advancePaid)
         : (payload.advanceApplied !== undefined ? Number(payload.advanceApplied) : (Number(job.advancePaid) || 0)),
       paidAmount: 0,
+      discountType: payload.discountType,
+      discountValue: payload.discountValue,
+      gstRate: resolveGstRate(payload.gstRate, 0),
     });
+    const paymentPlan = normalizePlan(payload.paymentPlan, job);
+    applyPaymentPlan(calc, paymentPlan);
 
     const newInvoice = await invoiceRepository.create({
       invoiceType: INVOICE_TYPE.TAX_INVOICE,
@@ -556,6 +575,12 @@ class InvoiceService {
       varianceAmount: calc.varianceAmount,
       variancePercentage: calc.variancePercentage,
       approvalRequired: calc.approvalRequired,
+      invoiceDiscountType: String(payload.discountType || "FIXED").toUpperCase() === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
+      invoiceDiscountValue: Number(payload.discountValue) || 0,
+      gstRate: resolveGstRate(payload.gstRate, 0),
+      paymentPlan,
+      paymentMode: normalizeMode(payload.paymentMode),
+      paymentReference: String(payload.paymentReference || ""),
       remarks,
       createdBy: user?._id || null,
       updatedBy: user?._id || null,
@@ -590,7 +615,9 @@ class InvoiceService {
       throw ErrorHelper.conflict(`Cannot edit invoice in '${invoice.status}' status. Only DRAFT invoices can be updated.`);
     }
 
-    const items = updatePayload.items !== undefined ? updatePayload.items : invoice.items;
+    // The lines, wording, quantities and prices stay exactly as the approved job order gave them
+    const items = (invoice.items || []).map((it) => (it.toObject ? it.toObject() : { ...it }));
+    const gstRate = resolveGstRate(updatePayload.gstRate, invoice.gstRate);
     const additionalCharges = updatePayload.additionalCharges !== undefined ? updatePayload.additionalCharges : invoice.additionalCharges;
 
     const calc = InvoiceCalculationService.calculateInvoice({
@@ -599,11 +626,21 @@ class InvoiceService {
       customerSnapshot: invoice.customerSnapshot,
       branchSnapshot: invoice.branchSnapshot,
       estimateAmount: invoice.estimateAmountSnapshot,
-      advanceReceived: updatePayload.advancePaid !== undefined
-        ? Number(updatePayload.advancePaid)
-        : (updatePayload.advanceApplied !== undefined ? updatePayload.advanceApplied : invoice.advanceApplied),
+      // Money already recorded as received can never be reduced by editing the draft
+      advanceReceived: Math.max(
+        updatePayload.advancePaid !== undefined
+          ? Number(updatePayload.advancePaid)
+          : (updatePayload.advanceApplied !== undefined ? Number(updatePayload.advanceApplied) : invoice.advanceApplied),
+        await Payment.sumInvoiceTimePayments(invoice._id)
+      ),
       paidAmount: invoice.paidAmount,
+      discountType: updatePayload.discountType !== undefined ? updatePayload.discountType : invoice.invoiceDiscountType,
+      discountValue: updatePayload.discountValue !== undefined ? updatePayload.discountValue : invoice.invoiceDiscountValue,
+      gstRate,
     });
+    const jobForPlan = invoice.jobOrderId ? await JobOrder.findById(invoice.jobOrderId).lean() : null;
+    const paymentPlan = normalizePlan(updatePayload.paymentPlan !== undefined ? updatePayload.paymentPlan : invoice.paymentPlan, jobForPlan || {});
+    applyPaymentPlan(calc, paymentPlan);
 
     const updateData = {
       items: calc.items,
@@ -622,6 +659,12 @@ class InvoiceService {
       varianceAmount: calc.varianceAmount,
       variancePercentage: calc.variancePercentage,
       approvalRequired: calc.approvalRequired,
+      invoiceDiscountType: String(updatePayload.discountType !== undefined ? updatePayload.discountType : invoice.invoiceDiscountType || "FIXED").toUpperCase() === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
+      invoiceDiscountValue: Number(updatePayload.discountValue !== undefined ? updatePayload.discountValue : invoice.invoiceDiscountValue) || 0,
+      gstRate,
+      paymentPlan,
+      paymentMode: updatePayload.paymentMode !== undefined ? normalizeMode(updatePayload.paymentMode) : invoice.paymentMode,
+      paymentReference: updatePayload.paymentReference !== undefined ? String(updatePayload.paymentReference || "") : invoice.paymentReference,
       remarks: updatePayload.remarks !== undefined ? updatePayload.remarks : invoice.remarks,
       dueDate: updatePayload.dueDate !== undefined ? new Date(updatePayload.dueDate) : invoice.dueDate,
       updatedBy: user?._id || null,
@@ -666,10 +709,10 @@ class InvoiceService {
 
     this.assertBranchAccess(invoice.branchId, authContext);
 
-    const items = calculatePayload.items || invoice.items;
+    const items = (invoice.items || []).map((it) => (it.toObject ? it.toObject() : { ...it }));
     const additionalCharges = calculatePayload.additionalCharges || invoice.additionalCharges;
 
-    return InvoiceCalculationService.calculateInvoice({
+    const calc = InvoiceCalculationService.calculateInvoice({
       items,
       additionalCharges,
       customerSnapshot: invoice.customerSnapshot,
@@ -679,7 +722,15 @@ class InvoiceService {
         ? Number(calculatePayload.advancePaid)
         : (calculatePayload.advanceApplied !== undefined ? calculatePayload.advanceApplied : invoice.advanceApplied),
       paidAmount: invoice.paidAmount,
+      discountType: calculatePayload.discountType !== undefined ? calculatePayload.discountType : invoice.invoiceDiscountType,
+      discountValue: calculatePayload.discountValue !== undefined ? calculatePayload.discountValue : invoice.invoiceDiscountValue,
+      gstRate: resolveGstRate(calculatePayload.gstRate, invoice.gstRate),
     });
+    const jobForCalc = invoice.jobOrderId ? await JobOrder.findById(invoice.jobOrderId).lean() : null;
+    return applyPaymentPlan(
+      calc,
+      normalizePlan(calculatePayload.paymentPlan !== undefined ? calculatePayload.paymentPlan : invoice.paymentPlan, jobForCalc || {})
+    );
   }
 
   /**
@@ -801,6 +852,9 @@ class InvoiceService {
     if (!job || job.status === "CANCELLED") {
       throw ErrorHelper.conflict("Cannot finalize invoice: Job Order is invalid or cancelled.");
     }
+    if (!isEstimateApproved(job)) {
+      throw ErrorHelper.conflict("Cannot finalize invoice: the estimate of this job order has not been approved yet.");
+    }
 
     const jobTypeStr = String(job.jobType || "").toUpperCase();
     const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
@@ -820,24 +874,38 @@ class InvoiceService {
     }
 
     // Concurrency-safe atomic number generation using numberSequenceService
-    const invoiceNumber = invoice.invoiceNumber || (await numberSequenceService.getNextSequence("INV", invoice.branchId));
+    const invoiceNumber = invoice.invoiceNumber || (await nextInvoiceNumber());
 
     invoice.invoiceNumber = invoiceNumber;
-    invoice.status = INVOICE_STATUS.FINALIZED;
     invoice.finalizedBy = user?._id || null;
     invoice.finalizedAt = new Date();
+
+    // Full payment: everything is received now. Advance: only the amount entered (never more than the invoice).
+    const grandTotal = round2(invoice.grandTotal || 0);
+    const plan = normalizePlan(invoice.paymentPlan, job);
+    const isFull = plan === "FULL";
+    const received = isFull ? grandTotal : round2(Math.min(grandTotal, Number(invoice.advanceApplied) || 0));
+    const alreadyPaid = round2(Number(invoice.paidAmount) || 0);
+    const balance = Math.max(0, round2(grandTotal - received - alreadyPaid));
+
+    invoice.paymentPlan = plan;
+    invoice.advanceApplied = invoice.advancePaid = received;
+    invoice.balanceDue = balance;
+    invoice.paymentStatus = balance <= 0.001 ? "PAID" : received + alreadyPaid > 0 ? "PARTIAL" : "UNPAID";
+    invoice.status = invoice.paymentStatus === "PAID" ? INVOICE_STATUS.PAID : INVOICE_STATUS.FINALIZED;
     await invoice.save();
 
-    // Link invoice number back to JobOrder, save advance paid and remaining balance due for settlement
-    // Flow 1: Print Only winds up directly after invoice (COMPLETED & DELIVERED), does NOT enter production
-    // Flow 2 & 3: Standard design pipeline advances to Designer Queue
-    const nextJobStage = isPrintOnly
-      ? "COMPLETED"
-      : (job.source === "DESIGNER" ? "DESIGN_IN_PROGRESS" : "DESIGN_QUEUE");
+    // Every rupee received at this step is kept as a payment record (mode and reference included)
+    await this.recordInvoiceTimePayment(invoice, user, isFull);
 
-    const notesText = isPrintOnly
-      ? `Invoice ${invoiceNumber} finalized with full payment ₹${invoice.grandTotal || 0}. Print Only job completed and wound up directly.`
-      : `Invoice ${invoiceNumber} finalized with advance ₹${invoice.advanceApplied || 0}. Sent to Designer Queue.`;
+    const jobPayment = { advancePaid: received, balanceDue: balance, paymentStatus: invoice.paymentStatus };
+
+    // After the invoice: Print Only goes straight to production (no design); the other types go to design.
+    const nextJobStage = isPrintOnly
+      ? "PRODUCTION_PLANNING"
+      : (job.source === "DESIGNER" ? "DESIGN_IN_PROGRESS" : "DESIGN_QUEUE");
+    const paidText = isFull ? `full payment ₹${received.toFixed(2)}` : `advance ₹${received.toFixed(2)}`;
+    const notesText = `Invoice ${invoiceNumber} finalized with ${paidText}. ${isPrintOnly ? "Sent to Production." : "Sent to Designer Queue."}`;
 
     if (["ESTIMATION", "ESTIMATE_APPROVAL"].includes(job.currentStage)) {
       try {
@@ -845,69 +913,34 @@ class InvoiceService {
         await JobWorkflowService.transition(job._id, nextJobStage, {
           actorId: user?._id,
           notes: notesText,
-          patch: {
-            invoiceNo: invoiceNumber,
-            invoiceId: invoice._id,
-            advancePaid: isPrintOnly ? Number(invoice.grandTotal || invoice.advanceApplied || 0) : Number(invoice.advanceApplied || 0),
-            balanceDue: isPrintOnly ? 0 : Number(invoice.balanceDue || 0),
-            paymentStatus: isPrintOnly ? "PAID" : (invoice.balanceDue === 0 ? "PAID" : (invoice.advanceApplied > 0 ? "PARTIAL" : "UNPAID")),
-            status: isPrintOnly ? "DELIVERED" : job.status,
-            completionDate: isPrintOnly ? new Date() : job.completionDate,
-          },
+          patch: { invoiceNo: invoiceNumber, invoiceId: invoice._id, ...jobPayment },
           user,
         });
-
-        if (isPrintOnly) {
-          try {
-            const ProductionOrder = mongoose.model("ProductionOrder");
-            await ProductionOrder.deleteMany({ jobOrderId: job._id });
-          } catch (delErr) {
-            // ignore
-          }
-        }
       } catch (transErr) {
         console.warn("Could not transition workflow on invoice finalize:", transErr.message);
         await JobOrder.findByIdAndUpdate(job._id, {
           $set: {
             currentStage: nextJobStage,
             stage: nextJobStage,
-            status: isPrintOnly ? "DELIVERED" : "DESIGN",
-            completionDate: isPrintOnly ? new Date() : undefined,
+            status: isPrintOnly ? "PRODUCTION" : "DESIGN",
             invoiceNo: invoiceNumber,
             invoiceId: invoice._id,
-            advancePaid: isPrintOnly ? Number(invoice.grandTotal || invoice.advanceApplied || 0) : Number(invoice.advanceApplied || 0),
-            balanceDue: isPrintOnly ? 0 : Number(invoice.balanceDue || 0),
-            paymentStatus: isPrintOnly ? "PAID" : (invoice.balanceDue === 0 ? "PAID" : (invoice.advanceApplied > 0 ? "PARTIAL" : "UNPAID")),
+            ...jobPayment,
           },
         });
-        if (isPrintOnly) {
-          try {
-            const ProductionOrder = mongoose.model("ProductionOrder");
-            await ProductionOrder.deleteMany({ jobOrderId: job._id });
-          } catch (delErr) {
-            // ignore
-          }
-        }
       }
     } else {
       const updateFields = {
         invoiceNo: invoiceNumber,
         invoiceId: invoice._id,
-        grandTotal: Number(invoice.grandTotal || 0),
-        totalAmount: Number(invoice.grandTotal || 0),
+        grandTotal,
+        totalAmount: grandTotal,
         discountTotal: Number(invoice.discountTotal || 0),
-        advancePaid: isPrintOnly ? Number(invoice.grandTotal || invoice.advanceApplied || 0) : Number(invoice.advanceApplied || 0),
-        balanceDue: isPrintOnly ? 0 : Number(invoice.balanceDue || 0),
-        paymentStatus: isPrintOnly ? "PAID" : (invoice.balanceDue === 0 ? "PAID" : (invoice.advanceApplied > 0 ? "PARTIAL" : "UNPAID")),
+        ...jobPayment,
       };
-      if (isPrintOnly) {
-        updateFields.currentStage = "COMPLETED";
-        updateFields.stage = "COMPLETED";
-        updateFields.status = "DELIVERED";
-        updateFields.completionDate = new Date();
-      } else if (isDesignOnly) {
-        const isBalanceCleared = Number(invoice.balanceDue || 0) <= 0;
-        if (isBalanceCleared) {
+      if (isDesignOnly) {
+        // Design Only has nothing to produce or deliver: it completes once the balance is cleared
+        if (balance <= 0.001) {
           updateFields.currentStage = "COMPLETED";
           updateFields.stage = "COMPLETED";
           updateFields.status = "COMPLETED";
@@ -931,14 +964,6 @@ class InvoiceService {
         }
       }
       await JobOrder.findByIdAndUpdate(job._id, { $set: updateFields });
-      if (isPrintOnly) {
-        try {
-          const ProductionOrder = mongoose.model("ProductionOrder");
-          await ProductionOrder.deleteMany({ jobOrderId: job._id });
-        } catch (delErr) {
-          // ignore
-        }
-      }
     }
 
     await auditLogService.log({
@@ -953,6 +978,124 @@ class InvoiceService {
     });
 
     return invoice;
+  }
+
+  /**
+   * Record the advance (or the full payment of a full-payment invoice) as a payment, so the money received
+   * is always backed by a payment record. Only the part not recorded yet is added.
+   */
+  static async recordInvoiceTimePayment(invoice, user, isFull = false) {
+    const target = isFull
+      ? round2(invoice.grandTotal || 0)
+      : round2(Math.min(Number(invoice.grandTotal) || 0, Number(invoice.advanceApplied) || 0));
+    if (!(target > 0)) return null;
+
+    const recorded = await Payment.sumInvoiceTimePayments(invoice._id);
+    const diff = round2(target - recorded);
+    if (!(diff > 0.001)) return null;
+
+    const paymentNo = await nextPaymentNo();
+
+    const mode = normalizeMode(invoice.paymentMode);
+    const payment = await Payment.create({
+      paymentNo,
+      invoiceId: invoice._id,
+      jobOrderId: invoice.jobOrderId,
+      customerId: invoice.customerId,
+      branchId: invoice.branchId,
+      amount: diff,
+      paymentMode: mode,
+      paymentMethod: mode,
+      paymentReference: invoice.paymentReference || null,
+      paymentType: isFull ? "FULL" : "ADVANCE",
+      status: "COMPLETED",
+      collectedBy: user?._id || invoice.finalizedBy || invoice.createdBy,
+      remarks: isFull ? "Full payment received with the invoice" : "Advance received with the invoice",
+    });
+
+    await auditLogService.log({
+      action: "INVOICE_PAYMENT_RECORD",
+      resource: "Payment",
+      resourceId: payment._id,
+      userId: user?._id,
+      userName: user?.username || user?.name || "System",
+      branchId: invoice.branchId,
+      details: { invoiceNumber: invoice.invoiceNumber, amount: diff, paymentType: payment.paymentType, mode },
+    });
+    return payment;
+  }
+
+  /**
+   * Amount still to be collected on a job order, from its invoices and recorded payments.
+   * Used to stop delivery, completion and closure while a balance is unpaid.
+   */
+  static async getOutstandingForJob(jobOrderId) {
+    const invoices = await invoiceRepository.find({
+      jobOrderId,
+      status: { $ne: INVOICE_STATUS.CANCELLED },
+      isDeleted: { $ne: true },
+    });
+    // Invoices that have been issued (a regenerated final invoice is a draft that still carries its number)
+    const issued = invoices.filter((inv) => inv.invoiceNumber || [INVOICE_STATUS.FINALIZED, INVOICE_STATUS.PARTIALLY_PAID, INVOICE_STATUS.PAID].includes(inv.status));
+
+    let outstanding = 0;
+    for (const inv of issued) {
+      const balancePayments = await Payment.findValidPaymentsByInvoiceId(inv._id);
+      const paid = balancePayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      outstanding += Math.max(0, round2((Number(inv.grandTotal) || 0) - (Number(inv.advanceApplied || inv.advancePaid) || 0) - paid));
+    }
+    return {
+      hasInvoice: issued.length > 0,
+      outstanding: round2(outstanding),
+      invoiceNumber: issued[0]?.invoiceNumber || null,
+    };
+  }
+
+  /**
+   * A Design Only job whose design is approved and whose invoice is fully paid (a full payment taken with the
+   * invoice, or a balance already collected) has nothing left to do: complete it.
+   */
+  static async completeDesignOnlyIfSettled(jobOrderId, user = null) {
+    const job = await JobOrder.findById(jobOrderId);
+    if (!job || getFlowType(job) !== FLOW_TYPES.DESIGN_ONLY) return false;
+    if (String(job.currentStage || "").toUpperCase() !== "READY") return false;
+
+    const { hasInvoice, outstanding } = await this.getOutstandingForJob(job._id);
+    if (!hasInvoice || outstanding > 0.001) return false;
+
+    // A regenerated final invoice is a draft that already carries its number: it is paid, so close it as PAID
+    await invoiceRepository.updateMany(
+      { jobOrderId: job._id, invoiceNumber: { $nin: [null, ""] }, status: INVOICE_STATUS.DRAFT },
+      { $set: { status: INVOICE_STATUS.PAID, paymentStatus: "PAID", balanceDue: 0 } }
+    );
+
+    const patch = { paymentStatus: "PAID", balanceDue: 0, completionDate: new Date() };
+    try {
+      const JobWorkflowService = require("../../job-orders/services/jobWorkflow.service");
+      await JobWorkflowService.transition(job._id, "COMPLETED", {
+        actorId: user?._id,
+        notes: "Design approved and invoice fully paid. Design Only order completed.",
+        patch,
+        user,
+      });
+    } catch (e) {
+      await JobOrder.findByIdAndUpdate(job._id, {
+        $set: { ...patch, currentStage: "COMPLETED", stage: "COMPLETED", status: "COMPLETED" },
+      });
+    }
+    return true;
+  }
+
+  /**
+   * Refuse when money is still owed on the job. Settle the balance first, then deliver.
+   */
+  static async assertBalanceSettled(job, action) {
+    const { hasInvoice, outstanding } = await this.getOutstandingForJob(job._id || job);
+    if (hasInvoice && outstanding > 0.001) {
+      throw ErrorHelper.conflict(
+        `Cannot ${action}: ₹${outstanding.toFixed(2)} is still due on this job order. Collect the balance payment first.`
+      );
+    }
   }
 
   /**

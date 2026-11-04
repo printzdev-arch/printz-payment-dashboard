@@ -1,16 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, CheckCircle, AlertCircle, Printer } from "lucide-react";
+import { X, CheckCircle, AlertCircle, Printer, Pencil } from "lucide-react";
 import { toast } from "react-toastify";
 import { printQuotation } from "../utils/printQuotation";
 
-export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) => {
+export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, viewOnly = false }) => {
   const navigate = useNavigate();
   const [managerRemarks, setManagerRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const currentEstimate = estimate || {};
   const jobNo = currentEstimate.jobNo || currentEstimate.orderNumber || "N/A";
-  const estimateNo = currentEstimate.estimateNo || "EST-PENDING";
   const customerName = currentEstimate.customerName || currentEstimate.customerId?.name || currentEstimate.customerSnapshot?.name || "Customer";
   const phone = currentEstimate.phone || currentEstimate.customerPhone || currentEstimate.customerSnapshot?.mobile || "-";
   const branch = currentEstimate.branchName || currentEstimate.branchId?.name || "Main Branch";
@@ -23,6 +22,11 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
     rawJob.estimationStatus === "APPROVED" ||
     ["DESIGN_QUEUE", "DESIGN_ASSIGNED", "DESIGN_IN_PROGRESS", "SAMPLE_APPROVAL", "PRODUCTION_PLANNING", "PRODUCTION", "QC", "DELIVERY", "COMPLETED"].includes(String(rawJob.currentStage || "").toUpperCase())
   );
+
+  // A job order can be edited only until its estimate is approved, and never from a view-only window
+  const editableStage = ["ENQUIRY", "ESTIMATION", "ESTIMATE_APPROVAL"].includes(String(rawJob.currentStage || currentEstimate.currentStage || "").toUpperCase());
+  const canEditJob = !viewOnly && !isApproved && editableStage && rawJob.canEdit !== false;
+  const editJobId = rawJob._id || rawJob.id || currentEstimate._id || currentEstimate.id;
 
   const specs = rawJob.specs || rawJob.specifications || currentEstimate.specs || rawJob.items?.[0]?.specifications || {};
   const defaultQty = Number(currentEstimate.quantity || rawJob.quantity || specs.quantity || 500);
@@ -170,12 +174,9 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
     setLoading(true);
     try {
       localStorage.removeItem("printz_active_job_id");
-      const jobTypeStr = String(rawJob?.jobType || rawJob?.specs?.jobType || currentEstimate?.jobType || "").toUpperCase();
-      const isPrintOnly = jobTypeStr.includes("PRINT") && !jobTypeStr.includes("DESIGN");
 
       await onApprove(estimate._id || estimate.id, {
         remarks: managerRemarks,
-        skipDesign: isPrintOnly,
         items: items.map((it) => ({
           itemName: it.name,
           description: it.spec || "",
@@ -223,7 +224,7 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <h2 className="jf-modal-title" style={{ margin: 0 }}>
-                  Review Estimate: {estimateNo}
+                  Review Estimate: {jobNo}
                 </h2>
                 {isApproved ? (
                   <span className="jf-badge jf-badge-green">
@@ -239,14 +240,7 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary jf-btn-sm"
-              onClick={handlePrint}
-              title="Print Official Quotation"
-            >
-              <Printer size={15} /> Print Quotation
-            </button>
+            
             <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose} title="Close">
               <X size={18} />
             </button>
@@ -261,7 +255,6 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", fontSize: "0.8125rem" }}>
               <div><span style={{ color: "#475569" }}>Job No:</span> <strong>{jobNo}</strong></div>
-              <div><span style={{ color: "#475569" }}>Estimate No:</span> <strong>{estimateNo}</strong></div>
               <div><span style={{ color: "#475569" }}>Customer:</span> <strong>{customerName}</strong></div>
               <div><span style={{ color: "#475569" }}>Phone:</span> {phone}</div>
               <div><span style={{ color: "#475569" }}>Job Type:</span> {jobType}</div>
@@ -325,8 +318,8 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
                   <th>Specification</th>
                   <th>Qty</th>
                   <th>Unit</th>
-                  <th>Rate (RM)</th>
-                  <th>Amount (RM)</th>
+                  <th>Rate (₹)</th>
+                  <th>Amount (₹)</th>
                 </tr>
               </thead>
               <tbody>
@@ -337,8 +330,8 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
                     <td style={{ fontSize: "0.8125rem", color: "#475569" }}>{it.spec}</td>
                     <td>{it.qty}</td>
                     <td>{it.unit}</td>
-                    <td>RM {Number(it.rate || 0).toFixed(2)}</td>
-                    <td><strong>RM {Number(it.amount || 0).toFixed(2)}</strong></td>
+                    <td>₹{Number(it.rate || 0).toFixed(2)}</td>
+                    <td><strong>₹{Number(it.amount || 0).toFixed(2)}</strong></td>
                   </tr>
                 ))}
               </tbody>
@@ -359,11 +352,11 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
             >
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", color: "#475569", marginBottom: "0.4rem" }}>
                 <span>Subtotal:</span>
-                <span style={{ fontWeight: 600 }}>RM {subtotal.toFixed(2)}</span>
+                <span style={{ fontWeight: 600 }}>₹{subtotal.toFixed(2)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.25rem", color: "var(--jf-primary)", fontWeight: 700, borderTop: "1px dashed var(--jf-border)", paddingTop: "0.5rem" }}>
                 <span>Grand Total:</span>
-                <span>RM {grandTotal.toFixed(2)}</span>
+                <span>₹{grandTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -392,6 +385,16 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove }) =>
               <button type="button" className="jf-btn jf-btn-secondary" onClick={onClose} disabled={loading}>
                 Back
               </button>
+              {canEditJob && (
+                <button
+                  type="button"
+                  className="jf-btn jf-btn-secondary"
+                  onClick={() => navigate(`/jobflow/jobs/${editJobId}/edit`)}
+                  disabled={loading}
+                >
+                  <Pencil size={16} /> Edit Job Order
+                </button>
+              )}
               <button
                 type="button"
                 className="jf-btn jf-btn-primary"
