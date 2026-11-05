@@ -90,28 +90,6 @@ export const InvoicePage = () => {
     );
   };
 
-  const handleLiveCalculationChange = (calcData) => {
-    if (!calcData || !calcData.jobId) return;
-    setPendingEligibleJobs((prev) =>
-      prev.map((j) => {
-        if (
-          String(j._id) === String(calcData.jobId) ||
-          String(j.jobOrderId) === String(calcData.jobId) ||
-          j.jobNo === calcData.jobId
-        ) {
-          return {
-            ...j,
-            estimateAmount: calcData.grandTotal,
-            grandTotal: calcData.grandTotal,
-            advancePaid: calcData.advancePaid,
-            balanceDue: calcData.balanceDue,
-          };
-        }
-        return j;
-      })
-    );
-  };
-
   useEffect(() => {
     loadInvoiceData();
   }, [preselectedJobId]);
