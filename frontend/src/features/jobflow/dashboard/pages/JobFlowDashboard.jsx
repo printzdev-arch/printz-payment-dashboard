@@ -17,6 +17,7 @@ import {
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import dashboardApi from "../api/dashboardApi";
 import "../styles/dashboard.css";
 
@@ -234,6 +235,12 @@ export const JobFlowDashboard = () => {
               label: "Job Title",
               sortable: true,
               render: (val, row) => val || row.jobTitle || "Printed Materials",
+            },
+            {
+              key: "priority",
+              label: "Priority",
+              sortable: true,
+              render: (val, row) => <PriorityBadge priority={val || row.priority} />,
             },
             {
               key: "stage",

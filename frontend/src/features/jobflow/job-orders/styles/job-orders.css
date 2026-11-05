@@ -154,7 +154,7 @@ body .jf-create-job-grid {
 body .jf-create-job-grid .jf-finishing-upload-row {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1.6fr 0.85fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -304,6 +304,18 @@ body .jf-table-scroll-3rows {
 }
 
 body .jf-table-scroll-3rows .jf-table th {
+  background: #f8faf9;
+  white-space: nowrap;
+}
+
+/* Finishing table: shows every row, no inner scrolling */
+body .jf-finishing-table-wrap {
+  overflow: visible;
+  border: 1px solid #eef3f0;
+  border-radius: 12px;
+}
+
+body .jf-finishing-table-wrap .jf-table th {
   background: #f8faf9;
   white-space: nowrap;
 }

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Production Planning ΓÇö stylesheet
+   Production Planning — stylesheet
    Scoped under .pp-page / .pp-overlay so nothing leaks into the host app.
    Breakpoints:  Γëñ1180px  two-column blocks collapse
                  Γëñ900px   data tables turn into stacked cards
@@ -342,7 +342,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(min(280px, 100%), 1fr);
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .pp-side-column {
@@ -745,11 +745,25 @@
 
 /* ---------- Materials / schedule grid ---------- */
 
+/* Bottom row: Approved sample on the left, Production Schedule on the right */
 .pp-grid-bottom {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(min(320px, 100%), 1fr);
+  grid-template-columns: minmax(min(280px, 100%), 1fr) minmax(0, 2.2fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+}
+
+/* Save Draft / Confirm: bottom right, stays visible while scrolling */
+.pp-footer-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  background: linear-gradient(180deg, rgba(244, 247, 245, 0) 0%, #f4f7f5 35%);
 }
 
 /* ---------- Approved jobs: filters ---------- */
@@ -938,7 +952,7 @@
   .pp-side-column > .pp-card { flex: 1 1 280px; }
 }
 
-/* Tables ΓåÆ stacked cards */
+/* Tables → stacked cards */
 @media (max-width: 900px) {
   .pp-table-wrap { border: 0; overflow: visible; }
   .pp-card--flush .pp-table-wrap { padding: 12px; }
@@ -1044,7 +1058,7 @@
   .pp-textarea { transition: none; }
 }
 
-/* ΓöÇΓöÇ Production Planning V2 Extensions ΓöÇΓöÇ */
+/* ── Production Planning V2 Extensions ── */
 .pp2-locked td { background: #f8fafc; }
 .pp2-lock { display: inline-flex; align-items: center; gap: 4px; color: #475569; font-size: 0.75rem; }
 .pp2-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }

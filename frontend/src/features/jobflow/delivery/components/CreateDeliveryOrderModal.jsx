@@ -193,7 +193,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
 
       const res = await deliveryApi.createDeliveryOrder(payload);
       const createdDO = res?.data || res;
-      toast.success(`Delivery Order ${createdDO.deliveryNo || "DO"} generated & staff assigned!`);
+      toast.success(`Delivery for ${job.jobNo || "job"} prepared & staff assigned!`);
       if (onCreated) onCreated(createdDO);
       onClose();
     } catch (err) {
@@ -203,7 +203,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
     }
   };
 
-  const deliveryOrderNo = job.deliveryOrder?.deliveryNo || job.deliveryNo;
+  const deliveryOrderNo = null;
   const balanceDue = Number(job.balanceDue !== undefined ? job.balanceDue : (job.grandTotal ? Math.max(0, job.grandTotal - (job.advancePaid || 0)) : 0));
   const isPickup = deliveryType === "COUNTER_PICKUP";
   // A counter pickup is collected by the customer, so only a dispatch needs a delivery person.

@@ -12,6 +12,7 @@ import {
   Inbox
 } from "lucide-react";
 import { TableSkeletonRows } from "../../../../shared/motion";
+import Pagination from "../../../../components/common/Pagination";
 
 /**
  * JobFlowDataTable
@@ -31,6 +32,8 @@ export const JobFlowDataTable = ({
   data = [],
   loading = false,
   sortable = false,
+  sortControls = true,
+  headerFontSize,
   searchable = true,
   searchPlaceholder = "Search records...",
   searchKeys = [],
@@ -254,28 +257,6 @@ export const JobFlowDataTable = ({
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             {customActions}
-
-            {/* Page Size Selector */}
-            {pagination && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "#475569" }}>
-                <span>Rows:</span>
-                <select
-                  className="jf-select"
-                  style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", minWidth: "65px" }}
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  {pageSizeOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -287,12 +268,13 @@ export const JobFlowDataTable = ({
             <tr>
               {columns.map((col, idx) => {
                 const isSorted = Boolean(sortable) && sortConfig.key === col.key;
-                const canSort = Boolean(sortable) && col.sortable !== false && Boolean(col.key);
+                const canSort = Boolean(sortable) && sortControls && col.sortable !== false && Boolean(col.key);
 
                 return (
                   <th
                     key={col.key || idx}
                     style={{
+                      fontSize: headerFontSize || undefined,
                       cursor: canSort ? "pointer" : "default",
                       userSelect: "none",
                       textAlign: col.align || "left",
@@ -396,170 +378,16 @@ export const JobFlowDataTable = ({
 
       {/* ──────────────── Bottom Pagination Footer ──────────────── */}
       {pagination && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0.875rem 1.25rem",
-            borderTop: "1px solid var(--jf-border, #e2e8f0)",
-            background: "#ffffff",
-            flexWrap: "wrap",
-            gap: "0.75rem",
-            fontSize: "0.8125rem",
-            color: "#475569",
-          }}
-        >
-          {/* Summary text */}
-          <div>
-            Showing <strong>{startIndex}</strong> to <strong>{endIndex}</strong> of{" "}
-            <strong>{totalEntries}</strong> entries
-            {searchTerm && ` (filtered from ${data.length} total)`}
-          </div>
-
-          {/* Navigation Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-            {/* First Page button */}
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary"
-              style={{ padding: "0.35rem 0.5rem", borderRadius: "4px" }}
-              disabled={validPage <= 1}
-              onClick={() => setCurrentPage(1)}
-              title="First Page"
-            >
-              <ChevronsLeft size={14} />
-            </button>
-
-            {/* Previous button */}
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary"
-              style={{ padding: "0.35rem 0.65rem", borderRadius: "4px", gap: "0.25rem" }}
-              disabled={validPage <= 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft size={14} /> Prev
-            </button>
-
-            {/* Page number buttons */}
-            <div style={{ display: "flex", gap: "0.25rem", margin: "0 0.25rem", alignItems: "center" }}>
-              {getPageNumbers().map((num, idx) => {
-                if (num === "...") {
-                  return (
-                    <span
-                      key={`ellipsis-${idx}`}
-                      style={{
-                        padding: "0 0.35rem",
-                        color: "#94a3b8",
-                        fontWeight: 600,
-                        userSelect: "none",
-                      }}
-                    >
-                      ...
-                    </span>
-                  );
-                }
-                const isActive = num === validPage;
-                return (
-                  <button
-                    key={num}
-                    type="button"
-                    style={{
-                      minWidth: "32px",
-                      height: "30px",
-                      padding: "0 0.4rem",
-                      borderRadius: "4px",
-                      border: isActive ? "1px solid var(--jf-primary, #15803d)" : "1px solid var(--jf-border, #e2e8f0)",
-                      background: isActive ? "var(--jf-primary, #15803d)" : "#ffffff",
-                      color: isActive ? "#ffffff" : "#334155",
-                      fontWeight: isActive ? 700 : 500,
-                      cursor: "pointer",
-                      fontSize: "0.8125rem",
-                      transition: "all 0.15s ease",
-                    }}
-                    onClick={() => setCurrentPage(num)}
-                  >
-                    {num}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Next button */}
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary"
-              style={{ padding: "0.35rem 0.65rem", borderRadius: "4px", gap: "0.25rem" }}
-              disabled={validPage >= totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next <ChevronRight size={14} />
-            </button>
-
-            {/* Last Page button */}
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary"
-              style={{ padding: "0.35rem 0.5rem", borderRadius: "4px" }}
-              disabled={validPage >= totalPages}
-              onClick={() => setCurrentPage(totalPages)}
-              title="Last Page"
-            >
-              <ChevronsRight size={14} />
-            </button>
-
-            {/* Direct Page Jump */}
-            {totalPages > 1 && (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.35rem",
-                  marginLeft: "0.5rem",
-                  fontSize: "0.8125rem",
-                  color: "#475569",
-                }}
-              >
-                <span>Go to:</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={totalPages}
-                  defaultValue={validPage}
-                  key={validPage}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val) && val >= 1 && val <= totalPages) {
-                        setCurrentPage(val);
-                      }
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val) && val >= 1 && val <= totalPages) {
-                      setCurrentPage(val);
-                    }
-                  }}
-                  style={{
-                    width: "44px",
-                    height: "30px",
-                    padding: "0 0.35rem",
-                    textAlign: "center",
-                    border: "1px solid var(--jf-border, #e2e8f0)",
-                    borderRadius: "4px",
-                    fontSize: "0.8125rem",
-                    color: "#0f172a",
-                    fontWeight: 600,
-                  }}
-                  title="Press enter to go to page"
-                />
-                <span>/ {totalPages}</span>
-              </div>
-            )}
-          </div>
-        </div>
+        <Pagination
+          variant="compact"
+          currentPage={validPage}
+          totalItems={totalEntries}
+          itemsPerPage={pageSize}
+          onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), totalPages))}
+          onItemsPerPageChange={(n) => setPageSize(n)}
+          pageSizeOptions={pageSizeOptions}
+          itemLabel="entries"
+        />
       )}
     </div>
   );

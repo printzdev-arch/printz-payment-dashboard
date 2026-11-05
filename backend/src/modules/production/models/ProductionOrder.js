@@ -152,6 +152,8 @@ const productionOrderSchema = new mongoose.Schema(
     ],
     materials: [
       {
+        // Link to the stock item (the existing stock collection); used to deduct stock when work is completed
+        itemId: { type: mongoose.Schema.Types.Mixed, default: null },
         name: String,
         spec: String,
         requiredQty: Number,

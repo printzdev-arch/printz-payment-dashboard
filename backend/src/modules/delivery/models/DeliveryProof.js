@@ -56,7 +56,7 @@ const deliveryProofSchema = new mongoose.Schema(
     },
     deliveryType: {
       type: String,
-      enum: ["DELIVERY", "COUNTER_PICKUP", "COURIER"],
+      enum: ["DELIVERY", "COUNTER_PICKUP"],
       default: "DELIVERY",
     },
 

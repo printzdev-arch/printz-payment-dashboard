@@ -79,6 +79,7 @@ const Product = require("./inventory/models/Product");
 
 // production
 const ProductionOperation = require("./production/models/ProductionOperation");
+const ProductionOperator = require("./production/models/ProductionOperator");
 const ProductionOrder = require("./production/models/ProductionOrder");
 const ProductionState = require("./production/models/ProductionState");
 const QualityCheck = require("./production/models/QualityCheck");
@@ -159,6 +160,7 @@ module.exports = {
   Product,
   // production
   ProductionOperation,
+  ProductionOperator,
   ProductionOrder,
   ProductionState,
   QualityCheck,

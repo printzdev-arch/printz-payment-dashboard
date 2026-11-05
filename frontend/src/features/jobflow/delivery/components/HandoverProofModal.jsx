@@ -202,7 +202,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
         status: "DELIVERED",
       });
       const updated = res?.data || res;
-      toast.success(`Delivery Order ${deliveryOrder.deliveryNo} is marked DELIVERED & PAID!`);
+      toast.success(`${deliveryOrder.jobNo} is marked DELIVERED & PAID!`);
       if (onDelivered) onDelivered(updated);
       onClose();
     } catch (err) {
@@ -221,7 +221,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
             <div>
               <h2 className="jf-modal-title">Handover & Proof of Delivery (POD)</h2>
               <div style={{ fontSize: "0.8rem", color: "#475569" }}>
-                Delivery No: <strong>{deliveryOrder.deliveryNo}</strong> • Customer: <strong>{deliveryOrder.customerName || "Customer"}</strong>
+                Job No: <strong>{deliveryOrder.jobNo}</strong> • Customer: <strong>{deliveryOrder.customerName || "Customer"}</strong>
               </div>
             </div>
           </div>

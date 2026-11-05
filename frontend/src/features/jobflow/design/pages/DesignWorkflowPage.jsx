@@ -38,8 +38,11 @@ import {
   CheckCheck,
   ExternalLink,
   Copy,
+  Power,
 } from "lucide-react";
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
+import PriorityBadge from "../../shared/components/PriorityBadge";
+import Pagination from "../../../../components/common/Pagination";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import RejectDesignModal from "../components/RejectDesignModal";
@@ -65,6 +68,9 @@ const getInitials = (name = "") => {
   return name.slice(0, 2).toUpperCase();
 };
 
+
+// Shown when a job has no proof file yet (no stock photos)
+const NO_PROOF_IMG = "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23475569%22%20font-family%3D%22sans-serif%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3ENo%20proof%20uploaded%3C%2Ftext%3E%3C%2Fsvg%3E";
 
 export const DesignWorkflowPage = () => {
   const navigate = useNavigate();
@@ -148,12 +154,12 @@ export const DesignWorkflowPage = () => {
   const [activeView, setActiveView] = useState(() => {
     if (isWorkbenchRoute) return "workbench";
     if (isDesignerUser) {
-      if (urlView === "workbench" || urlView === "customer-proof" || urlView === "my-jobs") {
+      if (urlView === "workbench" || urlView === "my-jobs") {
         return urlView;
       }
       return "my-jobs";
     }
-    return (urlView && urlView !== "workbench" && urlView !== "workspace") ? urlView : "queue";
+    return (urlView && urlView !== "workbench" && urlView !== "workspace" && urlView !== "my-jobs" && urlView !== "customer-proof") ? urlView : "queue";
   });
 
   // Strict manager restriction: managers can NEVER access the workbench
@@ -186,9 +192,25 @@ export const DesignWorkflowPage = () => {
         setActiveView("queue");
       }
     } else if (currentView === "my-jobs") {
-      setActiveView("my-jobs");
+      // The designers' own job list is for designers only; managers stay in the queue
+      if (isDesignerUser) {
+        setActiveView("my-jobs");
+      } else {
+        setActiveView("queue");
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("view", "queue");
+          return next;
+        }, { replace: true });
+      }
     } else if (currentView === "customer-proof") {
-      setActiveView("customer-proof");
+      // The customer proof review is a popup now, not a page
+      setActiveView(isDesignerUser ? "my-jobs" : "queue");
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("view", isDesignerUser ? "my-jobs" : "queue");
+        return next;
+      }, { replace: true });
     } else if (currentView === "workbench" || currentView === "workspace") {
       setActiveView("workbench");
     } else if (isDesignerUser && !currentView) {
@@ -239,32 +261,11 @@ export const DesignWorkflowPage = () => {
   // Design Workbench states
   const [uploadedSampleUrl, setUploadedSampleUrl] = useState(null);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [designNotes, setDesignNotes] = useState("Use company colors and add contact details.");
+  const [designNotes, setDesignNotes] = useState("");
   const [previewModalFile, setPreviewModalFile] = useState(null);
 
-  const customerFiles = [
-    {
-      id: "ref-1",
-      name: "Reference_Design.jpg",
-      size: "2.4 MB",
-      type: "image",
-      url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&auto=format&fit=crop&q=80",
-    },
-    {
-      id: "ref-2",
-      name: "Logo.png",
-      size: "512 KB",
-      type: "image",
-      url: "/logo.png",
-    },
-    {
-      id: "ref-3",
-      name: "Content_Details.pdf",
-      size: "1.1 MB",
-      type: "pdf",
-      url: "#",
-    },
-  ];
+  // Reference files come from the job order; none are invented here
+  const customerFiles = [];
 
   // Current active job for workbench (falling back to ABC Marketing Flyer if queue is empty or no selection yet)
   const currentWorkbenchJob = useMemo(() => {
@@ -273,21 +274,7 @@ export const DesignWorkflowPage = () => {
       const inProg = jobs.find((j) => j.status === "In Progress" || j.status === "Assigned");
       return inProg || jobs[0];
     }
-    return {
-      _id: "demo-workbench-001",
-      jobNo: "JO-20250810-001",
-      customerName: "ABC Marketing",
-      title: "Flyer - A5",
-      size: "A5 (148 × 210 mm)",
-      quantity: 500,
-      assignedDate: "10 Aug 2025",
-      targetDate: "12 Aug 2025",
-      slaDue: "12 Aug 2025",
-      priority: "High",
-      status: "In Progress",
-      designerName: "Ahmed Raza",
-      specialInstructions: "Use company colors and add contact details.",
-    };
+    return { _id: null, jobNo: "", customerName: "", title: "", status: "", designerName: "", specialInstructions: "" };
   }, [selectedJob, jobs]);
 
   const handleSampleFileUpload = (e) => {
@@ -314,7 +301,7 @@ export const DesignWorkflowPage = () => {
       return;
     }
     link.href = proofFile;
-    link.download = `${currentWorkbenchJob.jobNo || "JO-20250810-001"}_Proof.jpg`;
+    link.download = `${currentWorkbenchJob.jobNo || "job"}_Proof.jpg`;
     link.target = "_blank";
     link.click();
     toast.success("Download started!");
@@ -460,7 +447,8 @@ export const DesignWorkflowPage = () => {
     setSelectedJob(updatedJob);
 
     toast.success("Design proof submitted! Status changed to Pending Sample Approvals.");
-    setActiveView("customer-proof");
+    setActiveView(isDesignerUser ? "my-jobs" : "queue");
+    setProofPopup(true);
 
     try {
       await fetchDesignData();
@@ -486,10 +474,22 @@ export const DesignWorkflowPage = () => {
 
   // Designer Queue states
   const [designers, setDesigners] = useState([]);
+  const [allDesigners, setAllDesigners] = useState([]); // includes inactive, for the Designer Queue table
+  const [designerPageSize, setDesignerPageSize] = useState(5);
+  const [editDesigner, setEditDesigner] = useState(null); // { id, name, email, mobile, maxLoad }
+  const [savingEditDesigner, setSavingEditDesigner] = useState(false);
   const [nextDesignerId, setNextDesignerId] = useState(null);
   const [editingDesignerId, setEditingDesignerId] = useState(null);
   const [editingDesignerLoad, setEditingDesignerLoad] = useState(5);
   const [savingDesignerId, setSavingDesignerId] = useState(null);
+  const [designerPage, setDesignerPage] = useState(1);
+  const [proofPopup, setProofPopup] = useState(false);
+  const [queueSearch, setQueueSearch] = useState("");
+  const [designerFilter, setDesignerFilter] = useState("all");
+  const [jobTypeFilter, setJobTypeFilter] = useState("all");
+  const [showAddDesigner, setShowAddDesigner] = useState(false);
+  const [addingDesigner, setAddingDesigner] = useState(false);
+  const [newDesigner, setNewDesigner] = useState({ name: "", email: "", mobile: "", password: "", maxLoad: 5 });
 
   // Sub-workspace states (for My Jobs, Canvas & Customer Proof)
   const [selectedDesignerProfile, setSelectedDesignerProfile] = useState("all");
@@ -582,7 +582,7 @@ export const DesignWorkflowPage = () => {
       // 1. Fetch live queue jobs and auxiliary design data in parallel to prevent waterfall timeouts
       const [queueSettled, poolSettled, rejSettled, samplesSettled] = await Promise.allSettled([
         jobFlowApi.getDesignQueue(),
-        jobFlowApi.getDesignerPool(),
+        jobFlowApi.getDesignerPool({ includeInactive: true }),
         jobFlowApi.getRejectedAssignments(),
         jobFlowApi.getAllSampleDesigns(),
       ]);
@@ -667,9 +667,7 @@ export const DesignWorkflowPage = () => {
         }
 
         const rawPriority = (single.priority || "NORMAL").toUpperCase();
-        let priorityDisplay = "Normal";
-        if (rawPriority === "HIGH" || rawPriority === "URGENT") priorityDisplay = "High";
-        else if (rawPriority === "LOW") priorityDisplay = "Low";
+        const priorityDisplay = ["URGENT", "HIGH", "RUSH"].includes(rawPriority) ? "Urgent" : "Normal";
 
         const rejectionReason =
           single.designRejectionReason ||
@@ -710,6 +708,11 @@ export const DesignWorkflowPage = () => {
           customerName: single.customerName || single.customerSnapshot?.name || "Direct Customer",
           title: single.title || single.items?.[0]?.itemName || "Custom Print Order",
           priority: priorityDisplay,
+          jobType: single.jobType || single.specs?.jobType || "",
+          isDesignOnly: (() => {
+            const t = String(single.jobType || single.specs?.jobType || "").toUpperCase();
+            return t.includes("DESIGN") && !t.includes("PRINT");
+          })(),
           designerName: designer,
           designerId:
             single.designerId?._id ||
@@ -793,9 +796,12 @@ export const DesignWorkflowPage = () => {
           (Array.isArray(poolRes) ? poolRes : []);
         // The pool is the six branch designers, exactly as the server returns them
         if (Array.isArray(rawDesigners)) {
-          setDesigners(rawDesigners);
-          if (rawDesigners[0]?.maxLoad) {
-            setGlobalMaxLoad(rawDesigners[0].maxLoad);
+          // Inactive designers stay in the Designer Queue table (so they can be re-activated) but not in the work pool
+          setAllDesigners(rawDesigners);
+          const activeDesigners = rawDesigners.filter((d) => d.isActive !== false);
+          setDesigners(activeDesigners);
+          if (activeDesigners[0]?.maxLoad) {
+            setGlobalMaxLoad(activeDesigners[0].maxLoad);
           }
         }
         if (poolRes?.nextDesigner) {
@@ -853,6 +859,7 @@ export const DesignWorkflowPage = () => {
           jobNo: j.jobNo,
           customerName: j.customerName,
           jobItem: j.title,
+          jobType: j.jobType,
           priority: j.priority,
           rejectedBy: "Designer",
           rejectionReason: j.rejectionReason || j.designRejectionReason || "Allocation rejected",
@@ -910,11 +917,12 @@ export const DesignWorkflowPage = () => {
             customerName: custName,
             customerPhone: j.raw?.customerPhone || j.customerPhone || "",
             jobItem: j.title || "Custom Print Order",
+            jobType: j.jobType,
             designerName: j.designerName !== "- Unassigned" ? j.designerName : "Assigned Designer",
             designerEmail: j.designerEmail || "",
             versionNo: j.raw?.versionNo || 1,
             revisionNo: 0,
-            fileUrl: j.raw?.designProofUrl || j.designProofUrl || "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800",
+            fileUrl: j.raw?.designProofUrl || j.designProofUrl || NO_PROOF_IMG,
             status: "SUBMITTED",
             customerFeedback: "",
             isManagerApproval: false,
@@ -1211,7 +1219,7 @@ export const DesignWorkflowPage = () => {
   }, [storedUser]);
 
   // Filtered jobs based on active tab
-  const filteredJobs = useMemo(() => {
+  const tabJobs = useMemo(() => {
     if (statusFilter === "all") return jobs;
     if (statusFilter === "pending")
       return jobs.filter(
@@ -1264,12 +1272,46 @@ export const DesignWorkflowPage = () => {
     return jobs;
   }, [jobs, statusFilter]);
 
+  // One search box + a designer filter for every tab of the queue
+  const isUnassignedName = (n) => !n || n === "- Unassigned" || n === "Unassigned" || n === "Assigned Designer";
+  const matchesQueue = (item) => {
+    const q = queueSearch.trim().toLowerCase();
+    const designerName = item.designerName || item.currentDesigner || "";
+    if (designerFilter === "unassigned") {
+      if (!isUnassignedName(designerName)) return false;
+    } else if (designerFilter !== "all") {
+      if (String(designerName).trim().toLowerCase() !== designerFilter.toLowerCase()) return false;
+    }
+    if (jobTypeFilter !== "all") {
+      const t = String(item.jobType || item.jobOrder?.jobType || item.raw?.jobType || "").toUpperCase();
+      const designOnly = t.includes("DESIGN") && !t.includes("PRINT");
+      const printAndDesign = t.includes("DESIGN") && t.includes("PRINT");
+      if (jobTypeFilter === "design_only" && !designOnly) return false;
+      if (jobTypeFilter === "print_design" && !printAndDesign) return false;
+    }
+    if (!q) return true;
+    return [item.jobNo, item.customerName, item.title, item.jobItem, designerName, item.jobType]
+      .some((v) => String(v || "").toLowerCase().includes(q));
+  };
+  const filteredJobs = useMemo(
+    () => tabJobs.filter(matchesQueue),
+    [tabJobs, queueSearch, designerFilter, jobTypeFilter] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const shownRejections = useMemo(
+    () => combinedRejections.filter(matchesQueue),
+    [combinedRejections, queueSearch, designerFilter, jobTypeFilter] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const shownSamples = useMemo(
+    () => combinedSamples.filter(matchesQueue),
+    [combinedSamples, queueSearch, designerFilter, jobTypeFilter] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   // Active list based on active tab
   const activeList =
     statusFilter === "rejected"
-      ? combinedRejections
+      ? shownRejections
       : statusFilter === "samples"
-      ? combinedSamples
+      ? shownSamples
       : filteredJobs;
 
   // Sliced pagination
@@ -1277,8 +1319,15 @@ export const DesignWorkflowPage = () => {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, activeList.length);
   const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
-  const paginatedRejections = combinedRejections.slice(startIndex, endIndex);
-  const paginatedSamples = combinedSamples.slice(startIndex, endIndex);
+  const paginatedRejections = shownRejections.slice(startIndex, endIndex);
+  const paginatedSamples = shownSamples.slice(startIndex, endIndex);
+
+  // Designer Queue table: paged
+  const DESIGNER_PAGE_SIZE = designerPageSize;
+  const designerTotalPages = Math.max(1, Math.ceil(allDesigners.length / DESIGNER_PAGE_SIZE));
+  const safeDesignerPage = Math.min(designerPage, designerTotalPages);
+  const designerStart = (safeDesignerPage - 1) * DESIGNER_PAGE_SIZE;
+  const pagedDesigners = allDesigners.slice(designerStart, designerStart + DESIGNER_PAGE_SIZE);
 
   // Manager approve or reject sample proof
   const handleConfirmSampleDecision = async () => {
@@ -1467,19 +1516,92 @@ export const DesignWorkflowPage = () => {
     }
   };
 
+  // Add a designer: saved in the database and added to the round-robin pool
+  const handleAddDesigner = async (e) => {
+    e.preventDefault();
+    const name = newDesigner.name.trim();
+    const email = newDesigner.email.trim();
+    if (name.length < 2) return toast.error("Enter the designer's name");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Enter a valid email address");
+    if (newDesigner.password.trim().length < 6) return toast.error("Password is required (at least 6 characters)");
+    setAddingDesigner(true);
+    try {
+      await jobFlowApi.addDesignerToPool({
+        name,
+        email,
+        mobile: newDesigner.mobile.trim(),
+        password: newDesigner.password.trim(),
+        maxLoad: Number(newDesigner.maxLoad) || 5,
+      });
+      toast.success(`${name} added to the designer pool`);
+      setShowAddDesigner(false);
+      setNewDesigner({ name: "", email: "", mobile: "", password: "", maxLoad: 5 });
+      await fetchDesignData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to add designer");
+    } finally {
+      setAddingDesigner(false);
+    }
+  };
+
+  // Make a designer active / inactive (inactive designers get no new jobs)
+  const handleToggleDesignerActive = async (des) => {
+    const desId = des._id || des.userId || des.employeeId;
+    const makeActive = des.isActive === false;
+    setSavingDesignerId(desId);
+    try {
+      await jobFlowApi.updateDesignerInPool(desId, { isActive: makeActive });
+      toast.success(`${des.name} is now ${makeActive ? "active" : "inactive"}`);
+      await fetchDesignData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update designer status");
+    } finally {
+      setSavingDesignerId(null);
+    }
+  };
+
+  // Save edited designer details
+  const handleSaveEditDesigner = async (e) => {
+    e.preventDefault();
+    if (!editDesigner) return;
+    const name = editDesigner.name.trim();
+    const email = editDesigner.email.trim();
+    if (name.length < 2) return toast.error("Enter the designer's name");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Enter a valid email address");
+    if (editDesigner.password.trim() && editDesigner.password.trim().length < 6) return toast.error("Password must be at least 6 characters");
+    setSavingEditDesigner(true);
+    try {
+      await jobFlowApi.updateDesignerInPool(editDesigner.id, {
+        name,
+        email,
+        mobile: editDesigner.mobile.trim(),
+        maxLoad: Number(editDesigner.maxLoad) || 5,
+        ...(editDesigner.password.trim() ? { password: editDesigner.password.trim() } : {}),
+      });
+      toast.success("Designer details updated");
+      setEditDesigner(null);
+      await fetchDesignData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update designer");
+    } finally {
+      setSavingEditDesigner(false);
+    }
+  };
+
   // Update specific designer limit
   const handleUpdateDesignerLimit = async (desId, newLimit) => {
     setSavingDesignerId(desId);
     try {
       await jobFlowApi.updateDesignerInPool(desId, { maxLoad: Number(newLimit) });
       toast.success("Designer workload limit updated!");
-      setDesigners((prev) =>
+      const patchLimit = (prev) =>
         prev.map((d) =>
           String(d._id || d.userId || d.employeeId) === String(desId)
             ? { ...d, maxLoad: Number(newLimit) }
             : d
-        )
-      );
+        );
+      setDesigners(patchLimit);
+      setAllDesigners(patchLimit);
       setEditingDesignerId(null);
     } catch (err) {
       console.error("Failed to update designer limit:", err);
@@ -1651,6 +1773,7 @@ export const DesignWorkflowPage = () => {
 
   return (
     <JobFlowLayout
+      hideHeader
       title={isDesignerUser ? "PrintZ Creative Studio" : "PrintZ Design Workflow"}
       subtitle={
         isDesignerUser
@@ -1718,8 +1841,51 @@ export const DesignWorkflowPage = () => {
                 </div>
                 <div>
                   <h3 className="dq-table-toolbar-title">Pending Job Orders for Designer Allocation</h3>
-                  
+
                 </div>
+              </div>
+              <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "nowrap", flex: "1 1 auto", justifyContent: "flex-end", minWidth: 0 }}>
+                <input
+                  type="search"
+                  className="jf-input"
+                  placeholder="Search job no, customer, item or designer"
+                  value={queueSearch}
+                  onChange={(e) => {
+                    setQueueSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ height: 38, flex: "1 1 220px", minWidth: 160, maxWidth: 320 }}
+                />
+                <select
+                  className="jf-select"
+                  value={designerFilter}
+                  onChange={(e) => {
+                    setDesignerFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ height: 38, flex: "0 0 auto", width: 170 }}
+                  title="Filter by designer"
+                >
+                  <option value="all">All Designers</option>
+                  <option value="unassigned">Unassigned</option>
+                  {designers.map((d) => (
+                    <option key={d._id || d.email} value={d.name}>{d.name}</option>
+                  ))}
+                </select>
+                <select
+                  className="jf-select"
+                  value={jobTypeFilter}
+                  onChange={(e) => {
+                    setJobTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ height: 38, flex: "0 0 auto", width: 160 }}
+                  title="Filter by job type"
+                >
+                  <option value="all">All Job Types</option>
+                  <option value="design_only">Design Only</option>
+                  <option value="print_design">Print &amp; Design</option>
+                </select>
               </div>
             </div>
 
@@ -1766,6 +1932,7 @@ export const DesignWorkflowPage = () => {
                   {statusFilter === "rejected" ? (
                     <tr>
                       <th>Job Order No.</th>
+                      <th>Priority</th>
                       <th>Customer</th>
                       <th>Job Item</th>
                       <th>Rejected By</th>
@@ -1777,6 +1944,7 @@ export const DesignWorkflowPage = () => {
                   ) : statusFilter === "samples" ? (
                     <tr>
                       <th>Job Order No.</th>
+                      <th>Priority</th>
                       <th>Customer</th>
                       <th>Job Item</th>
                       <th>Designer</th>
@@ -1788,6 +1956,7 @@ export const DesignWorkflowPage = () => {
                   ) : statusFilter === "redesign" || statusFilter === "revision" ? (
                     <tr>
                       <th>Job Order No.</th>
+                      <th>Priority</th>
                       <th>Customer</th>
                       <th>Job Item</th>
                       <th>Assigned Designer</th>
@@ -1813,7 +1982,7 @@ export const DesignWorkflowPage = () => {
                   {statusFilter === "rejected" ? (
                     loading && combinedRejections.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                           <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
                             <RefreshCw size={18} className="jf-spin" style={{ color: "#16a34a" }} />
                             <span>Loading rejected assignments...</span>
@@ -1822,7 +1991,7 @@ export const DesignWorkflowPage = () => {
                       </tr>
                     ) : paginatedRejections.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                           No designer rejections recorded. All assignments accepted cleanly.
                         </td>
                       </tr>
@@ -1865,9 +2034,10 @@ export const DesignWorkflowPage = () => {
                                 {rej.jobNo}
                               </span>
                               <div style={{ marginTop: "4px" }}>
-                                <JobTypeBadge jobType={targetJob?.jobType || rej.jobType || "Print & Design"} size="sm" />
+                                <JobTypeBadge jobType={rej.jobType || targetJob?.jobType} size="sm" />
                               </div>
                             </td>
+<td><PriorityBadge priority={rej.jobOrder?.priority || rej.priority} /></td>
                             <td style={{ fontWeight: 500, color: "#1e293b" }}>{rej.customerName}</td>
                             <td style={{ color: "#334155" }}>{rej.jobItem}</td>
                             <td>
@@ -1878,14 +2048,7 @@ export const DesignWorkflowPage = () => {
                                 >
                                   {getInitials(rej.rejectedBy)}
                                 </span>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontWeight: 600, color: "#dc2626" }}>{rej.rejectedBy}</span>
-                                  {rej.rejectedByEmail ? (
-                                    <span style={{ fontSize: "0.72rem", color: "#475569" }}>
-                                      {rej.rejectedByEmail}
-                                    </span>
-                                  ) : null}
-                                </div>
+                                <span style={{ fontWeight: 600, color: "#dc2626" }}>{rej.rejectedBy}</span>
                               </div>
                             </td>
                             <td>
@@ -2009,17 +2172,19 @@ export const DesignWorkflowPage = () => {
                                     <span>View</span>
                                   </button>
                                 )}
-                                <button
-                                  type="button"
-                                  className="dq-btn-table-more"
-                                  title="View details"
-                                  onClick={() => {
-                                    setViewingJob(targetJob);
-                                    setIsViewModalOpen(true);
-                                  }}
-                                >
-                                  <MoreVertical size={16} />
-                                </button>
+                                {isPending && (
+                                  <button
+                                    type="button"
+                                    className="dq-btn-table-more"
+                                    title="View details"
+                                    onClick={() => {
+                                      setViewingJob(targetJob);
+                                      setIsViewModalOpen(true);
+                                    }}
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2029,7 +2194,7 @@ export const DesignWorkflowPage = () => {
                   ) : statusFilter === "samples" ? (
                     loading && combinedSamples.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                           <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
                             <RefreshCw size={18} className="jf-spin" style={{ color: "#16a34a" }} />
                             <span>Loading sample designs from database...</span>
@@ -2038,7 +2203,7 @@ export const DesignWorkflowPage = () => {
                       </tr>
                     ) : paginatedSamples.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                           No sample designs currently awaiting approval.
                         </td>
                       </tr>
@@ -2067,9 +2232,10 @@ export const DesignWorkflowPage = () => {
                                 {sample.jobNo}
                               </span>
                               <div style={{ marginTop: "4px" }}>
-                                <JobTypeBadge jobType={sample.jobType || targetJob?.jobType || (targetJob?.isDesignOnly ? "Design Only" : "Print & Design")} size="sm" />
+                                <JobTypeBadge jobType={sample.jobType || targetJob?.jobType} size="sm" />
                               </div>
                             </td>
+<td><PriorityBadge priority={sample.jobOrder?.priority || sample.priority} /></td>
                             <td style={{ fontWeight: 600, color: "#1e293b" }}>{customerName}</td>
                             <td style={{ color: "#334155" }}>{sample.jobItem}</td>
                             <td>
@@ -2080,12 +2246,7 @@ export const DesignWorkflowPage = () => {
                                 >
                                   {getInitials(sample.designerName)}
                                 </span>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontWeight: 600, color: "#1e293b" }}>{sample.designerName}</span>
-                                  {sample.designerEmail ? (
-                                    <span style={{ fontSize: "0.72rem", color: "#475569" }}>{sample.designerEmail}</span>
-                                  ) : null}
-                                </div>
+                                <span style={{ fontWeight: 600, color: "#1e293b" }}>{sample.designerName}</span>
                               </div>
                             </td>
                             <td>
@@ -2112,15 +2273,21 @@ export const DesignWorkflowPage = () => {
                                 : "—"}
                             </td>
                             <td>
-                              {approvalInfo.type === "approved_customer" ? (
-                                <div className="dq-badge-approved-customer" title={approvalInfo.label}>
-                                  <CheckCircle2 size={13} style={{ flexShrink: 0, color: "#047857" }} />
-                                  <span>{approvalInfo.label}</span>
-                                </div>
-                              ) : approvalInfo.type === "approved_manager" ? (
-                                <div className="dq-badge-approved-manager" title={approvalInfo.label}>
-                                  <CheckCircle2 size={13} style={{ flexShrink: 0, color: "#1d4ed8" }} />
-                                  <span>{approvalInfo.label}</span>
+                              {approvalInfo.type === "approved_customer" || approvalInfo.type === "approved_manager" ? (
+                                <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "0.2rem" }}>
+                                  <div
+                                    className={approvalInfo.type === "approved_customer" ? "dq-badge-approved-customer" : "dq-badge-approved-manager"}
+                                    title={approvalInfo.label}
+                                  >
+                                    <CheckCircle2
+                                      size={13}
+                                      style={{ flexShrink: 0, color: approvalInfo.type === "approved_customer" ? "#047857" : "#1d4ed8" }}
+                                    />
+                                    <span>Approved</span>
+                                  </div>
+                                  <span style={{ fontSize: "0.75rem", color: "#475569", paddingLeft: "0.2rem" }}>
+                                    by {String(approvalInfo.label || "").replace(/^Approveds*(bys*)?/i, "") || (approvalInfo.type === "approved_manager" ? "Manager" : "Customer")}
+                                  </span>
                                 </div>
                               ) : approvalInfo.type === "revision" ? (
                                 <div className="dq-badge-sample-revision" title={approvalInfo.reason || "Revision requested"}>
@@ -2136,11 +2303,12 @@ export const DesignWorkflowPage = () => {
                             </td>
                             <td style={{ textAlign: "right" }}>
                               <div style={{ display: "inline-flex", gap: "0.45rem", alignItems: "center" }}>
-                                {isPending ? (
+                                {isPending && (
                                   <>
                                     <button
                                       type="button"
                                       className="dq-btn-action-approve"
+                                      aria-label="Approve"
                                       onClick={() => {
                                         setSelectedSampleForDecision(sample);
                                         setDecisionMode("approve");
@@ -2151,12 +2319,12 @@ export const DesignWorkflowPage = () => {
                                       }}
                                       title="Accept / Approve Sample Design"
                                     >
-                                      <Check size={13} />
-                                      <span>Approve</span>
+                                      <Check size={15} />
                                     </button>
                                     <button
                                       type="button"
                                       className="dq-btn-action-reject"
+                                      aria-label="Reject"
                                       onClick={() => {
                                         setSelectedSampleForDecision(sample);
                                         setDecisionMode("reject");
@@ -2165,36 +2333,9 @@ export const DesignWorkflowPage = () => {
                                       }}
                                       title="Reject / Request Revision"
                                     >
-                                      <X size={13} />
-                                      <span>Reject</span>
+                                      <X size={15} />
                                     </button>
                                   </>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className="dq-btn-table-view"
-                                    style={{
-                                      background: "#dcfce7",
-                                      color: "#15803d",
-                                      borderColor: "#86efac",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "0.35rem",
-                                      fontWeight: 600,
-                                    }}
-                                    onClick={() => {
-                                      setSelectedSampleForDecision(sample);
-                                      setDecisionMode("approve");
-                                      setDecisionApprovalType(approvalInfo.type === "approved_manager" ? "manager" : "customer");
-                                      setDecisionCustomerName(customerName);
-                                      setDecisionNotes(sample.customerFeedback || "");
-                                      setIsSampleDecisionModalOpen(true);
-                                    }}
-                                    title="View confirmed sample approval"
-                                  >
-                                    <CheckCheck size={13} />
-                                    <span>Confirmed</span>
-                                  </button>
                                 )}
                                 <button
                                   type="button"
@@ -2216,7 +2357,7 @@ export const DesignWorkflowPage = () => {
                   ) : (
                     loading && jobs.length === 0 ? (
                       <tr>
-                        <td colSpan={statusFilter === "redesign" || statusFilter === "revision" ? 9 : 7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                        <td colSpan={statusFilter === "redesign" || statusFilter === "revision" ? 10 : 7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                           <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
                             <RefreshCw size={18} className="jf-spin" style={{ color: "#16a34a" }} />
                             <span>Loading design orders from database...</span>
@@ -2225,7 +2366,7 @@ export const DesignWorkflowPage = () => {
                       </tr>
                     ) : paginatedJobs.length === 0 ? (
                       <tr>
-                        <td colSpan={statusFilter === "redesign" || statusFilter === "revision" ? 9 : 7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                        <td colSpan={statusFilter === "redesign" || statusFilter === "revision" ? 10 : 7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                           {statusFilter === "redesign" || statusFilter === "revision"
                             ? "No sample revision / redesign orders found."
                             : "No job orders found in design queue."}
@@ -2262,7 +2403,7 @@ export const DesignWorkflowPage = () => {
                             job.rejectedSampleUrl ||
                             job.designProofUrl ||
                             job.raw?.designProofUrl ||
-                            "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800";
+                            NO_PROOF_IMG;
                           const rejDate =
                             job.sampleRejectedAt ||
                             job.raw?.sampleRejectedAt ||
@@ -2298,9 +2439,10 @@ export const DesignWorkflowPage = () => {
                                   {job.jobNo}
                                 </span>
                                 <div style={{ marginTop: "4px" }}>
-                                  <JobTypeBadge jobType={job.jobType || "Print & Design"} size="sm" />
+                                  <JobTypeBadge jobType={job.jobType} size="sm" />
                                 </div>
                               </td>
+<td><PriorityBadge priority={job.priority} /></td>
 
                               {/* 2. Customer */}
                               <td style={{ fontWeight: 600, color: "#1e293b" }}>{job.customerName}</td>
@@ -2487,17 +2629,19 @@ export const DesignWorkflowPage = () => {
                                       </button>
                                     </>
                                   )}
-                                  <button
-                                    type="button"
-                                    className="dq-btn-table-more"
-                                    title="View details"
-                                    onClick={() => {
-                                      setViewingJob(job);
-                                      setIsViewModalOpen(true);
-                                    }}
-                                  >
-                                    <MoreVertical size={16} />
-                                  </button>
+                                  {isMyJob && (
+                                    <button
+                                      type="button"
+                                      className="dq-btn-table-more"
+                                      title="View details"
+                                      onClick={() => {
+                                        setViewingJob(job);
+                                        setIsViewModalOpen(true);
+                                      }}
+                                    >
+                                      <MoreVertical size={16} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -2519,23 +2663,13 @@ export const DesignWorkflowPage = () => {
                                 {job.jobNo}
                               </span>
                               <div style={{ marginTop: "4px" }}>
-                                <JobTypeBadge jobType={job.jobType || "Print & Design"} size="sm" />
+                                <JobTypeBadge jobType={job.jobType} size="sm" />
                               </div>
                             </td>
                             <td style={{ fontWeight: 500, color: "#1e293b" }}>{job.customerName}</td>
                             <td style={{ color: "#334155" }}>{job.title}</td>
                             <td>
-                              <span
-                                className={
-                                  job.priority === "High"
-                                    ? "dq-badge-high"
-                                    : job.priority === "Low"
-                                      ? "dq-badge-low"
-                                      : "dq-badge-normal"
-                                }
-                              >
-                                {job.priority}
-                              </span>
+                              <PriorityBadge priority={job.priority} />
                             </td>
                             <td>
                               {!isUnassigned ? (
@@ -2615,17 +2749,19 @@ export const DesignWorkflowPage = () => {
                                     Allocate
                                   </button>
                                 )}
-                                <button
-                                  type="button"
-                                  className="dq-btn-table-more"
-                                  title="View details"
-                                  onClick={() => {
-                                    setViewingJob(job);
-                                    setIsViewModalOpen(true);
-                                  }}
-                                >
-                                  <MoreVertical size={16} />
-                                </button>
+                                {!isAllocated && (
+                                  <button
+                                    type="button"
+                                    className="dq-btn-table-more"
+                                    title="View details"
+                                    onClick={() => {
+                                      setViewingJob(job);
+                                      setIsViewModalOpen(true);
+                                    }}
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2633,67 +2769,29 @@ export const DesignWorkflowPage = () => {
                       })
                     )
                   )}
+                  {/* Keep the table the same height as the selected rows-per-page: blank rows fill the unused space */}
+                  {!loading &&
+                    activeList.length > 0 &&
+                    Array.from({ length: Math.max(0, pageSize - (endIndex - startIndex)) }, (_, i) => (
+                      <tr key={`dq-filler-${i}`} className="dq-filler-row" aria-hidden="true">
+                        <td colSpan={9} />
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
 
             {/* Table Pagination Footer */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "0.85rem 1.25rem",
-                borderTop: "1px solid #f1f5f9",
-                fontSize: "0.8125rem",
-                color: "#475569",
-                flexWrap: "wrap",
-                gap: "0.5rem",
-              }}
-            >
-              <div>
-                Showing {activeList.length === 0 ? 0 : startIndex + 1} to {endIndex} of {activeList.length}{" "}
-                {statusFilter === "rejected" ? "rejected orders" : "job orders"}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <div style={{ display: "flex", gap: "0.25rem" }}>
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-secondary jf-btn-sm"
-                    style={{ padding: "0.2rem 0.5rem" }}
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  >
-                    &lt;
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNo) => (
-                    <button
-                      key={pageNo}
-                      type="button"
-                      className={`jf-btn ${currentPage === pageNo ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                      style={{
-                        padding: "0.2rem 0.6rem",
-                        background: currentPage === pageNo ? "#2563eb" : undefined,
-                        borderColor: currentPage === pageNo ? "#2563eb" : undefined,
-                        color: currentPage === pageNo ? "#ffffff" : undefined,
-                      }}
-                      onClick={() => setCurrentPage(pageNo)}
-                    >
-                      {pageNo}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-secondary jf-btn-sm"
-                    style={{ padding: "0.2rem 0.5rem" }}
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  >
-                    &gt;
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Pagination
+              variant="compact"
+              currentPage={currentPage}
+              totalItems={activeList.length}
+              itemsPerPage={pageSize}
+              onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), totalPages))}
+              onItemsPerPageChange={(n) => setPageSize(n)}
+              pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+              itemLabel={statusFilter === "rejected" ? "rejected orders" : "job orders"}
+            />
           </div>
 
           {/* ──────────────── DESIGNER QUEUE (BELOW DESIGN QUEUE TABLE) ──────────────── */}
@@ -2704,9 +2802,97 @@ export const DesignWorkflowPage = () => {
                   <Users size={18} style={{ color: "#2563eb" }} />
                   <span>Designer Queue</span>
                 </h4>
-                
               </div>
+              {isManagerOrAdmin && (
+                <button
+                  type="button"
+                  className="jf-btn jf-btn-primary jf-btn-sm"
+                  onClick={() => setShowAddDesigner(true)}
+                >
+                  + Add Designer
+                </button>
+              )}
             </div>
+
+            {showAddDesigner && (
+              <div className="jf-modal-overlay" onClick={() => !addingDesigner && setShowAddDesigner(false)}>
+                <div className="jf-modal jf-modal-md" onClick={(e) => e.stopPropagation()}>
+                  <div className="jf-modal-header">
+                    <h2 className="jf-modal-title">Add Designer</h2>
+                  </div>
+                  <form onSubmit={handleAddDesigner}>
+                    <div className="jf-modal-body" style={{ display: "grid", gap: "0.85rem" }}>
+                      <div className="jf-form-group">
+                        <label className="jf-label jf-label-required">Designer Name</label>
+                        <input className="jf-input" value={newDesigner.name} onChange={(e) => setNewDesigner((p) => ({ ...p, name: e.target.value }))} required autoFocus />
+                      </div>
+                      <div className="jf-form-group">
+                        <label className="jf-label jf-label-required">Email (login)</label>
+                        <input type="email" className="jf-input" value={newDesigner.email} onChange={(e) => setNewDesigner((p) => ({ ...p, email: e.target.value }))} required />
+                      </div>
+                      <div className="jf-form-group">
+                        <label className="jf-label">Mobile</label>
+                        <input className="jf-input" value={newDesigner.mobile} onChange={(e) => setNewDesigner((p) => ({ ...p, mobile: e.target.value }))} />
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+                        <div className="jf-form-group">
+                          <label className="jf-label jf-label-required">Password</label>
+                          <input type="password" className="jf-input" placeholder="At least 6 characters" minLength={6} required value={newDesigner.password} onChange={(e) => setNewDesigner((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password" />
+                        </div>
+                        <div className="jf-form-group">
+                          <label className="jf-label">Max Load</label>
+                          <input type="number" min="1" max="50" className="jf-input" value={newDesigner.maxLoad} onChange={(e) => setNewDesigner((p) => ({ ...p, maxLoad: e.target.value }))} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="jf-modal-footer">
+                      <button type="button" className="jf-btn jf-btn-secondary" onClick={() => setShowAddDesigner(false)} disabled={addingDesigner}>Cancel</button>
+                      <button type="submit" className="jf-btn jf-btn-primary" disabled={addingDesigner}>{addingDesigner ? "Saving..." : "Save Designer"}</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {editDesigner && (
+              <div className="jf-modal-overlay" onClick={() => !savingEditDesigner && setEditDesigner(null)}>
+                <div className="jf-modal jf-modal-md" onClick={(e) => e.stopPropagation()}>
+                  <div className="jf-modal-header">
+                    <h2 className="jf-modal-title">Edit Designer</h2>
+                  </div>
+                  <form onSubmit={handleSaveEditDesigner}>
+                    <div className="jf-modal-body" style={{ display: "grid", gap: "0.85rem" }}>
+                      <div className="jf-form-group">
+                        <label className="jf-label jf-label-required">Designer Name</label>
+                        <input className="jf-input" value={editDesigner.name} onChange={(e) => setEditDesigner((p) => ({ ...p, name: e.target.value }))} required autoFocus />
+                      </div>
+                      <div className="jf-form-group">
+                        <label className="jf-label jf-label-required">Email (login)</label>
+                        <input type="email" className="jf-input" value={editDesigner.email} onChange={(e) => setEditDesigner((p) => ({ ...p, email: e.target.value }))} required />
+                      </div>
+                      <div className="jf-form-group">
+                        <label className="jf-label">New Password</label>
+                        <input type="password" className="jf-input" placeholder="Leave blank to keep the current password" minLength={6} value={editDesigner.password} onChange={(e) => setEditDesigner((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password" />
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+                        <div className="jf-form-group">
+                          <label className="jf-label">Mobile</label>
+                          <input className="jf-input" value={editDesigner.mobile} onChange={(e) => setEditDesigner((p) => ({ ...p, mobile: e.target.value }))} />
+                        </div>
+                        <div className="jf-form-group">
+                          <label className="jf-label">Max Load</label>
+                          <input type="number" min="1" max="50" className="jf-input" value={editDesigner.maxLoad} onChange={(e) => setEditDesigner((p) => ({ ...p, maxLoad: e.target.value }))} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="jf-modal-footer">
+                      <button type="button" className="jf-btn jf-btn-secondary" onClick={() => setEditDesigner(null)} disabled={savingEditDesigner}>Cancel</button>
+                      <button type="submit" className="jf-btn jf-btn-primary" disabled={savingEditDesigner}>{savingEditDesigner ? "Saving..." : "Save Changes"}</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             <div style={{ overflowX: "auto" }}>
               <table className="dq-panel-table">
@@ -2722,7 +2908,8 @@ export const DesignWorkflowPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {designers.map((des, index) => {
+                  {pagedDesigners.map((des, pageIndex) => {
+                    const index = designerStart + pageIndex;
                     const desId = des._id || des.userId || des.employeeId;
                     const isEditing = editingDesignerId === desId;
                     const loadCount = des.openJobs !== undefined ? des.openJobs : (des.currentLoad || 0);
@@ -2808,17 +2995,43 @@ export const DesignWorkflowPage = () => {
                         </td>
                         <td style={{ textAlign: "right" }}>
                           {!isEditing && (
-                            <button
-                              type="button"
-                              className="jf-btn jf-btn-secondary jf-btn-sm"
-                              style={{ padding: "0.25rem 0.65rem", fontSize: "0.78125rem" }}
-                              onClick={() => {
-                                setEditingDesignerId(desId);
-                                setEditingDesignerLoad(des.maxLoad || 5);
-                              }}
-                            >
-                              Set Limit
-                            </button>
+                            <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
+                              <button
+                                type="button"
+                                className="jf-btn jf-btn-secondary jf-btn-sm"
+                                style={{ padding: "0.3rem 0.5rem" }}
+                                title="Edit designer details"
+                                aria-label="Edit designer details"
+                                onClick={() =>
+                                  setEditDesigner({
+                                    id: desId,
+                                    name: des.name || "",
+                                    email: des.email || "",
+                                    mobile: des.mobile || "",
+                                    password: "",
+                                    maxLoad: des.maxLoad || 5,
+                                  })
+                                }
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="jf-btn jf-btn-sm"
+                                style={{
+                                  padding: "0.3rem 0.5rem",
+                                  background: des.isActive !== false ? "#fee2e2" : "#dcfce7",
+                                  color: des.isActive !== false ? "#b91c1c" : "#15803d",
+                                  border: `1px solid ${des.isActive !== false ? "#fecaca" : "#bbf7d0"}`,
+                                }}
+                                title={des.isActive !== false ? "Make inactive" : "Make active"}
+                                aria-label={des.isActive !== false ? "Make inactive" : "Make active"}
+                                disabled={savingDesignerId === desId}
+                                onClick={() => handleToggleDesignerActive(des)}
+                              >
+                                <Power size={14} />
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -2827,6 +3040,17 @@ export const DesignWorkflowPage = () => {
                 </tbody>
               </table>
             </div>
+
+            <Pagination
+              variant="compact"
+              currentPage={safeDesignerPage}
+              totalItems={allDesigners.length}
+              itemsPerPage={designerPageSize}
+              onPageChange={(p) => setDesignerPage(Math.min(Math.max(1, p), designerTotalPages))}
+              onItemsPerPageChange={(n) => setDesignerPageSize(n)}
+              pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+              itemLabel="designers"
+            />
           </div>
         </>
       )}
@@ -3142,9 +3366,7 @@ export const DesignWorkflowPage = () => {
                           <td>{j.customerName}</td>
                           <td>{j.title}</td>
                           <td>
-                            <span className={j.priority === "High" ? "dq-badge-high" : "dq-badge-normal"}>
-                              {j.priority}
-                            </span>
+                            <PriorityBadge priority={j.priority} />
                           </td>
                           <td>
                             {j.designerName && j.designerName !== "- Unassigned" ? (
@@ -3233,6 +3455,7 @@ export const DesignWorkflowPage = () => {
                   <thead>
                     <tr>
                       <th>Job Order No.</th>
+                      <th>Priority</th>
                       <th>Customer</th>
                       <th>Job Item</th>
                       <th>Rejected Sample Preview</th>
@@ -3260,7 +3483,7 @@ export const DesignWorkflowPage = () => {
                         j.rejectedSampleUrl ||
                         j.designProofUrl ||
                         j.raw?.designProofUrl ||
-                        "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800";
+                        NO_PROOF_IMG;
                       const rejDate =
                         j.sampleRejectedAt ||
                         j.raw?.sampleRejectedAt ||
@@ -3282,6 +3505,7 @@ export const DesignWorkflowPage = () => {
                               <strong>{j.jobNo}</strong>
                             </span>
                           </td>
+<td><PriorityBadge priority={j.priority} /></td>
 
                           {/* 2. Customer */}
                           <td style={{ fontWeight: 600, color: "#1e293b" }}>{j.customerName}</td>
@@ -3442,6 +3666,7 @@ export const DesignWorkflowPage = () => {
                   <thead>
                     <tr>
                       <th>Job Order No.</th>
+                      <th>Priority</th>
                       <th>Customer</th>
                       <th>Job Item</th>
                       <th>Rejected On</th>
@@ -3476,6 +3701,7 @@ export const DesignWorkflowPage = () => {
                               {rej.jobNo}
                             </span>
                           </td>
+<td><PriorityBadge priority={rej.jobOrder?.priority || rej.priority} /></td>
                           <td style={{ fontWeight: 600, color: "#1e293b" }}>{rej.customerName}</td>
                           <td style={{ color: "#334155" }}>{rej.jobItem}</td>
                           <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
@@ -3739,7 +3965,7 @@ export const DesignWorkflowPage = () => {
                 }}
                 title="View full job details"
               >
-                {currentWorkbenchJob.jobNo || "JO-20250810-001"}
+                {currentWorkbenchJob.jobNo || "-"}
               </span>
             </div>
             <div className="dw-summary-item">
@@ -3774,18 +4000,7 @@ export const DesignWorkflowPage = () => {
             </div>
             <div className="dw-summary-item">
               <span className="dw-summary-label">Priority</span>
-              <span
-                className={
-                  currentWorkbenchJob.priority === "High"
-                    ? "dq-badge-high"
-                    : currentWorkbenchJob.priority === "Low"
-                      ? "dq-badge-low"
-                      : "dq-badge-normal"
-                }
-                style={{ padding: "0.2rem 0.6rem" }}
-              >
-                {currentWorkbenchJob.priority || "High"}
-              </span>
+              <PriorityBadge priority={currentWorkbenchJob.priority} />
             </div>
           </div>
 
@@ -3995,7 +4210,7 @@ export const DesignWorkflowPage = () => {
                   <div className="dw-details-row">
                     <span className="dw-details-label">Job Order No.</span>
                     <span className="dw-details-val">
-                      {currentWorkbenchJob.jobNo || "JO-20250810-001"}
+                      {currentWorkbenchJob.jobNo || "-"}
                     </span>
                   </div>
                   <div className="dw-details-row">
@@ -4036,18 +4251,7 @@ export const DesignWorkflowPage = () => {
                   </div>
                   <div className="dw-details-row">
                     <span className="dw-details-label">Priority</span>
-                    <span
-                      className={
-                        currentWorkbenchJob.priority === "High"
-                          ? "dq-badge-high"
-                          : currentWorkbenchJob.priority === "Low"
-                            ? "dq-badge-low"
-                            : "dq-badge-normal"
-                      }
-                      style={{ padding: "0.15rem 0.55rem", fontSize: "0.75rem" }}
-                    >
-                      {currentWorkbenchJob.priority || "High"}
-                    </span>
+                    <PriorityBadge priority={currentWorkbenchJob.priority} />
                   </div>
                   <div className="dw-details-row">
                     <span className="dw-details-label">Status</span>
@@ -4070,7 +4274,7 @@ export const DesignWorkflowPage = () => {
                   <div className="dw-details-row">
                     <span className="dw-details-label">Designer</span>
                     <span className="dw-details-val">
-                      {currentWorkbenchJob.designerName || "Ahmed Raza"}
+                      {currentWorkbenchJob.designerName || "-"}
                     </span>
                   </div>
                 </div>
@@ -4149,8 +4353,8 @@ export const DesignWorkflowPage = () => {
         </div>
       )}
 
-      {/* ──────────────── SCREEN 4: WHATSAPP PROOF REVIEW ──────────────── */}
-      {activeView === "customer-proof" && (() => {
+      {/* ──────────────── CUSTOMER PROOF REVIEW (POPUP) ──────────────── */}
+      {proofPopup && (() => {
         const activeProofJob = selectedJob || currentWorkbenchJob;
         const isProofJobApproved = Boolean(
           activeProofJob?.designStatus === "COMPLETED" ||
@@ -4165,26 +4369,18 @@ export const DesignWorkflowPage = () => {
         );
 
         return (
-          <div className="wp-approval-container">
+          <div className="jf-modal-overlay" onClick={() => setProofPopup(false)} style={{ overflowY: "auto", alignItems: "flex-start", padding: "1.5rem 1rem" }}>
+          <div className="wp-approval-container" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: "1rem", width: "100%" }}>
             {/* Top navigation actions */}
             <div className="wp-top-nav-bar">
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <button
                   type="button"
                   className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={() => setActiveView("queue")}
+                  onClick={() => setProofPopup(false)}
                 >
-                  <ArrowLeft size={14} /> Back to Design Queue
+                  <X size={14} /> Close
                 </button>
-                {isDesignerUser && (
-                  <button
-                    type="button"
-                    className="jf-btn jf-btn-secondary jf-btn-sm"
-                    onClick={() => setActiveView("workbench")}
-                  >
-                    <Palette size={14} /> Back to Workbench
-                  </button>
-                )}
               </div>
 
               <button
@@ -4192,8 +4388,9 @@ export const DesignWorkflowPage = () => {
                 className="jf-btn jf-btn-primary jf-btn-sm"
                 style={{ background: "#7c3aed", borderColor: "#7c3aed" }}
                 onClick={() => {
+                  setProofPopup(false);
                   setStatusFilter("samples");
-                  setActiveView("queue");
+                  if (!isDesignerUser) setActiveView("queue");
                 }}
               >
                 <Clock size={14} /> View in Manager's Sample Approvals ({counts.samples})
@@ -4264,7 +4461,7 @@ export const DesignWorkflowPage = () => {
                   <div className="wp-info-col">
                     <span className="wp-info-label">Job Order No.</span>
                     <span className="wp-info-value" style={{ color: "#16a34a" }}>
-                      {selectedJob?.jobNo || currentWorkbenchJob?.jobNo || "JO-20261017-0071"}
+                      {selectedJob?.jobNo || currentWorkbenchJob?.jobNo || "-"}
                     </span>
                   </div>
                   <div className="wp-info-col">
@@ -4279,7 +4476,7 @@ export const DesignWorkflowPage = () => {
                       {selectedJob?.customerPhone ||
                         selectedJob?.raw?.customerPhone ||
                         selectedJob?.raw?.customerSnapshot?.phone ||
-                        "+91 98765 43210"}
+                        "-"}
                     </span>
                   </div>
                   <div className="wp-info-col">
@@ -4359,7 +4556,7 @@ export const DesignWorkflowPage = () => {
                       selectedJob?.proofUrl ||
                       uploadedSampleUrl ||
                       currentWorkbenchJob?.raw?.designProofUrl ||
-                      "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800"
+                      NO_PROOF_IMG
                     }
                     alt="Proof preview"
                     className="wp-proof-thumb"
@@ -4395,7 +4592,7 @@ export const DesignWorkflowPage = () => {
                               selectedJob?.proofUrl ||
                               uploadedSampleUrl ||
                               currentWorkbenchJob?.raw?.designProofUrl ||
-                              "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800"
+                              NO_PROOF_IMG
                           )
                         }
                       >
@@ -4482,6 +4679,7 @@ export const DesignWorkflowPage = () => {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         );
       })()}
@@ -4649,7 +4847,7 @@ export const DesignWorkflowPage = () => {
                   </h3>
                   <div style={{ margin: "0.15rem 0 0 0", fontSize: "0.78125rem", color: "#475569", display: "flex", alignItems: "center", gap: "6px" }}>
                     <span>Job Order: <strong style={{ color: "#1e293b" }}>{selectedSampleForDecision.jobNo}</strong></span>
-                    <JobTypeBadge jobType={selectedSampleForDecision.jobType || selectedSampleForDecision.jobOrder?.jobType || "Print & Design"} size="sm" />
+                    <JobTypeBadge jobType={selectedSampleForDecision.jobType || selectedSampleForDecision.jobOrder?.jobType} size="sm" />
                   </div>
                 </div>
               </div>

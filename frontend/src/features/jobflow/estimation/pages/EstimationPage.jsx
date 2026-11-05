@@ -9,6 +9,7 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import EstimateReviewModal from "../components/EstimateReviewModal";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import estimationApi from "../api/estimationApi";
 import { printQuotation } from "../utils/printQuotation";
 import "../styles/estimation.css";
@@ -118,6 +119,7 @@ export const EstimationPage = () => {
         return {
           _id: job._id || job.id,
           jobNo: job.jobNo || job.orderNumber || "JO-NEW",
+          priority: job.priority || "NORMAL",
           jobType: job.jobType || job.specs?.jobType || "Print & Design",
           customerName: job.customerName || job.customerSnapshot?.name || job.customerId?.name || "Client",
           phone: job.customerPhone || job.customerSnapshot?.mobile || job.customerId?.mobile || "-",
@@ -268,16 +270,16 @@ export const EstimationPage = () => {
               key: "jobNo",
               label: "Job No",
               sortable: true,
-              width: "150px",
+              width: "210px",
               render: (val, row) => (
                 <div>
                   <span
                     style={{
+                      whiteSpace: "nowrap",
                       fontWeight: 700,
-                      color: "var(--jf-primary, #15803d)",
+                      color: "#0f172a",
                       cursor: "pointer",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "2px",
+                      textDecoration: "none",
                       display: "block",
                     }}
                     onClick={() => {
@@ -309,10 +311,10 @@ export const EstimationPage = () => {
               ),
             },
             {
-              key: "branchName",
-              label: "Branch",
+              key: "priority",
+              label: "Priority",
               sortable: true,
-              render: (val) => val || "Main Branch",
+              render: (val, row) => <PriorityBadge priority={val || row.priority} />,
             },
             {
               key: "submittedBy",

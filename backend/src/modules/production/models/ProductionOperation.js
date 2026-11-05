@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 require("../../printers/models/Printer");
+require("./ProductionOperator");
 
 const productionOperationSchema = new mongoose.Schema(
   {
@@ -55,9 +56,10 @@ const productionOperationSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // The operator doing the work (a ProductionOperator; operators do not log in)
     assignedEmployeeId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ProductionOperator",
       default: null,
       index: true,
     },
@@ -161,7 +163,8 @@ const productionOperationSchema = new mongoose.Schema(
 
     consumptionRecords: [
       {
-        itemId: { type: mongoose.Schema.Types.ObjectId, ref: "StockItem" },
+        // Stock item ids are ObjectIds, or strings on older records (StockItem._id is Mixed)
+        itemId: { type: mongoose.Schema.Types.Mixed },
         itemName: String,
         quantity: Number,
         unit: { type: String, default: "UNIT" },
@@ -187,7 +190,7 @@ productionOperationSchema.index({ machineId: 1, status: 1 });
 /* Statics (must be defined BEFORE mongoose.model() compiles the schema)      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-const POPULATE_EMPLOYEE = ["assignedEmployeeId", "name email role"];
+const POPULATE_EMPLOYEE = ["assignedEmployeeId", "name phone skill isActive"];
 const POPULATE_MACHINE = ["machineId", "printerName model"];
 
 productionOperationSchema.statics.findAll = async function (query = {}) {

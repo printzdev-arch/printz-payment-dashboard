@@ -36,6 +36,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import masterSettingsApi from "../api/masterSettingsApi";
 import { DEFAULT_MASTER_CATEGORIES } from "../constants/defaultMasterSpecs";
 import { toast } from "react-toastify";
+import Pagination from "../../../../components/common/Pagination";
 
 const CATEGORY_ICONS = {
   productTypes: Layers,
@@ -1150,156 +1151,16 @@ export const MasterSettingsPage = () => {
             </div>
 
             {/* ──────────────── Pagination Controls Footer ──────────────── */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1rem",
-                padding: "0.85rem 0.25rem 0.25rem 0.25rem",
-                marginTop: "0.85rem",
-                borderTop: "1px solid #f1f5f9",
-                fontSize: "0.8125rem",
-                color: "#475569",
-              }}
-            >
-              {/* Left: Input field for rows per page & entries count */}
-              <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ fontWeight: 500, color: "#475569" }}>Rows per page:</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={rowsPerPage}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setRowsPerPage(val);
-                      if (val && !isNaN(val) && parseInt(val, 10) > 0) {
-                        setCurrentPage(1);
-                      }
-                    }}
-                    onBlur={() => {
-                      const num = parseInt(rowsPerPage, 10);
-                      if (!num || num < 1) {
-                        setRowsPerPage(8);
-                      }
-                    }}
-                    style={{
-                      width: "60px",
-                      height: "32px",
-                      textAlign: "center",
-                      borderRadius: "6px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      color: "#0f172a",
-                      outline: "none",
-                      background: "#f8fafc",
-                    }}
-                  />
-                </div>
-
-                <div style={{ color: "#475569" }}>
-                  Showing <strong>{startIndex}</strong> to <strong>{endIndex}</strong> of{" "}
-                  <strong>{totalEntries}</strong> entries
-                </div>
-              </div>
-
-              {/* Right: Prev Page Next Navigation */}
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.78rem", color: "#475569", marginRight: "4px" }}>
-                  Page <strong>{validPage}</strong> of <strong>{totalPages}</strong>
-                </span>
-
-                {/* Prev Button */}
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  disabled={validPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    height: "32px",
-                    padding: "0 10px",
-                    fontSize: "0.78rem",
-                    borderRadius: "6px",
-                    cursor: validPage <= 1 ? "not-allowed" : "pointer",
-                    opacity: validPage <= 1 ? 0.45 : 1,
-                  }}
-                >
-                  <ChevronLeft size={14} />
-                  <span>Prev</span>
-                </button>
-
-                {/* Page number buttons */}
-                <div style={{ display: "flex", gap: "3px" }}>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((num) => {
-                      if (totalPages <= 5) return true;
-                      return Math.abs(num - validPage) <= 1 || num === 1 || num === totalPages;
-                    })
-                    .map((num, i, arr) => {
-                      const prevNum = arr[i - 1];
-                      const showEllipsis = prevNum && num - prevNum > 1;
-                      const isCurrent = num === validPage;
-
-                      return (
-                        <React.Fragment key={num}>
-                          {showEllipsis && (
-                            <span style={{ padding: "0 4px", alignSelf: "center", color: "#475569" }}>
-                              ...
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setCurrentPage(num)}
-                            style={{
-                              minWidth: "30px",
-                              height: "32px",
-                              padding: "0 6px",
-                              borderRadius: "6px",
-                              border: isCurrent ? "1px solid #059669" : "1px solid #e2e8f0",
-                              background: isCurrent ? "#059669" : "#ffffff",
-                              color: isCurrent ? "#ffffff" : "#334155",
-                              fontWeight: isCurrent ? 700 : 500,
-                              fontSize: "0.78rem",
-                              cursor: "pointer",
-                            }}
-                          >
-                            {num}
-                          </button>
-                        </React.Fragment>
-                      );
-                    })}
-                </div>
-
-                {/* Next Button */}
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  disabled={validPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    height: "32px",
-                    padding: "0 10px",
-                    fontSize: "0.78rem",
-                    borderRadius: "6px",
-                    cursor: validPage >= totalPages ? "not-allowed" : "pointer",
-                    opacity: validPage >= totalPages ? 0.45 : 1,
-                  }}
-                >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
+            <Pagination
+              variant="compact"
+              currentPage={validPage}
+              totalItems={totalEntries}
+              itemsPerPage={parsedRowsPerPage}
+              onPageChange={(n) => setCurrentPage(Math.min(Math.max(1, n), totalPages))}
+              onItemsPerPageChange={(n) => setRowsPerPage(n)}
+              pageSizeOptions={[5, 8, 10, 20, 25, 50, 100]}
+              itemLabel="entries"
+            />
           </div>
         </div>
       </div>

@@ -22,6 +22,7 @@ class ReworkService {
     order: orderDoc = null,
     productionOrderId = null,
     reworkOperationCode = "PRINT",
+    lines = [],
     quantity = null,
     reason = "",
     qualityCheckId = null,
@@ -45,46 +46,62 @@ class ReworkService {
     const opCode = String(reworkOperationCode || "PRINT").toUpperCase().trim();
     const reworkQty = Number(quantity) > 0 ? Number(quantity) : order.actualQty || order.plannedQty;
 
+    // One rework chain per line (a line = the pieces to redo from one step). A plain call is one line.
+    const lineList =
+      Array.isArray(lines) && lines.length > 0
+        ? lines.map((l) => ({ code: String(l.operationCode || "").toUpperCase().trim(), qty: Number(l.quantity) || 0 }))
+        : [{ code: opCode, qty: reworkQty }];
+    const totalQty = lineList.reduce((sum, l) => sum + l.qty, 0);
+
     let created = [];
     if (activeRework.length === 0) {
       const base = allOps
         .filter((op) => !op.isRework)
         .sort((a, b) => a.sequenceNo - b.sequenceNo);
-
-      const startIdx = base.findIndex((op) => op.operationCode === opCode);
-      let chain;
-      if (startIdx >= 0) {
-        chain = base.slice(startIdx).map((op) => ({ code: op.operationCode, name: op.operationName || op.operationCode }));
-      } else {
-        chain = [{ code: opCode, name: opCode }];
-        if (opCode !== "PACKING") chain.push({ code: "PACKING", name: "Packing" });
-      }
+      const lastBaseSeq = base.length > 0 ? base[base.length - 1].sequenceNo : null;
 
       let nextSeq = allOps.reduce((max, op) => Math.max(max, op.sequenceNo || 0), 0) + 1;
-      const remarks = `Rework from ${opCode}. Reason: ${reason || "QC issue"}`;
+      const docs = [];
 
-      created = await productionOperationRepository.insertMany(
-        chain.map((step) => ({
-          productionOrderId: order._id,
-          jobOrderId: order.jobOrderId,
-          branchId: order.branchId,
-          operationCode: step.code,
-          operationName: `Rework: ${step.name}`,
-          sequenceNo: nextSeq++,
-          dependsOn: [],
-          assignedEmployeeId: null,
-          plannedQty: reworkQty,
-          inputQty: reworkQty,
-          completedQty: 0,
-          status: "PENDING",
-          isRework: true,
-          cycleNo: order.cycleNo || 0,
-          cycleType: "REWORK",
-          remarks,
-        }))
-      );
+      lineList.forEach((line) => {
+        const startIdx = base.findIndex((op) => op.operationCode === line.code);
+        let chain;
+        if (startIdx >= 0) {
+          chain = base.slice(startIdx).map((op) => ({ code: op.operationCode, name: op.operationName || op.operationCode }));
+        } else {
+          chain = [{ code: line.code, name: line.code }];
+          if (line.code !== "PACKING") chain.push({ code: "PACKING", name: "Packing" });
+        }
 
-      order.reworkedQty = (order.reworkedQty || 0) + reworkQty;
+        const remarks = `Rework from ${line.code}. Reason: ${reason || "QC issue"}`;
+        let prevSeq = null;
+        chain.forEach((step) => {
+          const seq = nextSeq++;
+          docs.push({
+            productionOrderId: order._id,
+            jobOrderId: order.jobOrderId,
+            branchId: order.branchId,
+            operationCode: step.code,
+            operationName: `Rework: ${step.name}`,
+            sequenceNo: seq,
+            // Each chain waits only for the original steps and for its own earlier steps, so chains can run side by side
+            dependsOn: prevSeq ? [prevSeq] : lastBaseSeq ? [lastBaseSeq] : [],
+            assignedEmployeeId: null,
+            plannedQty: line.qty,
+            inputQty: line.qty,
+            completedQty: 0,
+            status: "PENDING",
+            isRework: true,
+            cycleNo: order.cycleNo || 0,
+            cycleType: "REWORK",
+            remarks,
+          });
+          prevSeq = seq;
+        });
+      });
+
+      created = await productionOperationRepository.insertMany(docs);
+      order.reworkedQty = (order.reworkedQty || 0) + totalQty;
     }
 
     // QC -> REWORK_REQUIRED -> IN_PROGRESS (each step audited)
@@ -115,7 +132,8 @@ class ReworkService {
       branchId: order.branchId,
       details: {
         reworkOperationCode: opCode,
-        quantity: reworkQty,
+        lines: lineList,
+        quantity: totalQty,
         qualityCheckId,
         operationIds: created.map((o) => o._id),
         reason,
@@ -129,14 +147,14 @@ class ReworkService {
       eventType: "rework.started",
       stage: "REWORK",
       performedBy: user ? user._id : null,
-      details: { opCode, reason, quantity: reworkQty },
+      details: { opCode, reason, quantity: totalQty, lines: lineList },
     });
 
     await ProductionStateService.createNotification({
       role: "production",
       branchId: order.branchId,
       title: "Rework Operation Queued",
-      message: `Rework from '${opCode}' (${reworkQty} units) has been queued for Production Order ${order.productionNo}.`,
+      message: `Rework (${totalQty} units) has been queued for Production Order ${order.productionNo}.`,
       entityType: "PRODUCTION",
       entityId: order._id,
     });

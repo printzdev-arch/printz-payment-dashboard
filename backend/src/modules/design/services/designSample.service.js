@@ -346,7 +346,7 @@ class DesignSampleService {
       .populate("approvedBy", "name username email role")
       .populate({
         path: "jobOrderId",
-        select: "jobNo title customerId customerName customerSnapshot currentStage stage priority items designerId designerName designStatus remarks customerRequirements dueDate designProofUrl",
+        select: "jobNo jobType specs title customerId customerName customerSnapshot currentStage stage priority items designerId designerName designStatus remarks customerRequirements dueDate designProofUrl",
         populate: {
           path: "designerId",
           select: "name email username role",
@@ -379,6 +379,7 @@ class DesignSampleService {
         sampleId: String(s._id),
         jobId: jId,
         jobNo: job.jobNo || `JO-${jId.slice(-6)}`,
+        jobType: job.jobType || job.specs?.jobType || "",
         customerName: job.customerName || job.customerSnapshot?.name || "Direct Customer",
         jobItem: job.title || job.items?.[0]?.itemName || "Custom Print Order",
         designerName: job.designerId?.name || job.designerName || s.submittedBy?.name || "Assigned Designer",
@@ -412,6 +413,7 @@ class DesignSampleService {
         sampleId: null,
         jobId: jId,
         jobNo: pj.jobNo || `JO-${jId.slice(-6)}`,
+        jobType: pj.jobType || pj.specs?.jobType || "",
         customerName: pj.customerName || pj.customerSnapshot?.name || "Direct Customer",
         jobItem: pj.title || pj.items?.[0]?.itemName || "Custom Print Order",
         designerName: pj.designerId?.name || pj.designerName || "Assigned Designer",

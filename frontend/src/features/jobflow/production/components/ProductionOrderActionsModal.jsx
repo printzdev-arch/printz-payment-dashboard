@@ -23,7 +23,7 @@ export const ProductionOrderActionsModal = ({
   const isResume = actionType === "RESUME";
   const isCancel = actionType === "CANCEL";
 
-  const jobNumber = productionOrder.jobNo || productionOrder.jobOrderNo || productionOrder.productionNo || "Job Order";
+  const jobNumber = productionOrder.jobNo || productionOrder.jobOrderNo || "Job Order";
 
   const getTitle = () => {
     if (isHold) return "Place Job Order on Hold";

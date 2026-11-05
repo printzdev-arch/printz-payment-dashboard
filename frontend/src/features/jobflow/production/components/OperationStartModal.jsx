@@ -10,36 +10,30 @@ export const OperationStartModal = ({
   productionOrder,
   onSuccess,
 }) => {
-  const [machine, setMachine] = useState("");
-  const [assignedEmployee, setAssignedEmployee] = useState("");
+  const [machineId, setMachineId] = useState("");
+  const [operatorId, setOperatorId] = useState("");
+  const [machines, setMachines] = useState([]);
   const [inputQuantity, setInputQuantity] = useState("");
   const [remarks, setRemarks] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [operatorNames, setOperatorNames] = useState([]);
+  const [operators, setOperators] = useState([]);
 
-  // Suggestions for the operator name (free text is still allowed)
+  // Machines come from the existing machine list; only available operators are offered
   useEffect(() => {
     if (!isOpen) return;
-    jobFlowApi
-      .getOperators({ lookup: true })
-      .then((res) => {
-        const body = res?.data || res || {};
-        const list = Array.isArray(body) ? body : body.items || [];
-        setOperatorNames(list.map((o) => o.name).filter(Boolean));
-      })
-      .catch(() => setOperatorNames([]));
+    const listOf = (res) => {
+      const body = res?.data || res || {};
+      return Array.isArray(body) ? body : body.items || [];
+    };
+    jobFlowApi.getMachines({ lookup: true }).then((r) => setMachines(listOf(r))).catch(() => setMachines([]));
+    jobFlowApi.getOperators({ lookup: true }).then((r) => setOperators(listOf(r))).catch(() => setOperators([]));
   }, [isOpen]);
 
   useEffect(() => {
     if (!operation) return;
-    setMachine(operation.machine || operation.machineId?.printerName || operation.machineId?.name || "");
-    // Only the real operator is pre-filled; the logged-in manager is not the operator.
-    setAssignedEmployee(
-      operation.operatorName ||
-        operation.assignedEmployeeId?.name ||
-        operation.assignedEmployee ||
-        ""
-    );
+    const idOf = (v) => (v && typeof v === "object" ? v._id || v.id || "" : v || "");
+    setMachineId(String(idOf(operation.machineId) || ""));
+    setOperatorId(String(idOf(operation.assignedEmployeeId) || ""));
     setInputQuantity(
       operation.inputQty || operation.plannedQty || productionOrder?.plannedQty || ""
     );
@@ -49,7 +43,7 @@ export const OperationStartModal = ({
   if (!isOpen || !operation) return null;
 
   const opName = operation.operationName || operation.operation || operation.operationCode;
-  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || productionOrder?.productionNo || "—";
+  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || "—";
   const seq = operation.sequenceNo || operation.sequence || "—";
 
   const handleSubmit = async (e) => {
@@ -58,8 +52,12 @@ export const OperationStartModal = ({
       toast.error("Input quantity must be greater than zero.");
       return;
     }
-    if (!machine.trim()) {
-      toast.error("Please enter the machine / station.");
+    if (!machineId) {
+      toast.error("Please choose the machine.");
+      return;
+    }
+    if (!operatorId) {
+      toast.error("Please choose the operator.");
       return;
     }
 
@@ -68,8 +66,9 @@ export const OperationStartModal = ({
       const opId = operation._id || operation.id;
       // The server stamps the real start time, so we do not send one.
       await jobFlowApi.startOperation(opId, {
-        machine: machine.trim(),
-        assignedEmployee: assignedEmployee.trim(),
+        machineId,
+        machine: machines.find((m) => String(m.id) === String(machineId))?.name || undefined,
+        assignedEmployeeId: operatorId,
         inputQty: Number(inputQuantity),
         remarks: remarks.trim(),
       });
@@ -127,31 +126,27 @@ export const OperationStartModal = ({
             <div className="prod-modal-grid-2">
               <div className="jf-form-group">
                 <label className="jf-label">Assigned Operator</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  list="start-operator-names"
-                  value={assignedEmployee}
-                  onChange={(e) => setAssignedEmployee(e.target.value)}
-                  placeholder="Operator doing this work, e.g. Ramesh Kumar"
-                />
-                <datalist id="start-operator-names">
-                  {operatorNames.map((n) => (
-                    <option key={n} value={n} />
+                <select className="jf-input" value={operatorId} onChange={(e) => setOperatorId(e.target.value)} required>
+                  <option value="">Select operator</option>
+                  {operators.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}{o.role ? ` (${o.role})` : ""}</option>
                   ))}
-                </datalist>
+                </select>
+                {operators.length === 0 && (
+                  <span className="prod-field-hint">No available operators. Add or enable one in Production &gt; Operators.</span>
+                )}
               </div>
 
               <div className="jf-form-group">
-                <label className="jf-label">Machine / Station *</label>
-                <input
-                  type="text"
-                  className="jf-input"
-                  value={machine}
-                  onChange={(e) => setMachine(e.target.value)}
-                  placeholder="e.g. Konica Minolta AccurioPress"
-                  required
-                />
+                <label className="jf-label">Machine *</label>
+                <select className="jf-input" value={machineId} onChange={(e) => setMachineId(e.target.value)} required>
+                  <option value="">Select machine</option>
+                  {machines.map((m) => (
+                    <option key={m.id} value={m.id} disabled={m.underMaintenance}>
+                      {m.name}{m.underMaintenance ? " (under maintenance)" : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

@@ -123,15 +123,6 @@ export const DesignerLoginPage = () => {
           } catch { }
         }
 
-        const allowedEmails = [
-          "ali.hassan@printz.com",
-          "siti.rahman@printz.com",
-          "kumar.anil@printz.com",
-          "john.lee@printz.com",
-          "nur.aisyah@printz.com",
-          "guna@gmail.com",
-        ];
-
         if (Array.isArray(rawList) && rawList.length > 0) {
           const palette = ["#dc2626", "#0891b2", "#059669", "#2563eb", "#7c3aed", "#d97706"];
           const seenEmails = new Set();
@@ -141,7 +132,7 @@ export const DesignerLoginPage = () => {
           for (let i = 0; i < rawList.length; i++) {
             const d = rawList[i];
             const em = (d.email || "").toLowerCase().trim();
-            if (!em || !allowedEmails.includes(em) || seenEmails.has(em)) continue;
+            if (!em || seenEmails.has(em)) continue;
             seenEmails.add(em);
 
             combined.push({
@@ -162,15 +153,6 @@ export const DesignerLoginPage = () => {
                 : "DE",
               experience: d.experience || "Print & Production",
             });
-          }
-
-          // Append any of the 6 DEFAULT_DESIGNERS not yet present
-          for (const def of DEFAULT_DESIGNERS) {
-            const em = (def.email || "").toLowerCase().trim();
-            if (!seenEmails.has(em)) {
-              seenEmails.add(em);
-              combined.push(def);
-            }
           }
 
           setDesignersList(combined);

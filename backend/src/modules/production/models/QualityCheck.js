@@ -119,6 +119,14 @@ const qualityCheckSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Rejected pieces can need rework from different steps (e.g. 20 from Printing, 10 from Packing)
+    reworkLines: [
+      {
+        _id: false,
+        operationCode: { type: String },
+        quantity: { type: Number },
+      },
+    ],
     restartFromOperationCode: {
       type: String,
       default: null,

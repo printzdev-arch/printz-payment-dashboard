@@ -37,13 +37,6 @@ router.post(
 );
 
 router.post(
-  "/:id/claim",
-  idParamValidator("id"),
-  authorizePermission("production", "update"),
-  productionOperationController.claimOperation
-);
-
-router.post(
   "/:id/start",
   startOperationValidator,
   authorizePermission("production", "update"),

@@ -3,8 +3,8 @@ const productionOrderRepository = require("../models/ProductionOrder");
 const stockRepository = require("../../stocks/models/StockItem");
 const inventoryMovementRepository = require("../../inventory/models/InventoryMovement");
 const ProductionStateService = require("./productionState.service");
-const RoundRobinService = require("./roundRobin.service");
 const ErrorHelper = require("../../../utils/ApiError");
+const ProductionHelper = require("../helpers/ProductionHelper");
 
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 const isObjectId = (v) => OBJECT_ID_RE.test(String(v || ""));
@@ -41,6 +41,34 @@ const segmentStart = (op) => {
     return last.resumedAt;
   }
   return op.startAt;
+};
+
+const ProductionOperator = require("../models/ProductionOperator");
+
+/** An operator must exist and be available to be given work. */
+const requireAvailableOperator = async (id) => {
+  if (!isObjectId(id)) throw ErrorHelper.badRequest(`Invalid operator ID: ${id}`);
+  const operator = await ProductionOperator.findById(id).lean();
+  if (!operator) throw ErrorHelper.notFound("Operator not found.");
+  if (operator.isActive === false) {
+    throw ErrorHelper.conflict(`Operator ${operator.name} is not available. Choose another operator.`);
+  }
+  return operator;
+};
+
+/** Put stock back (and remove its movement records) after a failure, so stock is never reduced without a saved step. */
+const undoDeductions = async (deductions) => {
+  for (const d of [...deductions].reverse()) {
+    try {
+      d.stockItem.qty = d.before;
+      d.stockItem.quantity = d.before;
+      d.stockItem.currentStock = d.before;
+      await stockRepository.save(d.stockItem);
+      if (d.movement && d.movement._id) await inventoryMovementRepository.findByIdAndDelete(d.movement._id);
+    } catch (e) {
+      console.error("[ProductionOperation] Could not undo a stock deduction:", e.message);
+    }
+  }
 };
 
 class ProductionOperationService {
@@ -105,7 +133,7 @@ class ProductionOperationService {
     }
   }
 
-  static async findOperationOrFail(operationId) {
+  static async findOperationOrFail(operationId, user = null) {
     if (!isObjectId(operationId)) {
       throw ErrorHelper.badRequest(`Invalid operation ID: ${operationId}`);
     }
@@ -113,6 +141,7 @@ class ProductionOperationService {
     if (!op) {
       throw ErrorHelper.notFound(`Production Operation not found with ID: ${operationId}`);
     }
+    ProductionHelper.assertBranchAccess(op.branchId, user, `Production Operation ${operationId}`);
     return op;
   }
 
@@ -125,7 +154,7 @@ class ProductionOperationService {
    * round robin is chosen; if none is eligible, the requesting user is used.
    */
   static async assign(operationId, assignedEmployeeId = null, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (isFinished(op.status)) {
       throw ErrorHelper.badRequest(`Cannot assign an already ${op.status} operation.`);
@@ -136,15 +165,14 @@ class ProductionOperationService {
       throw ErrorHelper.badRequest(`Invalid employee ID: ${targetEmployeeId}`);
     }
 
+    // Assignment is manual: the manager chooses who does the work
     if (!targetEmployeeId) {
-      const next = await RoundRobinService.getNextEmployee(op.branchId, op.operationCode);
-      targetEmployeeId = next ? next._id : null;
-    }
-    if (!targetEmployeeId && user) {
-      targetEmployeeId = user._id;
+      throw ErrorHelper.badRequest("Choose who the operation is assigned to.");
     }
 
-    op.assignedEmployeeId = targetEmployeeId || null;
+    const operator = await requireAvailableOperator(targetEmployeeId);
+    op.assignedEmployeeId = operator._id;
+    op.operatorName = operator.name;
     await op.save();
 
     await ProductionStateService.logAudit({
@@ -169,42 +197,7 @@ class ProductionOperationService {
       performedBy: user ? user._id : null,
     });
 
-    return op.populate("assignedEmployeeId", "name email role");
-  }
-
-  /**
-   * Operator claims the operation (assigns self)
-   */
-  static async claim(operationId, user) {
-    if (!user) {
-      throw ErrorHelper.unauthorized("Authentication required to claim operation.");
-    }
-
-    const op = await this.findOperationOrFail(operationId);
-
-    if (isFinished(op.status)) {
-      throw ErrorHelper.badRequest(`Cannot claim an already ${op.status} operation.`);
-    }
-
-    const current = op.assignedEmployeeId ? String(op.assignedEmployeeId) : null;
-    if (current && current !== String(user._id) && (isActive(op.status) || op.status === "PAUSED")) {
-      throw ErrorHelper.conflict("This operation is in progress under another operator.");
-    }
-
-    op.assignedEmployeeId = user._id;
-    if (!op.operatorName) op.operatorName = user.name || "";
-    await op.save();
-
-    await ProductionStateService.logAudit({
-      action: "CLAIM",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { claimedBy: user._id },
-    });
-
-    return op.populate("assignedEmployeeId", "name email role");
+    return op.populate("assignedEmployeeId", "name phone skill isActive");
   }
 
   /* ──────────────────────────────────────────────────────────────────────── */
@@ -216,7 +209,7 @@ class ProductionOperationService {
    * Accepts machineId (preferred) or machine name, operator name, input quantity.
    */
   static async start(operationId, data = {}, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (isActive(op.status)) {
       return op;
@@ -249,7 +242,13 @@ class ProductionOperationService {
     op.startAt = new Date();
     if (machineId) op.machineId = machineId;
     if (data.machine) op.machine = String(data.machine).trim();
-    if (data.assignedEmployee) op.operatorName = String(data.assignedEmployee).trim();
+    if (data.assignedEmployeeId) {
+      const operator = await requireAvailableOperator(data.assignedEmployeeId);
+      op.assignedEmployeeId = operator._id;
+      op.operatorName = operator.name;
+    } else if (data.assignedEmployee) {
+      op.operatorName = String(data.assignedEmployee).trim();
+    }
     if (inputQty !== null) op.inputQty = inputQty;
     if (data.remarks) op.remarks = String(data.remarks).trim();
     // The user who presses Start (usually the manager) is not recorded as the
@@ -302,7 +301,7 @@ class ProductionOperationService {
    * IN_PROGRESS -> PAUSED, with a required reason.
    */
   static async pause(operationId, data = {}, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (!isActive(op.status)) {
       throw ErrorHelper.badRequest(`Only an in-progress operation can be paused (current: '${op.status}').`);
@@ -349,7 +348,7 @@ class ProductionOperationService {
    * PAUSED -> IN_PROGRESS
    */
   static async resume(operationId, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (op.status !== "PAUSED") {
       throw ErrorHelper.badRequest(`Only a paused operation can be resumed (current: '${op.status}').`);
@@ -400,7 +399,7 @@ class ProductionOperationService {
    *                          on the operation only, NO stock is deducted
    */
   static async complete(operationId, completeData = {}, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (!isActive(op.status)) {
       throw ErrorHelper.badRequest(`Cannot complete operation in status '${op.status}'. Expected IN_PROGRESS.`);
@@ -426,6 +425,9 @@ class ProductionOperationService {
         `Output quantity (${outputQty}) cannot exceed input quantity (${op.inputQty}).`
       );
     }
+
+    // Stock deductions made so far; they are undone if the step cannot be saved afterwards
+    const deductions = [];
 
     // Stock-tracked consumption (idempotent per stock item)
     if (Array.isArray(consumption) && consumption.length > 0) {
@@ -476,28 +478,9 @@ class ProductionOperationService {
         planned.push({ item, stockItem, requiredQty });
       }
 
-      // Phase 2: deduct
+      // Phase 1b: put the consumption on the operation and validate it, still before any stock is touched,
+      // so an invalid record can never leave stock deducted without a matching record.
       for (const { item, stockItem, requiredQty } of planned) {
-        const availableStock = Number(stockItem.qty || stockItem.quantity || stockItem.currentStock || 0);
-        stockItem.qty = availableStock - requiredQty;
-        stockItem.quantity = stockItem.qty;
-        stockItem.currentStock = stockItem.qty;
-        await stockRepository.save(stockItem);
-
-        await inventoryMovementRepository.create({
-          itemId: stockItem._id,
-          itemName: stockItem.itemName,
-          type: "JOB_CONSUMPTION",
-          action: "OUT",
-          quantity: requiredQty,
-          previousStock: availableStock,
-          newStock: stockItem.qty,
-          referenceType: "JOB",
-          referenceId: String(op.jobOrderId || op.productionOrderId),
-          notes: `Production consumption for ${op.operationCode}`,
-          userId: user ? user._id : null,
-        });
-
         op.consumptionRecords.push({
           itemId: stockItem._id,
           itemName: stockItem.itemName,
@@ -506,6 +489,37 @@ class ProductionOperationService {
           consumptionType: item.consumptionType || "MATERIAL",
           consumedAt: new Date(),
         });
+      }
+      await op.validate();
+
+      // Phase 2: deduct (any failure puts the stock back)
+      try {
+        for (const { item, stockItem, requiredQty } of planned) {
+          const availableStock = Number(stockItem.qty || stockItem.quantity || stockItem.currentStock || 0);
+          stockItem.qty = availableStock - requiredQty;
+          stockItem.quantity = stockItem.qty;
+          stockItem.currentStock = stockItem.qty;
+          await stockRepository.save(stockItem);
+          const entry = { stockItem, before: availableStock, movement: null };
+          deductions.push(entry);
+
+          entry.movement = await inventoryMovementRepository.create({
+            itemId: stockItem._id,
+            itemName: stockItem.itemName,
+            type: "JOB_CONSUMPTION",
+            action: "OUT",
+            quantity: requiredQty,
+            previousStock: availableStock,
+            newStock: stockItem.qty,
+            referenceType: "JOB",
+            referenceId: String(op.jobOrderId || op.productionOrderId),
+            notes: `Production consumption for ${op.operationCode}`,
+            userId: user ? user._id : null,
+          });
+        }
+      } catch (err) {
+        await undoDeductions(deductions);
+        throw err;
       }
     }
 
@@ -524,7 +538,13 @@ class ProductionOperationService {
     }
 
     // Final numbers
-    const out = outputQty !== undefined && outputQty !== null ? Number(outputQty) : op.outputQty;
+    // No output given: the operation is taken to have produced everything it received (never 0 by accident)
+    const out =
+      outputQty !== undefined && outputQty !== null
+        ? Number(outputQty)
+        : op.inputQty > 0
+        ? Number(op.inputQty)
+        : Number(op.plannedQty) || 0;
     op.outputQty = out;
     op.completedQty =
       completedQty !== undefined && completedQty !== null ? Number(completedQty) : out;
@@ -538,7 +558,13 @@ class ProductionOperationService {
     op.workedMinutes = (op.workedMinutes || 0) + minutesBetween(segmentStart(op));
     op.status = "COMPLETED";
     op.endAt = new Date();
-    await op.save();
+    try {
+      await op.save();
+    } catch (err) {
+      // The step was not saved, so the stock taken for it must not stay deducted
+      await undoDeductions(deductions);
+      throw err;
+    }
 
     await ProductionStateService.logAudit({
       action: "COMPLETE",
@@ -586,13 +612,29 @@ class ProductionOperationService {
     const parentOrder = await productionOrderRepository.findById(op.productionOrderId);
     if (!parentOrder || parentOrder.status !== "IN_PROGRESS") return false;
 
-    // Quantity coming out of the production line = last operation in sequence
+    // Quantity coming out of the production line = last operation in sequence.
+    // After a rework it is the total of the pieces redone: every rework batch (chain) ends at its own last step.
     const lastOp = [...allOps]
       .filter((o) => o.status === "COMPLETED")
       .sort((a, b) => b.sequenceNo - a.sequenceNo)[0];
-    const producedQty = lastOp
+    let producedQty = lastOp
       ? lastOp.completedQty || lastOp.outputQty
       : parentOrder.plannedQty;
+
+    const QualityCheck = require("../models/QualityCheck");
+    const lastCheck = await QualityCheck.findOne({ productionOrderId: op.productionOrderId })
+      .sort({ checkedAt: -1 })
+      .select("checkedAt")
+      .lean();
+    const currentRework = allOps.filter(
+      (o) => o.isRework && o.status === "COMPLETED" && (!lastCheck || new Date(o.createdAt) >= new Date(lastCheck.checkedAt))
+    );
+    if (currentRework.some((o) => Array.isArray(o.dependsOn) && o.dependsOn.length > 0)) {
+      const dependedOn = new Set(allOps.flatMap((o) => o.dependsOn || []));
+      const batchEnds = currentRework.filter((o) => !dependedOn.has(o.sequenceNo));
+      const redone = batchEnds.reduce((sum, o) => sum + (Number(o.completedQty || o.outputQty) || 0), 0);
+      if (redone > 0) producedQty = redone;
+    }
 
     parentOrder.actualQty = producedQty || parentOrder.plannedQty;
     parentOrder.actualEnd = new Date();
@@ -656,7 +698,7 @@ class ProductionOperationService {
    * data: { failureReason, remarks, affectedQty } (a plain string is treated as remarks)
    */
   static async fail(operationId, data = {}, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (!isActive(op.status) && op.status !== "PAUSED") {
       throw ErrorHelper.badRequest(`Only a running or paused operation can fail (current: '${op.status}').`);
@@ -711,7 +753,7 @@ class ProductionOperationService {
    * FAILED -> PENDING
    */
   static async retry(operationId, user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (op.status !== "FAILED") {
       throw ErrorHelper.badRequest("Only FAILED operations can be retried.");
@@ -742,7 +784,7 @@ class ProductionOperationService {
    * data: { reason | remarks } (a plain string is treated as the reason)
    */
   static async skip(operationId, data = "", user = null) {
-    const op = await this.findOperationOrFail(operationId);
+    const op = await this.findOperationOrFail(operationId, user);
 
     if (op.operationCode === "PRINT" || op.operationCode === "PACKING") {
       throw ErrorHelper.badRequest(

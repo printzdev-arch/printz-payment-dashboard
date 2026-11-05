@@ -14,11 +14,6 @@ const assignOperation = asyncHandler(async (req, res) => {
   return ResponseHelper.ok(res, "Operation assigned successfully", updated);
 });
 
-const claimOperation = asyncHandler(async (req, res) => {
-  const claimed = await ProductionOperationService.claim(req.params.id, req.user);
-  return ResponseHelper.ok(res, "Operation claimed successfully", claimed);
-});
-
 const startOperation = asyncHandler(async (req, res) => {
   const started = await ProductionOperationService.start(
     req.params.id,
@@ -78,7 +73,6 @@ const skipOperation = asyncHandler(async (req, res) => {
 
 module.exports = {
   assignOperation,
-  claimOperation,
   startOperation,
   pauseOperation,
   resumeOperation,

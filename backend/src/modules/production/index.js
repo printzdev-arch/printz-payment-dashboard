@@ -68,6 +68,9 @@ module.exports = {
     get ProductionOperation() {
       return require("./models/ProductionOperation");
     },
+    get ProductionOperator() {
+      return require("./models/ProductionOperator");
+    },
     get ProductionOrder() {
       return require("./models/ProductionOrder");
     },
@@ -149,9 +152,6 @@ module.exports = {
     },
     get rework() {
       return require("./services/rework.service");
-    },
-    get roundRobin() {
-      return require("./services/roundRobin.service");
     },
   },
   validators: {

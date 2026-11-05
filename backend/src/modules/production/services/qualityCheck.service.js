@@ -184,18 +184,13 @@ class QualityCheckService {
       attachments = [],
     } = checkData;
 
-    const result = String(checkData.result || "").toUpperCase().trim();
+    let result = String(checkData.result || "").toUpperCase().trim();
     if (!VALID_RESULTS.includes(result)) {
       throw ErrorHelper.badRequest("QC result is required: PASS, CONDITIONAL, ISSUE or FAIL.");
     }
-    const isPass = PASS_RESULTS.includes(result);
-    const action = correctiveAction ? String(correctiveAction).toUpperCase().trim() : null;
-
-    if (!isPass && !["REWORK", "REPRINT"].includes(action)) {
-      throw ErrorHelper.badRequest(
-        "A failed QC result requires a corrective action: REWORK or REPRINT."
-      );
-    }
+    let isPass = PASS_RESULTS.includes(result);
+    // The corrective action is decided from the quantities (see below), not chosen by the inspector
+    let action = correctiveAction ? String(correctiveAction).toUpperCase().trim() : null;
 
     // ── Quantities (partial pass / partial fail supported) ──
     const checked =
@@ -223,11 +218,25 @@ class QualityCheckService {
       throw ErrorHelper.badRequest("A failed QC result must reject at least one unit.");
     }
     if (result === "PASS" && rejected > 0) {
-      throw ErrorHelper.badRequest("A PASS result cannot have rejected units. Use CONDITIONAL or ISSUE.");
+      throw ErrorHelper.badRequest("A PASS result cannot have rejected units. Use ISSUE.");
+    }
+    // Rejected pieces are never dropped: a conditional pass that still rejects units is an issue,
+    // so those units go to rework (or reprint) like any other failed inspection.
+    if (isPass && rejected > 0) {
+      result = "ISSUE";
+      isPass = false;
+    }
+
+    // Rework only the rejected pieces (e.g. 25 of 100). When every piece checked is rejected,
+    // nothing is worth reworking, so the whole quantity goes to a reprint instead.
+    // "Everything" means the whole quantity under inspection, so a small sample check that is all bad stays a rework
+    if (!isPass) {
+      const underInspection = Math.max(checked, Number(order.actualQty) || 0);
+      action = rejected >= underInspection ? "REPRINT" : "REWORK";
     }
 
     const defects = normalizeDefects(checkData.defects);
-    const reprintQty = action === "REPRINT" ? Number(reprintQuantity) || rejected : null;
+    const reprintQty = action === "REPRINT" ? rejected : null;
     if (action === "REPRINT" && (reprintQty <= 0 || reprintQty > checked)) {
       throw ErrorHelper.badRequest(`Reprint quantity must be between 1 and ${checked}.`);
     }

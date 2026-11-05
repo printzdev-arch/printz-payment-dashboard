@@ -4,6 +4,7 @@ const productionOrderRepository = require("../models/ProductionOrder");
 const productionOperationRepository = require("../models/ProductionOperation");
 const ProductionStateService = require("./productionState.service");
 const ErrorHelper = require("../../../utils/ApiError");
+const ProductionHelper = require("../helpers/ProductionHelper");
 const { getDatePrefix } = require("../../../utils/dateUtils");
 const {
   SUPPORTED_OPERATIONS,
@@ -12,6 +13,39 @@ const {
   deriveDynamicOperations,
   validateOperationSequence,
 } = require("./productionSpecificationHelper");
+const { calculateMaterials } = require("./productionMaterialCalculator");
+const ProductionOperator = require("../models/ProductionOperator");
+
+// Operators named in a plan must exist and be available; their name is stored on the operation
+const checkPlanOperators = async (ops) => {
+  const ids = [...new Set(ops.map((o) => (o.assignedEmployeeId ? String(o.assignedEmployeeId) : "")).filter(Boolean))];
+  if (ids.length === 0) return;
+  const found = await ProductionOperator.find({ _id: { $in: ids } }).lean();
+  const byId = Object.fromEntries(found.map((o) => [String(o._id), o]));
+  for (const op of ops) {
+    if (!op.assignedEmployeeId) continue;
+    const operator = byId[String(op.assignedEmployeeId)];
+    if (!operator) {
+      // An assignment made before operators existed (it pointed at a user record): keep the saved name, drop the link
+      op.assignedEmployeeId = null;
+      continue;
+    }
+    if (operator.isActive === false) {
+      throw ErrorHelper.conflict(`Operator ${operator.name} is not available (${op.operationName}). Choose another operator.`);
+    }
+    op.operatorName = operator.name;
+  }
+};
+
+// Stock list used to show available stock next to the automatically calculated materials
+const loadStockItems = async () => {
+  try {
+    const StockItem = require("../../stocks/models/StockItem");
+    return await StockItem.find({}).select("itemName qty quantity currentStock unit branchId").lean();
+  } catch (_) {
+    return [];
+  }
+};
 
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 const isObjectId = (v) => OBJECT_ID_RE.test(String(v || ""));
@@ -35,9 +69,9 @@ const scopeBranch = (branchId, user) => {
 };
 
 const normalizePriority = (value, fallback = "NORMAL") => {
+  // Two priorities: NORMAL and URGENT (HIGH / RUSH count as urgent)
   const raw = String(value || fallback).toUpperCase().trim();
-  if (raw === "RUSH") return "URGENT";
-  return ["LOW", "NORMAL", "HIGH", "URGENT"].includes(raw) ? raw : fallback;
+  return ["URGENT", "HIGH", "RUSH"].includes(raw) ? "URGENT" : "NORMAL";
 };
 
 // "2h", "1.5h", "45m", 90 -> minutes
@@ -80,6 +114,18 @@ const itemsForJob = async (job) => {
   });
 
   return mainItems;
+};
+
+/**
+ * Steps the job order requires. They come from the job's own requirements, so a plan cannot drop them.
+ * Only the original production order has them; rework and reprint orders run a subset on purpose.
+ */
+const requiredOperationsFor = (order, job, item) => {
+  if (order.cycleType && order.cycleType !== "ORIGINAL") return [];
+  return deriveDynamicOperations(item || {}, job || {}).map((op) => ({
+    operationCode: op.operationCode,
+    operationName: op.operationName,
+  }));
 };
 
 const itemForOrder = async (order, job) => {
@@ -342,6 +388,7 @@ class ProductionPlanningService {
   }
 
   static async applyPlan(order, job, plan, isDraft, user) {
+    ProductionHelper.assertBranchAccess(order.branchId, user, `Production order ${order.productionNo}`);
     if (!PLAN_EDITABLE_STATUSES.includes(order.status)) {
       throw ErrorHelper.conflict(
         `Production order ${order.productionNo} is ${order.status} and its plan can no longer be changed.`
@@ -367,7 +414,8 @@ class ProductionPlanningService {
     const protectedOps = existingOps.filter((o) => PROTECTED_OP_STATUSES.includes(o.status));
 
     let newOps;
-    if (Array.isArray(plan.operations) && plan.operations.length > 0) {
+    // An empty list means every editable step was removed; only a missing list keeps the existing steps
+    if (Array.isArray(plan.operations)) {
       newOps = normalizePlanOperations(plan.operations, plannedQty);
       // Protected operations are not re-sent as editable; drop any clash by sequence
       const protectedSeqs = new Set(protectedOps.map((o) => o.sequenceNo));
@@ -394,10 +442,22 @@ class ProductionPlanningService {
 
     // ── Validation (full on confirm; light on draft) ──
     if (!isDraft) {
+      if (!plannedEnd) {
+        throw ErrorHelper.badRequest("Planned end date is required to confirm the plan.");
+      }
       if (allOpsForValidation.length === 0) {
         throw ErrorHelper.badRequest("Add at least one operation before confirming the plan.");
       }
       validateOperationSequence(allOpsForValidation);
+
+      // Steps required by the job order cannot be removed from the plan
+      const present = new Set(allOpsForValidation.map((o) => o.operationCode));
+      const missing = requiredOperationsFor(order, job, item).filter((r) => !present.has(r.operationCode));
+      if (missing.length > 0) {
+        throw ErrorHelper.conflict(
+          `The job order requires: ${missing.map((m) => m.operationName).join(", ")}. These steps cannot be removed from the plan.`
+        );
+      }
 
       newOps.forEach((op) => {
         if (op.plannedStart && op.plannedEnd && op.plannedEnd < op.plannedStart) {
@@ -407,6 +467,7 @@ class ProductionPlanningService {
         }
       });
 
+      await checkPlanOperators(newOps);
       await this.assertNoMachineConflicts(order, newOps);
 
       const short = materials.filter((m) => (Number(m.shortage) || 0) > 0);
@@ -419,12 +480,12 @@ class ProductionPlanningService {
     }
 
     // ── Persist operations ──
-    await productionOperationRepository.deleteMany({
-      productionOrderId: order._id,
-      status: "PENDING",
-    });
+    // New steps go in first and the old pending ones are removed afterwards, so a failure part-way
+    // never leaves the order without its steps.
+    const oldPendingIds = existingOps.filter((o) => o.status === "PENDING").map((o) => o._id);
+    let insertedOps = [];
     if (newOps.length > 0) {
-      await productionOperationRepository.insertMany(
+      insertedOps = await productionOperationRepository.insertMany(
         newOps.map((op) => ({
           productionOrderId: order._id,
           jobOrderId: job._id,
@@ -448,6 +509,17 @@ class ProductionPlanningService {
           status: "PENDING",
         }))
       );
+    }
+    if (oldPendingIds.length > 0) {
+      try {
+        await productionOperationRepository.deleteMany({ _id: { $in: oldPendingIds } });
+      } catch (err) {
+        // roll the new steps back so the old plan stays intact
+        if (insertedOps.length > 0) {
+          await productionOperationRepository.deleteMany({ _id: { $in: insertedOps.map((d) => d._id) } }).catch(() => {});
+        }
+        throw err;
+      }
     }
 
     // ── Persist the order ──
@@ -583,17 +655,21 @@ class ProductionPlanningService {
       const requiredQty = Number(m.requiredQty) || 0;
       let availableStock = Number(m.availableStock) || 0;
       let verified = false;
+      let stockId = null;
 
-      if (StockItem && isObjectId(m.itemId)) {
-        const stock = await StockItem.findById(m.itemId).lean();
+      // The stock model's own findById returns the document (or null); stock ids are not always ObjectIds
+      if (StockItem && m.itemId) {
+        const stock = await StockItem.findById(m.itemId).catch(() => null);
         if (stock) {
           availableStock = Number(stock.qty ?? stock.quantity ?? stock.currentStock ?? 0);
           verified = true;
+          stockId = String(stock._id);
         }
       }
 
       const shortage = Math.max(0, requiredQty - availableStock);
       lines.push({
+        itemId: verified ? stockId : null,
         name: m.name,
         spec: m.spec || "",
         requiredQty,
@@ -665,21 +741,11 @@ class ProductionPlanningService {
       .limit(Math.min(500, parseInt(query.limit, 10) || 200))
       .lean();
 
-    const orders = [];
-    const deleteIds = [];
-    for (const order of rawOrders) {
+    // Orders wrongly created for finishing services are hidden (a read never deletes; startup cleanup removes them)
+    const orders = rawOrders.filter((order) => {
       const pName = String(order.specificationsSnapshot?.productName || "").toUpperCase().trim();
-      if (pName.startsWith("FINISHING:") || pName.startsWith("FINISHING -") || pName.startsWith("FINISHING ")) {
-        deleteIds.push(order._id);
-      } else {
-        orders.push(order);
-      }
-    }
-
-    if (deleteIds.length > 0) {
-      productionOrderRepository.deleteMany({ _id: { $in: deleteIds } }).catch(() => {});
-      productionOperationRepository.deleteMany({ productionOrderId: { $in: deleteIds } }).catch(() => {});
-    }
+      return !(pName.startsWith("FINISHING:") || pName.startsWith("FINISHING -") || pName.startsWith("FINISHING "));
+    });
 
     const ops = await productionOperationRepository.findByProductionOrders(orders.map((o) => o._id));
     const opsByOrder = {};
@@ -689,10 +755,11 @@ class ProductionPlanningService {
       opsByOrder[key].push(op);
     });
 
-    return orders.map((order) => this.toPlanningRow(order, opsByOrder[String(order._id)] || []));
+    const stockItems = await loadStockItems();
+    return orders.map((order) => this.toPlanningRow(order, opsByOrder[String(order._id)] || [], stockItems));
   }
 
-  static toPlanningRow(order, ops = []) {
+  static toPlanningRow(order, ops = [], stockItems = [], requiredOperationCodes = []) {
     const job = order.jobOrderId && typeof order.jobOrderId === "object" ? order.jobOrderId : {};
     const branch = order.branchId && typeof order.branchId === "object" ? order.branchId : {};
     const snapshot = order.specificationsSnapshot || {};
@@ -707,6 +774,7 @@ class ProductionPlanningService {
       jobId: String(job._id || order.jobOrderId),
       jobOrderId: String(job._id || order.jobOrderId),
       jobNo: job.jobNo || "",
+      jobType: job.jobType || "",
       customerName: job.customerName || job.customerSnapshot?.name || "",
       customerMobile: job.customerPhone || job.customerSnapshot?.mobile || "",
       customerCompany: job.customerCompany || job.customerSnapshot?.company || "",
@@ -728,6 +796,19 @@ class ProductionPlanningService {
       designStatus: "APPROVED",
       specificationsSnapshot: snapshot,
       materials: order.materials || [],
+      // Steps the job order requires (they cannot be deleted from the plan)
+      requiredOperationCodes,
+      // Materials worked out from the quantity and specifications; used until the manager saves a plan
+      suggestedMaterials:
+        order.materials && order.materials.length > 0
+          ? []
+          : calculateMaterials(
+              snapshot,
+              order.plannedQty,
+              stockItems.filter(
+                (s) => !s.branchId || !branch._id && !order.branchId || String(s.branchId) === String(branch._id || order.branchId)
+              )
+            ),
       suggestedOperations: ops
         .sort((a, b) => a.sequenceNo - b.sequenceNo)
         .map((op) => ({
@@ -780,14 +861,18 @@ class ProductionPlanningService {
       throw ErrorHelper.notFound(`No production order found for planning: ${identifier}`);
     }
 
+    // Compare the stored branch id (a populated branch that no longer exists would come back empty)
+    const rawBranch = await productionOrderRepository.findById(order._id).select("branchId").lean();
     const scopedBranch = scopeBranch(null, user);
-    const orderBranch = String(order.branchId?._id || order.branchId || "");
+    const orderBranch = String(rawBranch?.branchId || "");
     if (scopedBranch && orderBranch && scopedBranch !== orderBranch) {
       throw ErrorHelper.notFound(`No production order found for planning: ${identifier}`);
     }
 
     const ops = await productionOperationRepository.findByProductionOrders([order._id]);
-    return this.toPlanningRow(order, ops);
+    const jobDoc = order.jobOrderId && typeof order.jobOrderId === "object" ? order.jobOrderId : {};
+    const requiredCodes = requiredOperationsFor(order, jobDoc, await itemForOrder(order, jobDoc)).map((r) => r.operationCode);
+    return this.toPlanningRow(order, ops, await loadStockItems(), requiredCodes);
   }
 }
 

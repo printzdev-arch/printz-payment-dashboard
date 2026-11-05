@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, FileDown, FileText, Printer, RefreshCw, Sear
 import { toast } from "react-toastify";
 import productionApi from "../api/productionApi";
 
+import Pagination from "../../../../components/common/Pagination";
 const REPORT_TYPES = [
   { id: "SUMMARY", label: "1. Production Summary" },
   { id: "OP_PERFORMANCE", label: "2. Operation Performance" },
@@ -237,7 +238,7 @@ export const ProductionReportsPage = () => {
   };
 
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const rawColumns = report?.columns || [];
   const columns = useMemo(() => {
@@ -255,7 +256,7 @@ export const ProductionReportsPage = () => {
     const rawRows = report?.rows || [];
     return rawRows.map((r) => ({
       ...r,
-      jobNo: r.jobNo || r.productionNo || "-",
+      jobNo: r.jobNo || "-",
     }));
   }, [report?.rows]);
 
@@ -444,42 +445,16 @@ export const ProductionReportsPage = () => {
           </table>
         </div>
 
-        <footer className="pr2-card-foot">
-          <span className="pr2-showing">
-            {rows.length === 0
-              ? "Showing 0 records"
-              : `Showing ${startIdx + 1} to ${Math.min(startIdx + rowsPerPage, rows.length)} of ${rows.length} records`}
-          </span>
-          <nav className="pr2-pager" aria-label="Pagination">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setPage(currentPage - 1)}
-              aria-label="Previous page"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            {pageNumbers.map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={n === currentPage ? "is-active" : ""}
-                onClick={() => setPage(n)}
-                aria-current={n === currentPage ? "page" : undefined}
-              >
-                {n}
-              </button>
-            ))}
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => setPage(currentPage + 1)}
-              aria-label="Next page"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </nav>
-        </footer>
+        <Pagination
+          variant="compact"
+          currentPage={currentPage}
+          totalItems={rows.length}
+          itemsPerPage={rowsPerPage}
+          onPageChange={(n) => setPage(Math.min(Math.max(1, n), totalPages))}
+          onItemsPerPageChange={(n) => setRowsPerPage(n)}
+          pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+          itemLabel="records"
+        />
 
         {report?.truncated && <p className="pr2-note">Showing the first {rows.length} rows. Narrow the date range to see the rest.</p>}
         {report?.note && rows.length > 0 && <p className="pr2-note">{report.note}</p>}

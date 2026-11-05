@@ -23,6 +23,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import invoiceApi from "../api/invoiceApi";
 import InvoiceEditorSection from "../components/InvoiceEditorSection";
 import InvoiceBillModal from "../components/InvoiceBillModal";
@@ -35,7 +36,8 @@ export const InvoicePage = () => {
   const preselectedJobId = searchParams.get("jobId");
 
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("pending"); // "pending" | "invoices"
+  const [statusFilter, setStatusFilter] = useState("all"); // all | to_invoice | balance_due | settled
+  const [view, setView] = useState("list"); // "list" | "create"  (the Create Invoice tab)
 
   const [pendingEligibleJobs, setPendingEligibleJobs] = useState([]);
   const [invoicesList, setInvoicesList] = useState([]);
@@ -49,7 +51,21 @@ export const InvoicePage = () => {
 
   const handlePickJob = (jobId) => {
     setSelectedJobForInvoice(jobId);
-    window.scrollTo({ top: 120, behavior: "smooth" });
+    setView("create");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const backToList = () => {
+    setSelectedJobForInvoice(null);
+    setView("list");
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("jobId");
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const handleLiveCalculationChange = (calcData) => {
@@ -259,10 +275,11 @@ export const InvoicePage = () => {
           _id: id,
           jobOrderId: id,
           jobNo: j.jobNo || j.orderNumber || (matchedInv ? matchedInv.jobNo : `JO-${String(id || "").slice(-6)}`),
+          priority: j.priority || j.raw?.priority || "NORMAL",
           jobType: j.jobType || j.specs?.jobType || j.raw?.jobType || matchedInv?.jobType || "Print Only",
           customerName: j.customerName || j.customerSnapshot?.name || j.customer?.name || (matchedInv ? matchedInv.customerName : "Customer"),
           customerPhone: j.customerPhone || j.customerSnapshot?.mobile || (matchedInv ? matchedInv.customerPhone : "N/A"),
-          title: j.title || j.productType || "Print Job Order",
+          title: j.productName || j.productType || j.specs?.productType || j.items?.[0]?.itemName || j.title || "Print Job Order",
           quantity: j.quantity || 500,
           estimateAmount: estAmt,
           advancePaid: resolvedAdvance,
@@ -283,6 +300,7 @@ export const InvoicePage = () => {
           (inv) => String(inv.jobOrderId) === String(preselectedJobId) || inv.jobNo === preselectedJobId || String(inv._id) === String(preselectedJobId)
         );
         setSelectedJobForInvoice(matched ? (matched._id || matched.jobOrderId) : preselectedJobId);
+        setView("create");
       }
     } catch (err) {
       console.warn("Failed loading invoice data:", err);
@@ -330,16 +348,73 @@ export const InvoicePage = () => {
   const countPendingApproval = invoicesList.filter((i) => i.status === "PENDING_APPROVAL").length;
   const countFinalized = invoicesList.filter((i) => i.status === "FINALIZED" || i.status === "PAID").length;
 
+  // ONE list: every job order is a row. An invoice that has no job row of its own (older records) gets a row too.
+  const isRowSettled = (r) =>
+    Boolean(r.isSettled || r.invoice?.status === "PAID" || r.invoice?.paymentStatus === "PAID" || (r.hasInvoice && Number(r.balanceDue) <= 0));
+  const rowGroup = (r) => (isRowSettled(r) ? "settled" : r.hasInvoice ? "balance_due" : "to_invoice");
+
+  const jobIdsInList = new Set();
+  pendingEligibleJobs.forEach((j) => {
+    [j._id, j.jobOrderId, j.jobNo].forEach((v) => v && jobIdsInList.add(String(v).trim().toLowerCase()));
+  });
+  const orphanInvoiceRows = invoicesList
+    .filter((inv) => ![inv.jobOrderId, inv.jobNo].some((v) => v && jobIdsInList.has(String(v).trim().toLowerCase())))
+    .map((inv) => ({
+      _id: inv.jobOrderId || inv._id,
+      jobOrderId: inv.jobOrderId || inv._id,
+      jobNo: inv.jobNo,
+      priority: inv.priority || inv.raw?.priority || "NORMAL",
+      jobType: inv.jobType,
+      customerName: inv.customerName,
+      customerPhone: inv.customerPhone,
+      title: "-",
+      quantity: null,
+      estimateAmount: inv.grandTotal,
+      advancePaid: inv.paidAmount,
+      balanceDue: inv.balanceDue,
+      currentStage: inv.balanceDue > 0 ? "DELIVERED" : "COMPLETED",
+      isSettled: inv.balanceDue <= 0,
+      invoice: inv,
+      hasInvoice: true,
+      raw: inv.raw || inv,
+    }));
+  // One row per job: a job (or several invoices of one job) must never appear twice in the list
+  const rowsById = new Map();
+  [...pendingEligibleJobs, ...orphanInvoiceRows].forEach((r) => {
+    const key = String(r._id || r.jobOrderId || r.jobNo);
+    const existing = rowsById.get(key);
+    if (!existing) {
+      rowsById.set(key, r);
+    } else if (!existing.hasInvoice && r.hasInvoice) {
+      rowsById.set(key, r);
+    } else if (existing.hasInvoice && r.hasInvoice && Number(r.balanceDue) > Number(existing.balanceDue)) {
+      // keep the invoice that still has money due
+      rowsById.set(key, r);
+    }
+  });
+  const allRows = [...rowsById.values()].map((r) => ({
+    ...r,
+    invoiceNumber: r.invoice?.invoiceNumber || "",
+    paymentStatus: isRowSettled(r) ? "PAID" : r.hasInvoice ? (Number(r.advancePaid) > 0 ? "PARTIAL" : "UNPAID") : "NOT_INVOICED",
+  }));
+  const groupCounts = {
+    all: allRows.length,
+    to_invoice: allRows.filter((r) => rowGroup(r) === "to_invoice").length,
+    balance_due: allRows.filter((r) => rowGroup(r) === "balance_due").length,
+    settled: allRows.filter((r) => rowGroup(r) === "settled").length,
+  };
+  const visibleRows = statusFilter === "all" ? allRows : allRows.filter((r) => rowGroup(r) === statusFilter);
+
   // Table Columns Definitions
   const pendingColumns = [
     {
       key: "jobNo",
-      label: "Job Order No",
+      label: "Job No",
       sortable: true,
-      width: "160px",
+      width: "210px",
       render: (val, row) => (
         <div>
-          <div style={{ fontWeight: 700, color: "#0f172a" }}>{val}</div>
+          <div style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>{val}</div>
           <div style={{ marginTop: "4px" }}>
             <JobTypeBadge jobType={row.jobType} size="sm" />
           </div>
@@ -353,7 +428,7 @@ export const InvoicePage = () => {
     },
     {
       key: "customerName",
-      label: "Customer Details",
+      label: "Customer",
       sortable: true,
       render: (val, row) => (
         <div>
@@ -364,18 +439,18 @@ export const InvoicePage = () => {
     },
     {
       key: "title",
-      label: "Material & Quantity",
+      label: "Material",
       sortable: true,
       render: (val, row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{val}</div>
-          <div style={{ fontSize: "0.75rem", color: "#475569" }}>Qty: {row.quantity} pcs</div>
+          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{row.quantity ? `Qty: ${row.quantity} pcs` : "-"}</div>
         </div>
       ),
     },
     {
       key: "estimateAmount",
-      label: "Estimate Amount",
+      label: "Amount",
       sortable: true,
       render: (val) => (
         <span style={{ fontWeight: 700, color: "#0f172a" }}>
@@ -385,7 +460,7 @@ export const InvoicePage = () => {
     },
     {
       key: "advancePaid",
-      label: "Advance Paid",
+      label: "Paid",
       sortable: true,
       render: (val, row) => {
         const isSettled = row.isSettled || Number(row.balanceDue) <= 0 || row.invoice?.status === "PAID" || row.invoice?.paymentStatus === "PAID";
@@ -413,8 +488,47 @@ export const InvoicePage = () => {
       },
     },
     {
+      key: "balanceDue",
+      label: "Balance",
+      sortable: true,
+      render: (val, row) => {
+        if (!row.hasInvoice && !row.isSettled) return <span style={{ color: "#475569" }}>-</span>;
+        const b = Number(val || 0);
+        return (
+          <span style={{ color: b > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>
+            ₹{b.toFixed(2)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "paymentStatus",
+      label: "Payment",
+      sortable: true,
+      render: (val) => {
+        const map = {
+          PAID: { text: "PAID", bg: "#dcfce7", color: "#15803d" },
+          PARTIAL: { text: "ADVANCE PAID", bg: "#fef3c7", color: "#b45309" },
+          UNPAID: { text: "UNPAID", bg: "#fee2e2", color: "#b91c1c" },
+          NOT_INVOICED: { text: "TO INVOICE", bg: "#e0f2fe", color: "#0369a1" },
+        };
+        const m = map[val] || map.NOT_INVOICED;
+        return (
+          <span style={{ display: "inline-flex", padding: "0.2rem 0.55rem", borderRadius: "9999px", fontSize: "0.725rem", fontWeight: 700, background: m.bg, color: m.color }}>
+            {m.text}
+          </span>
+        );
+      },
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      sortable: true,
+      render: (val, row) => <PriorityBadge priority={val || row.priority} />,
+    },
+    {
       key: "currentStage",
-      label: "Fulfillment Stage",
+      label: "Stage",
       sortable: true,
       render: (val, row) => {
         const isSettled = row?.isSettled || Number(row?.balanceDue) <= 0 || row?.invoice?.status === "PAID" || row?.invoice?.paymentStatus === "PAID";
@@ -453,7 +567,7 @@ export const InvoicePage = () => {
                 }}
                 title={`Collect remaining balance of ₹ ${remainingBal.toFixed(2)} and complete order`}
               >
-                <Receipt size={14} /> Collect Balance (₹ {remainingBal.toFixed(2)})
+                <Receipt size={14} />
               </button>
             ) : (!hasPaidAdvance || !row.hasInvoice) && !isSettled ? (
               <button
@@ -461,8 +575,21 @@ export const InvoicePage = () => {
                 className="jf-btn jf-btn-primary jf-btn-sm"
                 onClick={() => handlePickJob(row._id)}
                 style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                title="Create Invoice"
+                aria-label="Create Invoice"
               >
-                <Receipt size={14} /> Create Invoice
+                <Receipt size={14} />
+              </button>
+            ) : row.hasInvoice && !isSettled && remainingBal > 0 ? (
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary jf-btn-sm"
+                onClick={() => setSelectedInvoiceForCashier(row.invoice?._id || row.invoice?.id || row.invoice?.raw?._id)}
+                style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#059669", borderColor: "#059669", fontWeight: 700 }}
+                title={`Settle balance ₹${remainingBal.toFixed(2)}`}
+                aria-label="Settle balance"
+              >
+                <CreditCard size={13} />
               </button>
             ) : null}
 
@@ -474,8 +601,9 @@ export const InvoicePage = () => {
                   onClick={() => handleViewInvoice(row.invoice)}
                   style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
                   title="View Tax Invoice Bill"
+                  aria-label="View Invoice"
                 >
-                  <Eye size={14} /> View
+                  <Eye size={14} />
                 </button>
                 <button
                   type="button"
@@ -489,202 +617,15 @@ export const InvoicePage = () => {
                     borderColor: "#0284c7",
                   }}
                   title="Print Invoice / Bill"
+                  aria-label="Print Invoice"
                 >
-                  <Printer size={14} /> Print Invoice
+                  <Printer size={14} />
                 </button>
               </>
             )}
           </div>
         );
       },
-    },
-  ];
-
-  const invoiceColumns = [
-    {
-      key: "invoiceNumber",
-      label: "Invoice No",
-      sortable: true,
-      width: "150px",
-      render: (val, row) => (
-        <span
-          style={{
-            fontWeight: 700,
-            color: "var(--jf-primary, #15803d)",
-            cursor: "pointer",
-            textDecoration: "underline",
-            textUnderlineOffset: "2px",
-          }}
-          onClick={() => handleViewInvoice(row.raw || row)}
-          title="Click to view invoice details"
-        >
-          {val || "-"}
-        </span>
-      ),
-    },
-    {
-      key: "jobNo",
-      label: "Job Order No",
-      sortable: true,
-      width: "140px",
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: "#1e293b" }}>{val || "-"}</span>
-      ),
-    },
-    {
-      key: "jobType",
-      label: "Job Type",
-      sortable: true,
-      width: "125px",
-      render: (val, row) => (
-        <JobTypeBadge jobType={val || row.raw?.jobType || "Print Only"} size="sm" />
-      ),
-    },
-    {
-      key: "customerName",
-      label: "Customer",
-      sortable: true,
-      render: (val, row) => (
-        <div>
-          <div style={{ fontWeight: 600, color: "#0f172a" }}>{val || "Customer"}</div>
-          {row.customerPhone && row.customerPhone !== "N/A" && (
-            <span style={{ fontSize: "0.75rem", color: "#475569" }}>{row.customerPhone}</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "grandTotal",
-      label: "Invoice Total",
-      sortable: true,
-      render: (val) => (
-        <strong style={{ color: "#0f172a" }}>₹{Number(val || 0).toFixed(2)}</strong>
-      ),
-    },
-    {
-      key: "paidAmount",
-      label: "Paid / Advance",
-      sortable: true,
-      render: (val) => (
-        <span style={{ color: "#059669", fontWeight: 600 }}>
-          ₹{Number(val || 0).toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: "balanceDue",
-      label: "Balance Due",
-      sortable: true,
-      render: (val) => {
-        const b = Number(val || 0);
-        return (
-          <span style={{ color: b > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>
-            ₹{b.toFixed(2)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "paymentStatus",
-      label: "Payment Status",
-      sortable: true,
-      render: (val) => {
-        const isPaid = val === "PAID";
-        const isPartial = val === "PARTIAL";
-        return (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "0.2rem 0.55rem",
-              borderRadius: "9999px",
-              fontSize: "0.725rem",
-              fontWeight: 700,
-              background: isPaid ? "#dcfce7" : isPartial ? "#fef3c7" : "#fee2e2",
-              color: isPaid ? "#15803d" : isPartial ? "#b45309" : "#b91c1c",
-            }}
-          >
-            {val || "UNPAID"}
-          </span>
-        );
-      },
-    },
-    {
-      key: "createdAt",
-      label: "Date",
-      sortable: true,
-      render: (val) => val || "Today",
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      sortable: false,
-      align: "right",
-      render: (_, row) => (
-        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
-          {row.balanceDue > 0 ? (
-            <button
-              type="button"
-              className="jf-btn jf-btn-primary jf-btn-sm"
-              onClick={() => setSelectedInvoiceForCashier(row._id || row.id || row.raw?._id)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                background: "#059669",
-                borderColor: "#059669",
-                fontWeight: 700,
-                fontSize: "0.775rem",
-                padding: "0.3rem 0.65rem",
-                cursor: "pointer",
-              }}
-              title="Collect Balance Payment via Cashier"
-            >
-              <CreditCard size={13} /> Settle ₹{Number(row.balanceDue).toFixed(2)}
-            </button>
-          ) : (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "3px",
-                padding: "0.2rem 0.5rem",
-                borderRadius: "4px",
-                background: "#dcfce7",
-                color: "#166534",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-              }}
-            >
-              <CheckCircle size={12} /> Settled
-            </span>
-          )}
-          <button
-            type="button"
-            className="jf-btn jf-btn-secondary jf-btn-sm"
-            onClick={() => handleViewInvoice(row.raw || row)}
-            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-            title="View Invoice"
-          >
-            <Eye size={14} /> View
-          </button>
-          <button
-            type="button"
-            className="jf-btn jf-btn-primary jf-btn-sm"
-            onClick={() => handlePrintInvoice(row.raw || row)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              background: "#0284c7",
-              borderColor: "#0284c7",
-            }}
-            title="Print Invoice"
-          >
-            <Printer size={14} /> Print
-          </button>
-        </div>
-      ),
     },
   ];
 
@@ -695,167 +636,136 @@ export const InvoicePage = () => {
     >
       <div className="invoice-feature-container">
 
-        {/* ── EMBEDDED INVOICE CREATION & ADVANCE COLLECTION FORM (ABOVE TABLE, NO POPUP) ── */}
-        <InvoiceEditorSection
-          selectedJobOrderId={selectedJobForInvoice}
-          onLiveCalculationChange={handleLiveCalculationChange}
-          pendingJobs={pendingEligibleJobs}
-          onJobSelected={(jobId) => setSelectedJobForInvoice(jobId)}
-          onInvoiceFinalized={(finalized) => {
-            loadInvoiceData();
-            setSelectedJobForInvoice(null);
-            if (finalized) {
-              setViewingInvoice(finalized);
-              setIsBillModalOpen(true);
-            }
-          }}
-          onClear={() => {
-            setSelectedJobForInvoice(null);
-            setSearchParams(
-              (prev) => {
-                const next = new URLSearchParams(prev);
-                next.delete("jobId");
-                return next;
-              },
-              { replace: true }
+        {/* ── ONE LIST OF JOB ORDERS WITH STATUS FILTERS ── */}
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+          {[
+            { key: "all", label: "All Jobs", Icon: FileText },
+            { key: "to_invoice", label: "To Invoice", Icon: Clock },
+            { key: "balance_due", label: "Balance Due", Icon: CreditCard },
+            { key: "settled", label: "Settled", Icon: CheckCircle },
+          ].map(({ key, label, Icon }) => {
+            const active = view === "list" && statusFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                className="jf-btn"
+                onClick={() => {
+                  setStatusFilter(key);
+                  setView("list");
+                }}
+                style={{
+                  background: active ? "var(--jf-primary, #15803d)" : "#ffffff",
+                  color: active ? "#ffffff" : "#334155",
+                  borderColor: active ? "var(--jf-primary, #15803d)" : "#cbd5e1",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.55rem 1rem",
+                  borderRadius: "8px",
+                  boxShadow: active ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
+                }}
+              >
+                <Icon size={15} />
+                <span>{label}</span>
+                <span
+                  style={{
+                    background: active ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                    color: active ? "#ffffff" : "#0f172a",
+                    padding: "0.15rem 0.5rem",
+                    borderRadius: "9999px",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {groupCounts[key]}
+                </span>
+              </button>
             );
-          }}
-        />
-
-        {/* ── INTERACTIVE TABS & PAGINATED DATATABLE ── */}
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-          <button
-            type="button"
-            className="jf-btn"
-            onClick={() => setActiveTab("pending")}
-            style={{
-              background: activeTab === "pending" ? "var(--jf-primary, #15803d)" : "#ffffff",
-              color: activeTab === "pending" ? "#ffffff" : "#475569",
-              borderColor: activeTab === "pending" ? "var(--jf-primary, #15803d)" : "#cbd5e1",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.6rem 1.1rem",
-              borderRadius: "8px",
-              boxShadow: activeTab === "pending" ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <Clock size={16} />
-            <span>Pending Invoicing Queue</span>
-            <span
-              style={{
-                background: activeTab === "pending" ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                color: activeTab === "pending" ? "#ffffff" : "#0f172a",
-                padding: "0.15rem 0.5rem",
-                borderRadius: "9999px",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-              }}
-            >
-              {pendingEligibleJobs.length}
-            </span>
-          </button>
+          })}
 
           <button
             type="button"
             className="jf-btn"
-            onClick={() => setActiveTab("invoices")}
+            onClick={() => {
+              // the tab itself opens an empty form; a row action opens it with that job filled in
+              setSelectedJobForInvoice(null);
+              setView("create");
+            }}
             style={{
-              background: activeTab === "invoices" ? "var(--jf-primary, #15803d)" : "#ffffff",
-              color: activeTab === "invoices" ? "#ffffff" : "#475569",
-              borderColor: activeTab === "invoices" ? "var(--jf-primary, #15803d)" : "#cbd5e1",
+              background: view === "create" ? "var(--jf-primary, #15803d)" : "#ffffff",
+              color: view === "create" ? "#ffffff" : "#334155",
+              borderColor: view === "create" ? "var(--jf-primary, #15803d)" : "#cbd5e1",
               fontWeight: 600,
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
-              padding: "0.6rem 1.1rem",
+              padding: "0.55rem 1rem",
               borderRadius: "8px",
-              boxShadow: activeTab === "invoices" ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
-              transition: "all 0.15s ease",
+              boxShadow: view === "create" ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
             }}
           >
-            <Receipt size={16} />
-            <span>Billed Invoices & Tax Bills</span>
-            <span
-              style={{
-                background: activeTab === "invoices" ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                color: activeTab === "invoices" ? "#ffffff" : "#0f172a",
-                padding: "0.15rem 0.5rem",
-                borderRadius: "9999px",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-              }}
-            >
-              {invoicesList.length}
-            </span>
+            <Plus size={15} />
+            <span>Create Invoice</span>
           </button>
         </div>
 
-        {/* ── TAB CONTENT WITH PAGINATION & ALL FEATURES ── */}
-        {activeTab === "pending" && (
-          <JobFlowDataTable
-            key="pending-table"
-            columns={pendingColumns}
-            data={pendingEligibleJobs}
-            loading={loading}
-            sortable={true}
-            defaultSortKey="jobNo"
-            defaultSortDir="desc"
-            searchable={true}
-            searchPlaceholder="Search pending jobs by job no, customer, material..."
-            searchKeys={["jobNo", "customerName", "customerPhone", "title", "jobType"]}
-            initialPageSize={10}
-            pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-            pagination={true}
-            emptyMessage="No jobs with approved estimates currently pending invoicing."
-            customActions={
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary jf-btn-sm"
-                onClick={loadInvoiceData}
-                disabled={loading}
-                title="Refresh Invoices"
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-              >
-                <RefreshCw size={14} className={loading ? "spin" : ""} />
-                <span>Refresh</span>
-              </button>
-            }
+        {view === "create" ? (
+          <InvoiceEditorSection
+            selectedJobOrderId={selectedJobForInvoice}
+            onLiveCalculationChange={handleLiveCalculationChange}
+            pendingJobs={pendingEligibleJobs}
+            onJobSelected={(jobId) => setSelectedJobForInvoice(jobId)}
+            onInvoiceFinalized={(finalized) => {
+              loadInvoiceData();
+              backToList();
+              if (finalized) {
+                setViewingInvoice(finalized);
+                setIsBillModalOpen(true);
+              }
+            }}
+            onClear={backToList}
           />
-        )}
-
-        {activeTab === "invoices" && (
-          <JobFlowDataTable
-            key="invoices-table"
-            columns={invoiceColumns}
-            data={invoicesList}
-            loading={loading}
-            sortable={true}
-            defaultSortKey="invoiceNumber"
-            defaultSortDir="desc"
-            searchable={true}
-            searchPlaceholder="Search invoices by invoice no, job no, customer..."
-            searchKeys={["invoiceNumber", "jobNo", "customerName", "customerPhone", "paymentStatus", "status"]}
-            initialPageSize={10}
-            pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-            pagination={true}
-            emptyMessage="No billed invoices found."
-            customActions={
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary jf-btn-sm"
-                onClick={loadInvoiceData}
-                disabled={loading}
-                title="Refresh Invoices"
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-              >
-                <RefreshCw size={14} className={loading ? "spin" : ""} />
-                <span>Refresh</span>
-              </button>
-            }
-          />
+        ) : (
+        <JobFlowDataTable
+          key={`jobs-table-${statusFilter}`}
+          columns={pendingColumns}
+          data={visibleRows}
+          loading={loading}
+          sortable={true}
+          sortControls={false}
+          defaultSortKey="jobNo"
+          defaultSortDir="desc"
+          searchable={true}
+          searchPlaceholder="Search by job no, invoice no, customer, material..."
+          searchKeys={["jobNo", "invoiceNumber", "customerName", "customerPhone", "title", "jobType"]}
+          initialPageSize={10}
+          pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+          pagination={true}
+          emptyMessage={
+            statusFilter === "to_invoice"
+              ? "No jobs are waiting to be invoiced."
+              : statusFilter === "balance_due"
+              ? "No invoices have a balance due."
+              : statusFilter === "settled"
+              ? "No settled jobs yet."
+              : "No job orders found."
+          }
+          customActions={
+            <button
+              type="button"
+              className="jf-btn jf-btn-secondary jf-btn-sm"
+              onClick={loadInvoiceData}
+              disabled={loading}
+              title="Refresh"
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <RefreshCw size={14} className={loading ? "spin" : ""} />
+              <span>Refresh</span>
+            </button>
+          }
+        />
         )}
 
         {/* Invoice Bill / Receipt Modal */}

@@ -24,6 +24,7 @@ import {
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import CustomerModal from "../components/CustomerModal";
 import JobOrderProcessDetailModal from "../../job-orders/components/JobOrderProcessDetailModal";
 import jobFlowApi from "../api/customersApi";
@@ -442,6 +443,12 @@ export const CustomerViewPage = () => {
               label: "Amount (₹)",
               sortable: true,
               render: (val, row) => `₹${(Number(val || row.estimatedCost) || 0).toFixed(2)}`,
+            },
+            {
+              key: "priority",
+              label: "Priority",
+              sortable: true,
+              render: (val, row) => <PriorityBadge priority={val || row.priority} />,
             },
             {
               key: "currentStage",

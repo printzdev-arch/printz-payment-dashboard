@@ -4,6 +4,7 @@ const productionOperationRepository = require("../models/ProductionOperation");
 const jobOrderRepository = require("../../job-orders/models/JobOrder");
 const ProductionStateService = require("./productionState.service");
 const ErrorHelper = require("../../../utils/ApiError");
+const ProductionHelper = require("../helpers/ProductionHelper");
 
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 const isObjectId = (v) => OBJECT_ID_RE.test(String(v || ""));
@@ -49,6 +50,7 @@ class ReprintService {
     if (!job) {
       throw ErrorHelper.notFound(`Job Order not found with ID: ${jobOrderId}`);
     }
+    ProductionHelper.assertBranchAccess(job.branchId, user, `Job Order ${jobOrderId}`);
 
     const {
       jobItemId,
@@ -180,6 +182,8 @@ class ReprintService {
     if (!isObjectId(reprintRequestId)) {
       throw ErrorHelper.badRequest(`Invalid reprint request ID: ${reprintRequestId}`);
     }
+    const pre = await reprintRequestRepository.findById(reprintRequestId);
+    if (pre) ProductionHelper.assertBranchAccess(pre.branchId, user, "Reprint Request");
 
     const { comments = "", markAsUrgent = false } = approvalData;
 
@@ -376,6 +380,8 @@ class ReprintService {
     if (!cleanReason) {
       throw ErrorHelper.badRequest("A rejection reason is required.");
     }
+    const pre = await reprintRequestRepository.findById(reprintRequestId);
+    if (pre) ProductionHelper.assertBranchAccess(pre.branchId, user, "Reprint Request");
 
     const request = await reprintRequestRepository.findOneAndUpdate(
       { _id: reprintRequestId, status: { $in: WAITING_STATUSES } },

@@ -23,6 +23,19 @@ const runBackfill = async () => {
   }
 };
 
+/** One-off startup cleanup of production orders wrongly created for finishing services. */
+const runCleanup = async () => {
+  try {
+    const ProductionOrderService = require("../services/productionOrder.service");
+    const result = await ProductionOrderService.cleanupFinishingOrders();
+    if (result.removed > 0) {
+      console.log(`[ProductionEventsListener] Removed ${result.removed} production order(s) wrongly created for finishing services`);
+    }
+  } catch (err) {
+    console.error("[ProductionEventsListener] Cleanup failed:", err.message);
+  }
+};
+
 const setupProductionEventListeners = () => {
   // When a job is approved and reaches production, create its production order
   // automatically (status UNASSIGNED, shown on the Planning page).
@@ -45,10 +58,14 @@ const setupProductionEventListeners = () => {
   });
 
   // One-time backfill at startup (after the database is connected)
+  const startupTasks = async () => {
+    await runCleanup();
+    await runBackfill();
+  };
   if (mongoose.connection.readyState === 1) {
-    runBackfill();
+    startupTasks();
   } else {
-    mongoose.connection.once("connected", runBackfill);
+    mongoose.connection.once("connected", startupTasks);
   }
 };
 

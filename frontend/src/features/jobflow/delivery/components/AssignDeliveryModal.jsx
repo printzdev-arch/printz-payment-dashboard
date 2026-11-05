@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Send, User, Phone, Truck, MessageSquare } from "lucide-react";
+import { X, User, Phone, Truck } from "lucide-react";
 import { toast } from "react-toastify";
 import deliveryApi from "../api/deliveryApi";
 
@@ -8,8 +8,6 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [assignedEmployeeId, setAssignedEmployeeId] = useState("");
-  const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
-  const [notifySms, setNotifySms] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,24 +31,27 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
 
     setLoading(true);
     try {
-      const channels = [];
-      if (notifyWhatsApp) channels.push("WHATSAPP");
-      if (notifySms) channels.push("SMS");
-
       const payload = {
-        deliveryPersonName,
-        deliveryPersonPhone,
-        vehicleNumber,
-        channels: channels.length > 0 ? channels : ["WHATSAPP"],
+        deliveryPersonName: deliveryPersonName.trim(),
+        deliveryPersonPhone: deliveryPersonPhone.trim(),
+        vehicleNumber: vehicleNumber.trim(),
+        sendWhatsApp: Boolean(deliveryPersonPhone.trim()),
+        sendSystemNotification: true,
       };
       const empIdStr = String(assignedEmployeeId || "");
-      if (empIdStr && /^[0-9a-fA-F]{24}$/.test(empIdStr) && empIdStr !== "66acdd7939539ae7343338fa") {
+      if (empIdStr && /^[0-9a-fA-F]{24}$/.test(empIdStr)) {
         payload.assignedEmployeeId = empIdStr;
       }
 
       const res = await deliveryApi.assignDeliveryOrder(deliveryOrder._id || deliveryOrder.id, payload);
       const updated = res?.data || res;
-      toast.success(`Assigned to ${deliveryPersonName} & alert sent via ${channels.join(", ")}!`);
+      const sent = updated?.notificationChannels || updated?.data?.notificationChannels || [];
+      const viaWhatsApp = Array.isArray(sent) && sent.some((c) => String(c?.channel || c).toUpperCase().includes("WHATSAPP"));
+      toast.success(
+        viaWhatsApp
+          ? `Assigned to ${deliveryPersonName}. A WhatsApp message was sent.`
+          : `Assigned to ${deliveryPersonName}.`
+      );
       if (onAssigned) onAssigned(updated);
       onClose();
     } catch (err) {
@@ -65,11 +66,10 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
       <div className="jf-modal jf-modal-md">
         <div className="jf-modal-header">
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Send size={20} style={{ color: "var(--jf-primary)" }} />
             <div>
-              <h2 className="jf-modal-title">Assign Rider & Send Alert</h2>
+              <h2 className="jf-modal-title">Assign Delivery Person</h2>
               <div style={{ fontSize: "0.8rem", color: "#475569" }}>
-                Delivery No: <strong>{deliveryOrder.deliveryNo}</strong>
+                Job No: <strong>{deliveryOrder.jobNo}</strong>
               </div>
             </div>
           </div>
@@ -81,7 +81,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
         <form onSubmit={handleSubmit}>
           <div className="jf-modal-body">
             <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-              <label className="jf-label jf-label-required">Delivery Person / Rider Name</label>
+              <label className="jf-label jf-label-required">Delivery person name</label>
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
@@ -96,7 +96,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
             </div>
 
             <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-              <label className="jf-label">Rider Contact Number</label>
+              <label className="jf-label">Phone number</label>
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
@@ -110,7 +110,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
             </div>
 
             <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
-              <label className="jf-label">Vehicle Details / Registration No.</label>
+              <label className="jf-label">Vehicle number</label>
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
@@ -122,31 +122,6 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
                 <Truck size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
               </div>
             </div>
-
-            <div style={{ background: "#f8fafc", padding: "0.875rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <div style={{ fontSize: "0.825rem", fontWeight: 600, color: "#334155", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <MessageSquare size={16} style={{ color: "#2563eb" }} />
-                Instant Notification Channels:
-              </div>
-              <div style={{ display: "flex", gap: "1.5rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={notifyWhatsApp}
-                    onChange={(e) => setNotifyWhatsApp(e.target.checked)}
-                  />
-                  <span>WhatsApp Message</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={notifySms}
-                    onChange={(e) => setNotifySms(e.target.checked)}
-                  />
-                  <span>SMS Alert</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           <div className="jf-modal-footer">
@@ -154,7 +129,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
               Cancel
             </button>
             <button type="submit" className="jf-btn jf-btn-primary" disabled={loading}>
-              {loading ? "Assigning..." : "Assign & Notify (ASSIGNED)"}
+              {loading ? "Assigning..." : "Assign"}
             </button>
           </div>
         </form>

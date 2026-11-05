@@ -88,6 +88,7 @@ import {
   OperationQueuePage,
   ReprintBatchesPage,
   ProductionReportsPage,
+  OperatorsPage,
 } from "./features/jobflow/production";
 import { PosBillingPage } from "./features/pos";
 import {
@@ -1344,6 +1345,19 @@ const AppContent = () => {
         <Route
           path="/production/machines"
           element={<Navigate to="/production/orders" replace />}
+        />
+        <Route
+          path="/production/operators"
+          element={
+            <PrivateRoute
+              roles={["manager", "admin", "production_manager", "operator", "staff"]}
+              component={() => (
+                <ManagerLayout>
+                  <OperatorsPage />
+                </ManagerLayout>
+              )}
+            />
+          }
         />
         <Route
           path="/production/reports"

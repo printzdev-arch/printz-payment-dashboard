@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const productionOperationRepository = require("../models/ProductionOperation");
 const productionOrderRepository = require("../models/ProductionOrder");
+const ProductionOperator = require("../models/ProductionOperator");
 const ErrorHelper = require("../../../utils/ApiError");
 
 const ADMIN_ROLES = ["admin", "super_admin", "superadmin", "owner"];
@@ -125,27 +126,45 @@ const loadMachines = async (branch) => {
     .filter((m) => !branch || !m.branchId || m.branchId === String(branch));
 };
 
+const normalizeOperator = (o) => ({
+  id: String(o._id),
+  name: o.name || "Operator",
+  email: "",
+  phone: o.phone || "",
+  role: o.skill || "",
+  skill: o.skill || "",
+  notes: o.notes || "",
+  branchId: idOf(o.branchId),
+  isActive: o.isActive !== false,
+});
+
+// Operators are the people assigned to operations. Older operations may still point at a user record.
 const loadUsersById = async (ids) => {
-  const User = getModel("User");
   const clean = [...new Set(ids.filter((i) => isObjectId(i)))];
-  if (!User || clean.length === 0) return {};
-  const docs = await User.find({ _id: { $in: clean } }).lean();
-  return Object.fromEntries(docs.map((u) => [String(u._id), normalizeUser(u)]));
+  if (clean.length === 0) return {};
+  const found = {};
+  const ops = await ProductionOperator.find({ _id: { $in: clean } }).lean();
+  ops.forEach((o) => {
+    found[String(o._id)] = normalizeOperator(o);
+  });
+  const missing = clean.filter((id) => !found[id]);
+  const User = getModel("User");
+  if (User && missing.length) {
+    const docs = await User.find({ _id: { $in: missing } }).lean();
+    docs.forEach((u) => {
+      found[String(u._id)] = normalizeUser(u);
+    });
+  }
+  return found;
 };
 
-// Users who hold an operator-type role, so idle operators also show up.
-// Role storage differs between projects, so any failure just means "none found".
-const loadOperatorUsers = async (branch) => {
-  const User = getModel("User");
-  if (!User) return [];
-  try {
-    const filter = { role: { $regex: /operator|production|press|pressman|finish|bindery|packing/i } };
-    if (branch) filter.branchId = branch;
-    const docs = await User.find(filter).limit(500).lean();
-    return docs.map(normalizeUser);
-  } catch (e) {
-    return [];
-  }
+const loadOperatorUsers = async (branch, { includeInactive = true } = {}) => {
+  const filter = {};
+  if (!includeInactive) filter.isActive = { $ne: false };
+  const docs = await ProductionOperator.find(filter).sort({ name: 1 }).limit(1000).lean();
+  return docs
+    .map(normalizeOperator)
+    .filter((o) => !branch || !o.branchId || o.branchId === String(branch));
 };
 
 /**
@@ -467,10 +486,14 @@ class ProductionResourceService {
    */
   static async getOperators(query = {}, user = null) {
     const branch = scopeBranch(query.branchId, user);
-    const baseUsers = await loadOperatorUsers(branch);
+    const baseUsers = await loadOperatorUsers(branch, { includeInactive: true });
 
+    // Pickers only offer operators who are available
     if (String(query.lookup).toLowerCase() === "true") {
-      const items = baseUsers.map((u) => ({ id: u.id, name: u.name, role: u.role, branchId: u.branchId }));
+      const includeInactive = String(query.includeInactive).toLowerCase() === "true";
+      const items = baseUsers
+        .filter((u) => includeInactive || u.isActive)
+        .map((u) => ({ id: u.id, name: u.name, role: u.role, phone: u.phone, branchId: u.branchId, isActive: u.isActive }));
       return { items, summary: { operators: items.length }, range: null };
     }
 
@@ -484,9 +507,8 @@ class ProductionResourceService {
     const live = ops.filter((o) => isActive(o.status) || o.status === "PAUSED");
     const orderInfo = await loadOrderInfo(live);
 
-    const opUserIds = [...ops, ...queued].map((o) => idOf(o.assignedEmployeeId)).filter(Boolean);
-    const extraUsers = await loadUsersById(opUserIds);
-    const people = { ...extraUsers };
+    // The list is the registered operators (older assignments to user records are not listed)
+    const people = {};
     baseUsers.forEach((u) => {
       people[u.id] = people[u.id] || u;
     });
@@ -521,7 +543,7 @@ class ProductionResourceService {
 
       return {
         ...u,
-        status: running ? "WORKING" : paused ? "PAUSED" : "AVAILABLE",
+        status: u.isActive === false ? "UNAVAILABLE" : running ? "WORKING" : paused ? "PAUSED" : "AVAILABLE",
         currentTask: currentJobOf(current, orderInfo, now),
         machine: current?.machine || "",
         completedToday,
@@ -538,11 +560,27 @@ class ProductionResourceService {
       };
     });
 
+    // All-time work done by each operator (not limited to the reporting window)
+    const operatorIds = items.map((o) => o.id).filter((id) => isObjectId(id));
+    if (operatorIds.length > 0) {
+      const totals = await productionOperationRepository.aggregate([
+        { $match: { status: "COMPLETED", assignedEmployeeId: { $in: operatorIds.map((id) => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: "$assignedEmployeeId", ops: { $sum: 1 }, qty: { $sum: { $ifNull: ["$completedQty", 0] } } } },
+      ]);
+      const byId = Object.fromEntries(totals.map((t) => [String(t._id), t]));
+      items = items.map((o) => ({
+        ...o,
+        totalCompletedOps: byId[o.id]?.ops || 0,
+        totalCompletedQty: byId[o.id]?.qty || 0,
+      }));
+    }
+
     const summary = {
       operators: items.length,
       working: items.filter((o) => o.status === "WORKING").length,
       paused: items.filter((o) => o.status === "PAUSED").length,
       available: items.filter((o) => o.status === "AVAILABLE").length,
+      unavailable: items.filter((o) => o.status === "UNAVAILABLE").length,
     };
 
     if (branch) items = items.filter((o) => !o.branchId || o.branchId === String(branch));
@@ -553,7 +591,7 @@ class ProductionResourceService {
     if (query.search && String(query.search).trim()) {
       const q = String(query.search).trim().toLowerCase();
       items = items.filter((o) =>
-        [o.name, o.role, o.email, o.machine, o.currentTask?.jobNo, o.currentTask?.productName]
+        [o.name, o.role, o.phone, o.machine, o.currentTask?.jobNo, o.currentTask?.productName]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q))
       );
@@ -565,6 +603,80 @@ class ProductionResourceService {
       summary,
       range: { from: range.from, to: range.to, days: range.days },
     };
+  }
+
+  /** Add an operator. */
+  static async createOperator(data = {}, user = null) {
+    const name = String(data.name || "").trim().replace(/\s+/g, " ");
+    if (name.length < 2) throw ErrorHelper.badRequest("Operator name is required (at least 2 characters).");
+    const phone = String(data.phone || "").trim();
+    if (phone && !/^[0-9+\-\s]{7,15}$/.test(phone)) throw ErrorHelper.badRequest("Enter a valid phone number.");
+    const branchId = scopeBranch(data.branchId, user);
+    const duplicate = await ProductionOperator.findOne({
+      name: new RegExp("^" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i"),
+      ...(isObjectId(branchId) ? { branchId } : {}),
+    }).lean();
+    if (duplicate) throw ErrorHelper.conflict("An operator with this name already exists.");
+    const doc = await ProductionOperator.create({
+      name,
+      phone,
+      skill: String(data.skill || "").trim(),
+      notes: String(data.notes || "").trim(),
+      branchId: isObjectId(branchId) ? branchId : null,
+      isActive: data.isActive === undefined ? true : Boolean(data.isActive),
+    });
+    return normalizeOperator(doc.toObject());
+  }
+
+  /** Edit an operator's details or availability. */
+  static async updateOperator(id, data = {}, user = null) {
+    if (!isObjectId(id)) throw ErrorHelper.badRequest(`Invalid operator ID: ${id}`);
+    const doc = await ProductionOperator.findById(id);
+    if (!doc) throw ErrorHelper.notFound(`Operator not found with ID: ${id}`);
+    const branch = scopeBranch(null, user);
+    if (branch && doc.branchId && String(doc.branchId) !== String(branch)) {
+      throw ErrorHelper.notFound(`Operator not found with ID: ${id}`);
+    }
+
+    if (data.name !== undefined) {
+      const name = String(data.name || "").trim().replace(/\s+/g, " ");
+      if (name.length < 2) throw ErrorHelper.badRequest("Operator name is required (at least 2 characters).");
+      doc.name = name;
+    }
+    if (data.phone !== undefined) {
+      const phone = String(data.phone || "").trim();
+      if (phone && !/^[0-9+\-\s]{7,15}$/.test(phone)) throw ErrorHelper.badRequest("Enter a valid phone number.");
+      doc.phone = phone;
+    }
+    if (data.skill !== undefined) doc.skill = String(data.skill || "").trim();
+    if (data.notes !== undefined) doc.notes = String(data.notes || "").trim();
+    if (data.isActive !== undefined) doc.isActive = Boolean(data.isActive);
+    await doc.save();
+    return normalizeOperator(doc.toObject());
+  }
+
+  /**
+   * Stock list for the material pickers. Reads the existing stock items; stock is never changed here.
+   * query: search, branchId, limit
+   */
+  static async getStocks(query = {}, user = null) {
+    const StockItem = getModel("StockItem") || require("../../stocks/models/StockItem");
+    const branch = scopeBranch(query.branchId, user);
+    const filter = {};
+    if (query.search && String(query.search).trim()) {
+      filter.itemName = new RegExp(String(query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    }
+    const docs = await StockItem.find(filter).sort({ itemName: 1 }).limit(Math.min(500, Number(query.limit) || 200)).lean();
+    const items = docs
+      .filter((s) => !branch || !s.branchId || String(s.branchId) === String(branch))
+      .map((s) => ({
+        id: String(s._id),
+        name: s.itemName || "",
+        category: s.category || "",
+        unit: s.unit || "",
+        quantity: Number(s.qty ?? s.quantity ?? s.currentStock ?? 0) || 0,
+      }));
+    return { items, summary: { stocks: items.length }, range: null };
   }
 
   static async getOperatorById(id, query = {}, user = null) {

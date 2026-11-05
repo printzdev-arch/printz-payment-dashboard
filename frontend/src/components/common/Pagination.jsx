@@ -25,12 +25,121 @@ const Pagination = ({
   onItemsPerPageChange,
   pageSizeOptions = [10, 20, 50, 100],
   itemLabel = "items",
+  variant = "default", // "default" | "compact" (job flow style: "Showing 1 to 5 of 40", Rows select, 3 page numbers + …)
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   // Compute 1-indexed item start and end ranges
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  if (variant === "compact") {
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    // three page numbers around the current page, the rest as "…"
+    const windowStart = Math.min(Math.max(safePage - 1, 1), Math.max(1, totalPages - 2));
+    const windowPages = Array.from({ length: Math.min(3, totalPages) }, (_, i) => windowStart + i);
+    const items = [
+      ...(windowStart > 1 ? ["…l"] : []),
+      ...windowPages,
+      ...(windowPages[windowPages.length - 1] < totalPages ? ["…r"] : []),
+    ];
+    const btn = (active, disabled) => ({
+      minWidth: "32px",
+      height: "32px",
+      padding: "0 8px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: "10px",
+      fontSize: "13px",
+      fontWeight: 600,
+      color: active ? "#ffffff" : "#334155",
+      background: active ? "linear-gradient(135deg, #059669, #047857)" : "#ffffff",
+      border: active ? "1px solid #059669" : "1px solid #e2e8f0",
+      boxShadow: active ? "0 2px 6px rgba(5, 150, 105, 0.3)" : "none",
+      cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? 0.45 : 1,
+      fontFamily: "inherit",
+    });
+    return (
+      <div
+        className="printz-pagination-bar printz-pagination-compact"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 20px",
+          flexWrap: "wrap",
+          gap: "12px",
+          width: "100%",
+          boxSizing: "border-box",
+          fontSize: "13px",
+          color: "#475569",
+        }}
+      >
+        <span>
+          Showing {startItem} to {endItem} of {totalItems.toLocaleString("en-IN")} {itemLabel}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          {onItemsPerPageChange && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              Rows:
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  onItemsPerPageChange(Number(e.target.value));
+                  if (onPageChange) onPageChange(1);
+                }}
+                title="Rows per page"
+                style={{
+                  height: "34px",
+                  padding: "0 8px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                {pageSizeOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button
+            type="button"
+            aria-label="Previous page"
+            style={btn(false, safePage <= 1 || totalItems === 0)}
+            disabled={safePage <= 1 || totalItems === 0}
+            onClick={() => onPageChange(safePage - 1)}
+          >
+            <ChevronLeft size={15} />
+          </button>
+          {items.map((p) =>
+            typeof p === "string" ? (
+              <span key={p} style={{ color: "#64748b", userSelect: "none" }}>…</span>
+            ) : (
+              <button key={p} type="button" style={btn(p === safePage, false)} onClick={() => onPageChange(p)}>
+                {p}
+              </button>
+            )
+          )}
+          <button
+            type="button"
+            aria-label="Next page"
+            style={btn(false, safePage >= totalPages || totalItems === 0)}
+            disabled={safePage >= totalPages || totalItems === 0}
+            onClick={() => onPageChange(safePage + 1)}
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Generate pagination pill numbers with smart ellipsis for large page sets
   const getPageNumbers = () => {

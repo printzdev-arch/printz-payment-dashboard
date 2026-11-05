@@ -206,7 +206,7 @@ export const InvoiceEditorSection = ({
   return () => clearTimeout(timer);
   }, [customerSearchQuery, pendingJobs]);
 
-  const handleResetForm = () => {
+  const handleResetForm = (skipOnClear = false) => {
     setActiveInvoice(null);
     setJobSnapshot(null);
     setCustomerSearchQuery("");
@@ -241,7 +241,7 @@ export const InvoiceEditorSection = ({
       variancePercentage: 0,
       approvalRequired: false,
     });
-    if (onClear) onClear();
+    if (skipOnClear !== true && onClear) onClear();
   };
 
   // Load job and invoice data when selectedJobOrderId changes
@@ -249,7 +249,8 @@ export const InvoiceEditorSection = ({
     if (selectedJobOrderId) {
       loadJobAndInvoiceData(selectedJobOrderId);
     } else {
-      handleResetForm();
+      // empty form (Create Invoice tab): reset only, don't navigate back to the list
+      handleResetForm(true);
     }
   }, [selectedJobOrderId]);
 

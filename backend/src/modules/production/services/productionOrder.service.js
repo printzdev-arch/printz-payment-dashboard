@@ -4,6 +4,7 @@ const productionOperationRepository = require("../models/ProductionOperation");
 const qualityCheckRepository = require("../models/QualityCheck");
 const ProductionStateService = require("./productionState.service");
 const ErrorHelper = require("../../../utils/ApiError");
+const ProductionHelper = require("../helpers/ProductionHelper");
 
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 const isObjectId = (v) => OBJECT_ID_RE.test(String(v || ""));
@@ -151,10 +152,11 @@ class ProductionOrderService {
       scopeQueryToUser(query, user)
     );
 
-    // Design Only jobs do not undergo production, so their orders are not listed (nothing is deleted by a read).
-    // Standalone orders erroneously created for finishing services are cleaned up
+    // Design Only jobs do not undergo production, so their orders are not listed.
+    // Standalone orders wrongly created for finishing services are hidden too. A read never deletes anything;
+    // those orders are removed once at startup by cleanupFinishingOrders().
     const filteredItems = [];
-    const deleteIds = [];
+    let hiddenFinishing = 0;
     for (const item of items) {
       const job = item.jobOrderId && typeof item.jobOrderId === "object" ? item.jobOrderId : {};
       const jobTypeStr = String(job.jobType || "").toUpperCase();
@@ -163,18 +165,9 @@ class ProductionOrderService {
       const isFinishingPO = pName.startsWith("FINISHING:") || pName.startsWith("FINISHING -") || pName.startsWith("FINISHING ");
 
       if (isFinishingPO) {
-        deleteIds.push(item._id);
+        hiddenFinishing += 1;
       } else if (!isDesignOnly) {
         filteredItems.push(item);
-      }
-    }
-
-    if (deleteIds.length > 0) {
-      try {
-        await productionOrderRepository.deleteMany({ _id: { $in: deleteIds } });
-        await productionOperationRepository.deleteMany({ productionOrderId: { $in: deleteIds } });
-      } catch (e) {
-        // non-blocking
       }
     }
 
@@ -183,7 +176,27 @@ class ProductionOrderService {
     const opsByOrder = groupByOrder(operations);
 
     const enriched = filteredItems.map((item) => buildOrderView(item, opsByOrder[item._id.toString()] || []));
-    return { items: enriched, total: Math.max(0, total - deleteIds.length), page, limit };
+    return { items: enriched, total: Math.max(0, total - hiddenFinishing), page, limit };
+  }
+
+  /**
+   * One-off startup cleanup: standalone production orders (and their steps) that were wrongly created for
+   * finishing services. Finishing is a step of the main product's order, never an order of its own.
+   * Never called from a read.
+   */
+  static async cleanupFinishingOrders() {
+    const wrong = await productionOrderRepository
+      .find({
+        "specificationsSnapshot.productName": /^finishing(:| -| )/i,
+        status: { $in: ["UNASSIGNED", "PLANNED", "CANCELLED"] }, // never an order that has started
+      })
+      .select("_id")
+      .lean();
+    if (wrong.length === 0) return { removed: 0 };
+    const ids = wrong.map((o) => o._id);
+    await productionOperationRepository.deleteMany({ productionOrderId: { $in: ids } });
+    await productionOrderRepository.deleteMany({ _id: { $in: ids } });
+    return { removed: ids.length };
   }
 
   /**
@@ -244,7 +257,9 @@ class ProductionOrderService {
 
     // Branch users cannot open another branch's order
     const scoped = scopeQueryToUser({}, user);
-    const orderBranch = String(order.branchId?._id || order.branchId || "");
+    // populated() returns the stored id even when the branch document itself is missing (populated to null)
+    const storedBranch = (order.populated && order.populated("branchId")) || order.branchId?._id || order.branchId;
+    const orderBranch = String(storedBranch || "");
     if (scoped.branchId && orderBranch && scoped.branchId !== orderBranch) {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
@@ -296,6 +311,7 @@ class ProductionOrderService {
     if (!order) {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
+    ProductionHelper.assertBranchAccess(order.branchId, user, `Production Order ${id}`);
 
     if (updateData.status !== undefined) {
       throw ErrorHelper.badRequest(
@@ -307,8 +323,13 @@ class ProductionOrderService {
     }
 
     const changes = {};
-    if (updateData.plannedStart !== undefined) changes.plannedStart = new Date(updateData.plannedStart);
-    if (updateData.plannedEnd !== undefined) changes.plannedEnd = new Date(updateData.plannedEnd);
+    const asDate = (value, label) => {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) throw ErrorHelper.badRequest(`${label} is not a valid date.`);
+      return d;
+    };
+    if (updateData.plannedStart !== undefined) changes.plannedStart = asDate(updateData.plannedStart, "Planned start");
+    if (updateData.plannedEnd !== undefined) changes.plannedEnd = asDate(updateData.plannedEnd, "Planned end");
     if (updateData.machineId !== undefined) {
       if (updateData.machineId && !isObjectId(updateData.machineId)) {
         throw ErrorHelper.badRequest("Invalid machine ID.");
@@ -324,7 +345,11 @@ class ProductionOrderService {
     }
     if (updateData.priority !== undefined) {
       const p = String(updateData.priority).toUpperCase().trim();
-      changes.priority = p === "RUSH" ? "URGENT" : p;
+      const normalized = p === "RUSH" ? "URGENT" : p;
+      if (!["LOW", "NORMAL", "HIGH", "URGENT"].includes(normalized)) {
+        throw ErrorHelper.badRequest("Priority must be LOW, NORMAL, HIGH or URGENT.");
+      }
+      changes.priority = normalized;
     }
     if (updateData.notes !== undefined) changes.notes = String(updateData.notes).trim();
 
@@ -359,6 +384,7 @@ class ProductionOrderService {
     if (!order) {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
+    ProductionHelper.assertBranchAccess(order.branchId, user, `Production Order ${id}`);
 
     const cleanReason = String(reason || "").trim();
     if (!cleanReason) {
@@ -393,6 +419,7 @@ class ProductionOrderService {
     if (!order) {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
+    ProductionHelper.assertBranchAccess(order.branchId, user, `Production Order ${id}`);
     if (order.status !== "ON_HOLD") {
       throw ErrorHelper.badRequest("Only ON_HOLD production orders can be resumed.");
     }
@@ -426,6 +453,7 @@ class ProductionOrderService {
     if (!order) {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
+    ProductionHelper.assertBranchAccess(order.branchId, user, `Production Order ${id}`);
 
     const cleanReason = String(reason || "").trim();
     if (!cleanReason) {
@@ -459,6 +487,7 @@ class ProductionOrderService {
     if (!order) {
       throw ErrorHelper.notFound(`Production Order not found with ID: ${id}`);
     }
+    ProductionHelper.assertBranchAccess(order.branchId, user, `Production Order ${id}`);
     if (ProductionOrderService.isClosed(order.status)) {
       throw ErrorHelper.badRequest(`Cannot edit operations of a ${order.status} production order.`);
     }

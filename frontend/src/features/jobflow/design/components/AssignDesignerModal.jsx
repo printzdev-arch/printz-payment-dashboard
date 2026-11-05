@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import jobFlowApi from "../api/designApi";
 import { toast } from "react-toastify";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 
 export const AssignDesignerModal = ({
   isOpen,
@@ -28,15 +29,8 @@ export const AssignDesignerModal = ({
   const [liveLastAssignedId, setLiveLastAssignedId] = useState(null);
   const [fetchingPool, setFetchingPool] = useState(false);
 
-  // Fallback designer pool matching active database staff (6 designers)
-  const defaultDesigners = [
-    { _id: "des-ali", name: "Ali Hassan", email: "ali.hassan@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
-    { _id: "des-siti", name: "Siti Rahman", email: "siti.rahman@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
-    { _id: "des-kumar", name: "Kumar Anil", email: "kumar.anil@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-    { _id: "des-john", name: "John Lee", email: "john.lee@printz.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-    { _id: "des-nur", name: "Nur Aisyah", email: "nur.aisyah@printz.com", currentLoad: 0, openJobs: 0, maxLoad: 5, isActive: true },
-    { _id: "des-guna", name: "Guna", email: "guna@gmail.com", currentLoad: 1, openJobs: 1, maxLoad: 5, isActive: true },
-  ];
+  // No made-up designers: the pool always comes from the database
+  const defaultDesigners = [];
 
   // Fetch live designer pool whenever modal opens or job changes
   useEffect(() => {
@@ -49,23 +43,9 @@ export const AssignDesignerModal = ({
         try {
           const branchId = job?.branchId || job?.branch;
           const poolRes = await jobFlowApi.getDesignerPool(branchId ? { branchId } : {});
-          const allowedEmails = [
-            "ali.hassan@printz.com",
-            "siti.rahman@printz.com",
-            "kumar.anil@printz.com",
-            "john.lee@printz.com",
-            "nur.aisyah@printz.com",
-            "guna@gmail.com",
-          ];
-          const rawDesigners = poolRes?.designers || poolRes?.data || [];
-          const freshDesigners = rawDesigners.filter((d) =>
-            allowedEmails.includes((d.email || "").toLowerCase().trim())
-          );
-          if (Array.isArray(freshDesigners) && freshDesigners.length > 0) {
-            setLivePool(freshDesigners);
-          } else {
-            setLivePool(defaultDesigners);
-          }
+          // Every designer stored in the database is part of the pool
+          const freshDesigners = poolRes?.designers || poolRes?.data || [];
+          setLivePool(Array.isArray(freshDesigners) ? freshDesigners : []);
           if (poolRes?.nextDesigner) {
             setLiveNextDesignerId(poolRes.nextDesigner);
           }
@@ -140,10 +120,10 @@ export const AssignDesignerModal = ({
   if (!isOpen || !job) return null;
 
   // Job display values
-  const jobNo = job.jobNo || job.orderNumber || "JO-20250810-001";
+  const jobNo = job.jobNo || job.orderNumber || "-";
   const customer = job.customerName || job.customerSnapshot?.name || "ABC Marketing";
   const jobItem = job.title || job.specs?.productType || job.items?.[0]?.itemName || "Flyer - A5";
-  const priority = job.priority || "High";
+  const priority = job.priority || "NORMAL";
   const isRejected = Boolean(
     job.isRejected ||
     job.designStatus === "REJECTED" ||
@@ -331,18 +311,7 @@ export const AssignDesignerModal = ({
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                 <div className="alloc-kv-row">
                   <span className="alloc-kv-label">Priority</span>
-                  <span
-                    className={
-                      priority === "High"
-                        ? "dq-badge-high"
-                        : priority === "Low"
-                          ? "dq-badge-low"
-                          : "dq-badge-normal"
-                    }
-                    style={{ padding: "0.15rem 0.6rem", fontSize: "0.75rem" }}
-                  >
-                    {priority}
-                  </span>
+                  <PriorityBadge priority={priority} />
                 </div>
                 <div className="alloc-kv-row">
                   <span className="alloc-kv-label">Approved At</span>

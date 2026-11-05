@@ -25,6 +25,20 @@ const BRANCH_DESIGNERS = [
   { name: "Guna", email: "guna@gmail.com", employeeCode: "EMP-006" },
 ];
 const BRANCH_DESIGNER_EMAILS = BRANCH_DESIGNERS.map((d) => d.email.toLowerCase());
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** The six seeded designers keep their fixed rotation order; designers added later follow, oldest first. */
+const orderDesigners = (users) => {
+  const rank = (u) => {
+    const i = BRANCH_DESIGNER_EMAILS.indexOf(String(u.email || "").toLowerCase());
+    return i === -1 ? BRANCH_DESIGNER_EMAILS.length : i;
+  };
+  return [...users].sort((a, b) => {
+    const d = rank(a) - rank(b);
+    if (d !== 0) return d;
+    return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+  });
+};
 const DEFAULT_MAX_LOAD = 5;
 const MAX_LOAD_LIMIT = 50;
 
@@ -115,14 +129,10 @@ class DesignAllocationService {
   }
 
   /** The designers of the pool with their current load and whether they can take a job right now. */
-  static async evaluate(jobId = null) {
-    const users = await User.find({
-      role: "designer",
-      email: { $in: BRANCH_DESIGNER_EMAILS },
-      isActive: { $ne: false },
-    }).lean();
-    // Fixed rotation order, so round robin is predictable
-    users.sort((a, b) => BRANCH_DESIGNER_EMAILS.indexOf(String(a.email).toLowerCase()) - BRANCH_DESIGNER_EMAILS.indexOf(String(b.email).toLowerCase()));
+  static async evaluate(jobId = null, { includeInactive = false } = {}) {
+    // Every active designer stored in the database is part of the pool (inactive ones only when asked for, for management)
+    const userFilter = includeInactive ? { role: "designer" } : { role: "designer", isActive: { $ne: false } };
+    const users = orderDesigners(await User.find(userFilter).lean());
 
     let rejectedSet = new Set();
     if (jobId) {
@@ -145,7 +155,8 @@ class DesignAllocationService {
       const openJobs = openMap.get(dId) || 0;
       const designerLimit = Number(u.maxLoad) > 0 ? Number(u.maxLoad) : DEFAULT_MAX_LOAD;
       let reason = null;
-      if (rejectedSet.has(dId)) reason = "REJECTED_THIS_JOB";
+      if (u.isActive === false) reason = "INACTIVE";
+      else if (rejectedSet.has(dId)) reason = "REJECTED_THIS_JOB";
       else if (openJobs >= designerLimit) reason = "MAX_CONCURRENT_REACHED";
       return {
         _id: u._id,
@@ -154,6 +165,7 @@ class DesignAllocationService {
         employeeCode: u.employeeCode || u.email,
         name: u.name,
         email: u.email,
+        mobile: u.phone || "",
         maxLoad: designerLimit,
         isActive: u.isActive !== false,
         eligible: !reason,
@@ -496,7 +508,7 @@ class DesignAllocationService {
       .populate("employeeId", "name username email code role")
       .populate({
         path: "jobOrderId",
-        select: "jobNo title customerName customerSnapshot currentStage stage priority items designerId designerName designStatus designRejectionReason dueDate remarks customerRequirements specs",
+        select: "jobNo jobType title customerName customerSnapshot currentStage stage priority items designerId designerName designStatus designRejectionReason dueDate remarks customerRequirements specs",
         populate: { path: "designerId", select: "name email username role" },
       });
 
@@ -531,6 +543,7 @@ class DesignAllocationService {
         assignmentId: String(a._id),
         jobId: jId,
         jobNo: job.jobNo || `JO-${jId.slice(-6)}`,
+        jobType: job.jobType || job.specs?.jobType || "",
         customerName: job.customerName || job.customerSnapshot?.name || "Direct Customer",
         jobItem: job.title || job.items?.[0]?.itemName || "Custom Print Order",
         priority: (job.priority || "NORMAL").toUpperCase(),
@@ -556,6 +569,7 @@ class DesignAllocationService {
         assignmentId: null,
         jobId: jId,
         jobNo: j.jobNo || `JO-${jId.slice(-6)}`,
+        jobType: j.jobType || j.specs?.jobType || "",
         customerName: j.customerName || j.customerSnapshot?.name || "Direct Customer",
         jobItem: j.title || j.items?.[0]?.itemName || "Custom Print Order",
         priority: (j.priority || "NORMAL").toUpperCase(),
@@ -611,8 +625,8 @@ class DesignAllocationService {
     return DesignHelper.markWalkIn(list || []);
   }
 
-  static async pool(user = null) {
-    const candidates = await this.evaluate(null);
+  static async pool(user = null, { includeInactive = false } = {}) {
+    const candidates = await this.evaluate(null, { includeInactive });
     const last = await this.lastRoundRobin();
     const nextId = this.pick(candidates, last?.employeeId?._id || last?.employeeId);
     return {
@@ -649,9 +663,8 @@ class DesignAllocationService {
     const byDesigner = new Map(rows.map((r) => [String(r._id), r]));
 
     // Every designer of the pool is listed, also the ones with nothing open
-    const designers = await User.find({ role: "designer", email: { $in: BRANCH_DESIGNER_EMAILS } }).select("-password").lean();
-    return designers
-      .sort((a, b) => BRANCH_DESIGNER_EMAILS.indexOf(String(a.email).toLowerCase()) - BRANCH_DESIGNER_EMAILS.indexOf(String(b.email).toLowerCase()))
+    const designers = await User.find({ role: "designer" }).select("-password").lean();
+    return orderDesigners(designers)
       .map((u) => {
         const r = byDesigner.get(String(u._id)) || {};
         return {
@@ -665,9 +678,50 @@ class DesignAllocationService {
       });
   }
 
-  /** Change a pool designer's work limit or availability. Names, emails and accounts are never edited here. */
+  /**
+   * Add a designer to the pool. The designer is stored in the database as a user with the designer role,
+   * so the same account can log in to the designer workspace and takes part in the round robin.
+   */
+  static async addDesigner(data = {}) {
+    const name = String(data.name || "").trim().replace(/\s+/g, " ");
+    const email = String(data.email || "").trim().toLowerCase();
+    const mobile = String(data.mobile || data.phone || "").trim();
+    const password = String(data.password || "").trim();
+    const maxLoad = data.maxLoad === undefined || data.maxLoad === "" ? DEFAULT_MAX_LOAD : Number(data.maxLoad);
+
+    if (name.length < 2) throw ErrorHelper.badRequest("Designer name is required (at least 2 characters).");
+    if (!EMAIL_RE.test(email)) throw ErrorHelper.badRequest("Enter a valid designer email address.");
+    if (mobile && !/^[0-9+\-\s]{7,15}$/.test(mobile)) throw ErrorHelper.badRequest("Enter a valid mobile number.");
+    if (!password) throw ErrorHelper.badRequest("Password is required.");
+    if (password.length < 6) throw ErrorHelper.badRequest("Password must be at least 6 characters.");
+    if (!Number.isInteger(maxLoad) || maxLoad < 1 || maxLoad > MAX_LOAD_LIMIT) {
+      throw ErrorHelper.badRequest(`Max load must be a whole number from 1 to ${MAX_LOAD_LIMIT}.`);
+    }
+
+    const username = email.split("@")[0];
+    const clash = await User.findOne({ $or: [{ email }, { username }] }).select("email username").lean();
+    if (clash) {
+      throw ErrorHelper.conflict(
+        clash.email === email ? "A user with this email already exists." : "A user with this username already exists. Use a different email."
+      );
+    }
+
+    // Next free EMP-### code
+    const codes = await User.find({ employeeCode: /^EMP-\d+$/ }).select("employeeCode").lean();
+    const next = codes.reduce((m, u) => Math.max(m, Number(String(u.employeeCode).slice(4)) || 0), 0) + 1;
+    const employeeCode = `EMP-${String(next).padStart(3, "0")}`;
+
+    const payload = { name, email, username, password, role: "designer", employeeCode, isActive: true, maxLoad };
+    if (mobile) payload.phone = mobile;
+    const user = await User.create(payload);
+
+    const { password: _pw, ...safe } = user.toObject();
+    return safe;
+  }
+
+  /** Change a pool designer's details (name, email, mobile), work limit or availability. */
   static async updateDesigner(id, data = {}) {
-    const designer = await User.findOne({ _id: asObjectId(id), role: "designer", email: { $in: BRANCH_DESIGNER_EMAILS } });
+    const designer = await User.findOne({ _id: asObjectId(id), role: "designer" });
     if (!designer) throw ErrorHelper.notFound("Designer not found in the designer pool.");
 
     if (data.maxLoad !== undefined) {
@@ -678,6 +732,31 @@ class DesignAllocationService {
       designer.maxLoad = limit;
     }
     if (data.isActive !== undefined) designer.isActive = Boolean(data.isActive);
+
+    if (data.name !== undefined) {
+      const name = String(data.name || "").trim().replace(/\s+/g, " ");
+      if (name.length < 2) throw ErrorHelper.badRequest("Designer name is required (at least 2 characters).");
+      designer.name = name;
+    }
+    if (data.email !== undefined) {
+      const email = String(data.email || "").trim().toLowerCase();
+      if (!EMAIL_RE.test(email)) throw ErrorHelper.badRequest("Enter a valid designer email address.");
+      if (email !== String(designer.email || "").toLowerCase()) {
+        const clash = await User.findOne({ email, _id: { $ne: designer._id } }).select("_id").lean();
+        if (clash) throw ErrorHelper.conflict("A user with this email already exists.");
+        designer.email = email;
+      }
+    }
+    if (data.mobile !== undefined || data.phone !== undefined) {
+      const mobile = String(data.mobile ?? data.phone ?? "").trim();
+      if (mobile && !/^[0-9+\-\s]{7,15}$/.test(mobile)) throw ErrorHelper.badRequest("Enter a valid mobile number.");
+      designer.phone = mobile;
+    }
+    if (data.password !== undefined && String(data.password).trim() !== "") {
+      const password = String(data.password).trim();
+      if (password.length < 6) throw ErrorHelper.badRequest("Password must be at least 6 characters.");
+      designer.password = password; // hashed by the User model on save
+    }
     await designer.save();
 
     const { password, ...safe } = designer.toObject();
@@ -689,7 +768,7 @@ class DesignAllocationService {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LOAD_LIMIT) {
       throw ErrorHelper.badRequest(`Max load must be a whole number from 1 to ${MAX_LOAD_LIMIT}.`);
     }
-    await User.updateMany({ role: "designer", email: { $in: BRANCH_DESIGNER_EMAILS } }, { $set: { maxLoad: limit } });
+    await User.updateMany({ role: "designer" }, { $set: { maxLoad: limit } });
     return { success: true, maxLoad: limit };
   }
 }

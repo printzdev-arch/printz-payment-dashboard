@@ -117,6 +117,35 @@ const normalizeJobType = (value) => {
 // Only these stages (before the estimate is approved) can still be edited
 const EDITABLE_STAGES = ["ENQUIRY", "ESTIMATION", "ESTIMATE_APPROVAL"];
 
+/*
+  Printing and Packing are default services of every job order. Each has its own cost
+  (separate from the product cost). They are always the first two rows of finishingServices.
+  The names "Print" / "Packing" match what the server uses, so it never adds a second copy.
+*/
+const DEFAULT_PRINT_RATE = 0.2; // per sheet
+const DEFAULT_PACK_RATE = 0.2; // per pack of 100
+const packsFor = (qty) => Math.max(1, Math.ceil((Number(qty) || 0) / 100));
+const defaultPrintRow = (qty, src = {}) => {
+  const q = Number(qty) > 0 ? Number(qty) : 1;
+  return { config: "", unitPrice: DEFAULT_PRINT_RATE, quantity: q, unit: "sheets", ...src, id: "default-print", name: "Print", isDefault: true };
+};
+const defaultPackingRow = (qty, src = {}) => ({
+  config: "Shrink Wrap", unitPrice: DEFAULT_PACK_RATE, quantity: packsFor(qty), unit: "packs", ...src, id: "default-packing", name: "Packing", isDefault: true,
+});
+const isDefaultServiceName = (n) => ["print", "printing", "packing"].includes(String(n || "").trim().toLowerCase());
+// Put Print and Packing first, reusing the saved price / quantity when the list already has them
+const withDefaultServices = (list = [], qty = 1) => {
+  const find = (names) => list.find((f) => names.includes(String(f?.name || "").trim().toLowerCase()));
+  const print = find(["print", "printing"]);
+  const pack = find(["packing"]);
+  const others = list.filter((f) => f && !isDefaultServiceName(f.name));
+  return [
+    defaultPrintRow(qty, print ? { config: print.config || undefined, unitPrice: Number(print.unitPrice) || 0, quantity: Number(print.quantity) || Number(qty) || 1, qtyManual: Boolean(print.qtyManual) } : {}),
+    defaultPackingRow(qty, pack ? { config: pack.config || undefined, unitPrice: Number(pack.unitPrice) || 0, quantity: Number(pack.quantity) || packsFor(qty), qtyManual: Boolean(pack.qtyManual) } : {}),
+    ...others,
+  ];
+};
+
 export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -184,6 +213,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   }, [customerSearchTerm]);
 
   // Form State
+  const [sideTab, setSideTab] = useState("upload"); // "upload" | "preview"
   const [formData, setFormData] = useState({
     customerId: "",
     customerName: "",
@@ -195,6 +225,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     jobType: "",
     jobTitle: "",
     targetDueDate: "",
+    priority: "NORMAL",
     deliveryMethod: "",
     // Print Only jobs can skip quality control; it is on for every job by default
     qcRequired: true,
@@ -213,7 +244,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     finishing: "",
     proofRequirement: "",
 
-    finishingServices: [],
+    finishingServices: [defaultPrintRow(1), defaultPackingRow(1)],
     additionalServices: [],
 
     uploadedFiles: [],
@@ -295,6 +326,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
           jobType: normalizeJobType(job.jobType || specs.jobType),
           jobTitle: job.title || "",
           targetDueDate: toDateInputValue(job.dueDate),
+          priority: ["URGENT", "HIGH", "RUSH"].includes(String(job.priority || "").toUpperCase()) ? "URGENT" : "NORMAL",
           deliveryMethod: job.deliveryMethod || "",
           qcRequired: job.qcRequired !== false,
           remarks: job.remarks || job.notes || "",
@@ -308,7 +340,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
           size: pick("size"),
           color: pick("color"),
           printingSide: pick("printingSide"),
-          finishingServices,
+          finishingServices: withDefaultServices(finishingServices, jobQty).map((s) =>
+            s.id === "default-print" ? { ...s, config: pick("color") || s.config || "" } : s
+          ),
           additionalServices: Array.isArray(job.additionalServices) ? job.additionalServices : [],
           uploadedFiles: Array.isArray(job.attachments) ? job.attachments : [],
         }));
@@ -448,12 +482,18 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         const newQty = Number(value) > 0 ? Number(value) : "";
         if (newQty && prev.finishingServices.length > 0) {
           // Rows whose quantity was typed by hand (e.g. packs) keep it
-          updated.finishingServices = prev.finishingServices.map((s) =>
-            s.qtyManual
-              ? s
-              : { ...s, quantity: newQty, total: Math.round(newQty * Number(s.unitPrice || 0) * 100) / 100 }
-          );
+          updated.finishingServices = prev.finishingServices.map((s) => {
+            if (s.qtyManual) return s;
+            const q = s.id === "default-packing" ? packsFor(newQty) : newQty;
+            return { ...s, quantity: q, total: Math.round(q * Number(s.unitPrice || 0) * 100) / 100 };
+          });
         }
+      }
+      // The Printing row has no config list of its own: it uses the Color chosen above
+      if (field === "color") {
+        updated.finishingServices = (updated.finishingServices || prev.finishingServices).map((s) =>
+          s.id === "default-print" ? { ...s, config: value || "" } : s
+        );
       }
       // QC can only be switched off for Print Only; any other type goes back to "QC required"
       if (field === "jobType" && value !== "Print Only") {
@@ -466,6 +506,8 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     });
   };
 
+  // Printing and Packing are default steps of every production order, so they are never picked as finishing services
+  const DEFAULT_STEP_NAMES = ["print", "printing", "packing", "packing & bundling"];
   const availableFinishingServices = (
     masterDefaults.finishingServicesList.length > 0
       ? masterDefaults.finishingServicesList.map((s) => s.name)
@@ -482,9 +524,8 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
           "Mounting",
           "Perforation",
           "Numbering",
-          "Packing",
         ]
-  );
+  ).filter((name) => !DEFAULT_STEP_NAMES.includes(String(name || "").trim().toLowerCase()));
 
   const getDefaultConfig = (name) => {
     const n = String(name || "").toLowerCase();
@@ -554,6 +595,12 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
   // Row totals are always quantity x price, never a cached value
   const finishingRowTotal = (s) => Math.round(Number(s.quantity || 0) * Number(s.unitPrice || 0) * 100) / 100;
   const finishingTotal = Math.round(formData.finishingServices.reduce((sum, s) => sum + finishingRowTotal(s), 0) * 100) / 100;
+
+  // Product, Printing and Packing each have their own cost; the rest are the optional finishing services
+  const printingCost = Math.round(formData.finishingServices.filter((s) => s.id === "default-print").reduce((a, s) => a + finishingRowTotal(s), 0) * 100) / 100;
+  const packingCost = Math.round(formData.finishingServices.filter((s) => s.id === "default-packing").reduce((a, s) => a + finishingRowTotal(s), 0) * 100) / 100;
+  const otherFinishingServices = formData.finishingServices.filter((s) => !s.isDefault);
+  const otherFinishingTotal = Math.round((finishingTotal - printingCost - packingCost) * 100) / 100;
 
   const grandTotal = Math.round((productCost + finishingTotal) * 100) / 100;
 
@@ -669,6 +716,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
         jobType: formData.jobType,
         title: formData.jobTitle || "Custom Print Order",
         dueDate: formData.targetDueDate,
+        priority: formData.priority || "NORMAL",
         deliveryMethod: formData.deliveryMethod,
         qcRequired: formData.jobType === "Print Only" ? formData.qcRequired !== false : true,
         quantity: Number(formData.quantity),
@@ -698,9 +746,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               color: formData.color,
               printingSide: formData.printingSide,
               lamination: (formData.finishingServices.find((s) => s.name?.toLowerCase().includes("lamination"))?.config) || formData.lamination || "",
-              finishing: formData.finishingServices.map((s) => s.name).join(", ") || formData.finishing || "",
+              finishing: otherFinishingServices.map((s) => s.name).join(", ") || formData.finishing || "",
             },
-            finishing: (formData.finishingServices || []).map((s, idx) => ({
+            finishing: otherFinishingServices.map((s, idx) => ({
               code: (s.code || s.name || "FINISHING").toUpperCase().replace(/\s+/g, "_"),
               name: s.name,
               config: s.config || "Standard",
@@ -737,7 +785,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
           color: formData.color,
           printingSide: formData.printingSide,
           lamination: (formData.finishingServices.find((s) => s.name?.toLowerCase().includes("lamination"))?.config) || formData.lamination || "",
-          finishing: formData.finishingServices.map((s) => s.name).join(", ") || formData.finishing || "",
+          finishing: otherFinishingServices.map((s) => s.name).join(", ") || formData.finishing || "",
         },
         finishingServices: formData.finishingServices,
         additionalServices: formData.additionalServices,
@@ -1159,6 +1207,18 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               </div>
 
               <div className="jf-form-group">
+                <label className="jf-label jf-label-required">Priority</label>
+                <select
+                  className="jf-select"
+                  value={formData.priority}
+                  onChange={(e) => handleInputChange("priority", e.target.value)}
+                >
+                  <option value="NORMAL">Normal</option>
+                  <option value="URGENT">Urgent</option>
+                </select>
+              </div>
+
+              <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Delivery Method</label>
                 <select
                   className="jf-select"
@@ -1408,7 +1468,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
             <div className="jf-card-body-stretch">
               {/* Finishing Services Table */}
-              <div className="jf-table-scroll-3rows" style={{ marginBottom: "1rem" }}>
+              <div className="jf-finishing-table-wrap" style={{ marginBottom: "1rem" }}>
                 <table className="jf-table">
                   <thead>
                     <tr>
@@ -1426,6 +1486,12 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       <tr key={svc.id}>
                         <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>{idx + 1}</td>
                         <td style={{ padding: "0.35rem 0.5rem" }}>
+                          {svc.isDefault ? (
+                            <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.8125rem" }}>
+                              {svc.id === "default-print" ? "Printing" : "Packing"}
+                              <span style={{ marginLeft: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "#15803d", background: "#dcfce7", padding: "1px 6px", borderRadius: "9999px" }}>Default</span>
+                            </span>
+                          ) : (
                           <select
                             className="jf-select"
                             style={{ padding: "0.2rem 0.4rem", fontSize: "0.78125rem", height: "30px", width: "100%", fontWeight: 600 }}
@@ -1438,8 +1504,14 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                               </option>
                             ))}
                           </select>
+                          )}
                         </td>
                         <td style={{ padding: "0.35rem 0.5rem" }}>
+                          {svc.id === "default-print" ? (
+                            <span style={{ fontSize: "0.78125rem", color: svc.config ? "#0f172a" : "#94a3b8" }}>
+                              {svc.config || "Choose Color in Print Specifications"}
+                            </span>
+                          ) : (
                           <select
                             className="jf-select"
                             style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
@@ -1508,6 +1580,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                               </>
                             )}
                           </select>
+                          )}
                         </td>
                         <td style={{ padding: "0.35rem 0.5rem" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
@@ -1519,14 +1592,23 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                               className="jf-input"
                               style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
                               value={svc.unitPrice}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => {
-                                const p = e.target.value === "" ? 0 : Number(e.target.value);
+                                const p = e.target.value === "" ? "" : Number(e.target.value);
                                 setFormData((prev) => ({
                                   ...prev,
                                   finishingServices: prev.finishingServices.map((s) =>
-                                    s.id === svc.id ? { ...s, unitPrice: p, total: Math.round(Number(s.quantity || 1) * p * 100) / 100 } : s
+                                    s.id === svc.id ? { ...s, unitPrice: p, total: Math.round(Number(s.quantity || 0) * Number(p || 0) * 100) / 100 } : s
                                   ),
                                 }));
+                              }}
+                              onBlur={() => {
+                                if (svc.unitPrice === "" || svc.unitPrice === null || Number.isNaN(Number(svc.unitPrice))) {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    finishingServices: prev.finishingServices.map((s) => (s.id === svc.id ? { ...s, unitPrice: 0, total: 0 } : s)),
+                                  }));
+                                }
                               }}
                             />
                           </div>
@@ -1538,14 +1620,25 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                             className="jf-input"
                             style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
                             value={svc.quantity}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => {
-                              const q = e.target.value === "" ? 1 : Number(e.target.value);
+                              const q = e.target.value === "" ? "" : Number(e.target.value);
                               setFormData((prev) => ({
                                 ...prev,
                                 finishingServices: prev.finishingServices.map((s) =>
-                                  s.id === svc.id ? { ...s, quantity: q, qtyManual: true, total: Math.round(q * Number(s.unitPrice || 0) * 100) / 100 } : s
+                                  s.id === svc.id ? { ...s, quantity: q, qtyManual: true, total: Math.round(Number(q || 0) * Number(s.unitPrice || 0) * 100) / 100 } : s
                                 ),
                               }));
+                            }}
+                            onBlur={() => {
+                              if (svc.quantity === "" || svc.quantity === null || !(Number(svc.quantity) >= 1)) {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  finishingServices: prev.finishingServices.map((s) =>
+                                    s.id === svc.id ? { ...s, quantity: 1, qtyManual: true, total: Math.round(Number(s.unitPrice || 0) * 100) / 100 } : s
+                                  ),
+                                }));
+                              }
                             }}
                           />
                         </td>
@@ -1553,6 +1646,9 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                           <strong>₹{finishingRowTotal(svc).toFixed(2)}</strong>
                         </td>
                         <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>
+                          {svc.isDefault ? (
+                            <span style={{ color: "#94a3b8", fontSize: "0.75rem" }} title="Printing and Packing are default services">—</span>
+                          ) : (
                           <button
                             type="button"
                             className="jf-btn jf-btn-danger-outline jf-btn-sm"
@@ -1562,13 +1658,14 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                           >
                             <Trash2 size={13} />
                           </button>
+                          )}
                         </td>
                       </tr>
                     ))}
-                    {formData.finishingServices.length === 0 && (
+                    {otherFinishingServices.length === 0 && (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", color: "#64748b", padding: "2rem 1rem" }}>
-                          <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.85rem" }}>No finishing services added yet.</p>
+                        <td colSpan={7} style={{ textAlign: "center", color: "#64748b", padding: "1rem" }}>
+                         
                           <button
                             type="button"
                             className="jf-btn jf-btn-secondary jf-btn-sm"
@@ -1589,7 +1686,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <span style={{ fontWeight: 600, color: "#166534", fontSize: "0.875rem" }}>Total Estimated Cost:</span>
                   <span style={{ fontSize: "0.75rem", color: "#15803d" }}>
-                    Product: ₹{productCost.toFixed(2)} {finishingTotal > 0 ? `+ Finishing: ₹${finishingTotal.toFixed(2)}` : "(Finishing: ₹0.00)"}
+                    Product: ₹{productCost.toFixed(2)} + Printing: ₹{printingCost.toFixed(2)} + Packing: ₹{packingCost.toFixed(2)}{otherFinishingTotal > 0 ? ` + Finishing: ₹${otherFinishingTotal.toFixed(2)}` : ""}
                   </span>
                 </div>
                 <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "#15803d" }}>₹{grandTotal.toFixed(2)}</span>
@@ -1597,13 +1694,49 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* CARD 4: Upload Artwork & References (Narrower) */}
-          <div className="jf-card">
-            <div className="jf-card-header">
-              <h3 className="jf-card-title">Upload Artwork & References</h3>
-            </div>
+        </div>
 
-            <div className="jf-card-body-stretch">
+        {/* ========================================================================= */}
+        {/* CARD 5: Preview Sample (Row 3, Column 1)                                   */}
+        {/* ========================================================================= */}
+        <div className="jf-card">
+          <div className="jf-card-header" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setSideTab("upload")}
+                style={{
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "8px",
+                  border: sideTab === "upload" ? "1px solid var(--jf-primary, #059669)" : "1px solid #e2e8f0",
+                  background: sideTab === "upload" ? "var(--jf-primary, #059669)" : "#ffffff",
+                  color: sideTab === "upload" ? "#ffffff" : "#334155",
+                  fontWeight: 600,
+                  fontSize: "0.8125rem",
+                  cursor: "pointer",
+                }}
+              >
+                Upload &amp; References
+              </button>
+              <button
+                type="button"
+                onClick={() => setSideTab("preview")}
+                style={{
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "8px",
+                  border: sideTab === "preview" ? "1px solid var(--jf-primary, #059669)" : "1px solid #e2e8f0",
+                  background: sideTab === "preview" ? "var(--jf-primary, #059669)" : "#ffffff",
+                  color: sideTab === "preview" ? "#ffffff" : "#334155",
+                  fontWeight: 600,
+                  fontSize: "0.8125rem",
+                  cursor: "pointer",
+                }}
+              >
+                Preview Sample
+              </button>
+          </div>
+
+          {sideTab === "upload" ? (
+          <div className="jf-card-body-stretch">
               {/* Dropzone */}
               <label className="jf-dropzone" style={{ display: "block", marginBottom: "1rem", padding: "1rem" }}>
                 <input
@@ -1671,17 +1804,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 />
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* CARD 5: Preview Sample (Row 3, Column 1)                                   */}
-        {/* ========================================================================= */}
-        <div className="jf-card">
-          <div className="jf-card-header">
-            <h3 className="jf-card-title">Preview Sample</h3>
-          </div>
-
+          ) : (
           <div className="jf-card-body-stretch">
             <div
               style={{
@@ -1710,7 +1833,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               <div style={{ background: "#f8fafc", padding: "0.875rem", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.8125rem", color: "#475569", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
                 <div><strong>Specs:</strong> {[formData.paperGsm, formData.paperType].filter(Boolean).join(" ") || "-"}</div>
                 <div><strong>Color:</strong> {formData.color ? `${formData.color}${formData.printingSide ? ` (${formData.printingSide})` : ""}` : "-"}</div>
-                <div><strong>Finishing:</strong> {formData.finishingServices.length > 0 ? formData.finishingServices.map((s) => s.name).join(", ") : "None"}</div>
+                <div><strong>Finishing:</strong> {otherFinishingServices.length > 0 ? otherFinishingServices.map((s) => s.name).join(", ") : "None"}</div>
                 <div><strong>Quantity:</strong> {formData.quantity ? `${formData.quantity} pcs` : "-"}</div>
                 <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.4rem", display: "flex", justifyContent: "space-between" }}>
                   <strong>Product Cost:</strong>
@@ -1719,6 +1842,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* ========================================================================= */}
@@ -1743,8 +1867,16 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <strong style={{ color: "#0f172a" }}>₹{productCost.toFixed(2)}</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
+                  <span style={{ color: "#475569" }}>Printing Cost:</span>
+                  <span style={{ color: "#0f172a", fontWeight: 600 }}>₹{printingCost.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
+                  <span style={{ color: "#475569" }}>Packing Cost:</span>
+                  <span style={{ color: "#0f172a", fontWeight: 600 }}>₹{packingCost.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
                   <span style={{ color: "#475569" }}>Finishing Services Total:</span>
-                  <span style={{ color: "#475569" }}>₹{finishingTotal.toFixed(2)}</span>
+                  <span style={{ color: "#475569" }}>₹{otherFinishingTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #cbd5e1", paddingTop: "0.4rem", marginTop: "0.15rem" }}>
                   <strong style={{ color: "#0f172a", fontSize: "0.875rem" }}>Estimated Order Total:</strong>

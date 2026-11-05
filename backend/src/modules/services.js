@@ -69,7 +69,6 @@ const productionStateService = require("./production/services/productionState.se
 const qualityCheckService = require("./production/services/qualityCheck.service");
 const reprintService = require("./production/services/reprint.service");
 const reworkService = require("./production/services/rework.service");
-const roundRobinService = require("./production/services/roundRobin.service");
 
 // Public
 const publicDesignApprovalService = require("./public/services/publicDesignApproval.service");
@@ -156,7 +155,6 @@ module.exports = {
   qualityCheckService,
   reprintService,
   reworkService,
-  roundRobinService,
 
   // Public
   publicDesignApprovalService,

@@ -144,8 +144,8 @@ const getManagerPageTitle = (pathname, search = "") => {
   if (pathname.includes("/delivery") || pathname.includes("/jobflow/delivery")) {
     const params = new URLSearchParams(search);
     const tab = (params.get("tab") || "").toUpperCase();
-    if (tab === "DELIVERED") return "Delivery - Delivered & Paid";
-    return "Delivery Dispatch Queue";
+    if (tab === "PICKUP") return "Delivery - Self Pickup";
+    return "Delivery - Dispatch Delivery";
   }
   if (pathname.includes("/invoice") || pathname.includes("/invoices") || pathname.includes("/jobflow/invoice")) {
     return "Commercial Tax Invoicing";
@@ -170,6 +170,7 @@ const getManagerPageTitle = (pathname, search = "") => {
     if (tab === "queue" || pathname.includes("/production/queue")) return "Operation Queue";
     if (tab === "rework" || pathname.includes("/production/rework")) return "Rework & Reprint";
     if (tab === "reprints" || pathname.includes("/production/reprints")) return "Rework & Reprint";
+    if (pathname.includes("/production/operators")) return "Operators";
     if (tab === "reports" || pathname.includes("/production/reports")) return "Production Reports";
     return "Production Orders";
   }
@@ -545,6 +546,7 @@ const ManagerLayout = ({ children }) => {
     if (location.pathname.includes("/production/queue")) return "queue";
     if (location.pathname.includes("/production/rework")) return "rework";
     if (location.pathname.includes("/production/reprints")) return "reprints";
+    if (location.pathname.includes("/production/operators")) return "operators";
     if (location.pathname.includes("/production/reports")) return "reports";
     return "orders";
   })();
@@ -610,13 +612,13 @@ const ManagerLayout = ({ children }) => {
     if (!isDeliveryRoute) return "";
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
-    if (tab) return tab.toUpperCase();
-    return "REVIEW";
+    if (tab) return tab.toUpperCase() === "PICKUP" ? "PICKUP" : "DISPATCH";
+    return sessionStorage.getItem("delivery_active_tab") === "PICKUP" ? "PICKUP" : "DISPATCH";
   })();
 
   const handleDeliveryClick = () => {
     if (!isDeliveryRoute) {
-      const savedTab = sessionStorage.getItem("delivery_active_tab") || "REVIEW";
+      const savedTab = sessionStorage.getItem("delivery_active_tab") === "PICKUP" ? "PICKUP" : "DISPATCH";
       navigate(`/jobflow/delivery?tab=${savedTab}`);
       setIsDeliveryToggled(true);
     } else {
@@ -1583,34 +1585,6 @@ const ManagerLayout = ({ children }) => {
                   </li>
                   <li className="sidebar-dropdown-item">
                     <Link
-                      to="/jobflow/design?view=my-jobs"
-                      className={`sidebar-dropdown-link ${currentDesignTab === "my-jobs" ? "active" : ""}`}
-                    >
-                      <div className="sidebar-dropdown-link-left">
-                        <UserCheck size={13} className="sidebar-dropdown-icon" />
-                        <span className="sidebar-dropdown-text">Designer My Jobs</span>
-                      </div>
-                      {currentDesignTab === "my-jobs" && (
-                        <span className="sidebar-dropdown-active-dot" />
-                      )}
-                    </Link>
-                  </li>
-                  <li className="sidebar-dropdown-item">
-                    <Link
-                      to="/jobflow/design?view=customer-proof"
-                      className={`sidebar-dropdown-link ${currentDesignTab === "customer-proof" ? "active" : ""}`}
-                    >
-                      <div className="sidebar-dropdown-link-left">
-                        <MessageCircle size={13} className="sidebar-dropdown-icon" />
-                        <span className="sidebar-dropdown-text">Customer Proof Review</span>
-                      </div>
-                      {currentDesignTab === "customer-proof" && (
-                        <span className="sidebar-dropdown-active-dot" />
-                      )}
-                    </Link>
-                  </li>
-                  <li className="sidebar-dropdown-item">
-                    <Link
                       to="/jobflow/designer-jobs"
                       className={`sidebar-dropdown-link ${currentDesignTab === "designer-jobs" ? "active" : ""}`}
                     >
@@ -1646,24 +1620,6 @@ const ManagerLayout = ({ children }) => {
                     <span>Designer My Jobs</span>
                   </div>
                   {isDesignRoute && (currentDesignTab === "my-jobs" || !currentDesignTab) && (
-                    <ChevronRight size={15} className="sidebar-active-arrow" />
-                  )}
-                </NavLink>
-              </li>
-
-              {/* 2. Customer Review */}
-              <li className="sidebar-nav-item">
-                <NavLink
-                  to="/jobflow/design?view=customer-proof"
-                  className={`sidebar-link ${
-                    isDesignRoute && currentDesignTab === "customer-proof" ? "active-link" : ""
-                  }`}
-                >
-                  <div className="sidebar-link-content">
-                    <MessageCircle size={18} className="sidebar-link-icon" />
-                    <span>Customer Review</span>
-                  </div>
-                  {isDesignRoute && currentDesignTab === "customer-proof" && (
                     <ChevronRight size={15} className="sidebar-active-arrow" />
                   )}
                 </NavLink>
@@ -1797,6 +1753,22 @@ const ManagerLayout = ({ children }) => {
                           <span className="sidebar-dropdown-text">Rework & Reprint</span>
                         </div>
                         {(currentProductionTab === "rework" || currentProductionTab === "reprints") && (
+                          <span className="sidebar-dropdown-active-dot" />
+                        )}
+                      </Link>
+                    </li>
+
+                    {/* Operators */}
+                    <li className="sidebar-dropdown-item">
+                      <Link
+                        to="/production/operators"
+                        className={`sidebar-dropdown-link ${currentProductionTab === "operators" ? "active" : ""}`}
+                      >
+                        <div className="sidebar-dropdown-link-left">
+                          <Users size={13} className="sidebar-dropdown-icon" />
+                          <span className="sidebar-dropdown-text">Operators</span>
+                        </div>
+                        {currentProductionTab === "operators" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>
@@ -1974,42 +1946,28 @@ const ManagerLayout = ({ children }) => {
                   <ul className="sidebar-dropdown-list">
                     <li className="sidebar-dropdown-item">
                       <Link
-                        to="/jobflow/delivery?tab=REVIEW"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab !== "DELIVERED" && currentDeliveryTab !== "CLOSURE" ? "active" : ""}`}
+                        to="/jobflow/delivery?tab=DISPATCH"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "DISPATCH" ? "active" : ""}`}
                       >
                         <div className="sidebar-dropdown-link-left">
                           <Truck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Delivery Dispatch Queue</span>
+                          <span className="sidebar-dropdown-text">Dispatch Delivery</span>
                         </div>
-                        {currentDeliveryTab !== "DELIVERED" && currentDeliveryTab !== "CLOSURE" && (
+                        {currentDeliveryTab === "DISPATCH" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>
                     </li>
                     <li className="sidebar-dropdown-item">
                       <Link
-                        to="/jobflow/delivery?tab=DELIVERED"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "DELIVERED" ? "active" : ""}`}
+                        to="/jobflow/delivery?tab=PICKUP"
+                        className={`sidebar-dropdown-link ${currentDeliveryTab === "PICKUP" ? "active" : ""}`}
                       >
                         <div className="sidebar-dropdown-link-left">
                           <CheckCircle size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Delivered & Paid</span>
+                          <span className="sidebar-dropdown-text">Self Pickup</span>
                         </div>
-                        {currentDeliveryTab === "DELIVERED" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/delivery?tab=CLOSURE"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "CLOSURE" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Lock size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Job Closure</span>
-                        </div>
-                        {currentDeliveryTab === "CLOSURE" && (
+                        {currentDeliveryTab === "PICKUP" && (
                           <span className="sidebar-dropdown-active-dot" />
                         )}
                       </Link>

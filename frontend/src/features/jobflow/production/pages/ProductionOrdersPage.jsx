@@ -19,12 +19,14 @@ import {
   RefreshCw,
   Eye,
   Ban,
+  Pencil,
 } from "lucide-react";
 import productionApi from "../api/productionApi";
 import ProductionOrderActionsModal from "../components/ProductionOrderActionsModal";
 import "../styles/production-orders.css";
 import "../styles/production-theme.css";
 
+import Pagination from "../../../../components/common/Pagination";
 /* ---------- helpers ---------- */
 
 // Database value -> label shown to users
@@ -123,7 +125,7 @@ function OrderDetailsModal({ orderId, onClose }) {
       <div className="po2-modal" role="dialog" aria-modal="true">
         <div className="po2-modal-head">
           <div>
-            <h3>{data?.jobNo || data?.jobOrderNo || data?.productionNo || "Job Order"}</h3>
+            <h3>{data?.jobNo || data?.jobOrderNo || "Job Order"}</h3>
             {data && (
               <span className="po2-sub">
                 {data.customerName || "—"} · {data.productName || "—"}
@@ -147,7 +149,7 @@ function OrderDetailsModal({ orderId, onClose }) {
                     {STATUS_LABELS[data.status] || data.status}
                   </span>
                 </Fact>
-                <Fact label="Priority">{data.priority || "—"}</Fact>
+                <Fact label="Priority">{["URGENT", "HIGH", "RUSH"].includes(String(data.priority || "").toUpperCase()) ? "Urgent" : "Normal"}</Fact>
                 <Fact label="Progress">{data.progressPct ?? 0}%</Fact>
                 <Fact label="Due Date">{fmtDate(data.dueDate)}</Fact>
                 <Fact label="Planned Qty">{fmtNum(data.plannedQty)}</Fact>
@@ -183,8 +185,7 @@ function OrderDetailsModal({ orderId, onClose }) {
                   <table className="po2-table">
                     <thead>
                       <tr>
-                        <th>#</th>
-                        <th>Operation</th>
+                                <th>Operation</th>
                         <th>Status</th>
                         <th>Machine</th>
                         <th>Operator</th>
@@ -266,7 +267,7 @@ function Fact({ label, children }) {
 /* ---------- page ---------- */
 export default function ProductionOrdersPage() {
   const navigate = useNavigate();
-  const rowsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
@@ -328,8 +329,14 @@ export default function ProductionOrdersPage() {
     try {
       const params = { ...filterParams, page, limit: rowsPerPage };
       if (debouncedSearch) params.search = debouncedSearch;
-      if (statusFilter !== "ALL") params.status = statusFilter;
-      if (planningFilter !== "ALL") params.planningStatus = planningFilter;
+      // "Draft" = an unplanned order whose plan was saved as a draft
+      if (statusFilter === "DRAFT") {
+        params.status = "UNASSIGNED";
+        params.planningStatus = "DRAFT";
+      } else if (statusFilter !== "ALL") {
+        params.status = statusFilter;
+      }
+      if (planningFilter !== "ALL" && statusFilter !== "DRAFT") params.planningStatus = planningFilter;
 
       const res = await productionApi.getProductionOrders(params);
       const list = Array.isArray(res?.data) ? res.data : res?.items || [];
@@ -342,7 +349,7 @@ export default function ProductionOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterParams, page, debouncedSearch, statusFilter, planningFilter]);
+  }, [filterParams, page, rowsPerPage, debouncedSearch, statusFilter, planningFilter]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -481,6 +488,7 @@ export default function ProductionOrdersPage() {
           <span>Status</span>
           <select value={statusFilter} onChange={withReset(setStatusFilter)}>
             <option value="ALL">All</option>
+            <option value="DRAFT">Draft</option>
             {Object.entries(STATUS_LABELS).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -554,7 +562,6 @@ export default function ProductionOrdersPage() {
           <table className="po-table">
             <thead>
               <tr>
-                <th>#</th>
                 <th>Job Order No</th>
                 <th>Customer</th>
                 <th>Product</th>
@@ -569,11 +576,11 @@ export default function ProductionOrdersPage() {
             <tbody>
               {loading ? (
                 <tr className="po-empty-row">
-                  <td colSpan="10">Loading production orders…</td>
+                  <td colSpan="9">Loading production orders…</td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr className="po-empty-row">
-                  <td colSpan="10">
+                  <td colSpan="9">
                     {loadError ? "Could not load production orders." : "No production orders match the current filters."}
                   </td>
                 </tr>
@@ -581,15 +588,11 @@ export default function ProductionOrdersPage() {
                 orders.map((o, i) => {
                   const id = rowId(o);
                   const can = actionsFor(o.status);
-                  const hasMenu = can.hold || can.resume || can.cancel;
-                  const prio = String(o.priority || "NORMAL").toUpperCase();
+                  const prio = ["URGENT", "HIGH", "RUSH"].includes(String(o.priority || "").toUpperCase()) ? "URGENT" : "NORMAL";
                   return (
                     <tr key={id}>
-                      <td data-label="#" className="col-index">
-                        {startIdx + i + 1}
-                      </td>
                       <td data-label="Job Order No" className="po-number">
-                        {o.jobNo || o.jobOrderNo || o.productionNo || "—"}
+                        {o.jobNo || o.jobOrderNo || "—"}
                       </td>
                       <td data-label="Customer">{o.customerName || "—"}</td>
                       <td data-label="Product">{o.productName || "—"}</td>
@@ -597,12 +600,16 @@ export default function ProductionOrdersPage() {
                         {fmtNum(o.quantity ?? o.plannedQty)}
                       </td>
                       <td data-label="Status">
-                        <span className={`po-pill ${pillClass(o.status)}`}>
-                          {STATUS_LABELS[o.status] || o.status}
-                        </span>
+                        {o.status === "UNASSIGNED" && o.planningStatus === "DRAFT" ? (
+                          <span className="po-pill pill-status-draft">Draft</span>
+                        ) : (
+                          <span className={`po-pill ${pillClass(o.status)}`}>
+                            {STATUS_LABELS[o.status] || o.status}
+                          </span>
+                        )}
                       </td>
                       <td data-label="Priority">
-                        <span className={`po2-prio ${prio.toLowerCase()}`}>{prio}</span>
+                        <span className={`po2-prio ${prio.toLowerCase()}`}>{prio === "URGENT" ? "Urgent" : "Normal"}</span>
                       </td>
                       <td data-label="Start">{fmtDate(o.plannedStart)}</td>
                       <td data-label="End">{fmtDate(o.plannedEnd)}</td>
@@ -613,47 +620,54 @@ export default function ProductionOrdersPage() {
                             className={`po-btn po-btn-sm ${o.nextAction === "PLAN" ? "po-btn-primary" : "po-btn-outline"}`}
                             onClick={() => handlePrimary(o)}
                           >
-                            {o.nextAction === "PLAN" ? "Plan" : "View"}
+                            {o.nextAction === "PLAN" ? (o.planningStatus === "DRAFT" ? "Continue" : "Plan") : "View"}
                           </button>
-                          <div className="po2-menu-wrap" ref={menuFor === id ? menuRef : null}>
+                          {["PLANNED", "IN_PROGRESS"].includes(o.status) && (
                             <button
                               type="button"
-                              className="po-kebab"
-                              onClick={() => setMenuFor(menuFor === id ? null : id)}
-                              aria-label="More actions"
+                              className="po-icon-btn"
+                              title="Revise plan"
+                              aria-label="Revise plan"
+                              onClick={() =>
+                                navigate("/production/planning", { state: { jobNo: o.jobNo || o.jobOrderNo, productionOrderId: rowId(o) } })
+                              }
                             >
-                              <MoreVertical size={16} />
+                              <Pencil size={14} />
                             </button>
-                            {menuFor === id && (
-                              <div className="po2-menu">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setMenuFor(null);
-                                    setDetailsId(id);
-                                  }}
-                                >
-                                  <Eye size={14} /> View details
-                                </button>
-                                {can.hold && (
-                                  <button type="button" onClick={() => openAction(o, "HOLD")}>
-                                    <Pause size={14} /> Put on hold
-                                  </button>
-                                )}
-                                {can.resume && (
-                                  <button type="button" onClick={() => openAction(o, "RESUME")}>
-                                    <Play size={14} /> Resume
-                                  </button>
-                                )}
-                                {can.cancel && (
-                                  <button type="button" className="danger" onClick={() => openAction(o, "CANCEL")}>
-                                    <Ban size={14} /> Cancel order
-                                  </button>
-                                )}
-                                {!hasMenu && <div className="po2-muted po2-menu-empty">No other actions</div>}
-                              </div>
-                            )}
-                          </div>
+                          )}
+                          {can.hold && (
+                            <button
+                              type="button"
+                              className="po-icon-btn"
+                              title="Put on hold"
+                              aria-label="Put on hold"
+                              onClick={() => openAction(o, "HOLD")}
+                            >
+                              <Pause size={14} />
+                            </button>
+                          )}
+                          {can.resume && (
+                            <button
+                              type="button"
+                              className="po-icon-btn"
+                              title="Resume"
+                              aria-label="Resume"
+                              onClick={() => openAction(o, "RESUME")}
+                            >
+                              <Play size={14} />
+                            </button>
+                          )}
+                          {can.cancel && (
+                            <button
+                              type="button"
+                              className="po-icon-btn po-icon-btn--danger"
+                              title="Cancel order"
+                              aria-label="Cancel order"
+                              onClick={() => openAction(o, "CANCEL")}
+                            >
+                              <Ban size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -664,42 +678,16 @@ export default function ProductionOrdersPage() {
           </table>
         </div>
 
-        <footer className="po-card-foot">
-          <span className="po-showing">
-            {total === 0
-              ? "Showing 0 records"
-              : `Showing ${startIdx + 1} to ${Math.min(startIdx + rowsPerPage, total)} of ${total} records`}
-          </span>
-          <nav className="po-pager" aria-label="Pagination">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setPage(currentPage - 1)}
-              aria-label="Previous page"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            {pageNumbers.map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={n === currentPage ? "is-active" : ""}
-                onClick={() => setPage(n)}
-                aria-current={n === currentPage ? "page" : undefined}
-              >
-                {n}
-              </button>
-            ))}
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => setPage(currentPage + 1)}
-              aria-label="Next page"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </nav>
-        </footer>
+        <Pagination
+          variant="compact"
+          currentPage={currentPage}
+          totalItems={total}
+          itemsPerPage={rowsPerPage}
+          onPageChange={(n) => setPage(Math.min(Math.max(1, n), totalPages))}
+          onItemsPerPageChange={(n) => setRowsPerPage(n)}
+          pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+          itemLabel="records"
+        />
       </section>
 
       {actionType && selectedOrder && (

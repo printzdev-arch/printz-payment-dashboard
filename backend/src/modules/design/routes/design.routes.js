@@ -43,6 +43,13 @@ router.get(
   designAllocationController.getDesignerPool
 );
 
+router.post(
+  "/pool/designer",
+  managerOnly,
+  authorizePermission("design", "update"),
+  designAllocationController.addDesigner
+);
+
 router.patch(
   "/pool/designer/:id",
   managerOnly,

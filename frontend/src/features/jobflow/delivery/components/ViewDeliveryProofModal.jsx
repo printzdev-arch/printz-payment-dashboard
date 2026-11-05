@@ -151,7 +151,7 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
                 Proof of Delivery (POD) Audit
               </h3>
               <p style={{ margin: 0, fontSize: "0.82rem", opacity: 0.9 }}>
-                Order #{deliveryOrder.deliveryNo} &bull; Job Order: <strong style={{ color: "#a7f3d0" }}>{deliveryOrder.jobNo}</strong>
+                Job Order: <strong style={{ color: "#a7f3d0" }}>{deliveryOrder.jobNo}</strong>
               </p>
             </div>
           </div>
@@ -264,10 +264,6 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
                   <strong style={{ color: "#0f172a" }}>{deliveryOrder.jobNo}</strong>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
-                  <span style={{ color: "#64748b" }}>Delivery Order No:</span>
-                  <span style={{ fontFamily: "monospace", fontWeight: 600, color: "#0f172a" }}>{deliveryOrder.deliveryNo}</span>
-                </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
                   <span style={{ color: "#64748b" }}>Received By:</span>

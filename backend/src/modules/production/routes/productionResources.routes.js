@@ -25,4 +25,16 @@ router.get(
   productionResourceController.getOperatorById
 );
 
+// Add / edit operators (availability is part of the edit)
+router.post("/operators", authorizePermission("production", "update"), productionResourceController.createOperator);
+router.patch(
+  "/operators/:id",
+  idParamValidator("id"),
+  authorizePermission("production", "update"),
+  productionResourceController.updateOperator
+);
+
+// Stock items (read only, from the existing stock collection): GET /production-resources/stocks?search=
+router.get("/stocks", authorizePermission("production", "read"), productionResourceController.getStocks);
+
 module.exports = router;

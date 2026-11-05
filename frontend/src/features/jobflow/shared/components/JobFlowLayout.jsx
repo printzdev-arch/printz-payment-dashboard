@@ -33,7 +33,7 @@ const tabs = [
   { path: "/jobflow/qr-request", label: "Branch QR Form", icon: QrCode },
 ];
 
-export const JobFlowLayout = ({ children, title, subtitle, actions }) => {
+export const JobFlowLayout = ({ children, title, subtitle, actions, hideHeader = false }) => {
   const location = useLocation();
 
   const isTabActive = (tab) => {
@@ -46,12 +46,14 @@ export const JobFlowLayout = ({ children, title, subtitle, actions }) => {
   return (
     <div className="jf-container">
       {/* Top Header */}
-      <div className="jf-header">
-        <div>
-          <h1 className="jf-header-title">{title || "JobFlow Lifecycle"}</h1>
+      {(!hideHeader || actions) && (
+        <div className="jf-header">
+          <div>
+            {!hideHeader && <h1 className="jf-header-title">{title || "JobFlow Lifecycle"}</h1>}
+          </div>
+          {actions && <div className="jf-header-actions">{actions}</div>}
         </div>
-        {actions && <div className="jf-header-actions">{actions}</div>}
-      </div>
+      )}
 
       {/* Module Navigation Tabs */}
       {/* <div className="jf-nav-tabs">

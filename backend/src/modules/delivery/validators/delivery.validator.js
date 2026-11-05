@@ -29,8 +29,8 @@ const createDeliveryOrderValidator = [
   body("jobOrderId").notEmpty().withMessage("jobOrderId is required"),
   body("deliveryType")
     .optional()
-    .isIn(["DELIVERY", "COUNTER_PICKUP", "COURIER"])
-    .withMessage("deliveryType must be DELIVERY, COUNTER_PICKUP, or COURIER"),
+    .isIn(["DELIVERY", "COUNTER_PICKUP"])
+    .withMessage("deliveryType must be DELIVERY or COUNTER_PICKUP"),
   validate,
 ];
 
@@ -38,8 +38,8 @@ const updateDeliveryDetailsValidator = [
   param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("deliveryType")
     .optional()
-    .isIn(["DELIVERY", "COUNTER_PICKUP", "COURIER"])
-    .withMessage("deliveryType must be DELIVERY, COUNTER_PICKUP, or COURIER"),
+    .isIn(["DELIVERY", "COUNTER_PICKUP"])
+    .withMessage("deliveryType must be DELIVERY or COUNTER_PICKUP"),
   validate,
 ];
 
@@ -84,8 +84,8 @@ const dispatchDeliveryValidator = [
   param("id").notEmpty().withMessage("Valid Delivery Order ID is required"),
   body("deliveryType")
     .optional()
-    .isIn(["DELIVERY", "COUNTER_PICKUP", "COURIER"])
-    .withMessage("deliveryType must be DELIVERY, COUNTER_PICKUP, or COURIER"),
+    .isIn(["DELIVERY", "COUNTER_PICKUP"])
+    .withMessage("deliveryType must be DELIVERY or COUNTER_PICKUP"),
   validate,
 ];
 

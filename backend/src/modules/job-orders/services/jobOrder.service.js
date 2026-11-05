@@ -218,10 +218,8 @@ class JobOrderService {
       title: orderTitle,
       orderDate: dto.orderDate ? (parseBusinessDate(dto.orderDate) || new Date()) : new Date(),
       dueDate: dueDate ? (parseBusinessDate(dueDate) || new Date(dueDate)) : null,
-      priority: (() => {
-        const p = String(dto.priority || "NORMAL").toUpperCase();
-        return p === "MEDIUM" ? "NORMAL" : (["LOW", "NORMAL", "HIGH", "URGENT"].includes(p) ? p : "NORMAL");
-      })(),
+      // Two priorities: NORMAL and URGENT (HIGH / RUSH count as urgent)
+      priority: ["URGENT", "HIGH", "RUSH"].includes(String(dto.priority || "").toUpperCase()) ? "URGENT" : "NORMAL",
       jobType: dto.jobType || "PRINT_JOB",
       // Finishing lines are not extra pieces: when no job quantity is sent, count only the product lines
       quantity:
@@ -434,8 +432,7 @@ class JobOrderService {
     if (dto.title !== undefined || dto.jobTitle !== undefined) set.title = dto.title || dto.jobTitle;
     if (dto.dueDate !== undefined) set.dueDate = dto.dueDate ? parseBusinessDate(dto.dueDate) || new Date(dto.dueDate) : null;
     if (dto.priority !== undefined) {
-      const p = String(dto.priority || "NORMAL").toUpperCase();
-      set.priority = p === "MEDIUM" ? "NORMAL" : ["LOW", "NORMAL", "HIGH", "URGENT"].includes(p) ? p : "NORMAL";
+      set.priority = ["URGENT", "HIGH", "RUSH"].includes(String(dto.priority || "").toUpperCase()) ? "URGENT" : "NORMAL";
     }
     if (dto.quantity !== undefined) set.quantity = Number(dto.quantity);
     if (dto.finishingServices !== undefined) {

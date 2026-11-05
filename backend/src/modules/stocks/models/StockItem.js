@@ -181,7 +181,9 @@ stockItemSchema.statics.findById = async function (id) {
       { legacyFirestoreId: idStr },
     ],
   });
-  if (raw) return new this(raw);
+  // hydrate() gives a document that already exists in the database, so save() updates it
+  // (new this(raw) would be a "new" document and save() would fail with a duplicate key error)
+  if (raw) return this.hydrate(raw);
   return null;
 };
 
@@ -202,7 +204,7 @@ stockItemSchema.statics.findByIdAndUpdate = async function (id, update, options 
 stockItemSchema.statics.save = async function (data) {
   let item = null;
   const targetId = data._id || data.id;
-  if (targetId && mongoose.Types.ObjectId.isValid(targetId)) {
+  if (targetId) {
     item = await this.findById(targetId).catch(() => null);
   }
   if (!item && data.stockId && data.branchId) {

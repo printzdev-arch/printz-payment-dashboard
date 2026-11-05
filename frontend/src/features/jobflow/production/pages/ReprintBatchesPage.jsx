@@ -23,6 +23,7 @@ import OperationPauseModal from "../components/OperationPauseModal";
 import "../styles/reprint-batches.css";
 import "../styles/production-theme.css";
 
+import Pagination from "../../../../components/common/Pagination";
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants and helpers                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -80,35 +81,25 @@ const isEssential = (row) => /PRINT|PACK/i.test(row?.operationCode || "");
 
 // Props the operation modals expect
 const modalOperation = (row) => ({ ...row, operatorName: row.operator });
-const modalOrder = (row) => ({ productionNo: row.productionNo, jobNo: row.jobNo, plannedQty: row.plannedQty });
+const modalOrder = (row) => ({ jobNo: row.jobNo, plannedQty: row.plannedQty });
 
 function Pill({ tone, children }) {
   return <span className={`status-pill rb-pill rb-${tone}`}>{children}</span>;
 }
 
-function Pager({ page, total, onChange }) {
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const currentPage = Math.min(page, pages);
-  const startIdx = (currentPage - 1) * PAGE_SIZE;
+function Pager({ page, total, onChange, pageSize, onPageSizeChange }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <div className="rb-pager">
-      <span>
-        {total === 0
-          ? "Showing 0 records"
-          : `Showing ${startIdx + 1} to ${Math.min(startIdx + PAGE_SIZE, total)} of ${total} records`}
-      </span>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" disabled={currentPage <= 1} onClick={() => onChange(currentPage - 1)}>
-          Previous
-        </button>
-        <span style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 0.25rem" }}>
-          Page {currentPage} of {pages}
-        </span>
-        <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" disabled={currentPage >= pages} onClick={() => onChange(currentPage + 1)}>
-          Next
-        </button>
-      </div>
-    </div>
+    <Pagination
+      variant="compact"
+      currentPage={Math.min(page, pages)}
+      totalItems={total}
+      itemsPerPage={pageSize}
+      onPageChange={(n) => onChange(Math.min(Math.max(1, n), pages))}
+      onItemsPerPageChange={onPageSizeChange}
+      pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+      itemLabel="records"
+    />
   );
 }
 
@@ -163,7 +154,7 @@ function ReprintDetailsModal({ request, onClose }) {
             </div>
             <div>
               <span>Job Order No</span>
-              <strong>{request.jobNo || request.productionNo || "—"}</strong>
+              <strong>{request.jobNo || "—"}</strong>
             </div>
             <div>
               <span>Restart From</span>
@@ -284,6 +275,7 @@ function ReprintTab({ onChanged }) {
   const [debounced, setDebounced] = useState("");
   const [status, setStatus] = useState("ALL");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [details, setDetails] = useState(null);
   const [decision, setDecision] = useState(null); // { request, type }
 
@@ -299,7 +291,7 @@ function ReprintTab({ onChanged }) {
     setLoading(true);
     setError("");
     try {
-      const params = { page, limit: PAGE_SIZE };
+      const params = { page, limit: pageSize };
       if (debounced) params.search = debounced;
       if (status !== "ALL") params.status = status;
       const res = await productionApi.getReprintRequests(params);
@@ -313,7 +305,7 @@ function ReprintTab({ onChanged }) {
     } finally {
       setLoading(false);
     }
-  }, [page, debounced, status]);
+  }, [page, pageSize, debounced, status]);
 
   useEffect(() => {
     load();
@@ -420,7 +412,7 @@ function ReprintTab({ onChanged }) {
                         <b className="rb-request-no">{r.requestNo || "—"}</b>
                       </td>
                       <td>
-                        <b>{r.jobNo || r.productionNo || "—"}</b>
+                        <b>{r.jobNo || "—"}</b>
                       </td>
                       <td>
                         <b>{r.customerName || "—"}</b>
@@ -481,7 +473,7 @@ function ReprintTab({ onChanged }) {
         </div>
       </div>
 
-      <Pager page={page} total={total} onChange={setPage} />
+      <Pager page={page} total={total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
 
       {details && <ReprintDetailsModal request={details} onClose={() => setDetails(null)} />}
 
@@ -511,6 +503,7 @@ function ReworkTab({ onChanged }) {
   const [debounced, setDebounced] = useState("");
   const [status, setStatus] = useState("ALL");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [modal, setModal] = useState(null); // { type, row }
   const [busyId, setBusyId] = useState(null);
 
@@ -526,7 +519,7 @@ function ReworkTab({ onChanged }) {
     setLoading(true);
     setError("");
     try {
-      const params = { isRework: true, page, limit: PAGE_SIZE };
+      const params = { isRework: true, page, limit: pageSize };
       if (debounced) params.search = debounced;
       if (status !== "ALL") params.status = status;
       const res = await productionApi.getOperationQueue(params);
@@ -540,7 +533,7 @@ function ReworkTab({ onChanged }) {
     } finally {
       setLoading(false);
     }
-  }, [page, debounced, status]);
+  }, [page, pageSize, debounced, status]);
 
   useEffect(() => {
     load();
@@ -588,7 +581,7 @@ function ReworkTab({ onChanged }) {
             <input
               type="text"
               className="jf-input"
-              placeholder="Search by PO, job #, customer, product..."
+              placeholder="Search by job #, customer, product..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -672,12 +665,12 @@ function ReworkTab({ onChanged }) {
                 rows.map((row) => {
                   const s = row.availabilityStatus;
                   const busy = busyId === row.id;
-                  const urgent = ["URGENT", "RUSH"].includes(row.priority);
+                  const urgent = ["URGENT", "HIGH", "RUSH"].includes(String(row.priority || "").toUpperCase());
                   const canSkip = !isEssential(row) && ["READY", "BLOCKED", "PAUSED", "FAILED"].includes(s);
                   return (
                     <tr key={row.id}>
                       <td>
-                        <b>{row.jobNo || row.productionNo || "—"}</b>
+                        <b>{row.jobNo || "—"}</b>
                       </td>
                       <td>
                         <b>{row.customerName || "—"}</b>
@@ -701,7 +694,7 @@ function ReworkTab({ onChanged }) {
                         <div className="rb-muted">{row.operator || "Unassigned"}</div>
                       </td>
                       <td>
-                        <Pill tone={urgent ? "rejected" : "completed"}>{urgent ? "Urgent" : titleCase(row.priority) || "Normal"}</Pill>
+                        <Pill tone={urgent ? "rejected" : "completed"}>{urgent ? "Urgent" : "Normal"}</Pill>
                       </td>
                       <td>
                         <Pill tone={`op-${String(s).toLowerCase()}`}>{REWORK_STATUS_LABEL[s] || s}</Pill>
@@ -757,7 +750,7 @@ function ReworkTab({ onChanged }) {
         </div>
       </div>
 
-      <Pager page={page} total={total} onChange={setPage} />
+      <Pager page={page} total={total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
 
       {modalProps && (
         <>

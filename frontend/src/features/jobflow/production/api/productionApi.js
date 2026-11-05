@@ -109,11 +109,6 @@ export const productionApi = {
     return res.data;
   },
 
-  claimOperation: async (operationId) => {
-    const res = await api.post(`/production-operations/${operationId}/claim`);
-    return res.data;
-  },
-
   // data: { machineId?, machine?, assignedEmployee?, inputQty?, remarks? }
   startOperation: async (operationId, data = {}) => {
     const res = await api.post(`/production-operations/${operationId}/start`, data);
@@ -150,45 +145,6 @@ export const productionApi = {
   // Reason is required (string or { reason })
   skipOperation: async (operationId, reason = "") => {
     const res = await api.post(`/production-operations/${operationId}/skip`, withReason(reason));
-    return res.data;
-  },
-
-  // ── Quality Control ──
-  getPendingQualityChecks: async (params = {}) => {
-    const res = await api.get("/quality-checks/pending", { params: scoped(params) });
-    return res.data;
-  },
-
-  getQualityChecks: async (params = {}) => {
-    const res = await api.get("/quality-checks", { params: scoped(params) });
-    return res.data;
-  },
-
-  getQualityCheckById: async (id) => {
-    const res = await api.get(`/quality-checks/${id}`);
-    return res.data;
-  },
-
-  getQualityCheckReport: async (id) => {
-    const res = await api.get(`/quality-checks/${id}/report`);
-    return res.data;
-  },
-
-  // checkData: { result, quantityChecked?, acceptedQty?, rejectedQty?, defects[],
-  //   correctiveAction (REWORK | REPRINT, required when failing), reworkOperationCode,
-  //   restartFromOperationCode, reprintQuantity, issueDetails, comments, checklist[] }
-  // Errors (400 / 404 / 409) are thrown so the QC screen shows the real reason.
-  performQualityCheck: async (productionOrderId, checkData = {}) => {
-    const payload = { ...checkData };
-    if (!payload.result) {
-      payload.result = payload.passed ? "PASS" : "ISSUE";
-    }
-    const res = await api.post(`/production-orders/${productionOrderId}/quality-checks`, payload);
-    return res.data;
-  },
-
-  getQcHistory: async (productionOrderId) => {
-    const res = await api.get(`/production-orders/${productionOrderId}/qc-history`);
     return res.data;
   },
 
@@ -263,6 +219,24 @@ export const productionApi = {
   // params: { from, to, branchId, status, search, lookup }
   getOperators: async (params = {}) => {
     const res = await api.get("/production-resources/operators", { params: scoped(params) });
+    return res.data;
+  },
+
+  // data: { name, phone?, skill?, notes?, isActive? }
+  createOperator: async (data) => {
+    const res = await api.post("/production-resources/operators", data);
+    return res.data;
+  },
+
+  // data: any of { name, phone, skill, notes, isActive } (isActive = availability)
+  updateOperator: async (id, data) => {
+    const res = await api.patch(`/production-resources/operators/${id}`, data);
+    return res.data;
+  },
+
+  // Stock items from the existing stock collection (read only): { search?, limit? }
+  getStocks: async (params = {}) => {
+    const res = await api.get("/production-resources/stocks", { params: scoped(params) });
     return res.data;
   },
 

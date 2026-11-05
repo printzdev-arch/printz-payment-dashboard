@@ -25,6 +25,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import settlementApi from "../api/settlementApi";
 import "../styles/settlement.css";
 
@@ -117,6 +118,7 @@ export const SettlementPage = () => {
           _id: id,
           jobOrderId: id,
           jobNo: j.jobNo || j.orderNumber || `JO-${String(id || "").slice(-6)}`,
+          priority: j.priority || "NORMAL",
           customerName: j.customerName || j.customerSnapshot?.name || j.customer?.name || "Customer",
           customerPhone: j.customerPhone || j.customerSnapshot?.mobile || "N/A",
           title: j.title || j.productType || "Print Job Order",
@@ -152,6 +154,7 @@ export const SettlementPage = () => {
           invoiceNumber: inv.invoiceNumber || `INV-${String(inv._id || "").slice(-6)}`,
           jobOrderId: jObj?._id || inv.jobOrderId,
           jobNo: jObj?.jobNo || inv.jobNo || "JO-CURRENT",
+          priority: jObj?.priority || inv.priority || "NORMAL",
           customerName: inv.customerName || inv.customerSnapshot?.name || jObj?.customerName || "Customer",
           customerPhone: inv.customerPhone || inv.customerSnapshot?.mobile || "N/A",
           invoiceTotal: total,
@@ -173,6 +176,7 @@ export const SettlementPage = () => {
       const formattedJobs = (Array.isArray(rawJobs) ? rawJobs : []).map((j) => ({
         _id: j._id || j.id,
         jobNo: j.jobNo || j.orderNumber || `JO-${String(j._id || "").slice(-6)}`,
+        priority: j.priority || "NORMAL",
         customerName: j.customerName || j.customerSnapshot?.name || "Customer",
         title: j.title || "Print Material",
         totalAmount: Number(j.grandTotal || j.totalAmount || 0),
@@ -369,6 +373,7 @@ export const SettlementPage = () => {
                 <thead>
                   <tr>
                     <th>Job Order No</th>
+                    <th>Priority</th>
                     <th>Customer Name</th>
                     <th>Print Material</th>
                     <th>Estimated Amount</th>
@@ -380,7 +385,7 @@ export const SettlementPage = () => {
                 <tbody>
                   {filterPendingList().length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                      <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No pending jobs currently waiting for tax invoicing.
                       </td>
                     </tr>
@@ -390,6 +395,7 @@ export const SettlementPage = () => {
                         <td>
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
                         </td>
+                        <td><PriorityBadge priority={job.priority} /></td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{job.customerName}</div>
                           <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.customerPhone}</div>
@@ -444,6 +450,7 @@ export const SettlementPage = () => {
                   <tr>
                     <th>Invoice No</th>
                     <th>Linked Job</th>
+                    <th>Priority</th>
                     <th>Customer Name</th>
                     <th>Aging Analysis</th>
                     <th>Total Invoiced</th>
@@ -455,7 +462,7 @@ export const SettlementPage = () => {
                 <tbody>
                   {filterOutstandingList().length === 0 ? (
                     <tr>
-                      <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                      <td colSpan={10} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No invoices match the selected filter.
                       </td>
                     </tr>
@@ -468,6 +475,7 @@ export const SettlementPage = () => {
                         <td>
                           <div style={{ fontWeight: 600 }}>{inv.jobNo}</div>
                         </td>
+                        <td><PriorityBadge priority={inv.priority} /></td>
                         <td>
                           <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
                         </td>
@@ -536,6 +544,7 @@ export const SettlementPage = () => {
                 <thead>
                   <tr>
                     <th>Job Order No</th>
+                    <th>Priority</th>
                     <th>Customer Name</th>
                     <th>Order Value</th>
                     <th>Fulfillment Stage</th>
@@ -546,7 +555,7 @@ export const SettlementPage = () => {
                 <tbody>
                   {filterClosureList().length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
+                      <td colSpan={7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No job orders found.
                       </td>
                     </tr>
@@ -557,6 +566,7 @@ export const SettlementPage = () => {
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
                           <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.title}</div>
                         </td>
+                        <td><PriorityBadge priority={job.priority} /></td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{job.customerName}</div>
                         </td>

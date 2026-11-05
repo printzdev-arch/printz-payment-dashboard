@@ -31,7 +31,7 @@ export const OperationPauseModal = ({
   if (!isOpen || !operation) return null;
 
   const opName = operation.operationName || operation.operation || operation.operationCode;
-  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || productionOrder?.productionNo || "—";
+  const jobNumber = productionOrder?.jobNo || productionOrder?.jobOrderNo || "—";
 
   const handleSubmit = async (e) => {
     e.preventDefault();

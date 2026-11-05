@@ -1,4 +1,5 @@
 import React from "react";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import {
   X,
   FileText,
@@ -132,7 +133,7 @@ export const ViewDesignJobModal = ({
 
   const displayProofUrl =
     sampleProofUrl ||
-    "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800";
+    "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23475569%22%20font-family%3D%22sans-serif%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3ENo%20proof%20uploaded%3C%2Ftext%3E%3C%2Fsvg%3E";
 
   return (
     <div className="alloc-modal-overlay" onClick={onClose}>
@@ -233,18 +234,7 @@ export const ViewDesignJobModal = ({
               <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
                 <div className="alloc-kv-row">
                   <span className="alloc-kv-label">Priority</span>
-                  <span
-                    className={
-                      priority === "High"
-                        ? "dq-badge-high"
-                        : priority === "Low"
-                        ? "dq-badge-low"
-                        : "dq-badge-normal"
-                    }
-                    style={{ padding: "0.15rem 0.55rem", fontSize: "0.75rem" }}
-                  >
-                    {priority}
-                  </span>
+                  <PriorityBadge priority={priority} />
                 </div>
                 <div className="alloc-kv-row">
                   <span className="alloc-kv-label">Paper / Media</span>

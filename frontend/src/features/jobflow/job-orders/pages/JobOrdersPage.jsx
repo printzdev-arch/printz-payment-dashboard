@@ -17,6 +17,7 @@ import {
 import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal";
 import jobFlowApi from "../api/jobOrdersApi";
 import "../styles/job-orders.css";
@@ -140,7 +141,7 @@ export const JobOrdersPage = () => {
             minWidth: "180px",
             render: (val, row) => (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
-                <strong style={{ color: "var(--jf-primary-dark)", whiteSpace: "nowrap" }}>
+                <strong style={{ color: "#0f172a", fontWeight: 700, whiteSpace: "nowrap" }}>
                   {val || row.orderNumber}
                 </strong>
                 <JobTypeBadge jobType={row.jobType || "Print & Design"} size="sm" />
@@ -200,6 +201,12 @@ export const JobOrdersPage = () => {
                 {val ? new Date(val).toLocaleDateString() : "-"}
               </span>
             ),
+          },
+          {
+            key: "priority",
+            label: "Priority",
+            sortable: true,
+            render: (val, row) => <PriorityBadge priority={val || row.priority} />,
           },
           {
             key: "stage",

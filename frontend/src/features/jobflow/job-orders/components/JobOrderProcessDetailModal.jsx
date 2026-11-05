@@ -189,556 +189,335 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
     return "Standard Trimming";
   })();
 
-  // Detailed lifecycle process step definitions
+  const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  const jid = job._id || job.id;
+  const deliveryMethod = job.deliveryMethod || "Store Pickup";
+  const isPickupJob = /pick/i.test(deliveryMethod);
+  // A delivered or closed job has always been paid in full (delivery requires the balance to be settled)
+  const settled = isCompletedStage || currentRank >= 7 || stage === "DELIVERED" || status === "DELIVERED";
+  const shownBalance = settled ? 0 : balanceRemaining;
+  const paidInFull = settled || (totalAmount > 0 && balanceRemaining <= 0);
+
+  const designState = () =>
+    isDesignOnly
+      ? job.designStatus === "COMPLETED" || currentRank > 5 || stage === "READY"
+        ? "Approved by customer"
+        : stage === "SAMPLE_APPROVAL"
+        ? "Waiting for customer approval"
+        : stage === "DESIGN_IN_PROGRESS"
+        ? "In progress"
+        : "In design queue"
+      : currentRank > 3
+      ? "Approved by customer"
+      : stage === "SAMPLE_APPROVAL"
+      ? "Waiting for customer approval"
+      : stage === "DESIGN_IN_PROGRESS"
+      ? "In progress"
+      : stage === "DESIGN_ASSIGNED"
+      ? "Assigned, not started"
+      : "In design queue";
+
+  const approvalText = (rank) => (job.estimationStatus === "APPROVED" || currentRank > rank ? "Approved" : "Pending");
+  const proofText = job.latestSample?.versionNo ? `V${job.latestSample.versionNo}` : null;
+
+  const settlementDetails = [
+    { label: "Total", value: money(totalAmount) },
+    { label: "Paid", value: money(totalAmount > 0 ? totalAmount - shownBalance : advancePaid) },
+    { label: "Balance", value: money(shownBalance) },
+  ];
+
   const processSteps = [
     {
       step: 1,
       id: "intake",
-      title: "1. Customer Intake & Job Creation",
+      title: "Job Details",
+      shortTitle: "Job",
       icon: FileText,
-      stageMatch: "INTAKE",
       status: "COMPLETED",
-      timestamp: createdAtFormatted,
-      handler: job.createdBy?.name || "Front Desk / Sales Rep",
       details: [
-        { label: "Job Title", value: jobTitle },
-        { label: "Customer", value: customerName },
-        { label: "Phone", value: customerPhone },
-        { label: "Quantity", value: `${quantity.toLocaleString()} pcs` },
-        { label: "Paper / Material", value: job.specs?.paperType || job.items?.[0]?.paperType || "Standard Stock" },
-        { label: "Dimensions / Size", value: job.specs?.size || "Standard" },
-        { label: "Finishing Required", value: finishingDisplay },
-        { label: "Delivery Method", value: job.deliveryMethod || "Store Pickup" },
+        { label: "Product", value: jobTitle },
+        { label: "Customer", value: `${customerName}${customerPhone && customerPhone !== "-" ? ` · ${customerPhone}` : ""}` },
+        { label: "Quantity", value: `${Number(quantity).toLocaleString()} pcs` },
+        { label: "Delivery", value: deliveryMethod },
+        { label: "Finishing", value: finishingDisplay },
       ],
       link: null,
     },
     {
       step: 2,
       id: "estimation",
-      title: "2. Cost Estimation & Commercial Approval",
+      title: "Estimation",
+      shortTitle: "Estimate",
       icon: Calculator,
-      stageMatch: "ESTIMATION",
       status: getStepStatus(2),
-      timestamp: currentRank >= 2 ? (job.assignedAt ? new Date(job.assignedAt).toLocaleString() : createdAtFormatted) : "Pending Estimation",
-      handler: currentRank >= 2 ? (job.estimatedBy?.name || "Branch Manager / Estimator") : "Pending Estimator",
       details: [
-        { label: "Material Unit Cost", value: job.items?.[0]?.unitRate ? `₹${Number(job.items[0].unitRate).toFixed(2)} / pc` : "-" },
-        { label: "Total Estimated Quote", value: totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : "Pending Quote" },
-        { label: "Manager Approval", value: (job.estimationStatus === "APPROVED" || currentRank > 2) ? "Approved" : (currentRank === 2 ? "Pending Approval" : "Pending Estimation") },
-        { label: "Advance Payment Paid", value: `₹${advancePaid.toFixed(2)}` },
-        { label: "Payment Method", value: job.paymentMethod || "Cash / Online Transfer" },
-        { label: "Outstanding Balance", value: `₹${balanceRemaining.toFixed(2)}` },
+        { label: "Quote", value: totalAmount > 0 ? money(totalAmount) : "Pending" },
+        { label: "Approval", value: approvalText(2) },
+        { label: "Advance paid", value: money(advancePaid) },
       ],
-      link: `/jobflow/estimates?jobId=${job._id || job.id}`,
-      linkLabel: "Open Estimation Review",
+      link: `/jobflow/estimates?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 3,
       id: "design",
-      title: "3. Design Work & Customer Proof Approval",
+      title: "Design",
+      shortTitle: "Design",
       icon: Palette,
-      stageMatch: "DESIGN",
       status: getStepStatus(3),
-      timestamp: currentRank >= 3 ? (job.assignedAt ? new Date(job.assignedAt).toLocaleString() : createdAtFormatted) : "Pending Assignment",
-      handler: currentRank >= 3 ? designerName : "Design Team (Unassigned)",
       details: [
-        { label: "Assigned Designer", value: currentRank >= 3 ? designerName : "Queued for Assignment" },
-        {
-          label: "Design Status",
-          value: currentRank > 3
-            ? "Proof Approved by Customer"
-            : (stage === "DESIGN_ASSIGNED"
-              ? "Assigned - Waiting Designer Acceptance"
-              : stage === "DESIGN_IN_PROGRESS"
-              ? "In Progress by Designer"
-              : stage === "SAMPLE_APPROVAL"
-              ? "Customer Proof Pending"
-              : "Design Queue"),
-        },
-        { label: "Proof Version", value: job.latestSample?.versionNo ? `V${job.latestSample.versionNo}` : (currentRank > 3 ? "V1 (Approved)" : "Pending Proof") },
-        { label: "Color Space", value: "CMYK (300 DPI Press-Ready)" },
-        { label: "Due Date", value: dueDate },
+        { label: "Designer", value: currentRank >= 3 ? designerName : "Not assigned" },
+        { label: "Status", value: designState() },
+        ...(proofText ? [{ label: "Proof", value: proofText }] : []),
       ],
-      link: `/jobflow/design?jobId=${job._id || job.id}`,
-      linkLabel: "Open Design Canvas & Proofs",
+      link: `/jobflow/design?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 4,
       id: "production",
-      title: "4. Dynamic Production & Machine Operations",
+      title: "Production",
+      shortTitle: "Production",
       icon: Layers,
-      stageMatch: "PRODUCTION",
       status: getStepStatus(4),
-      timestamp: currentRank >= 4 ? (job.productionStartedAt ? new Date(job.productionStartedAt).toLocaleString() : "In Production") : "Pending Production",
-      handler: currentRank >= 4 ? (job.operatorName || "Production Floor Operator") : "Machine Operator (Unassigned)",
       details: [
-        { label: "Production Order ID", value: `PO-${jobNo.replace("JO-", "")}` },
-        { label: "Assigned Machine", value: currentRank >= 4 ? (job.assignedMachine || "Digital Press Line") : "Pending Machine Allocation" },
-        { label: "Routing Stations", value: "Prepress → Printing → Post-Press Finishing" },
-        { label: "Operation Status", value: currentRank > 4 ? `Completed (${quantity.toLocaleString()} pcs)` : (currentRank === 4 ? "Live on Machine Floor" : "Queued (Waiting for Design Approval)") },
+        { label: "Status", value: currentRank > 4 ? "Completed" : currentRank === 4 ? "In production" : "Not started" },
+        ...(currentRank >= 4 && job.assignedMachine ? [{ label: "Machine", value: job.assignedMachine }] : []),
       ],
-      link: `/jobflow/production?jobId=${job._id || job.id}`,
-      linkLabel: "View Live Production Queue",
+      link: `/jobflow/production?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 5,
       id: "qc",
-      title: "5. Quality Control & Parameter Inspection",
+      title: "Quality Control",
+      shortTitle: "QC",
       icon: ShieldCheck,
-      stageMatch: "QC",
       status: getStepStatus(5),
-      timestamp: currentRank >= 5 ? (job.qcPassedAt ? new Date(job.qcPassedAt).toLocaleString() : "Under Inspection") : "Pending QC",
-      handler: currentRank >= 5 ? (job.qcInspector || "QC Inspector") : "Quality Inspection Desk",
-      details: [
-        { label: "Inspection Status", value: currentRank > 5 ? "100% Passed (PASS)" : (currentRank === 5 ? "Inspection In Progress" : "Awaiting Production Release") },
-        { label: "Color Accuracy Check", value: currentRank > 5 ? "Verified within standard tolerance" : "Pending Check" },
-        { label: "Cutting & Bleed Alignment", value: currentRank > 5 ? "Aligned to trim specifications" : "Pending Check" },
-        { label: "Inspected Quantity", value: currentRank >= 5 ? `${quantity.toLocaleString()} pcs` : "0 pcs" },
-      ],
-      link: `/jobflow/qc?jobId=${job._id || job.id}`,
-      linkLabel: "View QC Batch Record",
+      details: [{ label: "Status", value: currentRank > 5 ? "Passed" : currentRank === 5 ? "Under inspection" : "Not started" }],
+      link: `/jobflow/qc?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 6,
       id: "delivery",
-      title: "6. Dispatch Handover & Customer Delivery",
+      title: isPickupJob ? "Self Pickup" : "Delivery",
+      shortTitle: isPickupJob ? "Pickup" : "Delivery",
       icon: Truck,
-      stageMatch: "DELIVERY",
       status: getStepStatus(6),
-      timestamp: currentRank >= 6 ? (job.dispatchedAt || job.deliveredAt ? new Date(job.dispatchedAt || job.deliveredAt).toLocaleString() : "In Dispatch") : "Pending Dispatch",
-      handler: currentRank >= 6 ? (job.courierName || "Courier / Dispatch Staff") : "Dispatch Desk (Unassigned)",
       details: [
-        { label: "Delivery Order #", value: `DO-${jobNo.slice(-4)}` },
-        { label: "Fulfillment Type", value: job.deliveryMethod || "Store Pickup / Branch Handover" },
-        { label: "Packaging Type", value: "Shrink Wrapped / Standard Box" },
-        { label: "Receiver Name", value: customerName },
-        { label: "Handover Status", value: currentRank > 6 ? "Delivered to Customer" : (currentRank === 6 ? "Ready for Handover / In Transit" : "Pending Packaging & Release") },
+        { label: "Type", value: isPickupJob ? "Self pickup" : "Dispatch delivery" },
+        {
+          label: "Status",
+          value: currentRank > 6 ? (isPickupJob ? "Handed over" : "Delivered") : currentRank === 6 ? (isPickupJob ? "Ready to collect" : "Ready to dispatch") : "Not started",
+        },
       ],
-      link: `/jobflow/delivery?jobId=${job._id || job.id}`,
-      linkLabel: "View Delivery Tracking",
+      link: `/jobflow/delivery?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 7,
       id: "settlement",
-      title: "7. Commercial Settlement, Invoice & Rating",
+      title: "Settlement",
+      shortTitle: "Settlement",
       icon: Receipt,
-      stageMatch: "COMPLETED",
       status: getStepStatus(7),
-      timestamp: currentRank >= 7 ? (job.settledAt ? new Date(job.settledAt).toLocaleString() : "Settled") : "Pending Settlement",
-      handler: "Cashier & System Auto-Audit",
-      details: [
-        { label: "Tax Invoice #", value: `INV-${jobNo.slice(-4)}` },
-        { label: "Total Invoiced Amount", value: `₹${totalAmount.toFixed(2)}` },
-        { label: "Advance Paid", value: `₹${advancePaid.toFixed(2)}` },
-        { label: "Final Balance Collected", value: `₹${balanceRemaining.toFixed(2)}` },
-        { label: "Commercial Status", value: currentRank >= 7 ? "Fully Reconciled & Closed" : (job.paymentStatus === "PAID" ? "Paid in Full" : "Pending Final Balance") },
-      ],
-      link: `/jobflow/settlement?jobId=${job._id || job.id}`,
-      linkLabel: "View Settlement Ledger",
+      details: [...settlementDetails, { label: "Status", value: currentRank >= 7 ? "Closed" : paidInFull ? "Paid in full" : "Balance pending" }],
+      link: `/jobflow/settlement?jobId=${jid}`,
+      linkLabel: "Open",
     },
   ];
 
-  // Specific 6-step pipeline for Design Only jobs: Customer -> Job Order -> Estimation -> Invoice -> Design -> Settle Balance
+  // Design Only: Customer -> Job Order -> Estimation -> Invoice -> Design -> Settlement
   const designOnlySteps = [
     {
       step: 1,
       id: "customer",
-      title: "1. Customer Information & Intake",
+      title: "Customer",
       shortTitle: "Customer",
       icon: User,
-      stageMatch: "CUSTOMER",
       status: "COMPLETED",
-      timestamp: createdAtFormatted,
-      handler: job.createdBy?.name || "Front Desk / Sales Rep",
       details: [
-        { label: "Customer Name", value: customerName },
-        { label: "Phone Number", value: customerPhone },
-        { label: "Email Address", value: job.customerEmail || job.customerId?.email || "-" },
-        { label: "Customer Code", value: job.customerCode || job.customerId?.customerCode || "REG" },
-        { label: "Branch", value: job.branchName || "Main Branch" },
+        { label: "Name", value: customerName },
+        { label: "Phone", value: customerPhone },
       ],
-      link: job.customerId ? `/jobflow/customers?id=${job.customerId?._id || job.customerId?.id || job.customerId}` : null,
-      linkLabel: "View Customer Profile",
+      link: null,
     },
     {
       step: 2,
       id: "job-order",
-      title: "2. Job Order & Design Brief",
+      title: "Job Order",
       shortTitle: "Job Order",
       icon: FileText,
-      stageMatch: "JOB_ORDER",
       status: "COMPLETED",
-      timestamp: createdAtFormatted,
-      handler: job.createdBy?.name || "Branch Manager / Front Desk",
       details: [
-        { label: "Job Number", value: jobNo },
-        { label: "Job Title", value: jobTitle },
-        { label: "Job Type", value: "Design Only" },
-        { label: "Target Due Date", value: dueDate },
-        { label: "Delivery Method", value: job.deliveryMethod || "Digital Transfer / Email" },
+        { label: "Product", value: jobTitle },
+        { label: "Due date", value: dueDate },
       ],
-      link: `/jobflow/jobs?id=${job._id || job.id}`,
-      linkLabel: "View Job Order Details",
+      link: null,
     },
     {
       step: 3,
       id: "estimation",
-      title: "3. Cost Estimation & Design Fee Quote",
+      title: "Estimation",
       shortTitle: "Estimation",
       icon: Calculator,
-      stageMatch: "ESTIMATION",
       status: getStepStatus(3),
-      timestamp: (currentRank >= 3 || job.estimationStatus === "APPROVED") ? (job.assignedAt ? new Date(job.assignedAt).toLocaleString() : createdAtFormatted) : "Pending Estimation",
-      handler: (currentRank >= 3 || job.estimatedBy?.name) ? (job.estimatedBy?.name || "Branch Manager / Estimator") : "Branch Estimator",
       details: [
-        { label: "Design Fee Quote", value: totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : "Pending Quote" },
-        { label: "Commercial Status", value: (job.estimationStatus === "APPROVED" || currentRank > 3) ? "Approved" : (currentRank === 3 ? "Under Calculation" : "Pending Estimation") },
-        { label: "Required Advance / Deposit", value: `₹${advancePaid.toFixed(2)}` },
-        { label: "Total Amount", value: totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : "₹0.00" },
+        { label: "Quote", value: totalAmount > 0 ? money(totalAmount) : "Pending" },
+        { label: "Approval", value: approvalText(3) },
       ],
-      link: `/jobflow/estimates?jobId=${job._id || job.id}`,
-      linkLabel: "Open Estimation Review",
+      link: `/jobflow/estimates?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 4,
       id: "invoice",
-      title: "4. Commercial Invoice & Advance Deposit",
+      title: "Invoice",
       shortTitle: "Invoice",
       icon: Receipt,
-      stageMatch: "INVOICE",
       status: getStepStatus(4),
-      timestamp: (currentRank >= 4 || advancePaid > 0) ? (job.invoicedAt ? new Date(job.invoicedAt).toLocaleString() : createdAtFormatted) : "Pending Invoice",
-      handler: "Cashier & Commercial Billing",
       details: [
-        { label: "Tax Invoice #", value: job.invoiceNo || job.invoiceNumber || (job.invoiceId ? `INV-${jobNo.slice(-4)}` : "Pending Invoice") },
-        { label: "Total Invoiced Amount", value: totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : "-" },
-        { label: "Advance Collected", value: `₹${advancePaid.toFixed(2)}` },
-        { label: "Outstanding Balance", value: `₹${balanceRemaining.toFixed(2)}` },
-        { label: "Invoice Status", value: advancePaid > 0 ? "Advance Deposit Received" : (currentRank >= 4 ? "Invoice Issued" : "Pending Invoice Generation") },
+        { label: "Invoice", value: job.invoiceNo || job.invoiceNumber || (job.invoiceId ? "Issued" : "Pending") },
+        { label: "Advance paid", value: money(advancePaid) },
+        { label: "Balance", value: money(balanceRemaining) },
       ],
-      link: `/jobflow/invoice?jobId=${job._id || job.id}`,
-      linkLabel: "Open Commercial Invoice",
+      link: `/jobflow/invoice?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 5,
       id: "design",
-      title: "5. Designer Assignment & Sample Proof Approval",
+      title: "Design",
       shortTitle: "Design",
       icon: Palette,
-      stageMatch: "DESIGN",
       status: getStepStatus(5),
-      timestamp: currentRank >= 5 ? (job.assignedAt ? new Date(job.assignedAt).toLocaleString() : createdAtFormatted) : "Pending Assignment",
-      handler: currentRank >= 5 ? designerName : "Design Team",
       details: [
-        { label: "Assigned Designer", value: currentRank >= 5 ? designerName : "Queued for Designer Assignment" },
-        {
-          label: "Design Status",
-          value: (job.designStatus === "COMPLETED" || currentRank > 5 || stage === "READY") ? "Sample Approved by Customer" : (stage === "SAMPLE_APPROVAL" ? "Awaiting Customer Approval" : (stage === "DESIGN_IN_PROGRESS" ? "In Progress by Designer" : "Design Queue")),
-        },
-        { label: "Approved Sample Proof", value: job.latestSample?.versionNo ? `V${job.latestSample.versionNo}` : "V1" },
-        { label: "Customer Approval", value: (job.designStatus === "COMPLETED" || currentRank > 5) ? "Approved (Ready for Settlement)" : "Pending Review" },
+        { label: "Designer", value: currentRank >= 5 ? designerName : "Not assigned" },
+        { label: "Status", value: designState() },
+        ...(proofText ? [{ label: "Proof", value: proofText }] : []),
       ],
-      link: `/jobflow/design?jobId=${job._id || job.id}`,
-      linkLabel: "Open Design Canvas & Proofs",
+      link: `/jobflow/design?jobId=${jid}`,
+      linkLabel: "Open",
     },
     {
       step: 6,
       id: "settle-balance",
-      title: "6. Balance Settlement & Order Closure",
-      shortTitle: "Settle Balance",
+      title: "Settlement",
+      shortTitle: "Settlement",
       icon: CheckCircle2,
-      stageMatch: "SETTLEMENT",
       status: getStepStatus(6),
-      timestamp: isCompletedStage ? (job.settledAt || job.completionDate ? new Date(job.settledAt || job.completionDate).toLocaleString() : new Date().toLocaleString()) : (currentRank >= 6 ? "Awaiting Balance Collection" : "Pending Sample Approval"),
-      handler: "Cashier & Settlement Desk",
-      details: [
-        { label: "Total Design Fee", value: `₹${totalAmount.toFixed(2)}` },
-        { label: "Advance Already Paid", value: `₹${advancePaid.toFixed(2)}` },
-        { label: "Balance to Collect", value: `₹${balanceRemaining.toFixed(2)}` },
-        { label: "Settlement Status", value: isCompletedStage ? "Fully Settled & Closed (100% Paid)" : (balanceRemaining <= 0 ? "Paid in Full - Pending Final Close" : "Pending Final Balance Payment") },
-        { label: "Order Lifecycle", value: isCompletedStage ? "Closed" : "Awaiting Settlement" },
-      ],
-      link: `/jobflow/invoice?jobId=${job._id || job.id}`,
-      linkLabel: "Collect Balance & Settle Invoice",
+      details: [...settlementDetails, { label: "Status", value: isCompletedStage ? "Closed" : balanceRemaining <= 0 ? "Paid in full" : "Balance pending" }],
+      link: `/jobflow/invoice?jobId=${jid}`,
+      linkLabel: "Open",
     },
   ];
 
-  // Print Only: the full pipeline without the design step, and without QC when the job was set up without it
+  // Print Only: no design step, and no QC when the job was set up without it
   const qcSkipped = job.qcRequired === false;
   const printOnlySteps = processSteps
     .filter((st) => st.id !== "design" && !(qcSkipped && st.id === "qc"))
-    .map((st, idx) => ({ ...st, step: idx + 1, title: String(st.title).replace(/^\d+\.\s*/, `${idx + 1}. `) }));
+    .map((st, idx) => ({ ...st, step: idx + 1 }));
 
-  const effectiveSteps = isPrintOnly
-    ? printOnlySteps
-    : isDesignOnly
-    ? designOnlySteps
-    : processSteps;
+  const effectiveSteps = isPrintOnly ? printOnlySteps : isDesignOnly ? designOnlySteps : processSteps;
 
-  // Helper to determine badge color for step status
-  const getStepStatusBadge = (st) => {
-    switch (st) {
-      case "COMPLETED":
-        return <span className="jf-badge jf-badge-green"><Check size={12} /> Completed</span>;
-      case "IN_PROGRESS":
-        return <span className="jf-badge jf-badge-amber"><Clock size={12} /> Active In Progress</span>;
-      default:
-        return <span className="jf-badge" style={{ background: "#f1f5f9", color: "#475569" }}>Pending</span>;
-    }
+  const statusPill = (st) => {
+    const map = {
+      COMPLETED: ["Done", "#dcfce7", "#15803d"],
+      IN_PROGRESS: ["In progress", "#fef3c7", "#b45309"],
+    };
+    const [label, bg, color] = map[st] || ["Pending", "#f1f5f9", "#475569"];
+    return (
+      <span style={{ padding: "0.15rem 0.6rem", borderRadius: "9999px", fontSize: "0.72rem", fontWeight: 700, background: bg, color, whiteSpace: "nowrap" }}>
+        {label}
+      </span>
+    );
   };
 
-  const filteredSteps = activeStepTab === "all"
-    ? effectiveSteps
-    : effectiveSteps.filter((s) => s.step === Number(activeStepTab));
+  const filteredSteps = activeStepTab === "all" ? effectiveSteps : effectiveSteps.filter((s) => s.step === Number(activeStepTab));
 
   return (
     <div className="jf-modal-overlay" style={{ zIndex: 1100 }}>
-      <div className="jf-modal jf-modal-lg" style={{ maxWidth: "860px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-        {/* Modal Header */}
-        <div className="jf-modal-header" style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--jf-border)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
-            <div
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "10px",
-                backgroundColor: "var(--jf-primary)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FileText size={22} />
+      <div className="jf-modal jf-modal-lg" style={{ maxWidth: "760px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <div className="jf-modal-header" style={{ padding: "1rem 1.5rem", borderBottom: "1px solid var(--jf-border)" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <h2 className="jf-modal-title" style={{ fontSize: "1.15rem", margin: 0 }}>{jobNo}</h2>
+              <StatusBadge status={displayStatus} />
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <h2 className="jf-modal-title" style={{ fontSize: "1.25rem", margin: 0 }}>
-                  {jobNo}
-                </h2>
-                <StatusBadge status={displayStatus} />
-              </div>
-              <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.8125rem", color: "#475569" }}>
-                Client: <strong>{customerName}</strong> • {jobTitle} • Due: {dueDate}
-              </p>
-            </div>
+            <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.8125rem", color: "#475569" }}>
+              {customerName} • {jobTitle} • Due {dueDate}
+            </p>
           </div>
-
-          <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose}>
+          <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
-        {/* Stepper Progress Bar */}
-        <div style={{ background: "#f8fafc", padding: "1rem 1.5rem", borderBottom: "1px solid var(--jf-border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
+        {/* Progress */}
+        <div style={{ background: "#f8fafc", padding: "0.75rem 1.5rem", borderBottom: "1px solid var(--jf-border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             {effectiveSteps.map((st) => {
               const Icon = st.icon;
               const isCompleted = st.status === "COMPLETED";
               const isCurrent = st.status === "IN_PROGRESS";
               const isSelected = activeStepTab === String(st.step);
-
-              let bgColor = "#cbd5e1";
-              let textColor = "#64748b";
-              if (isCompleted) {
-                bgColor = "var(--jf-primary)";
-                textColor = "#ffffff";
-              } else if (isCurrent) {
-                bgColor = "#d97706";
-                textColor = "#ffffff";
-              }
-
+              const bg = isCompleted ? "var(--jf-primary)" : isCurrent ? "#d97706" : "#cbd5e1";
+              const fg = isCompleted || isCurrent ? "#ffffff" : "#64748b";
               return (
                 <div
                   key={st.step}
-                  onClick={() => setActiveStepTab(activeStepTab === String(st.step) ? "all" : String(st.step))}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    zIndex: 2,
-                    flex: 1,
-                    textAlign: "center",
-                    opacity: activeStepTab !== "all" && !isSelected ? 0.6 : 1,
-                    transition: "all 0.2s ease",
-                  }}
+                  onClick={() => setActiveStepTab(isSelected ? "all" : String(st.step))}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", flex: 1, textAlign: "center", opacity: activeStepTab !== "all" && !isSelected ? 0.55 : 1 }}
                   title={st.title}
                 >
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "50%",
-                      backgroundColor: bgColor,
-                      color: textColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: "0.35rem",
-                      boxShadow: isCurrent ? "0 0 0 4px rgba(217, 119, 6, 0.2)" : "none",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {isCompleted ? <Check size={18} strokeWidth={3} /> : <Icon size={18} />}
+                  <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: bg, color: fg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "0.3rem" }}>
+                    {isCompleted ? <Check size={16} strokeWidth={3} /> : <Icon size={15} />}
                   </div>
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      fontWeight: isCurrent || isSelected ? 700 : 600,
-                      color: isCurrent ? "#b45309" : isCompleted ? "var(--jf-primary)" : "#64748b",
-                      maxWidth: "85px",
-                      lineHeight: "1.1",
-                    }}
-                  >
-                    {st.shortTitle || st.title.split(". ")[1]?.split(" ")[0]}
+                  <span style={{ fontSize: "0.7rem", fontWeight: isCurrent || isSelected ? 700 : 600, color: isCurrent ? "#b45309" : isCompleted ? "var(--jf-primary)" : "#64748b" }}>
+                    {st.shortTitle}
                   </span>
                 </div>
               );
             })}
           </div>
-
-          {/*<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.75rem" }}>
-            
-            {activeStepTab !== "all" && (
-              <button
-                type="button"
-                className="jf-btn jf-btn-secondary jf-btn-sm"
-                style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
-                onClick={() => setActiveStepTab("all")}
-              >
-                Show All Stages
-              </button>
-            )}
-          </div> */}
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="jf-modal-body" style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            {filteredSteps.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={step.step}
-                  className="jf-card"
-                  style={{
-                    marginBottom: 0,
-                    borderLeft: `4px solid ${
-                      step.status === "COMPLETED"
-                        ? "var(--jf-primary)"
-                        : step.status === "IN_PROGRESS"
-                        ? "#f59e0b"
-                        : "#cbd5e1"
-                    }`,
-                    backgroundColor: step.status === "IN_PROGRESS" ? "#fffbeb" : "#ffffff",
-                  }}
-                >
-                  {/* Step Card Header */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      borderBottom: "1px solid var(--jf-border)",
-                      paddingBottom: "0.75rem",
-                      marginBottom: "0.875rem",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                      <div
-                        style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "6px",
-                          backgroundColor:
-                            step.status === "COMPLETED"
-                              ? "#dcfce7"
-                              : step.status === "IN_PROGRESS"
-                              ? "#fef3c7"
-                              : "#f1f5f9",
-                          color:
-                            step.status === "COMPLETED"
-                              ? "#15803d"
-                              : step.status === "IN_PROGRESS"
-                              ? "#b45309"
-                              : "#64748b",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Icon size={18} />
-                      </div>
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "var(--jf-text)" }}>
-                          {step.title}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      {getStepStatusBadge(step.status)}
-                      {step.link && (
-                        <Link
-                          to={step.link}
-                          className="jf-btn jf-btn-secondary jf-btn-sm"
-                          style={{ fontSize: "0.75rem", padding: "0.25rem 0.5rem" }}
-                          onClick={onClose}
-                        >
-                          {step.linkLabel} <ArrowRight size={12} />
-                        </Link>
-                      )}
-                    </div>
+        {/* Stages */}
+        <div className="jf-modal-body" style={{ flex: 1, overflowY: "auto", padding: "1rem 1.5rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            {filteredSteps.map((step) => (
+              <div key={step.step} style={{ border: "1px solid var(--jf-border)", borderRadius: "8px", padding: "0.7rem 0.9rem", background: "#ffffff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a" }}>
+                    {step.step}. {step.title}
                   </div>
-
-                  {/* Step Attributes Grid */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: "0.75rem",
-                      fontSize: "0.8125rem",
-                    }}
-                  >
-                    {step.details.map((d, dIdx) => (
-                      <div
-                        key={dIdx}
-                        style={{
-                          background: step.status === "IN_PROGRESS" ? "#ffffff" : "#f8fafc",
-                          padding: "0.5rem 0.75rem",
-                          borderRadius: "6px",
-                          border: "1px solid var(--jf-border)",
-                        }}
-                      >
-                        <span style={{ color: "#475569", fontSize: "0.75rem", display: "block", marginBottom: "2px" }}>
-                          {d.label}:
-                        </span>
-                        <strong style={{ color: "#0f172a" }}>{d.value}</strong>
-                      </div>
-                    ))}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    {statusPill(step.status)}
+                    {step.link && (
+                      <Link to={step.link} className="jf-btn jf-btn-secondary jf-btn-sm" style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem" }} onClick={onClose}>
+                        {step.linkLabel || "Open"} <ArrowRight size={12} />
+                      </Link>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem 1.5rem", marginTop: "0.5rem", fontSize: "0.8125rem" }}>
+                  {step.details.map((d, i) => (
+                    <span key={i} style={{ color: "#64748b" }}>
+                      {d.label}: <strong style={{ color: "#0f172a", fontWeight: 600 }}>{d.value}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div
-          className="jf-modal-footer"
-          style={{
-            padding: "1rem 1.5rem",
-            borderTop: "1px solid var(--jf-border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div className="jf-modal-footer" style={{ padding: "0.75rem 1.5rem", borderTop: "1px solid var(--jf-border)", justifyContent: "flex-start" }}>
           <span style={{ fontSize: "0.8125rem", color: "#475569" }}>
             Status: <strong>{displayStatus}</strong>
           </span>
-          
         </div>
       </div>
     </div>

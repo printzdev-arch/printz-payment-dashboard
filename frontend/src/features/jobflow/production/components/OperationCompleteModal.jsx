@@ -10,10 +10,11 @@ export const OperationCompleteModal = ({
   productionOrder,
   onSuccess,
 }) => {
-  const [inputQuantity, setInputQuantity] = useState(1000);
-  const [outputQuantity, setOutputQuantity] = useState(1000);
-  const [completedQuantity, setCompletedQuantity] = useState(1000);
+  const [inputQuantity, setInputQuantity] = useState("");
+  const [outputQuantity, setOutputQuantity] = useState("");
+  const [completedQuantity, setCompletedQuantity] = useState("");
   const [materials, setMaterials] = useState([]);
+  const [stocks, setStocks] = useState([]);
   const [remarks, setRemarks] = useState("");
   const [isPackingConfirmation, setIsPackingConfirmation] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,47 +23,33 @@ export const OperationCompleteModal = ({
     (operation?.operationName || operation?.operation || "").toLowerCase().includes("pack") ||
     (operation?.operationCode || "").toUpperCase() === "PACKING";
 
+  // Stock items (existing stock) for the material lines
+  useEffect(() => {
+    if (!isOpen) return;
+    jobFlowApi
+      .getStocks({ limit: 500 })
+      .then((r) => setStocks(((r?.data || r)?.items) || []))
+      .catch(() => setStocks([]));
+  }, [isOpen]);
+
   useEffect(() => {
     if (operation) {
-      const inQty =
-        operation.inputQty ||
-        operation.plannedQty ||
-        productionOrder?.plannedQty ||
-        1000;
+      const inQty = operation.inputQty || operation.plannedQty || productionOrder?.plannedQty || "";
       setInputQuantity(inQty);
       setOutputQuantity(operation.outputQty || inQty);
       setCompletedQuantity(operation.completedQty || inQty);
-      setRemarks(operation.remarks || "Operation completed within quality tolerances.");
+      setRemarks(operation.remarks || "");
 
-      // Default material suggestions if applicable
-      const opName = (operation.operationName || operation.operation || "").toLowerCase();
-      if (opName.includes("print") && materials.length === 0) {
-        setMaterials([
-          {
-            item: "350gsm Art Card Sheets",
-            type: "Direct Stock",
-            quantity: Math.ceil(inQty / 2),
-            unit: "Sheets",
-          },
-          {
-            item: "CMYK Indigo Digital Ink",
-            type: "Consumable",
-            quantity: 1,
-            unit: "Unit",
-          },
-        ]);
-      } else if (opName.includes("lam") && materials.length === 0) {
-        setMaterials([
-          {
-            item: "Thermal Lamination Film",
-            type: "Consumable",
-            quantity: Math.ceil(inQty * 0.3),
-            unit: "Meters",
-          },
-        ]);
-      } else {
-        setMaterials([]);
-      }
+      // The materials planned for this step (from the production plan), already scaled to this step's quantity
+      setMaterials(
+        (operation.materials || []).map((m) => ({
+          itemId: m.itemId || null,
+          item: m.name,
+          type: "Direct Stock",
+          quantity: m.plannedQty,
+          unit: m.unit || "",
+        }))
+      );
     }
   }, [operation, productionOrder]);
 
@@ -71,12 +58,7 @@ export const OperationCompleteModal = ({
   const handleAddMaterial = () => {
     setMaterials((prev) => [
       ...prev,
-      {
-        item: "Packaging Boxes / Tape",
-        type: "Consumable",
-        quantity: 1,
-        unit: "Units",
-      },
+      { itemId: null, item: "", type: "Direct Stock", quantity: 0, unit: "" },
     ]);
   };
 
@@ -116,12 +98,23 @@ export const OperationCompleteModal = ({
         inputQty: inQty,
         outputQty: outQty,
         completedQty: compQty,
-        materialConsumption: materials.map((m) => ({
-          materialName: m.item,
-          consumptionType: m.type,
-          quantity: Number(m.quantity) || 1,
-          unit: m.unit || "Units",
-        })),
+        // Lines linked to a stock item reduce that stock; the others are only recorded
+        consumption: materials
+          .filter((m) => m.itemId && Number(m.quantity) > 0)
+          .map((m) => ({
+            itemId: m.itemId,
+            quantity: Number(m.quantity),
+            unit: m.unit || undefined,
+            consumptionType: m.type === "Wastage / Setup" ? "WASTAGE" : "MATERIAL",
+          })),
+        materialConsumption: materials
+          .filter((m) => !m.itemId && m.item && Number(m.quantity) > 0)
+          .map((m) => ({
+            materialName: m.item,
+            consumptionType: m.type,
+            quantity: Number(m.quantity),
+            unit: m.unit || "Units",
+          })),
         remarks,
         actualEnd: new Date(),
       };
@@ -141,7 +134,7 @@ export const OperationCompleteModal = ({
 
   return (
     <div className="jf-modal-overlay">
-      <div className="jf-modal jf-modal-lg">
+      <div className="jf-modal jf-modal-lg jf-modal-scroll">
         <div className="jf-modal-header">
           <div className="prod-modal-header-left">
             <div className="prod-modal-icon-badge green">
@@ -168,12 +161,6 @@ export const OperationCompleteModal = ({
           <div className="jf-modal-body prod-modal-body-stack">
             {/* Header Context Summary */}
             <div className="prod-modal-info-box prod-modal-info-box--4col">
-              <div>
-                <span className="prod-modal-label">Order No:</span>
-                <strong className="prod-modal-val">
-                  {productionOrder?.orderNumber || "PO-CURRENT"}
-                </strong>
-              </div>
               <div>
                 <span className="prod-modal-label">Job Order:</span>
                 <strong className="prod-modal-val">
@@ -274,13 +261,27 @@ export const OperationCompleteModal = ({
                 <div className="prod-mat-list">
                   {materials.map((mat, idx) => (
                     <div key={idx} className="prod-mat-row">
-                      <input
-                        type="text"
+                      <select
                         className="jf-input jf-input-sm"
-                        placeholder="Material name / Item"
-                        value={mat.item}
-                        onChange={(e) => handleUpdateMaterial(idx, "item", e.target.value)}
-                      />
+                        value={mat.itemId || ""}
+                        onChange={(e) => {
+                          const stock = stocks.find((s) => s.id === e.target.value);
+                          setMaterials((prev) =>
+                            prev.map((m, i) =>
+                              i === idx
+                                ? stock
+                                  ? { ...m, itemId: stock.id, item: stock.name, unit: m.unit || stock.unit || "" }
+                                  : { ...m, itemId: null }
+                                : m
+                            )
+                          );
+                        }}
+                      >
+                        <option value="">{mat.itemId ? "" : mat.item ? `${mat.item} (not linked to stock)` : "Choose stock item"}</option>
+                        {stocks.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name} ({s.quantity}{s.unit ? ` ${s.unit}` : ""})</option>
+                        ))}
+                      </select>
                       <select
                         className="jf-input jf-input-sm"
                         value={mat.type}

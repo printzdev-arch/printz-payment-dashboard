@@ -20,6 +20,7 @@ import JobFlowLayout from "../../shared/components/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal";
 import CreateJobOrderPage from "./CreateJobOrderPage";
 import jobFlowApi from "../api/jobOrdersApi";
@@ -331,7 +332,7 @@ export const DesignerJobOrdersPage = () => {
             width: "150px",
             render: (val, row) => (
               <div>
-                <strong style={{ color: "var(--jf-primary-dark)", display: "block" }}>
+                <strong style={{ color: "#0f172a", fontWeight: 700, display: "block", whiteSpace: "nowrap" }}>
                   {val || row.orderNumber}
                 </strong>
                 <div style={{ marginTop: "4px" }}>
@@ -385,6 +386,12 @@ export const DesignerJobOrdersPage = () => {
                 </div>
               );
             },
+          },
+          {
+            key: "priority",
+            label: "Priority",
+            sortable: true,
+            render: (val, row) => <PriorityBadge priority={val || row.priority} />,
           },
           {
             key: "stage",

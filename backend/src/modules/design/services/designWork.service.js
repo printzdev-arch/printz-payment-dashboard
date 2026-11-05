@@ -214,8 +214,8 @@ class DesignWorkService {
   }
 
   /**
-   * Jobs assigned to the current designer. A manager can look at one designer or at all of them,
-   * limited to their own branch. A designer always gets only their own jobs.
+   * Jobs assigned to the current designer. Managers and admins cannot use it;
+   * a designer always gets only their own jobs.
    */
   static async myJobs(user, state = null, targetDesignerId = null) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
@@ -226,19 +226,17 @@ class DesignWorkService {
       currentAssignment: true,
     };
 
-    const privileged = DesignHelper.isManagerOrAdmin(user);
-    if (!privileged) {
-      match.employeeId = user._id;
-    } else if (targetDesignerId && targetDesignerId !== "all") {
-      match.employeeId = mongoose.Types.ObjectId.isValid(targetDesignerId)
-        ? new mongoose.Types.ObjectId(targetDesignerId)
-        : targetDesignerId;
+    // A designer's own job list is the designer's workspace: managers and admins do not see it
+    // (they run the Design Queue instead).
+    if (DesignHelper.isManagerOrAdmin(user)) {
+      throw ErrorHelper.forbidden("Designer job lists are only for designers. Managers use the Design Queue.");
     }
+    match.employeeId = mongoose.Types.ObjectId.isValid(String(user._id)) ? new mongoose.Types.ObjectId(String(user._id)) : user._id;
 
     if (state === "PENDING") match.acceptedAt = null;
     if (state === "ACCEPTED") match.acceptedAt = { $ne: null };
 
-    const branchId = privileged ? DesignHelper.scopeBranchId(user) : null;
+    const branchId = null;
 
     return jobAssignmentRepository.aggregate([
       { $match: match },

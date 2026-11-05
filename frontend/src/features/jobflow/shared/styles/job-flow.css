@@ -828,6 +828,27 @@
   max-width: 900px;
 }
 
+/* Tall popups: the header and footer stay put and the body scrolls (some page styles hide overflow on .jf-modal-lg) */
+.jf-modal.jf-modal-scroll {
+  overflow: hidden;
+  max-height: 90vh;
+}
+.jf-modal.jf-modal-scroll > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.jf-modal.jf-modal-scroll .jf-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.jf-modal.jf-modal-scroll .jf-modal-header,
+.jf-modal.jf-modal-scroll .jf-modal-footer {
+  flex-shrink: 0;
+}
+
 .jf-modal-header {
   display: flex;
   align-items: center;

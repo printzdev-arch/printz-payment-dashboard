@@ -103,6 +103,24 @@ class ProductionQueueService {
           sequenceNo: op.sequenceNo,
           dependsOn: op.dependsOn || [],
           instructions: op.instructions || "",
+          // Planned materials for this step (or for the whole order), scaled to the quantity of this step
+          materials: (order?.materials || [])
+            .filter((m) => {
+              const rel = String(m.relatedOperation || "").trim().toLowerCase();
+              // General = every step; otherwise it matches the step's code or (older plans) its name
+              return !rel || rel === "general" || rel === String(op.operationCode || "").toLowerCase() || rel === String(op.operationName || "").toLowerCase();
+            })
+            .map((m) => {
+              const orderQty = Number(order?.plannedQty) || 0;
+              const scale = orderQty > 0 && plannedQty > 0 ? plannedQty / orderQty : 1;
+              return {
+                itemId: m.itemId ? String(m.itemId) : null,
+                name: m.name,
+                spec: m.spec || "",
+                unit: m.unit || "",
+                plannedQty: Math.round((Number(m.requiredQty) || 0) * scale * 100) / 100,
+              };
+            }),
 
           status: op.status === "RUNNING" ? "IN_PROGRESS" : op.status,
           availabilityStatus,
@@ -151,7 +169,7 @@ class ProductionQueueService {
    * availabilityStatus or status), isRework, cycleType, branchId, page, limit
    */
   static async getQueue(filters = {}, user = null) {
-    const { operationCode, mine, search, status, isRework, cycleType, priority, machine, page = 1, limit = 50 } = filters;
+    const { operationCode, mine, search, status, isRework, cycleType, priority, machine, operatorId, operatorName, page = 1, limit = 50 } = filters;
 
     let rows = await this.buildRows(filters, user);
 
@@ -161,12 +179,20 @@ class ProductionQueueService {
     }
     if (priority && String(priority).toUpperCase() !== "ALL") {
       const p = String(priority).toUpperCase().trim();
-      const group = p === "URGENT" ? ["URGENT", "RUSH"] : [p];
+      // Two priorities: urgent (URGENT / RUSH / HIGH) and normal (everything else)
+      const group = p === "URGENT" ? ["URGENT", "RUSH", "HIGH"] : ["NORMAL", "LOW"];
       rows = rows.filter((r) => group.includes(r.priority));
     }
     if (machine && String(machine).toUpperCase() !== "ALL") {
       const m = String(machine).trim().toLowerCase();
       rows = rows.filter((r) => String(r.machine || "").trim().toLowerCase() === m);
+    }
+    if (operatorId && String(operatorId).toUpperCase() !== "ALL") {
+      rows = rows.filter((r) => r.assignedEmployeeId === String(operatorId));
+    }
+    if (operatorName && String(operatorName).trim()) {
+      const wanted = String(operatorName).trim().toLowerCase();
+      rows = rows.filter((r) => String(r.operator || "").trim().toLowerCase() === wanted);
     }
     if (isTrue(mine) && user) {
       rows = rows.filter((r) => r.assignedEmployeeId === String(user._id));
@@ -244,12 +270,14 @@ class ProductionQueueService {
     const byOperation = {};
     const operationCodes = new Set();
     const machines = new Set();
+    const operatorNames = new Set();
     let rework = 0;
 
     rows.forEach((r) => {
       byStatus[r.availabilityStatus] = (byStatus[r.availabilityStatus] || 0) + 1;
       if (r.operationCode) operationCodes.add(r.operationCode);
       if (r.machine) machines.add(r.machine);
+      if (r.operator) operatorNames.add(r.operator);
 
       const needsWork = !FINISHED_STATUSES.includes(r.status);
       if (needsWork) {
@@ -270,6 +298,7 @@ class ProductionQueueService {
       // Every operation / machine present in the queue, for the filter dropdowns
       operationCodes: [...operationCodes].sort(),
       machines: [...machines].sort(),
+      operatorNames: [...operatorNames].sort(),
       rework,
       qcPending,
     };

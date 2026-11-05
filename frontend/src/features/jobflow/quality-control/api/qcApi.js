@@ -21,44 +21,19 @@ export const qcApi = {
     return res.data;
   },
 
+  getQcHistory: async (productionOrderId) => {
+    const res = await api.get(`/production-orders/${productionOrderId}/qc-history`);
+    return res.data;
+  },
+
   getQualityCheckReport: async (id) => {
     const res = await api.get(`/quality-checks/${id}/report`);
     return res.data;
   },
 
+  // Any error (validation, wrong status, not found) is thrown so the screen can show it
   performQualityCheck: async (productionOrderId, checkData) => {
-    const payload = {
-      result: checkData.result || (checkData.passed ? "PASS" : "ISSUE"),
-      notes: checkData.notes || "Inspection recorded",
-      ...checkData,
-    };
-    if (!["PASS", "ISSUE", "FAIL", "CONDITIONAL"].includes(payload.result)) {
-      payload.result = checkData.passed ? "PASS" : "ISSUE";
-    }
-
-    try {
-      const res = await api.post(`/production-orders/${productionOrderId}/quality-checks`, payload);
-      return res.data;
-    } catch (err) {
-      if (err.response?.status === 404 || err.response?.status === 400) {
-        return { success: true, message: "Quality check recorded", data: payload };
-      }
-      throw err;
-    }
-  },
-
-  // ── Targeted Rework Dispatches ──
-  reworkProductionStep: async (productionOrderId, reworkData = {}) => {
-    const payload = {
-      result: "ISSUE",
-      correctiveAction: "REWORK",
-      reworkOperationCode: reworkData.operationName || "PRINT",
-      quantityChecked: Number(reworkData.quantity) || 1,
-      acceptedQty: 0,
-      rejectedQty: Number(reworkData.quantity) || 1,
-      issueDetails: reworkData.instructions || "Targeted rework requested from QC",
-      comments: reworkData.instructions || "Targeted rework dispatched",
-    };
+    const payload = { ...checkData, result: checkData.result || (checkData.passed ? "PASS" : "ISSUE") };
     const res = await api.post(`/production-orders/${productionOrderId}/quality-checks`, payload);
     return res.data;
   },

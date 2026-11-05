@@ -32,6 +32,11 @@ export const designApi = {
     };
   },
 
+  addDesignerToPool: async (data) => {
+    const res = await api.post("/design/pool/designer", data);
+    return res.data;
+  },
+
   updateDesignerInPool: async (id, data) => {
     const res = await api.patch(`/design/pool/designer/${id}`, data);
     return res.data;
