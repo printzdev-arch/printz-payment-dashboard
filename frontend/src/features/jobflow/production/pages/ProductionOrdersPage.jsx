@@ -22,6 +22,7 @@ import {
   Pencil,
 } from "lucide-react";
 import productionApi from "../api/productionApi";
+import PriorityBadge from "../../shared/components/PriorityBadge";
 import ProductionOrderActionsModal from "../components/ProductionOrderActionsModal";
 import "../styles/production-orders.css";
 import "../styles/production-theme.css";
@@ -568,19 +569,18 @@ export default function ProductionOrdersPage() {
                 <th className="num">Order Qty</th>
                 <th>Status</th>
                 <th>Priority</th>
-                <th>Planned Start</th>
-                <th>Planned End</th>
+                <th>Planned</th>
                 <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr className="po-empty-row">
-                  <td colSpan="9">Loading production orders…</td>
+                  <td colSpan="8">Loading production orders…</td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr className="po-empty-row">
-                  <td colSpan="9">
+                  <td colSpan="8">
                     {loadError ? "Could not load production orders." : "No production orders match the current filters."}
                   </td>
                 </tr>
@@ -588,7 +588,6 @@ export default function ProductionOrdersPage() {
                 orders.map((o, i) => {
                   const id = rowId(o);
                   const can = actionsFor(o.status);
-                  const prio = ["URGENT", "HIGH", "RUSH"].includes(String(o.priority || "").toUpperCase()) ? "URGENT" : "NORMAL";
                   return (
                     <tr key={id}>
                       <td data-label="Job Order No" className="po-number">
@@ -609,19 +608,22 @@ export default function ProductionOrdersPage() {
                         )}
                       </td>
                       <td data-label="Priority">
-                        <span className={`po2-prio ${prio.toLowerCase()}`}>{prio === "URGENT" ? "Urgent" : "Normal"}</span>
+                        <PriorityBadge priority={o.priority} />
                       </td>
-                      <td data-label="Start">{fmtDate(o.plannedStart)}</td>
-                      <td data-label="End">{fmtDate(o.plannedEnd)}</td>
+                      <td data-label="Planned">
+                        {o.plannedStart || o.plannedEnd ? `${fmtDate(o.plannedStart)} – ${fmtDate(o.plannedEnd)}` : "—"}
+                      </td>
                       <td className="col-actions" data-label="">
                         <div className="po-actions">
-                          <button
-                            type="button"
-                            className={`po-btn po-btn-sm ${o.nextAction === "PLAN" ? "po-btn-primary" : "po-btn-outline"}`}
-                            onClick={() => handlePrimary(o)}
-                          >
-                            {o.nextAction === "PLAN" ? (o.planningStatus === "DRAFT" ? "Continue" : "Plan") : "View"}
-                          </button>
+                          {o.nextAction === "PLAN" ? (
+                            <button type="button" className="po-btn po-btn-sm po-btn-primary" onClick={() => handlePrimary(o)}>
+                              {o.planningStatus === "DRAFT" ? "Continue" : "Plan"}
+                            </button>
+                          ) : (
+                            <button type="button" className="po-icon-btn" title="View" aria-label="View" onClick={() => handlePrimary(o)}>
+                              <Eye size={15} />
+                            </button>
+                          )}
                           {["PLANNED", "IN_PROGRESS"].includes(o.status) && (
                             <button
                               type="button"
