@@ -15,6 +15,9 @@ import logo from "../../assets/logo.png";
 import adminLoginIllustration from "../illustrations/admin_login_printing_illustration.svg";
 import "../../styles/login.css";
 
+// Survives Login remounts, so a redirect ping-pong can be detected
+let lastAutoRedirectAt = 0;
+
 export default function Login() {
   const emailRef = useRef();
   const passwordRef = useRef();
@@ -48,7 +51,13 @@ export default function Login() {
       navigate("/admin-dashboard");
     } else if (user?.role === "manager") {
       navigate("/manager-dashboard");
-    } else if (user?.role === "branch_staff") {
+    } else if (
+      user?.role === "branch_staff" ||
+      user?.role === "branch_manager" ||
+      user?.role === "branch_manager1"
+    ) {
+      // branch managers are not allowed on /manager-dashboard (manager/admin only);
+      // sending them there bounces back to /login and loops forever
       navigate("/sale-orders");
     } else if (user?.role === "operator") {
       navigate("/v3/production/queue");
@@ -90,8 +99,18 @@ export default function Login() {
   };
 
   // Auto redirect if already logged in
+  // Loop guard: if the page we redirect to bounces the user straight back to /login
+  // (role not allowed there), skip a second auto-redirect within a short window.
   useEffect(() => {
     if (role && currentUser) {
+      const now = Date.now();
+      if (now - lastAutoRedirectAt < 3000) {
+        setErrorMessage(
+          `Your account role (${currentUser?.role || role}) has no page assigned. Please contact an administrator.`
+        );
+        return;
+      }
+      lastAutoRedirectAt = now;
       handleRedirectByRole(currentUser);
     }
   }, [role, currentUser]);
