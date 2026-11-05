@@ -64,9 +64,7 @@ const getDesignQueue = asyncHandler(async (req, res) => {
 });
 
 const getDesignerPool = asyncHandler(async (req, res) => {
-  const pool = await DesignAllocationService.pool(req.user, {
-    includeInactive: String(req.query.includeInactive) === "true",
-  });
+  const pool = await DesignAllocationService.pool(req.user);
   return ResponseHelper.ok(res, "Designer pool retrieved successfully", pool);
 });
 
@@ -83,11 +81,6 @@ const getRecentAssignments = asyncHandler(async (req, res) => {
 const getRejectedAssignments = asyncHandler(async (req, res) => {
   const rejected = await DesignAllocationService.rejectedAssignments(req.query.limit || 50, req.user);
   return ResponseHelper.ok(res, "Rejected assignments retrieved successfully", rejected);
-});
-
-const addDesigner = asyncHandler(async (req, res) => {
-  const designer = await DesignAllocationService.addDesigner(req.body);
-  return ResponseHelper.ok(res, "Designer added successfully", designer);
 });
 
 const updateDesigner = asyncHandler(async (req, res) => {
@@ -111,7 +104,6 @@ module.exports = {
   getWorkload,
   getRecentAssignments,
   getRejectedAssignments,
-  addDesigner,
   updateDesigner,
   updateGlobalMaxLoad,
 };

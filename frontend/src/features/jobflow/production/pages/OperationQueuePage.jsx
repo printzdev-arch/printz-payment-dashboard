@@ -887,6 +887,7 @@ export default function OperationQueuePage() {
         rows={rows}
         loading={loading}
         error={error}
+        offset={(page - 1) * PAGE_SIZE}
         onOpen={openRow}
         onReset={resetFilters}
         onRetry={refreshAll}

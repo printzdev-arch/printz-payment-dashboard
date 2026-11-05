@@ -480,6 +480,9 @@ export const SettlementPage = () => {
                           <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
                         </td>
                         <td>
+                          <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
+                        </td>
+                        <td>
                           <div style={{ fontWeight: 600 }}>{inv.customerName}</div>
                           <div style={{ fontSize: "0.75rem", color: "#475569" }}>{inv.customerPhone}</div>
                         </td>

@@ -440,6 +440,23 @@ export const QualityControlPage = ({ embedded = false }) => {
                   </div>
                 )}
               </div>
+            </>
+          ) : (
+            <div className="jf-card qc-empty">
+              <div className="qc-empty-icon">
+                <ShieldCheck size={28} />
+              </div>
+              <h3>Select a Batch to Inspect</h3>
+              <div className="qc-empty-actions">
+                {qcQueue.length > 0 && (
+                  <button type="button" className="jf-btn jf-btn-primary" onClick={() => setSelectedQcJob(qcQueue[0])}>
+                    Inspect {qcQueue[0].jobNo}
+                  </button>
+                )}
+                <button type="button" className="jf-btn jf-btn-secondary" onClick={() => setActiveTab("15A")}>
+                  View Queue
+                </button>
+              </div>
             </div>
           )}
         </>

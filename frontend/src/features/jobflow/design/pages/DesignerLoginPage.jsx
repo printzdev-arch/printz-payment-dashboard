@@ -123,6 +123,15 @@ export const DesignerLoginPage = () => {
           } catch { }
         }
 
+        const allowedEmails = [
+          "ali.hassan@printz.com",
+          "siti.rahman@printz.com",
+          "kumar.anil@printz.com",
+          "john.lee@printz.com",
+          "nur.aisyah@printz.com",
+          "guna@gmail.com",
+        ];
+
         if (Array.isArray(rawList) && rawList.length > 0) {
           const palette = ["#dc2626", "#0891b2", "#059669", "#2563eb", "#7c3aed", "#d97706"];
           const seenEmails = new Set();
