@@ -120,11 +120,10 @@ Key environment variables:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGODB_URI=mongodb+srv://printz_admin:Printz1234Payment@cluster0.kl4shhi.mongodb.net/printz_accounts?retryWrites=true&w=majority&appName=Cluster0
-MONGO_URI=mongodb+srv://printz_admin:Printz1234Payment@cluster0.kl4shhi.mongodb.net/printz_accounts?retryWrites=true&w=majority&appName=Cluster0
+MONGO_URI=mongodb://127.0.0.1:27017/printz_db
 JWT_SECRET=your_jwt_access_secret_min_32_characters_here
 JWT_ACCESS_SECRET=your_jwt_access_secret_min_32_characters_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_min_32_characters_here
+REFRESH_TOKEN_SECRET=your_jwt_refresh_secret_min_32_characters_here
 CLIENT_URL=http://localhost:5173,http://localhost:3000
 ```
 

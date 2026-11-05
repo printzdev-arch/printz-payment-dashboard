@@ -16,6 +16,8 @@ jspm_packages/
 # ===================================================
 # Nested Duplicates & Local Working Folders
 # ===================================================
+/backend/
+backend/
 backend/backend/
 New folder/
 New\ folder/
@@ -126,15 +128,6 @@ temp/
 .turbo/
 
 # ===================================================
-# Archives & Compressed Files
-# ===================================================
-*.zip
-*.tar.gz
-*.tgz
-*.rar
-*.7z
-
-# ===================================================
 # IDE, Editor & Tool Specific Files
 # ===================================================
 .vscode/*
@@ -168,8 +161,3 @@ ehthumbs_vista.db
 $RECYCLE.BIN/
 Network Trash Folder/
 Temporary Items/
-
-# ===================================================
-# Keep Gitkeep Files Everywhere
-# ===================================================
-!.gitkeep

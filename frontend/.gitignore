@@ -2,7 +2,6 @@
 # Dependencies & Package Managers
 # ===================================================
 node_modules/
-jspm_packages/
 .pnp/
 .pnp.js
 .yarn/*
@@ -77,15 +76,6 @@ tmp/
 temp/
 
 # ===================================================
-# Archives & Compressed Files
-# ===================================================
-*.zip
-*.tar.gz
-*.tgz
-*.rar
-*.7z
-
-# ===================================================
 # Editor & IDE Directories
 # ===================================================
 .vscode/*
@@ -117,10 +107,3 @@ ehthumbs.db
 ehthumbs_vista.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
-Network Trash Folder/
-Temporary Items/
-
-# ===================================================
-# Keep Gitkeep Files Everywhere
-# ===================================================
-!.gitkeep
