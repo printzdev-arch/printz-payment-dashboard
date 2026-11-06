@@ -116,6 +116,8 @@ branchSchema.statics.delete = async function (id) {
   return this.findByIdAndDelete(id);
 };
 
+branchSchema.plugin(require("../../../utils/AuthCache").invalidationPlugin);
+
 const Branch = mongoose.models.Branch || mongoose.model("Branch", branchSchema, "branches");
 
 if (typeof branchSchema !== "undefined" && typeof Branch !== "undefined" && branchSchema.statics) {

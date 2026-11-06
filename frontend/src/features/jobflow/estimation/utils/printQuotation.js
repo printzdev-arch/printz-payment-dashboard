@@ -1,5 +1,5 @@
 /**
- * Print Quotation Utility for Guna Printz
+ * Print Quotation Utility for PrintZ
  * Generates an official, printable quotation document in a clean popup window.
  */
 export const printQuotation = (estimate) => {

@@ -1,10 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 const morgan = require("morgan");
 const swaggerUi = require("swagger-ui-express");
 const { buildSwaggerDocument } = require("./docs/swagger");
 const { enrichFromRoutes } = require("./docs/swagger/lib/enrich");
+const { addAutoDocs } = require("./docs/swagger/lib/autoDocs");
 const env = require("./config/env");
 require("./modules/models");
 const routes = require("./routes");
@@ -57,6 +59,9 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key", "X-Idempotency-Key"],
   })
 );
+
+// Gzip responses (large JSON lists shrink ~5-10x)
+app.use(compression());
 
 // Body Parsing
 // rawBody is kept so the WhatsApp webhook signature can be verified
@@ -122,6 +127,8 @@ app.use("/api", routes);
 // Swagger / OpenAPI reference. Built after the routes are mounted so that any endpoint without a
 // hand-written description is still listed (see docs/swagger/lib/enrich.js).
 const swaggerDocument = enrichFromRoutes(buildSwaggerDocument(), app, routes.MOUNTS).doc;
+// Request fields and example responses for every operation (see docs/swagger/lib/autoDocs.js)
+addAutoDocs(swaggerDocument);
 app.use(
   "/api-docs",
   swaggerUi.serve,

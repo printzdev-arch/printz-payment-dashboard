@@ -51,7 +51,9 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(uri, {
-      autoIndex: true,
+      // Set MONGO_AUTO_INDEX=false once indexes are built to speed up startup
+      autoIndex: process.env.MONGO_AUTO_INDEX !== "false",
+      maxPoolSize: 20,
       serverSelectionTimeoutMS: 15000,
     });
     console.log(` MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);

@@ -220,6 +220,11 @@ const productionOrderSchema = new mongoose.Schema(
 productionOrderSchema.index({ jobOrderId: 1, status: 1 });
 productionOrderSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 productionOrderSchema.index({ jobOrderId: 1, jobItemId: 1, cycleType: 1, cycleNo: 1 });
+// QC pending queue (status + branch, newest first) and list sorting
+productionOrderSchema.index({ status: 1, branchId: 1, updatedAt: -1 });
+productionOrderSchema.index({ createdAt: -1 });
+productionOrderSchema.index({ machineId: 1, status: 1 });
+productionOrderSchema.index({ planningStatus: 1, branchId: 1 });
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Instance methods                                                           */

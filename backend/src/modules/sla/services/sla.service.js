@@ -178,6 +178,22 @@ class SlaService {
   }
 
   /**
+   * Evaluate many jobs with bounded concurrency instead of one after another.
+   * Returns results in the same order as `ids`; a failed evaluation yields null.
+   */
+  async evaluateMany(ids = [], concurrency = 10) {
+    const results = new Array(ids.length).fill(null);
+    for (let i = 0; i < ids.length; i += concurrency) {
+      const chunk = ids.slice(i, i + concurrency);
+      const settled = await Promise.all(chunk.map((id) => this.evaluate(id).catch(() => null)));
+      settled.forEach((r, k) => {
+        results[i + k] = r;
+      });
+    }
+    return results;
+  }
+
+  /**
    * Evaluate SLA for a job order
    */
   async evaluate(jobOrderId, useCache = true) {
@@ -443,20 +459,17 @@ class SlaService {
       MET: 0,
     };
 
-    for (const job of jobs) {
-      try {
-        const evalResult = await this.evaluate(job._id);
-        const targetSegments = filters.stage
-          ? evalResult.segments.filter((s) => s.stage === filters.stage)
-          : evalResult.segments;
+    const evaluations = await this.evaluateMany(jobs.map((j) => j._id));
+    for (const evalResult of evaluations) {
+      if (!evalResult) continue; // skipped on evaluation error
+      const targetSegments = filters.stage
+        ? evalResult.segments.filter((s) => s.stage === filters.stage)
+        : evalResult.segments;
 
-        for (const seg of targetSegments) {
-          if (counts[seg.state] !== undefined) {
-            counts[seg.state]++;
-          }
+      for (const seg of targetSegments) {
+        if (counts[seg.state] !== undefined) {
+          counts[seg.state]++;
         }
-      } catch (err) {
-        // Skip on evaluation error
       }
     }
 
@@ -478,10 +491,13 @@ class SlaService {
       .lean();
 
     const atRiskList = [];
+    const evaluations = await this.evaluateMany(openJobs.map((j) => j._id));
 
-    for (const job of openJobs) {
-      try {
-        const evalResult = await this.evaluate(job._id);
+    for (let i = 0; i < openJobs.length; i++) {
+      const job = openJobs[i];
+      const evalResult = evaluations[i];
+      if (!evalResult) continue; // skipped on eval failure
+      {
         for (const seg of evalResult.segments) {
           if (!seg.isClosed && ["APPROACHING", "BREACHED"].includes(seg.state)) {
             if (filters.stage && seg.stage !== filters.stage) continue;
@@ -499,8 +515,6 @@ class SlaService {
             });
           }
         }
-      } catch (err) {
-        // Skip on eval failure
       }
     }
 

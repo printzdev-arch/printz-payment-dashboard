@@ -32,7 +32,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
   };
 
   const branch = doc.branchSnapshot || {
-    name: "Guna Printz - Main Branch",
+    name: "PrintZ - Main Branch",
     address: "12/4, 2nd Main Road, Banaswadi, Bangalore - 560043",
     phone: "+91 98450 12345",
     gstin: "29AABCG1234F1Z5",
@@ -263,7 +263,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
         <div class="bill-card">
           <div class="bill-header">
             <div>
-              <div class="brand-title">GUNA PRINTZ</div>
+              <div class="brand-title">PRINTZ</div>
               <div class="brand-subtitle">Commercial Printing, Designing & Offset Press</div>
               <div class="brand-address">
                 ${branch.address || "12/4, 2nd Main Road, Banaswadi, Bangalore - 560043"}<br>
@@ -394,7 +394,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               Customer Signature / Verification
             </div>
             <div class="sig-box" style="font-weight: 700; color: #065f46;">
-              For Guna Printz (Authorized Signatory)
+              For PrintZ (Authorized Signatory)
             </div>
           </div>
         </div>
@@ -544,7 +544,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
             }}>
               <div>
                 <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "#065f46", letterSpacing: "-0.02em" }}>
-                  GUNA PRINTZ
+                  PRINTZ
                 </div>
                 <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#047857", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: "2px" }}>
                   Digital Color Printing, Multi-Colour Offset & Designing
@@ -846,7 +846,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                 Customer Signature / Verification
               </div>
               <div style={{ textAlign: "center", borderTop: "1px dashed #cbd5e1", paddingTop: "6px", fontSize: "0.75rem", fontWeight: 700, color: "#065f46" }}>
-                For Guna Printz (Authorized Signatory)
+                For PrintZ (Authorized Signatory)
               </div>
             </div>
           </div>

@@ -355,6 +355,8 @@ invoiceSchema.index({ branchId: 1, status: 1 });
 invoiceSchema.index({ jobOrderId: 1, status: 1 });
 invoiceSchema.index({ customerId: 1, status: 1 });
 invoiceSchema.index({ invoiceDate: -1 });
+invoiceSchema.index({ branchId: 1, invoiceDate: -1 });
+invoiceSchema.index({ createdAt: -1 });
 
 const Invoice = mongoose.models.Invoice || mongoose.model("Invoice", invoiceSchema);
 

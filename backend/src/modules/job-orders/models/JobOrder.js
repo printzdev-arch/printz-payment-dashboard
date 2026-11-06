@@ -357,6 +357,13 @@ jobOrderSchema.index({ designStatus: 1 });
 jobOrderSchema.index({ currentStage: 1, updatedAt: -1 });
 jobOrderSchema.index({ updatedAt: -1 });
 jobOrderSchema.index({ idempotencyKey: 1 }, { sparse: true });
+// Compound indexes for filtered + sorted list queries
+jobOrderSchema.index({ branchId: 1, createdAt: -1 });
+jobOrderSchema.index({ branchId: 1, currentStage: 1, updatedAt: -1 });
+jobOrderSchema.index({ customerId: 1, createdAt: -1 });
+jobOrderSchema.index({ designerId: 1, currentStage: 1 });
+jobOrderSchema.index({ branchId: 1, paymentStatus: 1 });
+jobOrderSchema.index({ createdAt: -1 });
 
 const JobOrder = mongoose.models.JobOrder || mongoose.model("JobOrder", jobOrderSchema, "jobOrders");
 

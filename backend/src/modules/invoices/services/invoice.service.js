@@ -1039,8 +1039,9 @@ class InvoiceService {
     const issued = invoices.filter((inv) => inv.invoiceNumber || [INVOICE_STATUS.FINALIZED, INVOICE_STATUS.PARTIALLY_PAID, INVOICE_STATUS.PAID].includes(inv.status));
 
     let outstanding = 0;
+    const paymentsByInvoice = await Payment.findValidPaymentsByInvoiceIds(issued.map((inv) => inv._id));
     for (const inv of issued) {
-      const balancePayments = await Payment.findValidPaymentsByInvoiceId(inv._id);
+      const balancePayments = paymentsByInvoice.get(String(inv._id)) || [];
       const paid = balancePayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
       outstanding += Math.max(0, round2((Number(inv.grandTotal) || 0) - (Number(inv.advanceApplied || inv.advancePaid) || 0) - paid));
     }

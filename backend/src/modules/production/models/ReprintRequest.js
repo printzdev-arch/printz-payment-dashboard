@@ -145,6 +145,8 @@ const reprintRequestSchema = new mongoose.Schema(
 
 reprintRequestSchema.index({ jobOrderId: 1, status: 1 });
 reprintRequestSchema.index({ branchId: 1, status: 1, createdAt: -1 });
+reprintRequestSchema.index({ productionOrderId: 1, createdAt: -1 });
+reprintRequestSchema.index({ createdAt: -1 });
 
 /**
  * Generate requestNo on first save: REP-<year>-<4 digit sequence>.

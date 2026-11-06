@@ -2,6 +2,19 @@ const tokenService = require("../utils/JwtTokenService");
 const tokenBlacklistService = require("../utils/TokenBlacklistService");
 const User = require("../modules/auth/models/User");
 const ErrorHelper = require("../utils/errors/ErrorHelper");
+const AuthCache = require("../utils/AuthCache");
+
+// Cached for a short TTL; cleared whenever a User/Role/Employee/Branch is written.
+// Returns a shallow copy so a request mutating req.user cannot leak into other requests.
+const loadUser = async (userId) => {
+  const user = await AuthCache.remember(`user:${userId}`, () =>
+    typeof User.findByIdEnriched === "function"
+      ? User.findByIdEnriched(userId)
+      : User.findById(userId).populate("roleIds")
+  );
+  if (!user || typeof user.toObject === "function") return user;
+  return { ...user };
+};
 
 const authenticate = async (req, res, next) => {
   let token;
@@ -24,12 +37,7 @@ const authenticate = async (req, res, next) => {
   try {
     const decoded = tokenService.verifyToken(token);
     const userId = decoded.userId || decoded.id;
-    let user;
-    if (typeof User.findByIdEnriched === "function") {
-      user = await User.findByIdEnriched(userId);
-    } else {
-      user = await User.findById(userId).populate("roleIds");
-    }
+    const user = await loadUser(userId);
 
     if (!user) {
       return next(ErrorHelper.unauthorized("The user belonging to this token no longer exists."));
@@ -124,12 +132,7 @@ const optionalAuthenticate = async (req, res, next) => {
   try {
     const decoded = tokenService.verifyToken(token);
     const userId = decoded.userId || decoded.id;
-    let user;
-    if (typeof User.findByIdEnriched === "function") {
-      user = await User.findByIdEnriched(userId);
-    } else {
-      user = await User.findById(userId).populate("roleIds");
-    }
+    const user = await loadUser(userId);
 
     if (
       user &&

@@ -166,6 +166,24 @@ paymentSchema.statics.findValidPaymentsByInvoiceId = async function (invoiceId) 
   }).sort({ paymentDate: 1 });
 };
 
+// Same as findValidPaymentsByInvoiceId for many invoices in one query. Returns Map<invoiceId string, payments[]>.
+paymentSchema.statics.findValidPaymentsByInvoiceIds = async function (invoiceIds = []) {
+  const grouped = new Map();
+  if (!invoiceIds.length) return grouped;
+  const payments = await this.find({
+    invoiceId: { $in: invoiceIds },
+    status: { $in: ["COMPLETED", "PAID", "SUCCESS"] },
+    paymentType: { $nin: ["ADVANCE", "FULL"] },
+    isDeleted: { $ne: true },
+  }).sort({ paymentDate: 1 });
+  for (const p of payments) {
+    const key = String(p.invoiceId);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(p);
+  }
+  return grouped;
+};
+
 // Every valid receipt for an invoice, advance and balance, for display and receipts.
 paymentSchema.statics.findAllReceiptsByInvoiceId = async function (invoiceId) {
   return this.find({

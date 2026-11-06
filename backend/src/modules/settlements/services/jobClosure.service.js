@@ -74,11 +74,12 @@ class JobClosureService {
 
     let totalOutstanding = 0;
     if (invoices.length > 0) {
+      const paymentsByInvoice = await paymentRepository.findValidPaymentsByInvoiceIds(invoices.map((inv) => inv._id));
       for (const inv of invoices) {
         if (inv.status === INVOICE_STATUS.DRAFT) {
           throw ErrorHelper.conflict("Finalize the invoice before closing this job order.");
         }
-        const validPayments = await paymentRepository.findValidPaymentsByInvoiceId(inv._id);
+        const validPayments = paymentsByInvoice.get(String(inv._id)) || [];
         const amountPaid = Math.round((validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + Number.EPSILON) * 100) / 100;
         const invoiceTotal = Math.round((Number(inv.grandTotal || 0) + Number.EPSILON) * 100) / 100;
         const applicableAdvance = Math.round((Number(inv.advanceApplied || inv.advancePaid || 0) + Number.EPSILON) * 100) / 100;

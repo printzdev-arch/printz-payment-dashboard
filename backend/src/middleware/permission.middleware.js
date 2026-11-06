@@ -2,6 +2,7 @@ const ErrorHelper = require("../utils/errors/ErrorHelper");
 const Role = require("../modules/auth/models/Role");
 const Permission = require("../modules/auth/models/Permission");
 const ScopeHelper = require("../utils/helpers/scopeHelper");
+const AuthCache = require("../utils/AuthCache");
 
 /**
  * Standard Permission checking middleware supporting granular permissions and scopes (ALL, BRANCH, ASSIGNED, SELF).
@@ -94,7 +95,9 @@ const requirePermission = (permissionCode, options = {}) => {
       }
 
       if (roleQueries.length > 0) {
-        const roles = await Role.find({ $or: roleQueries, isActive: true }).populate("grants.permissionId");
+        const roles = await AuthCache.remember(`roles:${JSON.stringify(roleQueries)}`, () =>
+          Role.find({ $or: roleQueries, isActive: true }).populate("grants.permissionId")
+        );
         for (const role of roles) {
           if (role.code === "SUPER_ADMIN" || role.code === "ADMIN") {
             hasPermission = true;
@@ -296,7 +299,9 @@ const authorizePermission = (resource, action = "read") => {
       }
 
       if (roleQueries.length > 0) {
-        const roles = await Role.find({ $or: roleQueries, isActive: true }).populate("grants.permissionId");
+        const roles = await AuthCache.remember(`roles:${JSON.stringify(roleQueries)}`, () =>
+          Role.find({ $or: roleQueries, isActive: true }).populate("grants.permissionId")
+        );
         for (const role of roles) {
           if (role.code === "SUPER_ADMIN" || role.code === "ADMIN") {
             hasPermission = true;

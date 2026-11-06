@@ -1545,11 +1545,17 @@ class DailyAttendanceService {
         if (!holidayRoster.some((x) => String(x._id) === String(e._id))) holidayRoster.push(e);
       }
 
+      // One query for the whole roster instead of one per employee
+      const existingRows = await DailyAttendance.find({
+        employeeId: { $in: holidayRoster.map((e) => e._id) },
+        attendanceDate: h.date,
+      })
+        .select("employeeId")
+        .lean();
+      const existingIds = new Set(existingRows.map((r) => String(r.employeeId)));
+
       for (const emp of holidayRoster) {
-        const existing = await DailyAttendance.findOne({
-          employeeId: emp._id,
-          attendanceDate: h.date,
-        });
+        const existing = existingIds.has(String(emp._id));
 
         if (!existing) {
           await DailyAttendance.create({

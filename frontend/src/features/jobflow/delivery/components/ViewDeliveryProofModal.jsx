@@ -282,7 +282,7 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
 
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
                   <span style={{ color: "#64748b" }}>Delivery Staff / Driver:</span>
-                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{deliveryOrder.deliveryPersonName || "Guna Printz Staff"}</span>
+                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{deliveryOrder.deliveryPersonName || "PrintZ Staff"}</span>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem", paddingTop: "0.2rem" }}>

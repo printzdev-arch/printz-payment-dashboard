@@ -106,4 +106,11 @@ const EmployeeSchema = new mongoose.Schema(
   }
 );
 
+EmployeeSchema.plugin(require("../../../utils/AuthCache").invalidationPlugin);
+
+EmployeeSchema.index({ branchId: 1, isActive: 1, employmentStatus: 1 });
+EmployeeSchema.index({ roleId: 1 });
+EmployeeSchema.index({ departmentId: 1 });
+EmployeeSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.models.Employee || mongoose.model("Employee", EmployeeSchema);

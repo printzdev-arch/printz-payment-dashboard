@@ -53,4 +53,9 @@ const RoleSchema = new mongoose.Schema(
   }
 );
 
+RoleSchema.plugin(require("../../../utils/AuthCache").invalidationPlugin);
+
+// Used by permission middleware on every protected request
+RoleSchema.index({ code: 1, isActive: 1 });
+
 module.exports = mongoose.models.Role || mongoose.model("Role", RoleSchema);

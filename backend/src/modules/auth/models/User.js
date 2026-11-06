@@ -269,6 +269,8 @@ userSchema.statics.findByEmailEnriched = async function (email) {
   return this.enrichUser(user);
 };
 
+userSchema.plugin(require("../../../utils/AuthCache").invalidationPlugin);
+
 const User = mongoose.models.User || mongoose.model("User", userSchema, "users");
 
 module.exports = User;

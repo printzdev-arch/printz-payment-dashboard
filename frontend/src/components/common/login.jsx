@@ -121,7 +121,7 @@ export default function Login() {
       <div className="login-left-panel">
         <div className="illustration-header-badge">
           <span className="badge-dot" />
-          <span>Guna PrintZ Enterprise Portal</span>
+          <span>PrintZ Enterprise Portal</span>
         </div>
 
         <div className="illustration-img-container">
@@ -160,6 +160,7 @@ export default function Login() {
               src={logo || "/placeholder.svg"}
               alt="Printz Logo"
               className="login-brand-logo"
+              style={{ display: "block", margin: "0 auto 12px auto" }}
             />
             <h1>
               Welcome <span>Back</span>
@@ -245,7 +246,7 @@ export default function Login() {
           {/* Footer Security Note */}
           <div className="login-footer-info">
             <FaShieldAlt style={{ color: "#10b981" }} />
-            <span>256-bit Encrypted Session • Guna PrintZ v3.2</span>
+            <span>256-bit Encrypted Session • PrintZ v3.2</span>
           </div>
         </div>
       </div>

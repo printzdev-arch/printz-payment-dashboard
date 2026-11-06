@@ -14,4 +14,6 @@ const PermissionSchema = new mongoose.Schema(
   }
 );
 
+PermissionSchema.plugin(require("../../../utils/AuthCache").invalidationPlugin);
+
 module.exports = mongoose.model("Permission", PermissionSchema);
