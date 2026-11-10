@@ -19,12 +19,7 @@ const {
   reopenAttendanceValidator,
 } = require("./dailyAttendance.validator");
 
-const attendancePermissionRoutes = require("./attendancePermission.routes");
-
 router.use(authenticate);
-
-// ── Sub-router: /api/attendance/permissions ─────────────────────────────────
-router.use("/permissions", attendancePermissionRoutes);
 
 // ── GET /api/attendance/summary (Monthly / Date-range Attendance Summary) ────
 router.get(

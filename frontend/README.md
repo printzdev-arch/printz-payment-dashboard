@@ -1,112 +1,91 @@
-# Printz V3 — Frontend Application
+# PrintZ Frontend
 
-Modern, responsive Web Application for the **Printz Multi-Branch Payment & Operations Platform**, built with **React 18**, **Vite**, **Chart.js**, **TailwindCSS / Vanilla CSS**, and **jsPDF**.
+Web application for the **PrintZ multi-branch printing platform**, built with **React 18** and **Vite**.
 
 ---
 
-## 🎨 Features & Modules
+## 🎨 Main Areas
 
-### 👑 Admin Portal
-- **Executive Dashboard**:
-  - Total Revenue by Branch (Horizontal Bar Chart).
-  - Total Printer Meter Copies by Branch (Horizontal Bar Chart).
-  - Dynamic Revenue Breakdown (Pie Chart — Stock, Printer, Other).
-  - Multi-date and single-day calendar range filters.
-  - Granular branch-level revenue tables.
-- **Branch Management**: Create and configure branch offices, off-days, and branch codes.
-- **Manager & Admin Management**: Assign managers to specific branches with secure access controls.
-- **Asset & Inventory Management**: Master printers registry, stock catalog, large-format pricing.
-- **Past-Date Approvals**: Approve or decline unlock requests for finalized past dates.
-- **Export Center**: Export records to CSV, Excel, and PDF.
+- **Login**: an animated shop entrance with the staff character walking up and opening the door, followed by the sign-in card. See "Login Page" below.
+- **Admin portal**: dashboards, branches, managers, users and roles, master settings, past-date approvals, exports.
+- **Sale orders**: create, approve and track sale orders for the branch.
+- **Job flow**: customers, estimation, job orders, design, production, quality control, delivery, invoices and settlement.
+- **Manufacturing unit (mfg)**: manager and designer portals with their own dashboard.
+- **POS and inventory**: point of sale, stock, printers.
+- **HR**: employees, attendance and salary.
 
-### 🏢 Manager Portal
-- **5-Step Daily Account Sheet Wizard (`/printer-readings-manager`)**:
-  - **Step 1: Printer Readings**: Starting & Final counter meters per machine with automatic copy difference calculation.
-  - **Step 2: Large Format (Jumbo Xerox)**: SFT printed counter, category-based job quantities, and totals.
-  - **Step 3: Business & Payments**: Cash in hand, UPI / Card payments, gift/digital business, discounts, previous balances, and auto-reconciliation of *Cash As Per Accounts*.
-  - **Step 4: Stock Readings**: Opening stock, incoming transfers, units sold, and closing stock.
-  - **Step 5: Review & Final Submit**: Live summary review, printable PDF generation, and final submission locking.
-- **PDF Generation**: Automated standard receipt/account sheet generation using `jsPDF` and `jspdf-autotable`.
+Each user lands on the page for their role after signing in (admin, manager, branch staff, operator, designer, QC inspector, cashier, manufacturing manager or designer).
 
 ---
 
 ## 🏗️ Folder Structure
 
-```
+```text
 frontend/
-├── public/                # Static assets, icons, HTML template
+├── public/                    # static assets and HTML template
 ├── src/
-│   ├── assets/            # Images, logos, illustrations
-│   ├── components/
-│   │   ├── admin/         # Admin views (admindashboard.jsx, AddBranch.jsx, StockList.jsx, etc.)
-│   │   ├── manager/       # Manager views (PrinterReadings.jsx, managerdashboard.jsx, etc.)
-│   │   │   └── dailyreadings/ # 5-Step stepper components (PrinterReadingsSection, TotalAmountSection, etc.)
-│   │   ├── common/        # Reusable UI (BranchSelect, CalendarSelect, Charts, Tables, Popups)
-│   │   └── illustrations/ # Custom vector graphics and empty state illustrations
-│   ├── context/
-│   │   └── AuthContext.jsx # Global auth state, user profile, token lifecycle
-│   ├── hooks/
-│   │   ├── usePopup.js    # Modal popups & toast notifications
-│   │   └── useDebounce.js # Input throttling for auto-save operations
-│   ├── services/
-│   │   ├── api.js         # Axios instance with baseURL and Bearer token interceptor
-│   │   ├── branchStore.js # Global branch caching & branch ID resolution
-│   │   └── dashboardStore.js # High-performance in-memory cache for dashboard charts
-│   ├── styles/            # CSS theme sheets (printzTheme.css, admindashboard.css, etc.)
-│   ├── App.jsx            # Routing hierarchy, route guards (AdminRoute, ManagerRoute)
-│   ├── index.css          # Global typography, CSS variables, resets
-│   └── index.jsx          # React DOM entrypoint
-├── vite.config.js         # Vite bundler configuration
-└── package.json           # Frontend dependencies & scripts
+│   ├── app/                   # App.jsx (routes), PrivateRoute.jsx, providers (AuthContext)
+│   ├── layouts/               # AdminLayout, ManagerLayout, JobFlowLayout, MfgLayout
+│   ├── modules/               # one folder per feature area
+│   │   ├── auth/              # login page, profile, forgot password
+│   │   │   ├── pages/login.jsx
+│   │   │   └── scene/         # animated login scene (canvas, styles, markup)
+│   │   ├── admin/  dashboard/  sale-order/  jobflow/  mfg-unit/
+│   │   ├── pos/  inventory/
+│   │   └── hr/                # attendance, employees, salary
+│   ├── shared/                # api.js (Axios), stores, hooks, ui components, styles, assets
+│   └── index.js               # entry point
+├── index.html
+├── vite.config.js
+└── package.json
 ```
+
+---
+
+## 🔐 Login Page
+
+`src/modules/auth/pages/login.jsx` shows the animated scene and signs the user in through the normal `AuthContext.login()`.
+
+- The scene lives in `src/modules/auth/scene/`:
+  - `cartoonScene.js`: the canvas animation (walk, door, camera) and the form behaviour
+  - `cartoonScene.css`: all styles
+  - `cartoonMarkup.js`: the page markup
+- It runs inside a **shadow root**, so its styles cannot clash with the rest of the app.
+- The Baloo 2 font is loaded in `index.html`.
+- Wrong credentials show a message and the mascot looks sad. A correct login shows "Signed In" and then redirects by role.
+- The logo is `src/shared/assets/logo.png`.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm** or **yarn**
+### Prerequisites
+- Node.js 18 or higher
+- The backend running on `http://localhost:5000` (see `../backend/README.md`)
 
-### 2. Installation
+### Install and run
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install dependencies
 npm install
+npm run dev        # development server on http://localhost:3000
+npm run build      # production build
+npm run preview    # preview the production build
 ```
 
-### 3. Environment Configuration
-Create a `.env` file in the `frontend/` directory (optional for custom backend port):
+### Environment (optional)
+Create `frontend/.env` only if your API is not at the default address:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
-### 4. Running the App
-```bash
-# Development mode (Vite HMR server)
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build locally
-npm run preview
-```
-
-The application will launch at `http://localhost:3000` (or `http://localhost:5173`).
+`VITE_API_BASE_URL` is also accepted. The API client is in `src/shared/services/api.js`.
 
 ---
 
-## 🔑 Key Components & Services
+## 🔑 Key Files
 
-### `dashboardStore.js`
-In-memory caching and aggregation layer that fetches raw daily totals and printer meter readings from the backend, maps MongoDB ObjectIds to human-readable branch names, and aggregates total revenues and copy counts for the charts without UI blocking.
-
-### `branchStore.js`
-Caches the branch list across all views so components don't issue duplicate network requests when switching tabs or dropdowns.
-
-### `AuthContext.jsx`
-Maintains user identity, role, assigned branch, and automatically attaches the JWT Bearer token to all outgoing API requests via Axios interceptors.
+- `src/app/providers/AuthContext.jsx`: signed-in user, role, permissions, token handling. Tokens are attached to API calls by the Axios interceptor.
+- `src/app/App.jsx`: all routes and role guards.
+- `src/shared/services/api.js`: Axios instance with the base URL and token interceptor.
+- `src/shared/services/branchStore.js` and `dashboardStore.js`: cached branch list and dashboard data so pages do not repeat the same requests.
