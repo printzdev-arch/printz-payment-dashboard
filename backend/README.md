@@ -1,166 +1,122 @@
-# PrintZ V2 Backend Service (MVC Architecture)
+# PrintZ Backend Service
 
-Production-ready, API-based MVC backend for the PrintZ Enterprise Multi-Branch Payment, Job Tracking, Manufacturing, and Point of Sale Platform.
-
----
-
-## 🛠️ Architecture & Tech Stack
-
-- **Pattern**: API-based Model-View-Controller (MVC) with focused domain services
-- **Runtime & Framework**: Node.js & Express.js
-- **Database & ODM**: MongoDB (6.0+) & Mongoose (8.5+)
-- **Security & Middleware**: JWT Authentication (Access + Refresh Token lifecycle), RBAC (Role-Based Access Control) with granular action permissions, Helmet, CORS, Express Rate Limiting
-- **API Documentation**: OpenAPI 3.0 / Swagger UI at `http://localhost:5000/api-docs` and JSON spec at `/api-docs.json`
-- **File Uploads**: Multer storage pipelines with MIME/extension sanitization
-- **Logging & Monitoring**: Morgan HTTP logger and centralized audit logging
-- **Dual Prefix Support**: Both `/api` and `/api/v1` routes supported with full contract parity
+API backend for the PrintZ multi-branch printing platform: sale orders, job tracking, design, production, delivery, invoicing, POS, inventory, attendance and salary.
 
 ---
 
-## 📂 MVC Folder Structure
+## 🛠️ Tech Stack
+
+- **Runtime & framework**: Node.js, Express.js
+- **Database**: MongoDB (Atlas or local) with Mongoose
+- **Security**: JWT authentication (short-lived access token + refresh token), role-based access control with granular permissions, Helmet, CORS, rate limiting
+- **API documentation**: OpenAPI 3.0 / Swagger UI at `http://localhost:5000/api-docs` (JSON at `/api-docs.json`)
+- **File uploads**: Multer with MIME and extension checks
+- **Logging**: Morgan HTTP logger. Each module records its own change history internally.
+- **URL prefixes**: every route is available under both `/api` and `/api/v1`
+
+---
+
+## 📂 Folder Structure
+
+The backend is organised by **domain module**. Each module under `src/modules/` has its own `controllers/`, `services/`, `models/` and `routes/`.
 
 ```text
 backend/
 ├── src/
-│   ├── config/                     # Environment, database, CORS, and Swagger configuration
-│   │   ├── database.js             # Mongoose connection & disconnect lifecycle
-│   │   ├── env.js                  # Centralized, validated environment configuration
-│   │   ├── cors.js                 # Cross-origin policy & allowed client origins
-│   │   ├── swagger.js              # Swagger JSDoc root options
-│   │   └── swagger/                # Modular OpenAPI documentation components
-│   │
-│   ├── models/                     # Mongoose persistence models, schemas, hooks & indexes
-│   │   ├── User.js                 # User credentials & role associations
-│   │   ├── Role.js                 # Role & permission definitions
-│   │   ├── Customer.js             # Customer master records
-│   │   ├── JobOrder.js             # Multi-stage Job Order lifecycle model
-│   │   ├── ProductionOrder.js      # Production scheduling & routing
-│   │   ├── Invoice.js              # GST & Commercial invoices
-│   │   ├── Payment.js              # Payment settlements & advance tracking
-│   │   ├── ...                     # 76 total Mongoose domain models
-│   │   └── repositories/           # Data access repositories
-│   │
-│   ├── controllers/                # HTTP request handlers (asyncHandler + ResponseHelper)
-│   │   ├── auth.controller.js
-│   │   ├── customer.controller.js
-│   │   ├── jobOrder.controller.js
-│   │   ├── ...                     # 55 controllers across all modules
-│   │   └── index.js                # Central controllers barrel
-│   │
-│   ├── services/                   # Business logic, state transitions & domain rules
-│   │   ├── auth.service.js         # Login, token lifecycle, password recovery
-│   │   ├── customer.service.js     # Customer management & ledger
-│   │   ├── jobOrder.service.js     # Job Order workflows (Quote, Design, Production, Billing)
-│   │   ├── production.service.js   # Work order planning, operation routing & queue
-│   │   ├── ...                     # 64 domain services
-│   │   └── index.js                # Central services barrel
-│   │
-│   ├── routes/                     # REST API route definitions with middleware & validation
-│   │   ├── auth.routes.js
-│   │   ├── customer.routes.js
-│   │   ├── jobOrder.routes.js
-│   │   ├── ...                     # Route modules with dual /api and /api/v1 mounting
-│   │   └── index.js                # Master route aggregator
-│   │
-│   ├── middleware/                 # Request interceptors & security controls
-│   │   ├── auth.middleware.js      # JWT token authentication & revocation checks
-│   │   ├── role.middleware.js      # Role-based access control
-│   │   ├── permission.middleware.js# Granular permission verification
-│   │   ├── validation.middleware.js# Schema validation error formatting
-│   │   ├── upload.middleware.js    # Multer file upload & directory creation
-│   │   ├── error.middleware.js     # Centralized operational & unhandled error handler
-│   │   └── notFound.middleware.js  # 404 handler returning standard ApiError responses
-│   │
-│   ├── validators/                 # Request validation schemas (express-validator)
-│   │   ├── auth.validator.js
-│   │   ├── customer.validator.js
-│   │   └── ...                     # Per-module validation chains
-│   │
-│   ├── utils/                      # Shared utilities, constants, events & integrations
-│   │   ├── ApiError.js             # Standard operational error class
-│   │   ├── asyncHandler.js         # Async error wrapper for controllers
-│   │   ├── ResponseHelper.js       # Standardized JSON response formatting
-│   │   ├── constants/              # System enums, order statuses & stages
-│   │   ├── events/                 # Domain event emitters & subscribers
-│   │   ├── helpers/                # Scoping, calculation & number sequence utilities
-│   │   └── integrations/           # JWT, Bcrypt, Email, WhatsApp & Encryption services
-│   │
-│   ├── dto/                        # Request and response data transfer objects
-│   ├── app.js                      # Express application setup, middleware & route mounting
-│   └── server.js                   # Process entry point, DB connection & graceful shutdown
-│
-├── tests/                          # Automated regression & contract verification tests
-│   ├── models_verification_test.js # Verifies 76 Mongoose models, schemas & collection names
-│   ├── route_inventory_test.js     # Verifies all 860 route paths and dual prefix mounting
-│   └── api_http_regression_test.js # Live HTTP server tests (Auth, 404, 400, 200, security)
-│
-├── uploads/                        # User-uploaded files, proofs, and receipts
-├── src_backup_clean_arch/          # Complete preserved backup of prior Clean Architecture
-├── .env.example                    # Environment variable template with safe placeholders
-├── package.json
-└── README.md
+│   ├── config/            # env.js (validated config), database.js, cors.js
+│   ├── middleware/        # security (JWT, RBAC, permissions), request validation, guards, error handling
+│   ├── modules/
+│   │   ├── auth/  customers/  customer-portal/  branches/  employees/  employee-shift/
+│   │   ├── sale-orders/  estimates/  job-orders/  design/  approvals/
+│   │   ├── production/  printers/  stocks/  inventory/  delivery/
+│   │   ├── invoices/  settlements/  pos/  past-date-requests/
+│   │   ├── attendance/  salary/  settings/  number-sequences/
+│   │   ├── dashboard/  reports/  notifications/  attachments/  public/  general/
+│   │   ├── audit-logs/  sla/      # internal use only (see "Removed APIs" below)
+│   │   └── models.js  services.js  dto.js   # central barrels
+│   ├── routes/index.js    # master router that mounts every module
+│   ├── utils/             # constants, errors, helpers, integrations (JWT, email, WhatsApp...)
+│   ├── docs/swagger/      # modular OpenAPI documentation
+│   ├── app.js             # Express app, middleware, route mounting
+│   └── server.js          # entry point, database connection, schedulers
+├── uploads/               # uploaded files, proofs and receipts
+├── .env.example           # environment variable template
+└── package.json
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Install Dependencies
+### 1. Install dependencies
 ```bash
 npm install
 ```
 
-### 2. Environment Configuration
-Copy `.env.example` to `.env` and configure your credentials:
-```bash
-cp .env.example .env
-```
+### 2. Environment configuration
+Copy `.env.example` to `.env` and fill in your own values. One variable per setting:
 
-Key environment variables:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGO_URI=mongodb://127.0.0.1:27017/printz_db
-JWT_SECRET=your_jwt_access_secret_min_32_characters_here
-JWT_ACCESS_SECRET=your_jwt_access_secret_min_32_characters_here
-REFRESH_TOKEN_SECRET=your_jwt_refresh_secret_min_32_characters_here
-CLIENT_URL=http://localhost:5173,http://localhost:3000
+MONGODB_URI=mongodb://127.0.0.1:27017/printz_db   # MONGO_URI is also accepted
+JWT_ACCESS_SECRET=<long random string>
+JWT_REFRESH_SECRET=<a different long random string>
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+UPLOAD_DIR=uploads
 ```
 
-### 3. Run Automated Tests
-Execute the comprehensive test suite verifying Mongoose models, Express routes, and HTTP security middleware:
-```bash
-npm test
-```
+- `CORS_ORIGINS` lists the browser origins allowed to call the API. It is also used when building links.
+- Never commit `.env`. Generate a secret with:
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+  ```
 
-### 4. Start Development Server
+### 3. Run the server
 ```bash
-npm run dev
+npm run dev     # development, restarts on changes (nodemon)
+npm start       # production
 ```
 
 The server starts on `http://localhost:5000`:
-- **API Root**: `GET http://localhost:5000/`
-- **Health Check**: `GET http://localhost:5000/health` (also at `/api/v1/health`)
-- **Interactive Swagger Documentation**: `http://localhost:5000/api-docs`
-- **OpenAPI 3.0 JSON Spec**: `GET http://localhost:5000/api-docs.json`
+- API root: `GET /`
+- Health check: `GET /health` (also `/api/v1/health`)
+- Swagger UI: `/api-docs`
+
+### 4. Helper scripts (`backend/scripts`)
+```bash
+npm test             # RBAC connection and live HTTP regression checks
+npm run docs:verify  # verify the Swagger document
+npm run init-db      # create default users and base data
+npm run seed:all     # seed all collections with test data
+npm run seed:rbac    # seed roles and permissions
+```
 
 ---
 
-## 🔗 Integrated Workflow Modules (Frontend ↔ Backend)
+## 🔗 Main Endpoints and the Frontend that Uses Them
 
-All endpoints maintain 100% backward compatibility with the React frontend across both `/api` and `/api/v1` prefixes:
-
-| Module | Endpoints | Frontend Client |
+| Module | Endpoints | Frontend |
 | :--- | :--- | :--- |
-| **Authentication** | `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/me` | `frontend/src/auth` |
-| **User & Branch Management** | `/api/v1/users`, `/api/v1/roles`, `/api/v1/branches` | `frontend/src/admin` |
-| **Customer Master** | `/api/v1/customers`, `/api/v1/customer-requests`, `/api/v1/public` | `frontend/src/jobflow/pages/CustomersPage` |
-| **Job Orders** | `/api/v1/job-orders`, `/api/v1/job-orders/:id/estimate` | `frontend/src/jobflow/pages/JobOrdersPage` |
-| **Design Allocation & Proofs** | `/api/v1/design/assignments`, `/api/v1/design/proofs`, `/api/v1/designers` | `frontend/src/jobflow/pages/DesignWorkflowPage` |
-| **Production Planning & Queue** | `/api/v1/production-orders`, `/api/v1/production-operations`, `/api/v1/production-queue` | `frontend/src/jobflow/pages/ProductionPage` |
-| **Quality Control & Rework** | `/api/v1/quality-checks`, `/api/v1/reprint-requests` | `frontend/src/jobflow/pages/QualityControlPage` |
-| **Delivery & Handover** | `/api/v1/delivery-orders`, `/api/v1/delivery-proofs` | `frontend/src/jobflow/pages/DeliveryPage` |
-| **Invoicing & Payments** | `/api/v1/invoices`, `/api/v1/settlement`, `/api/v1/payments` | `frontend/src/jobflow/pages/InvoicesPage` |
-| **Inventory & Stock** | `/api/v1/inventory-items`, `/api/v1/inventory-balances`, `/api/v1/stock-transfers` | `frontend/src/inventory` |
-| **Point of Sale (POS)** | `/api/v1/sale-receipts`, `/api/v1/printers` | `frontend/src/pos` |
-| **SLA & Performance** | `/api/v1/sla`, `/api/v1/sla-configurations`, `/api/v1/designer-ratings` | `frontend/src/analytics` |
+| **Authentication** | `/auth/login`, `/auth/refresh`, `/auth/me` | `modules/auth` |
+| **Users, roles, branches** | `/users`, `/roles`, `/branches` | `modules/admin` |
+| **Customers** | `/customers`, `/customer-requests`, `/public` | `modules/jobflow` |
+| **Sale orders and estimates** | `/sale-orders`, `/estimates` | `modules/sale-order` |
+| **Job orders** | `/job-orders` (alias `/jobs`) | `modules/jobflow/job-orders` |
+| **Design** | `/design`, `/mfg/designers`, `/designer-ratings` | `modules/jobflow/design`, `modules/mfg-unit` |
+| **Production and QC** | `/production-orders`, `/production-queue`, `/quality-checks`, `/reprint-requests` | `modules/jobflow` |
+| **Delivery** | `/delivery-orders`, `/delivery-proofs` | `modules/jobflow/delivery` |
+| **Invoices and settlement** | `/invoices`, `/settlement`, `/payments` | `modules/jobflow/invoice`, `modules/jobflow/settlement` |
+| **Inventory and stock** | `/inventory/items`, `/inventory/balances`, `/stocks` | `modules/inventory` |
+| **POS** | `/sale-receipts`, `/printers` | `modules/pos` |
+| **HR** | `/employees`, `/attendance`, `/attendance/permissions`, `/salary` | `modules/hr` |
+
+Some resources also answer under an alias name (for example `/invoice` for `/invoices`, `/settlements` for `/settlement`, `/dashboard` for `/dashboards`). Use the first name shown above.
+
+---
+
+## 🧹 Removed APIs
+
+These HTTP endpoints were removed because the product no longer uses them: `/audit-logs`, `/sla`, `/sla-configurations` and `/designers` (SLA scorecard). The internal helpers that record change history and run SLA timers remain, because other modules depend on them.
