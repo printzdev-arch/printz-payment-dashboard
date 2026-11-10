@@ -6,9 +6,13 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "echo \"Database-driven environment ready\""
+    "test": "node scripts/test-pos-rbac-connection.js && node scripts/test-api-http.js",
+    "docs:verify": "node scripts/verifySwagger.js",
+    "init-db": "node scripts/initDatabase.js",
+    "seed:designers": "node scripts/seedDesigners.js",
+    "seed:all": "node scripts/seedAllCollections.js",
+    "seed:rbac": "node scripts/seed-rbac.js"
   },
-
   "keywords": [
     "express",
     "mongodb",
@@ -35,7 +39,13 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
+  "nodemonConfig": {
+    "watch": ["src", ".env"],
+    "ext": "js,json,env",
+    "ignore": ["uploads/*", "node_modules/*", "tests/*", "*.log"]
+  },
   "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.4"
   }
 }

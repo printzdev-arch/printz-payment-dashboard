@@ -3,24 +3,22 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const swaggerUi = require("swagger-ui-express");
-const swaggerDocument = require("./infrastructure/config/swagger");
-const env = require("./infrastructure/config/env");
-const routes = require("./presentation/routes");
-const notFound = require("./presentation/middleware/notFound.middleware");
-const errorHandler = require("./presentation/middleware/error.middleware");
-const { setupDesignEventListeners } = require("./shared/events/design/designEvents.listener");
-const { setupSlaEventListeners } = require("./shared/events/sla/slaEvents.listener");
-const DesignAllocationService = require("./application/services/design/designAllocation.service");
-const slaSchedulerService = require("./application/services/sla/slaScheduler.service");
+const { buildSwaggerDocument } = require("./docs/swagger");
+const { enrichFromRoutes } = require("./docs/swagger/lib/enrich");
+const env = require("./config/env");
+require("./modules/models");
+const routes = require("./routes");
+const notFound = require("./middleware/errors/notFound.middleware");
+const errorHandler = require("./middleware/errors/error.middleware");
+const { setupDesignEventListeners } = require("./modules/design/services/designEvents.listener");
+const { setupSlaEventListeners } = require("./modules/sla/services/slaEvents.listener");
+const { designAllocationService, slaSchedulerService } = require("./modules/services");
 
 // Initialize design event listeners (auto-allocate on DESIGN_QUEUE, auto-release on cancel)
-setupDesignEventListeners(DesignAllocationService);
+setupDesignEventListeners(designAllocationService);
 
-// Initialize SLA event listeners & scheduler
+// Initialize SLA event listeners
 setupSlaEventListeners();
-if (env.NODE_ENV !== "test") {
-  slaSchedulerService.startScheduler();
-}
 
 const app = express();
 
@@ -29,11 +27,16 @@ app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    // The frontend runs on another origin and shows uploaded images (design previews, reference files)
+    crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
 
 // CORS configuration
-const allowedOrigins = env.CLIENT_URL ? env.CLIENT_URL.split(",") : ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"];
+const allowedOrigins = env.CLIENT_URL
+  ? env.CLIENT_URL.split(",")
+  : ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"];
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -50,12 +53,23 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    // Idempotency-Key lets the sale order screens retry a payment safely without taking it twice
+    allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key", "X-Idempotency-Key"],
+    // Lets the browser read the paging totals sent by list endpoints (see utils/helpers/pagination.js)
+    exposedHeaders: ["X-Total-Count", "X-Page", "X-Limit", "X-Total-Pages"],
   })
 );
 
 // Body Parsing
-app.use(express.json({ limit: "15mb" }));
+// rawBody is kept so the WhatsApp webhook signature can be verified
+app.use(
+  express.json({
+    limit: "15mb",
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 // Request Logging in dev
@@ -63,35 +77,10 @@ if (env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
-// Swagger / OpenAPI documentation UI
-app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument, {
-    customCss: `
-      .swagger-ui .topbar { display: none; }
-    `,
-    customSiteTitle: "Printz Payment Dashboard - Swagger API Explorer",
-    swaggerOptions: {
-      tagsSorter: "alpha",
-      operationsSorter: "alpha",
-      docExpansion: "list",
-      filter: true,
-      persistAuthorization: true,
-      displayRequestDuration: true,
-    },
-  })
-);
-
-// JSON spec endpoint
-app.get("/api-docs.json", (req, res) => {
-  res.setHeader("Content-Type", "application/json");
-  res.send(swaggerDocument);
-});
-
 // Health check endpoint for staging / production monitoring & load balancers
-app.get(["/health", "/api/v1/health"], (req, res) => {
-  const dbState = require("mongoose").connection.readyState;
+app.get(["/health", "/api/health", "/api/v1/health"], (req, res) => {
+  const conn = require("mongoose").connection;
+  const dbState = conn.readyState;
   const dbStatusMap = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
   const isHealthy = dbState === 1;
 
@@ -100,9 +89,12 @@ app.get(["/health", "/api/v1/health"], (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: env.NODE_ENV,
-    database: {
+    db: dbStatusMap[dbState] || "unknown",
+    database: isHealthy ? conn.name : undefined,
+    dbDetails: {
       status: dbStatusMap[dbState] || "unknown",
       readyState: dbState,
+      name: isHealthy ? conn.name : undefined,
     },
     version: "1.0.0",
   });
@@ -117,9 +109,48 @@ app.get("/", (req, res) => {
   });
 });
 
-// API Routes
-app.use("/api", routes);
+// Static file serving for uploads (design proofs, attachments, samples)
+const path = require("path");
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
+// Provider webhooks (no login; verified by signature)
+const { whatsappWebhookRoutes } = require("./modules/sale-orders/routes");
+app.use("/webhooks", whatsappWebhookRoutes);
+
+// API Routes (Dual prefix support for /api/v1 and /api - more specific route mounted first)
 app.use("/api/v1", routes);
+app.use("/api", routes);
+
+// Swagger / OpenAPI reference. Built after the routes are mounted so that any endpoint without a
+// hand-written description is still listed (see docs/swagger/lib/enrich.js).
+const swaggerDocument = enrichFromRoutes(buildSwaggerDocument(), app, routes.MOUNTS).doc;
+// Swagger UI should show only the real response after "Execute", not a made-up example body,
+// so keep each documented status code and description but drop the sample response content.
+Object.values(swaggerDocument.paths || {}).forEach((methods) =>
+  Object.values(methods).forEach((op) =>
+    Object.values(op?.responses || {}).forEach((res) => {
+      if (res && typeof res === "object") delete res.content;
+    })
+  )
+);
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customCss: ".swagger-ui .topbar { display: none; }",
+    customSiteTitle: "PrintZ API Reference",
+    swaggerOptions: {
+      tagsSorter: "alpha",
+      operationsSorter: "alpha",
+      docExpansion: "none",
+      filter: true,
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      tryItOutEnabled: true,
+    },
+  })
+);
+app.get("/api-docs.json", (req, res) => res.json(swaggerDocument));
 
 // 404 & Global Error Handling
 app.use(notFound);

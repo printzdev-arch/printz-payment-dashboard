@@ -1,0 +1,633 @@
+/* ==========================================================================
+   PrintZ Unified UI
+   Brings every module (Admin, Manager, Designer, Attendance, Salary, POS,
+   Job Flow, Production ...) to the same look as the Admins List screen:
+   green-fade headers, green table headers, soft coloured action icons and
+   green gradient buttons. Imported last so it wins over module styles.
+   Colours/sizing only - layout of each module is left untouched.
+   ========================================================================== */
+
+:root {
+  --pz-green-50: #f0fdf6;
+  --pz-green-100: #dcfce9;
+  --pz-green-200: #bbf7d3;
+  --pz-green-300: #86efb3;
+  --pz-green-500: #10b981;
+  --pz-green-600: #059669;
+  --pz-green-700: #047857;
+  --pz-green-800: #065f46;
+  --pz-ink-900: #0f172a;
+  --pz-ink-700: #334155;
+  --pz-ink-500: #64748b;
+  --pz-line: #e6ece9;
+  --pz-line-soft: #f1f5f3;
+}
+
+/* --------------------------------------------------------------------------
+   1. TABLES
+   -------------------------------------------------------------------------- */
+table:is(
+  .attendance-table, .printz-data-table, .dq-jobs-table, .dq-panel-table,
+  .estimation-pricing-table, .mt-table, .oq-table, .pdb-table, .po2-table,
+  .pp-table, .jf-table, .salary-table, .so-table, .add-assets-table,
+  .balance-directory-table, .export-financial-table, .branch-table,
+  .stock-readings-table, .admins-table, .add-stock-table,
+  .revenue-modern-table, .revenue-stock-table, .display-readings-table,
+  .data-table, .summary-table, .jumbo-readings-table, .move-printer-table,
+  .move-stock-table, .requests-table, .printer-modal-pricing-table,
+  .printer-modern-table, .jumbo-xerox-table, .printer-readings-table,
+  .total-amounts-table, .sales-history-table, .stock-table,
+  .stock-modal-pricing-table, .printer-table, .printz-modern-table, .po-table, .cp-table
+) {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: var(--pz-ink-700);
+}
+
+table:is(
+  .attendance-table, .printz-data-table, .dq-jobs-table, .dq-panel-table,
+  .estimation-pricing-table, .mt-table, .oq-table, .pdb-table, .po2-table,
+  .pp-table, .jf-table, .salary-table, .so-table, .add-assets-table,
+  .balance-directory-table, .export-financial-table, .branch-table,
+  .stock-readings-table, .admins-table, .add-stock-table,
+  .revenue-modern-table, .revenue-stock-table, .display-readings-table,
+  .data-table, .summary-table, .jumbo-readings-table, .move-printer-table,
+  .move-stock-table, .requests-table, .printer-modal-pricing-table,
+  .printer-modern-table, .jumbo-xerox-table, .printer-readings-table,
+  .total-amounts-table, .sales-history-table, .stock-table,
+  .stock-modal-pricing-table, .printer-table, .printz-modern-table, .po-table, .cp-table
+) thead,
+table:is(
+  .attendance-table, .printz-data-table, .dq-jobs-table, .dq-panel-table,
+  .estimation-pricing-table, .mt-table, .oq-table, .pdb-table, .po2-table,
+  .pp-table, .jf-table, .salary-table, .so-table, .add-assets-table,
+  .balance-directory-table, .export-financial-table, .branch-table,
+  .stock-readings-table, .admins-table, .add-stock-table,
+  .revenue-modern-table, .revenue-stock-table, .display-readings-table,
+  .data-table, .summary-table, .jumbo-readings-table, .move-printer-table,
+  .move-stock-table, .requests-table, .printer-modal-pricing-table,
+  .printer-modern-table, .jumbo-xerox-table, .printer-readings-table,
+  .total-amounts-table, .sales-history-table, .stock-table,
+  .stock-modal-pricing-table, .printer-table, .printz-modern-table, .po-table, .cp-table
+) thead tr {
+  background: var(--pz-green-50) !important;
+}
+
+table:is(
+  .attendance-table, .printz-data-table, .dq-jobs-table, .dq-panel-table,
+  .estimation-pricing-table, .mt-table, .oq-table, .pdb-table, .po2-table,
+  .pp-table, .jf-table, .salary-table, .so-table, .add-assets-table,
+  .balance-directory-table, .export-financial-table, .branch-table,
+  .stock-readings-table, .admins-table, .add-stock-table,
+  .revenue-modern-table, .revenue-stock-table, .display-readings-table,
+  .data-table, .summary-table, .jumbo-readings-table, .move-printer-table,
+  .move-stock-table, .requests-table, .printer-modal-pricing-table,
+  .printer-modern-table, .jumbo-xerox-table, .printer-readings-table,
+  .total-amounts-table, .sales-history-table, .stock-table,
+  .stock-modal-pricing-table, .printer-table, .printz-modern-table, .po-table, .cp-table
+) thead th {
+  background: var(--pz-green-50) !important;
+  color: var(--pz-green-800) !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  border: none !important;
+  border-bottom: 1px solid var(--pz-green-100) !important;
+  white-space: nowrap;
+}
+
+table:is(
+  .attendance-table, .printz-data-table, .dq-jobs-table, .dq-panel-table,
+  .estimation-pricing-table, .mt-table, .oq-table, .pdb-table, .po2-table,
+  .pp-table, .jf-table, .salary-table, .so-table, .add-assets-table,
+  .balance-directory-table, .export-financial-table, .branch-table,
+  .stock-readings-table, .admins-table, .add-stock-table,
+  .revenue-modern-table, .revenue-stock-table, .display-readings-table,
+  .data-table, .summary-table, .jumbo-readings-table, .move-printer-table,
+  .move-stock-table, .requests-table, .printer-modal-pricing-table,
+  .printer-modern-table, .jumbo-xerox-table, .printer-readings-table,
+  .total-amounts-table, .sales-history-table, .stock-table,
+  .stock-modal-pricing-table, .printer-table, .printz-modern-table, .po-table, .cp-table
+) tbody td {
+  border-bottom: 1px solid var(--pz-line-soft) !important;
+  color: var(--pz-ink-700);
+  vertical-align: middle;
+}
+
+table:is(
+  .attendance-table, .printz-data-table, .dq-jobs-table, .dq-panel-table,
+  .estimation-pricing-table, .mt-table, .oq-table, .pdb-table, .po2-table,
+  .pp-table, .jf-table, .salary-table, .so-table, .add-assets-table,
+  .balance-directory-table, .export-financial-table, .branch-table,
+  .stock-readings-table, .admins-table, .add-stock-table,
+  .revenue-modern-table, .revenue-stock-table, .display-readings-table,
+  .data-table, .summary-table, .jumbo-readings-table, .move-printer-table,
+  .move-stock-table, .requests-table, .printer-modal-pricing-table,
+  .printer-modern-table, .jumbo-xerox-table, .printer-readings-table,
+  .total-amounts-table, .sales-history-table, .stock-table,
+  .stock-modal-pricing-table, .printer-table, .printz-modern-table, .po-table, .cp-table
+) tbody tr:hover td {
+  background-color: var(--pz-green-50) !important;
+}
+
+/* Cards that hold a table: soft border + green-tinted shadow, rounded. */
+:is(
+  .salary-table-card, .so-table-card, .jf-table-card, .attendance-table-card,
+  .pp-table-wrap, .oq-table-wrap, .po2-table-wrap, .mt-table-wrap,
+  .pdb-table-wrap
+) {
+  background: #ffffff;
+  border: 1px solid var(--pz-line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(5, 150, 105, 0.12) !important;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   2. CARD / SECTION HEADERS: white -> soft green fade
+   -------------------------------------------------------------------------- */
+:is(div, header)[class*="card-header"],
+:is(div, header)[class*="table-header"],
+:is(div, header)[class*="panel-header"],
+:is(div, header)[class*="section-header"] {
+  background: linear-gradient(180deg, #ffffff 0%, var(--pz-green-50) 100%);
+  border-bottom: 1px solid var(--pz-line);
+}
+
+/* --------------------------------------------------------------------------
+   3. PRIMARY BUTTONS: green gradient
+   -------------------------------------------------------------------------- */
+:is(
+  .btn-printz-primary, .printz-btn-primary, .add-admin-btn,
+  .add-stock-btn-primary, .btn-salary-primary, .dw-btn-primary-green,
+  .jf-btn-primary, .mt-btn--primary, .oq-btn--primary, .pp-btn--primary,
+  .dlv-btn-primary, .so-btn-primary, .printer-modal-btn-primary,
+  .printer-modal-btn-confirm, .printer-save-button, .stock-modal-btn-primary,
+  .stock-save-button, .stock-btn-save, .total-save-button, .jumbo-save-button,
+  .profile-btn-primary, .login-submit-btn, .past-date-modal-btn-confirm,
+  .add-assets-action-btn-save, .alloc-btn-confirm, .save-btn, .submit-btn,
+  .final-submit-button, .generate-bill-btn, .pos-checkout-btn, .pos-pay-btn,
+  .printer-inline-btn-save, .printer-rate-confirm-btn, .dl-submit-btn,
+  .dq-btn-allocate-now, .dq-rr-save-btn, .printz-dash-btn-apply,
+  .btn-salary-excel,
+  .account-bottom-next-btn, .account-step-next-btn, .add-expense-row-btn, .approve-button, .csv-btn, .xlsx-btn, .mp-btn-move, .printer-add-custom-service-btn, .printer-download-button, .modal-print-btn, .template-download-btn, .verify-btn, .printer-add-service-btn, .add-stock-download-btn
+) {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #059669 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 14px -6px rgba(5, 150, 105, 0.55) !important;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+:is(
+  .btn-printz-primary, .printz-btn-primary, .add-admin-btn,
+  .add-stock-btn-primary, .btn-salary-primary, .dw-btn-primary-green,
+  .jf-btn-primary, .mt-btn--primary, .oq-btn--primary, .pp-btn--primary,
+  .dlv-btn-primary, .so-btn-primary, .printer-modal-btn-primary,
+  .printer-modal-btn-confirm, .printer-save-button, .stock-modal-btn-primary,
+  .stock-save-button, .stock-btn-save, .total-save-button, .jumbo-save-button,
+  .profile-btn-primary, .login-submit-btn, .past-date-modal-btn-confirm,
+  .add-assets-action-btn-save, .alloc-btn-confirm, .save-btn, .submit-btn,
+  .final-submit-button, .generate-bill-btn, .pos-checkout-btn, .pos-pay-btn,
+  .printer-inline-btn-save, .printer-rate-confirm-btn, .dl-submit-btn,
+  .dq-btn-allocate-now, .dq-rr-save-btn, .printz-dash-btn-apply,
+  .btn-salary-excel,
+  .account-bottom-next-btn, .account-step-next-btn, .add-expense-row-btn, .approve-button, .csv-btn, .xlsx-btn, .mp-btn-move, .printer-add-custom-service-btn, .printer-download-button, .modal-print-btn, .template-download-btn, .verify-btn, .printer-add-service-btn, .add-stock-download-btn
+):hover:not(:disabled) {
+  filter: brightness(0.94);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px -8px rgba(5, 150, 105, 0.6) !important;
+}
+
+:is(
+  .btn-printz-primary, .printz-btn-primary, .add-admin-btn,
+  .add-stock-btn-primary, .btn-salary-primary, .dw-btn-primary-green,
+  .jf-btn-primary, .mt-btn--primary, .oq-btn--primary, .pp-btn--primary,
+  .dlv-btn-primary, .so-btn-primary, .printer-modal-btn-primary,
+  .printer-modal-btn-confirm, .printer-save-button, .stock-modal-btn-primary,
+  .stock-save-button, .stock-btn-save, .total-save-button, .jumbo-save-button,
+  .profile-btn-primary, .login-submit-btn, .past-date-modal-btn-confirm,
+  .add-assets-action-btn-save, .alloc-btn-confirm, .save-btn, .submit-btn,
+  .final-submit-button, .generate-bill-btn, .pos-checkout-btn, .pos-pay-btn,
+  .printer-inline-btn-save, .printer-rate-confirm-btn, .dl-submit-btn,
+  .dq-btn-allocate-now, .dq-rr-save-btn, .printz-dash-btn-apply,
+  .btn-salary-excel,
+  .account-bottom-next-btn, .account-step-next-btn, .add-expense-row-btn, .approve-button, .csv-btn, .xlsx-btn, .mp-btn-move, .printer-add-custom-service-btn, .printer-download-button, .modal-print-btn, .template-download-btn, .verify-btn, .printer-add-service-btn, .add-stock-download-btn
+):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   4. SECONDARY / OUTLINE BUTTONS: white with green hover
+   -------------------------------------------------------------------------- */
+:is(
+  .btn-printz-outline, .btn-salary-secondary, .btn-salary-pdf,
+  .jf-btn-secondary, .mt-btn--outline, .mt-btn--ghost, .oq-btn--outline,
+  .pp-btn--outline, .pp-btn--ghost, .so-btn-secondary, .add-stock-btn-secondary,
+  .printz-btn-secondary, .printz-btn-reset, .profile-btn-secondary,
+  .stock-btn-cancel, .stock-cancel-button, .stock-modal-btn-cancel,
+  .printer-cancel-button, .printer-modal-btn-cancel, .total-cancel-button,
+  .jumbo-cancel-button, .cancel-btn, .add-assets-action-btn-cancel,
+  .add-assets-btn-secondary, .past-date-modal-btn-cancel, .alloc-btn-cancel,
+  .dw-btn-outline, .dlv-btn-ghost, .clear-filters-btn, .printer-inline-btn-cancel
+) {
+  background: #ffffff !important;
+  color: var(--pz-ink-700) !important;
+  border: 1px solid var(--pz-line) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+:is(
+  .btn-printz-outline, .btn-salary-secondary, .btn-salary-pdf,
+  .jf-btn-secondary, .mt-btn--outline, .mt-btn--ghost, .oq-btn--outline,
+  .pp-btn--outline, .pp-btn--ghost, .so-btn-secondary, .add-stock-btn-secondary,
+  .printz-btn-secondary, .printz-btn-reset, .profile-btn-secondary,
+  .stock-btn-cancel, .stock-cancel-button, .stock-modal-btn-cancel,
+  .printer-cancel-button, .printer-modal-btn-cancel, .total-cancel-button,
+  .jumbo-cancel-button, .cancel-btn, .add-assets-action-btn-cancel,
+  .add-assets-btn-secondary, .past-date-modal-btn-cancel, .alloc-btn-cancel,
+  .dw-btn-outline, .dlv-btn-ghost, .clear-filters-btn, .printer-inline-btn-cancel
+):hover:not(:disabled) {
+  background: var(--pz-green-50) !important;
+  border-color: var(--pz-green-300) !important;
+  color: var(--pz-green-700) !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. DESTRUCTIVE BUTTONS
+   -------------------------------------------------------------------------- */
+:is(.jf-btn-danger, .stock-confirm-btn-delete, .reject-button) {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #ef4444 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 14px -6px rgba(239, 68, 68, 0.5) !important;
+}
+
+:is(.jf-btn-danger-outline) {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+  border-radius: 10px !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. ACTION ICONS IN TABLES: view = blue, edit/run = green, delete = red
+   -------------------------------------------------------------------------- */
+:is(
+  .printer-btn-view, .stock-btn-view, .action-btn-view, .dq-btn-table-view,
+  .pdb-btn-view, .salary-icon-btn
+) {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border: 1px solid #dbeafe !important;
+  border-radius: 9px !important;
+  transition: all 0.18s ease;
+}
+
+:is(
+  .printer-btn-view, .stock-btn-view, .action-btn-view, .dq-btn-table-view,
+  .pdb-btn-view, .salary-icon-btn
+):hover:not(:disabled) {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -4px rgba(37, 99, 235, 0.45);
+}
+
+:is(
+  .printer-btn-edit, .stock-btn-edit, .add-assets-action-btn-edit,
+  .jumbo-edit-button, .total-edit-button, .stock-edit-button,
+  .printer-edit-button, .salary-icon-btn.primary, .dq-btn-table-allocate,
+  .dq-btn-table-reallocate, .pdb-btn-plan
+) {
+  background: var(--pz-green-50) !important;
+  color: var(--pz-green-600) !important;
+  border: 1px solid var(--pz-green-200) !important;
+  border-radius: 9px !important;
+  transition: all 0.18s ease;
+}
+
+:is(
+  .printer-btn-edit, .stock-btn-edit, .add-assets-action-btn-edit,
+  .jumbo-edit-button, .total-edit-button, .stock-edit-button,
+  .printer-edit-button, .salary-icon-btn.primary, .dq-btn-table-allocate,
+  .dq-btn-table-reallocate, .pdb-btn-plan
+):hover:not(:disabled) {
+  background: var(--pz-green-600) !important;
+  color: #ffffff !important;
+  border-color: var(--pz-green-600) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -4px rgba(5, 150, 105, 0.5);
+}
+
+:is(
+  .printer-btn-delete, .stock-btn-delete, .add-assets-action-btn-delete,
+  .prev-bal-delete-btn, .pp-icon-btn--danger, .salary-icon-btn.danger,
+  .printer-bulk-delete-btn, .stock-btn-delete-bulk
+) {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+  border: 1px solid #fee2e2 !important;
+  border-radius: 9px !important;
+  transition: all 0.18s ease;
+}
+
+:is(
+  .printer-btn-delete, .stock-btn-delete, .add-assets-action-btn-delete,
+  .prev-bal-delete-btn, .pp-icon-btn--danger, .salary-icon-btn.danger,
+  .printer-bulk-delete-btn, .stock-btn-delete-bulk
+):hover:not(:disabled) {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -4px rgba(239, 68, 68, 0.45);
+}
+
+/* Neutral icon buttons: white, green on hover */
+:is(.pp-icon-btn, .pp-icon-btn--neutral, .po2-icon-btn, .mt-icon-btn, .action-icon-btn, .icon-btn) {
+  background: #ffffff;
+  color: var(--pz-ink-500);
+  border: 1px solid var(--pz-line);
+  border-radius: 9px;
+  transition: all 0.18s ease;
+}
+
+:is(.pp-icon-btn, .pp-icon-btn--neutral, .po2-icon-btn, .mt-icon-btn, .action-icon-btn, .icon-btn):hover:not(:disabled) {
+  background: var(--pz-green-50);
+  border-color: var(--pz-green-300);
+  color: var(--pz-green-700);
+}
+
+/* --------------------------------------------------------------------------
+   7. PAGINATION: same pills as the reference table
+   -------------------------------------------------------------------------- */
+:is(
+  .salary-page-btn, .pp-page-btn, .add-assets-page-btn, .add-stock-page-nav-btn,
+  .printer-page-btn, .stock-page-btn, .move-stock-page-btn, .revenue-page-btn,
+  .pagination-btn, .pagination-button, .pagination-nav-btn,
+  .pagination-page-btn, .page-btn
+) {
+  border: 1px solid var(--pz-line) !important;
+  border-radius: 8px !important;
+  background: #ffffff;
+  color: var(--pz-ink-700);
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+:is(
+  .salary-page-btn, .pp-page-btn, .add-assets-page-btn, .add-stock-page-nav-btn,
+  .printer-page-btn, .stock-page-btn, .move-stock-page-btn, .revenue-page-btn,
+  .pagination-btn, .pagination-button, .pagination-nav-btn,
+  .pagination-page-btn, .page-btn
+):hover:not(:disabled):not(.active):not(.pp-page-btn--active) {
+  background: var(--pz-green-50) !important;
+  border-color: var(--pz-green-300) !important;
+  color: var(--pz-green-700) !important;
+}
+
+:is(
+  .salary-page-btn.active, .pp-page-btn--active, .add-assets-page-btn.active,
+  .printer-page-btn.active, .stock-page-btn.active, .revenue-page-btn.active,
+  .pagination-btn.active, .pagination-page-btn.active, .page-btn.active
+) {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--pz-green-600) !important;
+  box-shadow: 0 4px 10px -3px rgba(5, 150, 105, 0.5) !important;
+}
+
+/* --------------------------------------------------------------------------
+   7b. KPI CARDS: gradient icon tile with white icon (as printz-summary-icon)
+   -------------------------------------------------------------------------- */
+.salary-kpi-card {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.salary-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.salary-kpi-icon-box {
+  border-radius: 12px !important;
+  color: #ffffff !important;
+}
+
+.salary-kpi-icon-box svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.3 !important;
+}
+
+.salary-kpi-icon-box.green {
+  background: linear-gradient(180deg, #07d49b 0%, #03ae79 100%) !important;
+  box-shadow: 0 4px 12px rgba(3, 174, 121, 0.28);
+}
+.salary-kpi-icon-box.blue {
+  background: linear-gradient(180deg, #508bfe 0%, #2c72fd 100%) !important;
+  box-shadow: 0 4px 12px rgba(44, 114, 253, 0.28);
+}
+.salary-kpi-icon-box.amber {
+  background: linear-gradient(180deg, #ff8c15 0%, #fb770d 100%) !important;
+  box-shadow: 0 4px 12px rgba(251, 119, 13, 0.28);
+}
+.salary-kpi-icon-box.purple {
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%) !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
+}
+.salary-kpi-icon-box.teal {
+  background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%) !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.28);
+}
+.salary-kpi-icon-box.red {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 100%) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.28);
+}
+
+/* Job Flow / Production / Dashboard KPI tiles: cycle the same gradients as the
+   reference cards (green, blue, orange, purple, teal, pink). */
+:is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  color: #ffffff !important;
+  border-radius: 12px !important;
+}
+
+:is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+:is(.jf-stat-box, .mt-kpi, .oq-stat, .pdb-kpi-card, .production-stat-card, .customers-stat-card, .printz-kpi-card):nth-child(6n+1)
+  :is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  background: linear-gradient(180deg, #07d49b 0%, #03ae79 100%) !important;
+  box-shadow: 0 4px 12px rgba(3, 174, 121, 0.28) !important;
+}
+:is(.jf-stat-box, .mt-kpi, .oq-stat, .pdb-kpi-card, .production-stat-card, .customers-stat-card, .printz-kpi-card):nth-child(6n+2)
+  :is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  background: linear-gradient(180deg, #508bfe 0%, #2c72fd 100%) !important;
+  box-shadow: 0 4px 12px rgba(44, 114, 253, 0.28) !important;
+}
+:is(.jf-stat-box, .mt-kpi, .oq-stat, .pdb-kpi-card, .production-stat-card, .customers-stat-card, .printz-kpi-card):nth-child(6n+3)
+  :is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  background: linear-gradient(180deg, #ff8c15 0%, #fb770d 100%) !important;
+  box-shadow: 0 4px 12px rgba(251, 119, 13, 0.28) !important;
+}
+:is(.jf-stat-box, .mt-kpi, .oq-stat, .pdb-kpi-card, .production-stat-card, .customers-stat-card, .printz-kpi-card):nth-child(6n+4)
+  :is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%) !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28) !important;
+}
+:is(.jf-stat-box, .mt-kpi, .oq-stat, .pdb-kpi-card, .production-stat-card, .customers-stat-card, .printz-kpi-card):nth-child(6n+5)
+  :is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%) !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.28) !important;
+}
+:is(.jf-stat-box, .mt-kpi, .oq-stat, .pdb-kpi-card, .production-stat-card, .customers-stat-card, .printz-kpi-card):nth-child(6n+6)
+  :is(.jf-stat-icon, .mt-stat-icon, .oq-stat-icon, .pdb-kpi-icon, .production-stat-icon, .customers-stat-icon, .printz-kpi-icon-wrap) {
+  background: linear-gradient(180deg, #f472b6 0%, #db2777 100%) !important;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.28) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. STATUS BADGES in salary tables share the same soft pill look
+   -------------------------------------------------------------------------- */
+.badge-salary-status {
+  border-radius: 999px;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYER (phones / small tablets)
+   Generic fixes that apply to every module. Per-module layouts keep their own
+   breakpoints; this layer removes the shared causes of sideways overflow.
+   ========================================================================== */
+
+/* Grid items may not shrink below their content width by default, which is the
+   usual cause of a column pushing the page wider than the screen. */
+:where([class*="grid"]) > * {
+  min-width: 0;
+}
+
+img, video, canvas, iframe {
+  max-width: 100%;
+}
+
+/* Tables always scroll sideways inside their own wrapper, never the page. */
+:is(
+  [class*="table-responsive"], [class*="table-scroll"], [class*="table-wrap"],
+  [class*="table-container"], [class*="scroll-wrap"]
+) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+  /* Summary cards set an inline 3-4 column grid on some pages. */
+  .printz-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .printz-summary-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Two-column form layouts stack. */
+  :is(.printz-form-grid-2, .printz-manager-form-grid, .salary-form-grid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Page title rows stack: title first, actions below at full width. */
+  :is(.printz-page-header-row, .salary-header-row, .printz-card-header, .printz-table-header-wrap) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  :is(.salary-header-actions, .printz-table-controls-area, .printz-card-header-actions) {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  :is(.salary-header-actions, .printz-table-controls-area) > :is(button, select, .printz-search-box) {
+    flex: 1 1 100%;
+  }
+
+  /* Dialogs never exceed the screen and scroll internally when tall. */
+  :is(
+    [class*="modal-card"], [class*="modal-container"], [class*="modal-content"],
+    .popup-container, [class*="dialog"]
+  ) {
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+
+  /* Footers with several buttons wrap instead of overflowing. */
+  :is([class*="modal-footer"], [class*="modal-actions"], [class*="dialog-footer"]) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* 16px inputs stop iOS from zooming the page on focus. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Comfortable tap targets for icon actions in tables. */
+  :is(.printz-btn-action-view, .printz-btn-action-edit, .printz-btn-action-delete, .salary-icon-btn) {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Pagination wraps. */
+  :is(.printz-table-pagination, .salary-pagination-bar) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Button groups, toolbars and filter rows wrap instead of overflowing. */
+@media (max-width: 768px) {
+  div:is(
+    [class*="actions"], [class*="toolbar"], [class*="filters"], [class*="filter-"],
+    [class*="controls"], [class*="btn-group"], [class*="button-group"], [class*="buttons"]
+  ) {
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Salary filter bars: every control uses the full row. */
+  .salary-filters-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .salary-filters-card > *,
+  .salary-filter-select,
+  .salary-branch-pill-select,
+  .salary-search-wrapper {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}

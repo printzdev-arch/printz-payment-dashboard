@@ -1,0 +1,225 @@
+const mongoose = require("mongoose");
+const AppError = require("../../../utils/errors/AppError");
+const NumberSequence = require("../../number-sequences/models/NumberSequence");
+const Notification = require("../../notifications/models/Notification");
+const Role = require("../../auth/models/Role");
+const User = require("../../auth/models/User");
+const Employee = require("../../employees/models/Employee");
+const { SaleOrderEvent } = require("../models");
+const { ROLE } = require("../models/saleOrder.constants");
+
+const err = (status, code, message, details = null) => new AppError(message, status, code, details);
+
+const invalidStatus = (order, allowed) =>
+  err(
+    409,
+    "INVALID_STATUS",
+    `Order ${order.orderNo} is ${order.status}. This action needs status ${allowed.join(" / ")}.`
+  );
+
+const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
+
+const idStr = (v) => String(v?._id || v || "");
+
+const isValidId = (v) => mongoose.Types.ObjectId.isValid(idStr(v));
+
+const toObjectId = (v) => new mongoose.Types.ObjectId(idStr(v));
+
+/** Ids are sometimes stored as strings and sometimes as ObjectIds. Match both. */
+const idVariants = (v) => {
+  const s = idStr(v);
+  return mongoose.Types.ObjectId.isValid(s) ? [s, new mongoose.Types.ObjectId(s)] : [s];
+};
+
+const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+const periodIST = () => todayIST().slice(2, 4) + todayIST().slice(5, 7); // YYMM
+
+const dayToDate = (yyyyMmDd) => new Date(`${yyyyMmDd}T00:00:00.000Z`);
+
+const isDateString = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+
+/** Normalise an Indian mobile number to 10 digits, or return "" when it is not valid. */
+const normalizeMobile = (value) => {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? digits : "";
+};
+
+/** Generate SO-2610-0001 style numbers from numberSequences. */
+async function nextNumber(sequenceKey, prefix) {
+  const period = periodIST();
+  const seq = await NumberSequence.incrementAndGet(sequenceKey, null, period);
+  return `${prefix}-${period}-${String(seq.lastValue).padStart(4, "0")}`;
+}
+
+const lower = (v) => String(v || "").toLowerCase();
+
+/**
+ * Who is calling. Role names come from users.role / the linked employee role code, never from the request body.
+ */
+function getActor(req) {
+  const user = req.user || {};
+  const roles = new Set([lower(user.role), lower(user.roleCode)].filter(Boolean));
+  const has = (list) => list.some((r) => roles.has(r));
+
+  const branchIds = new Set();
+  (user.branchIds || []).forEach((b) => b && branchIds.add(idStr(b)));
+  if (user.branchId) branchIds.add(idStr(user.branchId));
+
+  const isAdmin = Boolean(req.authz?.isSuperAdmin) || has(ROLE.ADMIN);
+  const isBranchManager = has(ROLE.BRANCH_MANAGER);
+  const isBranchOperator = has(ROLE.BRANCH_OPERATOR);
+  const isMfgManager = has(ROLE.MFG_MANAGER);
+  const isMfgDesigner = has(ROLE.MFG_DESIGNER);
+
+  let roleLabel = "user";
+  if (isAdmin) roleLabel = "admin";
+  else if (isMfgManager) roleLabel = "mfg_manager";
+  else if (isMfgDesigner) roleLabel = "mfg_designer";
+  else if (isBranchManager) roleLabel = "manager";
+  else if (isBranchOperator) roleLabel = "operator";
+
+  return {
+    userId: idStr(user._id || user.id),
+    name: user.name || user.fullName || user.email || "User",
+    employeeId: user.employeeId ? idStr(user.employeeId) : null,
+    branchIds: Array.from(branchIds),
+    isAdmin,
+    isBranchManager,
+    isBranchOperator,
+    isBranchStaff: isBranchManager || isBranchOperator,
+    isMfgManager,
+    isMfgDesigner,
+    roleLabel,
+  };
+}
+
+/** Run work in a MongoDB transaction when the server is a replica set (Atlas is). */
+async function runInTransaction(work) {
+  const client = mongoose.connection.client;
+  const isReplicaSet = Boolean(client?.topology?.description?.servers?.size > 1);
+  if (!isReplicaSet) return work(null);
+
+  const session = await mongoose.startSession();
+  try {
+    let result;
+    await session.withTransaction(async () => {
+      result = await work(session);
+    });
+    return result;
+  } finally {
+    await session.endSession();
+  }
+}
+
+/** Append one saleOrderEvents row (call inside the same transaction as the order update). */
+const addEvent = (session, { order, action, fromStatus, toStatus, actor, notes = "", meta = {}, branchId }) =>
+  SaleOrderEvent.create(
+    [
+      {
+        orderId: order._id,
+        action,
+        fromStatus: fromStatus === undefined ? order.status : fromStatus,
+        toStatus,
+        actorId: actor?.userId ? toObjectId(actor.userId) : null,
+        actorRole: actor?.roleLabel || "system",
+        branchId: branchId || order.orderBranchId,
+        notes,
+        meta,
+      },
+    ],
+    { session }
+  );
+
+/** Best-effort notifications. A failed notification never fails the business action. */
+async function notify({ userIds = [], branchId = null, type, title, message, orderId }) {
+  try {
+    const docs = [];
+    const base = { type, title, message, entityType: "SALE_ORDER", entityId: orderId || null };
+    userIds.filter(isValidId).forEach((id) => docs.push({ ...base, userId: toObjectId(id) }));
+    if (branchId && isValidId(branchId)) docs.push({ ...base, branchId: toObjectId(branchId) });
+    if (docs.length) await Notification.insertMany(docs);
+  } catch (e) {
+    console.warn("[SaleOrder] notification failed:", e.message);
+  }
+}
+
+/**
+ * Write an auditLogs entry for an important sale order action. Never fails the business action.
+ * (saleOrderEvents remains the order's own timeline; this is the system-wide audit trail.)
+ */
+async function audit({ actor, action, order, before = null, after = null }) {
+  try {
+    const auditLogService = require("../../audit-logs/services/auditLog.service");
+    // The auditLogs model keeps: action, resource, resourceId, userId, userName, userRole, branchId, details
+    await auditLogService.log({
+      action,
+      resource: "SALE_ORDER",
+      resourceId: order._id,
+      userId: actor?.userId || null,
+      userName: actor?.name || "System",
+      userRole: actor?.roleLabel || "system",
+      branchId: order.orderBranchId,
+      details: { orderNo: order.orderNo, before, after },
+    });
+  } catch (e) {
+    console.warn("[SaleOrder] audit log failed:", e.message);
+  }
+}
+
+/**
+ * Find active users that hold one of the given role codes, optionally limited to a branch.
+ * Roles can sit on the user (role / roleIds) or on the linked employee.
+ */
+async function findUsersByRole(roleCodes, branchId = null) {
+  const codes = roleCodes.map((c) => String(c).toUpperCase());
+  const roles = await Role.find({ code: { $in: codes } }).select("_id").lean();
+  const roleIds = roles.map((r) => r._id);
+
+  const employees = roleIds.length
+    ? await Employee.find({ roleId: { $in: roleIds } }).select("_id branchId").lean()
+    : [];
+  const employeeBranch = new Map(employees.map((e) => [idStr(e._id), idStr(e.branchId)]));
+
+  const or = [{ role: { $in: [...codes, ...codes.map((c) => c.toLowerCase())] } }];
+  if (roleIds.length) or.push({ roleIds: { $in: roleIds } });
+  if (employees.length) or.push({ employeeId: { $in: employees.flatMap((e) => idVariants(e._id)) } });
+
+  const users = await User.find({ isActive: { $ne: false }, $or: or })
+    .select("_id branchId branchIds employeeId")
+    .lean();
+
+  if (!branchId) return users.map((u) => idStr(u._id));
+  const wanted = idStr(branchId);
+  return users
+    .filter((u) => {
+      const ids = new Set([idStr(u.branchId), ...(u.branchIds || []).map(idStr)]);
+      if (u.employeeId) ids.add(employeeBranch.get(idStr(u.employeeId)));
+      return ids.has(wanted);
+    })
+    .map((u) => idStr(u._id));
+}
+
+module.exports = {
+  err,
+  invalidStatus,
+  round2,
+  idStr,
+  isValidId,
+  toObjectId,
+  idVariants,
+  todayIST,
+  periodIST,
+  dayToDate,
+  isDateString,
+  normalizeMobile,
+  nextNumber,
+  getActor,
+  runInTransaction,
+  addEvent,
+  notify,
+  audit,
+  findUsersByRole,
+};

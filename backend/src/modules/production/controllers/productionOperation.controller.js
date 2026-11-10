@@ -1,0 +1,83 @@
+const asyncHandler = require("../../../utils/helpers/asyncHandler");
+const ResponseHelper = require("../../../utils/helpers/ApiResponseHelper");
+const ProductionOperationService = require("../services/productionOperation.service");
+
+/**
+ * Production Operations Controller
+ */
+const assignOperation = asyncHandler(async (req, res) => {
+  const updated = await ProductionOperationService.assign(
+    req.params.id,
+    req.body.assignedEmployeeId,
+    req.user
+  );
+  return ResponseHelper.ok(res, "Operation assigned successfully", updated);
+});
+
+const startOperation = asyncHandler(async (req, res) => {
+  const started = await ProductionOperationService.start(
+    req.params.id,
+    req.body || {},
+    req.user
+  );
+  return ResponseHelper.ok(res, "Operation started successfully", started);
+});
+
+const pauseOperation = asyncHandler(async (req, res) => {
+  const paused = await ProductionOperationService.pause(
+    req.params.id,
+    req.body || {},
+    req.user
+  );
+  return ResponseHelper.ok(res, "Operation paused", paused);
+});
+
+const resumeOperation = asyncHandler(async (req, res) => {
+  const resumed = await ProductionOperationService.resume(req.params.id, req.user);
+  return ResponseHelper.ok(res, "Operation resumed", resumed);
+});
+
+const completeOperation = asyncHandler(async (req, res) => {
+  const completed = await ProductionOperationService.complete(
+    req.params.id,
+    req.body || {},
+    req.user
+  );
+  return ResponseHelper.ok(res, "Operation completed successfully", completed);
+});
+
+// The service accepts the whole body: { failureReason, remarks, affectedQty }
+const failOperation = asyncHandler(async (req, res) => {
+  const failed = await ProductionOperationService.fail(
+    req.params.id,
+    req.body || {},
+    req.user
+  );
+  return ResponseHelper.ok(res, "Operation marked as failed", failed);
+});
+
+const retryOperation = asyncHandler(async (req, res) => {
+  const retried = await ProductionOperationService.retry(req.params.id, req.user);
+  return ResponseHelper.ok(res, "Operation reset for retry in queue", retried);
+});
+
+// The service accepts the whole body: { reason | remarks }
+const skipOperation = asyncHandler(async (req, res) => {
+  const skipped = await ProductionOperationService.skip(
+    req.params.id,
+    req.body || {},
+    req.user
+  );
+  return ResponseHelper.ok(res, "Operation skipped successfully", skipped);
+});
+
+module.exports = {
+  assignOperation,
+  startOperation,
+  pauseOperation,
+  resumeOperation,
+  completeOperation,
+  failOperation,
+  retryOperation,
+  skipOperation,
+};

@@ -1,0 +1,27 @@
+const asyncHandler = require("../../../utils/helpers/asyncHandler");
+const ResponseHelper = require("../../../utils/helpers/ApiResponseHelper");
+const designerRatingService = require("../services/designerRating.service");
+const DesignerRatingDto = require("../models/DesignerRatingDto");
+
+const createRating = asyncHandler(async (req, res) => {
+  const ratingDoc = await designerRatingService.create(req.params.id, req.body, req.user);
+  return ResponseHelper.created(
+    res,
+    "Designer rating submitted successfully",
+    DesignerRatingDto.toResponse(ratingDoc)
+  );
+});
+
+const listRatings = asyncHandler(async (req, res) => {
+  const ratings = await designerRatingService.list(req.query, req.user);
+  return ResponseHelper.ok(
+    res,
+    "Designer ratings retrieved successfully",
+    DesignerRatingDto.toResponseList(ratings)
+  );
+});
+
+module.exports = {
+  createRating,
+  listRatings,
+};
