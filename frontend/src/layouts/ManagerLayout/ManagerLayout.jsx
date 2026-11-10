@@ -130,7 +130,6 @@ const PrintZLogoIcon = () => (
 const getManagerPageTitle = (pathname, search = "") => {
   if (pathname.includes("/master-settings") || pathname.includes("/jobflow/master-settings")) return "Master Defaults & Specifications";
   if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers";
-  if (pathname.includes("/sla-dashboard") || pathname.includes("/sla")) return "SLA Monitoring & Designer Scorecard";
   if (pathname.includes("/employees")) return "Employees";
   if (pathname.includes("/attendance/setup")) return "Attendance Setup";
   if (pathname.includes("/attendance/daily")) return "Daily Attendance";

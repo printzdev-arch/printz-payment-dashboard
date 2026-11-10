@@ -28,9 +28,6 @@ import {
   ShoppingCart,
   Layers,
   ArrowLeftRight,
-  Timer,
-  Gauge,
-  FileSearch,
 } from "lucide-react";
 import PrintZSidebarIllustration from "../../shared/assets/illustrations/PrintZSidebarIllustration";
 
@@ -1047,60 +1044,6 @@ const AdminLayout = ({ children }) => {
               </MotionAccordion>
             </li>
           )}
-
-          {/* SLA Monitoring & Designer Scorecard */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/sla-dashboard"
-              className={`sidebar-link ${
-                isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla") ? "active-link" : ""
-              }`}
-            >
-              <div className="sidebar-link-content">
-                <Gauge size={18} className="sidebar-link-icon" />
-                <span>SLA & Scorecards</span>
-              </div>
-              {(isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
-
-          {/* Enterprise Audit Log Explorer */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/audit-logs"
-              className={`sidebar-link ${
-                isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs") ? "active-link" : ""
-              }`}
-            >
-              <div className="sidebar-link-content">
-                <FileSearch size={18} className="sidebar-link-icon" />
-                <span>Audit Logs</span>
-              </div>
-              {(isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
-
-          {/* Sequential Machine Operator Timers */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/operator-console"
-              className={`sidebar-link ${
-                isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console") ? "active-link" : ""
-              }`}
-            >
-              <div className="sidebar-link-content">
-                <Timer size={18} className="sidebar-link-icon" />
-                <span>Operator Timers</span>
-              </div>
-              {(isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
 
           {/* Master Defaults & Specifications */}
           <li className="sidebar-nav-item">

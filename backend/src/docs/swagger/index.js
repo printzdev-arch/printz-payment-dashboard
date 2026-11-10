@@ -33,7 +33,6 @@ const MODULES = [
   require("./modules/job-orders.docs"),
   require("./modules/design.docs"),
   require("./modules/production-delivery.docs"),
-  require("./modules/sla.docs"),
   require("./modules/settlements.docs"),
   require("./modules/attendance.docs"),
   require("./modules/salary.docs"),

@@ -6,7 +6,6 @@ module.exports = {
   tags: [
     { name: "Approvals" },
     { name: "Attachments" },
-    { name: "Audit Logs" },
     { name: "Number Sequences" },
   ],
   schemas: {
@@ -243,108 +242,6 @@ module.exports = {
         responses: {
           200: {
             description: "Attachment URL retrieved",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/audit-logs": {
-      get: {
-        tags: ["Audit Logs"],
-        summary: "List Audit Logs",
-        operationId: "listAuditLogs",
-        description: "Lists immutable audit trails and system activity logs.",
-        security: [{ bearerAuth: [] }],
-        parameters: [
-          { name: "entityType", in: "query", schema: { type: "string" } },
-          { name: "action", in: "query", schema: { type: "string" } },
-          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
-          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
-        ],
-        responses: {
-          200: {
-            description: "Audit logs retrieved",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/audit-logs/employee-activity/{employeeId}": {
-      get: {
-        tags: ["Audit Logs"],
-        summary: "Get Employee Activity Logs",
-        operationId: "getEmployeeActivityLogs",
-        description: "Retrieves operational logs performed by a specific employee.",
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: "employeeId", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
-        responses: {
-          200: {
-            description: "Employee logs retrieved",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/audit-logs/entity/{entityType}/{entityId}": {
-      get: {
-        tags: ["Audit Logs"],
-        summary: "Get Entity Audit Logs",
-        operationId: "getEntityAuditLogs",
-        description: "Retrieves complete chronological audit history for a specific business entity.",
-        security: [{ bearerAuth: [] }],
-        parameters: [
-          { name: "entityType", in: "path", required: true, schema: { type: "string", example: "JobOrder" } },
-          { name: "entityId", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } },
-        ],
-        responses: {
-          200: {
-            description: "Entity audit history",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/audit-logs/logins": {
-      get: {
-        tags: ["Audit Logs"],
-        summary: "Get Login Audit Logs",
-        operationId: "getLoginAuditLogs",
-        description: "Retrieves user authentication and session history.",
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: "Login audit logs retrieved",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/audit-logs/summary": {
-      get: {
-        tags: ["Audit Logs"],
-        summary: "Get Audit Log Summary",
-        operationId: "getAuditLogSummary",
-        description: "Returns summary counts of events by module and action.",
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: "Audit summary retrieved",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/audit-logs/{id}": {
-      get: {
-        tags: ["Audit Logs"],
-        summary: "Get Audit Log by ID",
-        operationId: "getAuditLogById",
-        description: "Retrieves detailed single audit entry.",
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
-        responses: {
-          200: {
-            description: "Audit entry retrieved",
             content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
           },
         },
