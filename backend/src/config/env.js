@@ -15,6 +15,12 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 dotenv.config();
 
+// CORS_ORIGINS is the single comma-separated origin list; CLIENT_URL is kept as a legacy alias
+// (other modules read CLIENT_URL directly to build links, using the first entry).
+if (process.env.CORS_ORIGINS) {
+  process.env.CLIENT_URL = process.env.CORS_ORIGINS;
+}
+
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProduction = NODE_ENV === "production";
 

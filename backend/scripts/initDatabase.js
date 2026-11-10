@@ -21,7 +21,7 @@ function getModelFiles(dir, files = []) {
 }
 
 async function initDatabase() {
-  const uri = process.env.MONGO_URI || env.MONGO_URI || "mongodb://127.0.0.1:27017/newprintz_db";
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || env.MONGO_URI || "mongodb://127.0.0.1:27017/newprintz_db";
   console.log(`Connecting to MongoDB at: ${uri}`);
 
   await mongoose.connect(uri, {

@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 async function seedAll() {
-  const newDbUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/newprintz_db";
+  const newDbUri = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017/newprintz_db";
   const vasuDbUri = "mongodb://127.0.0.1:27017/vasu_db";
 
   console.log(`Connecting to newprintz_db: ${newDbUri}`);
