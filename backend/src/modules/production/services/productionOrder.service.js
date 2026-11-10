@@ -360,15 +360,6 @@ class ProductionOrderService {
     Object.assign(order, changes);
     await order.save();
 
-    await ProductionStateService.logAudit({
-      action: "JOB_UPDATE",
-      resource: "ProductionOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: { changes },
-    });
-
     return order;
   }
 
@@ -543,15 +534,6 @@ class ProductionOrderService {
         await productionOperationRepository.findByIdAndUpdate(update._id, { $set: set });
       }
     }
-
-    await ProductionStateService.logAudit({
-      action: "OPERATIONS_UPDATED",
-      resource: "ProductionOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: { operationIds: ids },
-    });
 
     return productionOperationRepository.findByProductionOrder(order._id);
   }

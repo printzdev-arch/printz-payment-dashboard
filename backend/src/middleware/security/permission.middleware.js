@@ -1,6 +1,7 @@
 const ErrorHelper = require("../../utils/errors/ErrorHelper");
 const Role = require("../../modules/auth/models/Role");
 const Permission = require("../../modules/auth/models/Permission");
+const { permissionPrefixesFor } = require("../../modules/auth/constants/pageCatalog");
 const ScopeHelper = require("../../utils/helpers/scopeHelper");
 const { roleCache } = require("../../utils/helpers/authCache");
 
@@ -17,6 +18,13 @@ const findRolesCached = (roleQueries) =>
  * Standard Permission checking middleware supporting granular permissions and scopes (ALL, BRANCH, ASSIGNED, SELF).
  * Sets req.authz context for use cases and controllers.
  */
+// Admin and Super Admin both get full access, but only a true Super Admin may override locked records
+const isTrueSuperAdmin = (user = {}) => {
+  const role = String(user.role || "").toLowerCase();
+  const code = String(user.roleCode || "").toLowerCase();
+  return role === "super_admin" || role === "superadmin" || code === "super_admin";
+};
+
 const requirePermission = (permissionCode, options = {}) => {
   return async (req, res, next) => {
     try {
@@ -47,6 +55,7 @@ const requirePermission = (permissionCode, options = {}) => {
       if (isSuperAdmin) {
         req.authz = {
           isSuperAdmin: true,
+          isSuperAdminOnly: isTrueSuperAdmin(user),
           userBranchIds,
           authorizedBranches: userBranchIds,
           authorizedBranchIds: userBranchIds,
@@ -78,6 +87,17 @@ const requirePermission = (permissionCode, options = {}) => {
           user.permissions["*"] === true ||
           user.permissions["ALL"] === true
         ) {
+          hasPermission = true;
+          allowedScopes.push("BRANCH");
+          matchedGrants.push({ scope: "BRANCH", permissionCode });
+        }
+      }
+
+      // Pages ticked for this person (their own list, or their role's) let them use the APIs those pages call (branch level)
+      if (Array.isArray(user.pageAccess) && user.pageAccess.length > 0) {
+        const code = permissionCode.toLowerCase();
+        const prefixes = permissionPrefixesFor(user.pageAccess, { admin: false });
+        if (prefixes.some((pre) => code === pre.toLowerCase() || code.startsWith(`${pre.toLowerCase()}.`))) {
           hasPermission = true;
           allowedScopes.push("BRANCH");
           matchedGrants.push({ scope: "BRANCH", permissionCode });
@@ -248,6 +268,7 @@ const authorizePermission = (resource, action = "read") => {
       if (isSuperAdmin) {
         req.authz = {
           isSuperAdmin: true,
+          isSuperAdminOnly: isTrueSuperAdmin(user),
           userBranchIds,
           authorizedBranches: userBranchIds,
           authorizedBranchIds: userBranchIds,
@@ -283,6 +304,16 @@ const authorizePermission = (resource, action = "read") => {
             hasPermission = true;
             allowedScopes.push("BRANCH");
           }
+        }
+      }
+
+      // Pages ticked for this person let them use the APIs those pages call (branch level)
+      if (Array.isArray(user.pageAccess) && user.pageAccess.length > 0) {
+        const res = String(resource).toLowerCase();
+        const prefixes = permissionPrefixesFor(user.pageAccess, { admin: false }).map((p) => p.toLowerCase());
+        if (prefixes.some((pre) => pre === res || pre.startsWith(`${res}.`) || res.startsWith(`${pre}.`))) {
+          hasPermission = true;
+          allowedScopes.push("BRANCH");
         }
       }
 
@@ -365,8 +396,7 @@ const authorizePermission = (resource, action = "read") => {
             "payments",
             "invoice",
             "invoices",
-            "settlement",
-            "sla"
+            "settlement"
           ];
           if (managerResources.includes(resource.toLowerCase())) {
             hasPermission = true;

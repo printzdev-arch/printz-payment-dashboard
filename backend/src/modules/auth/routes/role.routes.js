@@ -14,6 +14,12 @@ router.get(
   roleController.getRolesMatrix
 );
 
+router.get(
+  "/page-catalog",
+  requirePermission(PERMISSIONS.ADMIN.ROLE_VIEW, "ALL"),
+  roleController.getPageCatalog
+);
+
 // 2. Roles Collection Endpoints
 router.get(
   "/",

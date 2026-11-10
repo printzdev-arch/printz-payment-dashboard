@@ -121,7 +121,19 @@ const updateUser = asyncHandler(async (req, res) => {
     ? (caller.userId || "").toString()
     : req.params.id;
 
+  // Only an admin may change someone else's account. Everyone else may change only their own, and never
+  // the fields that give access (role, permissions, branch, active state, email).
+  const isSelf = String(targetId) === String(caller.userId || caller._id || "");
+  if (!caller.isSuperAdmin) {
+    if (!isSelf) throw ApiError.forbidden("You can only change your own account.");
+  }
+
   const updateUserDto = UpdateUserDto.fromRequest(req);
+  if (!caller.isSuperAdmin) {
+    ["role", "roleIds", "permissions", "branch", "branchId", "branchIds", "isActive", "needsReview", "email", "employeeId", "status"].forEach((k) => {
+      delete updateUserDto[k];
+    });
+  }
   updateUserDto.validate();
   const user = await userService.updateUser(targetId, updateUserDto, caller, requestContext);
   return ResponseHelper.success(

@@ -66,14 +66,6 @@ class DesignWorkService {
       throw ErrorHelper.conflict(`This job order is at stage '${job.currentStage}' and cannot be accepted for design.`);
     }
 
-    await ProductionStateService.logAudit({
-      action: "UPDATE",
-      resource: "JobAssignment",
-      resourceId: assignment._id,
-      user,
-      details: { accepted: true },
-    });
-
     emitJobEvent("design.accepted", { jobId: String(jobId), employeeId: String(assignment.employeeId) });
 
     return assignment;
@@ -120,14 +112,6 @@ class DesignWorkService {
     assignment.currentAssignment = false;
     assignment.rejectionReason = cleanReason;
     await assignment.save();
-
-    await ProductionStateService.logAudit({
-      action: "REJECT",
-      resource: "JobAssignment",
-      resourceId: assignment._id,
-      user,
-      details: { reason: cleanReason },
-    });
 
     emitJobEvent("design.rejected", {
       jobId: String(jobId),
@@ -178,14 +162,6 @@ class DesignWorkService {
         revisionStartedAt: job.revisionStartedAt || now,
       };
       const updated = await jobOrderRepository.findOneAndUpdate({ _id: jobId }, { $set: patch }, { new: true });
-
-      await ProductionStateService.logAudit({
-        action: "START_REVISION",
-        resource: "JobOrder",
-        resourceId: job._id,
-        user,
-        details: { startedAt: now, designer: user.name || user.email },
-      });
 
       emitJobEvent("design.started", { jobId: String(jobId), isRevision: true });
       return updated || job;

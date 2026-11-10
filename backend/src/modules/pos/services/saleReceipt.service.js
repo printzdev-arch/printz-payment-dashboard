@@ -46,7 +46,6 @@ try {
 }
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
 const SaleReceiptHelper = require("./saleReceipt.helper");
-const AuditService = require("../../../utils/integrations/AuditService");
 const ErrorHelper = require("../../../utils/errors/ErrorHelper");
 const whatsAppService = require("../../../utils/integrations/WhatsAppReceiptService");
 
@@ -238,10 +237,6 @@ const inventoryTransactionRepository = {
     if (session) q.session(session);
     return q.exec();
   },
-};
-
-const AuditHelper = {
-  log: async (params) => AuditService.log(params),
 };
 
 function toPlain(doc) {
@@ -831,24 +826,6 @@ class SaleReceiptService {
       result = await executeComplete(null);
     }
 
-    // 5. Audit Log Entry
-    try {
-      await AuditHelper.log({
-        actorId: performedBy,
-        action: "SALE_RECEIPT_COMPLETE",
-        entityType: "SALE_RECEIPT",
-        entityId: receipt._id,
-        branchId,
-        after: {
-          receiptNo: result.completedReceipt.receiptNo,
-          grandTotal: result.completedReceipt.grandTotal,
-          paymentStatus: result.completedReceipt.paymentStatus,
-        },
-      });
-    } catch (e) {
-      console.warn("Audit log warning on sale completion:", e.message);
-    }
-
     return {
       ...toPlain(result.completedReceipt),
       items: result.items,
@@ -1082,24 +1059,6 @@ class SaleReceiptService {
       result = await executeCheckout(null);
     }
 
-    // Audit Log
-    try {
-      await AuditHelper.log({
-        actorId: performedBy,
-        action: "SALE_RECEIPT_CREATE",
-        entityType: "SALE_RECEIPT",
-        entityId: result.receipt._id,
-        branchId,
-        after: {
-          receiptNo: result.receipt.receiptNo,
-          grandTotal: result.receipt.grandTotal,
-          paymentStatus: result.receipt.paymentStatus,
-        },
-      });
-    } catch (e) {
-      console.warn("Audit log warning on checkout:", e.message);
-    }
-
     return {
       ...toPlain(result.receipt),
       items: result.items,
@@ -1222,20 +1181,6 @@ class SaleReceiptService {
       result = await executeVoid(null);
     }
 
-    try {
-      await AuditHelper.log({
-        actorId: performedBy,
-        action: "SALE_RECEIPT_VOID",
-        entityType: "SALE_RECEIPT",
-        entityId: receipt._id,
-        branchId,
-        before: { status: "COMPLETED" },
-        after: { status: "VOID", voidReason: reason },
-      });
-    } catch (e) {
-      console.warn("Audit log warning on void:", e.message);
-    }
-
     return {
       ...toPlain(result.voidedReceipt),
       items: result.items,
@@ -1289,19 +1234,6 @@ class SaleReceiptService {
     });
 
     const items = await this.itemRepo.findByReceiptId(receipt._id);
-
-    try {
-      await AuditHelper.log({
-        actorId: authContext.user?._id || authContext.user?.id,
-        action: "SALE_RECEIPT_PAYMENT",
-        entityType: "SALE_RECEIPT",
-        entityId: receipt._id,
-        branchId: receipt.branchId,
-        after: { amountPaid: newAmountPaid, paymentStatus: newPaymentStatus },
-      });
-    } catch (e) {
-      console.warn("Audit log warning on payment:", e.message);
-    }
 
     return {
       ...toPlain(updated),
@@ -1531,23 +1463,6 @@ class SaleReceiptService {
     });
 
     // Record audit details only after confirmed dispatch
-    try {
-      await AuditHelper.log({
-        actorId: authContext.user?._id || authContext.user?.id,
-        action: "SALE_RECEIPT_SHARE",
-        entityType: "SALE_RECEIPT",
-        entityId: receiptData._id,
-        branchId: receiptData.branchId,
-        after: {
-          channel: "WHATSAPP",
-          target: sendResult.recipient,
-          messageId: sendResult.messageId,
-          provider: sendResult.provider,
-        },
-      });
-    } catch (e) {
-      console.warn("Audit log warning on share:", e.message);
-    }
 
     return {
       accepted: true,

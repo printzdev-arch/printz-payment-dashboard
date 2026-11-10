@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useAuth } from "../../../app/providers/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { firstAllowedPath } from "../../../shared/access/pageAccess";
 import {
   FaEye,
   FaEyeSlash,
@@ -31,6 +32,13 @@ export default function Login() {
 
   // Navigate according to user's assigned role
   const handleRedirectByRole = (user) => {
+    // A role set up in Role Management starts on the first page ticked for it
+    const firstPage = firstAllowedPath(user);
+    if (firstPage) {
+      navigate(firstPage);
+      return;
+    }
+
     // Manufacturing unit staff have their own portal
     if (user?.role === "mfg_designer" || user?.role === "mfg_manager") {
       navigate("/mfg/dashboard");

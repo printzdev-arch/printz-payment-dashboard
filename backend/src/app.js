@@ -11,14 +11,10 @@ const routes = require("./routes");
 const notFound = require("./middleware/errors/notFound.middleware");
 const errorHandler = require("./middleware/errors/error.middleware");
 const { setupDesignEventListeners } = require("./modules/design/services/designEvents.listener");
-const { setupSlaEventListeners } = require("./modules/sla/services/slaEvents.listener");
-const { designAllocationService, slaSchedulerService } = require("./modules/services");
+const { designAllocationService } = require("./modules/services");
 
 // Initialize design event listeners (auto-allocate on DESIGN_QUEUE, auto-release on cancel)
 setupDesignEventListeners(designAllocationService);
-
-// Initialize SLA event listeners
-setupSlaEventListeners();
 
 const app = express();
 

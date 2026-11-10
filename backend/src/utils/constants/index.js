@@ -11,7 +11,6 @@ const pos = require("../../modules/pos/models/constants");
 const jobOrder = require("../../modules/job-orders/models/constants");
 const design = require("../../modules/design/models/constants");
 const production = require("../../modules/production/models/constants");
-const sla = require("../../modules/sla/models/constants");
 
 // Backward compatibility references
 const permissions = require("./permissions");
@@ -26,7 +25,6 @@ module.exports = {
   jobOrder,
   design,
   production,
-  sla,
 
   // Flattened accessors
   ...auth,
@@ -37,7 +35,6 @@ module.exports = {
   ...jobOrder,
   ...design,
   ...production,
-  ...sla,
 
   // Legacy mappings
   permissions,

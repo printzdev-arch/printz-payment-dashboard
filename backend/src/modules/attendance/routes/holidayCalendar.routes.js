@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAdmin } = require("../../../middleware/security/admin.middleware");
 const router = express.Router();
 const holidayCalendarController = require("../controllers/holidayCalendar.controller");
 const { authenticate } = require("../../../middleware/security/auth.middleware");
@@ -34,6 +35,7 @@ router.get(
 router.post(
   "/",
   requirePermission(PERMISSIONS.HR.HOLIDAY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   createCalendarValidator,
   holidayCalendarController.createCalendar
 );
@@ -42,6 +44,7 @@ router.post(
 router.put(
   "/:id",
   requirePermission(PERMISSIONS.HR.HOLIDAY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   updateCalendarValidator,
   holidayCalendarController.updateCalendar
 );
@@ -50,6 +53,7 @@ router.put(
 router.put(
   "/:id/status",
   requirePermission(PERMISSIONS.HR.HOLIDAY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   calendarStatusValidator,
   holidayCalendarController.updateStatus
 );
@@ -58,6 +62,7 @@ router.put(
 router.delete(
   "/:id",
   requirePermission(PERMISSIONS.HR.HOLIDAY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   calendarIdParamValidator,
   holidayCalendarController.deleteCalendar
 );

@@ -1,5 +1,5 @@
 import React from "react";
-import { Pencil, Power, KeyRound, Lock } from "lucide-react";
+import { Eye, Pencil, Power, KeyRound, Lock } from "lucide-react";
 
 const STATUS_CLASS = { ACTIVE: "emp-badge-active", INACTIVE: "emp-badge-inactive", LEFT: "emp-badge-left" };
 const STATUS_LABEL = { ACTIVE: "Active", INACTIVE: "Inactive", LEFT: "Left" };
@@ -24,19 +24,24 @@ export default function EmployeeTable({
   canEdit = false,
   canDeactivate = false,
   busyId = null,
+  onView,
   onEdit,
   onDeactivate,
   onResetPassword,
 }) {
-  const showActions = canEdit || canDeactivate;
+  const showActions = canEdit || canDeactivate || Boolean(onView);
   // Show the name from the Employee Roles list (for example "Manager"), else the role record's own name
   const roleOf = (e) => {
     const id = String((e.roleId && e.roleId._id) || e.roleId || "");
     return roles.find((r) => String(r._id) === id);
   };
   const roleLabel = (e) => (roleOf(e) && roleOf(e).name) || nameOf(e.roleId) || "—";
-  // A role like Operator does not sign in, so it never needs the "create login" action
-  const canHaveLogin = (e) => (roleOf(e) ? roleOf(e).requiresLogin : true);
+  // The "create login" action needs a role and pages to sign in with (set in Role Setup)
+  const canHaveLogin = (e) => {
+    if (!roleOf(e) && !(e.roleId && (e.roleId._id || e.roleId))) return false;
+    if (Array.isArray(e.pageAccess)) return e.pageAccess.length > 0;
+    return roleOf(e) ? roleOf(e).requiresLogin : true;
+  };
   const colCount = showActions ? 8 : 7;
 
   return (
@@ -81,6 +86,17 @@ export default function EmployeeTable({
                   {showActions && (
                     <td>
                       <div className="emp-actions">
+                        {onView && (
+                          <button
+                            type="button"
+                            className="emp-btn emp-btn-icon"
+                            title="View details"
+                            aria-label="View details"
+                            onClick={() => onView(e)}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        )}
                         {canEdit && !e.hasLogin && active && canHaveLogin(e) && (
                           <button
                             type="button"

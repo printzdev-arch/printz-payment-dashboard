@@ -34,7 +34,6 @@ const {
   runInTransaction,
   addEvent,
   notify,
-  audit,
   findUsersByRole,
 } = require("./saleOrder.helpers");
 const assignment = require("./saleOrderAssignment.service");
@@ -597,13 +596,6 @@ async function placeOrder(id, body, actor, { idempotencyKey = null } = {}) {
     throw e;
   }
 
-  await audit({
-    actor,
-    action: "SALE_ORDER_PLACED",
-    order: { ...order, orderNo },
-    after: { advance, mode, grandTotal: order.grandTotal, override: Boolean(advanceOverride) },
-  });
-
   // Route to a designer. If this fails the order stays PLACED and the queue picks it up later.
   try {
     await assignment.assignDesigner(order._id);
@@ -769,13 +761,6 @@ async function deliverOrder(id, body, actor, { idempotencyKey = null } = {}) {
     throw e;
   }
 
-  await audit({
-    actor,
-    action: "SALE_ORDER_DELIVERED",
-    order,
-    after: { receivedByName, finalPayment: paymentRow?.amount || 0, receiptNo: paymentRow?.receiptNo || null },
-  });
-
   const recipients = [];
   if (order.currentAssignment?.designerUserId) recipients.push(idStr(order.currentAssignment.designerUserId));
   recipients.push(...(await findUsersByRole(["MFG_MANAGER"], order.manufacturingUnitId)));
@@ -896,14 +881,6 @@ async function cancelOrder(id, body, actor) {
       notes: reason,
       meta: { refund, receiptNo },
     });
-  });
-
-  await audit({
-    actor,
-    action: "SALE_ORDER_CANCELLED",
-    order,
-    before: { status: order.status, amountPaid: paid },
-    after: { status: STATUS.CANCELLED, reason, refund, receiptNo },
   });
 
   const recipients = [];

@@ -15,7 +15,6 @@ const PERMISSIONS = Object.freeze({
     SENSITIVE_VIEW: "hr.employee.sensitive.view",
   },
   COMMON: {
-    AUDIT_LOG_VIEW: "audit.log.view",
     APPROVAL_VIEW: "approval.view",
     APPROVAL_DECIDE: "approval.decide",
     ATTACHMENT_UPLOAD: "attachment.upload",
@@ -83,10 +82,6 @@ const PERMISSIONS = Object.freeze({
     DESIGN_SEND_WHATSAPP: "mfg.design.sendWhatsapp",
     PRINT_DISPATCH: "mfg.print.dispatch",
     ASSIGNMENT_MANAGE: "mfg.assignment.manage",
-  },
-  SLA: {
-    VIEW: "sla.view",
-    CONFIGURE: "sla.configure",
   },
   DASHBOARDS: {
     ADMIN_VIEW: "dashboard.admin.view",

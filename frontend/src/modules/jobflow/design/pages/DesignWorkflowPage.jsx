@@ -516,7 +516,7 @@ export const DesignWorkflowPage = () => {
   }, [currentUser, isDesignerUser, designers, effectiveEmail, effectiveName]);
 
   const [designerTab, setDesignerTab] = useState("all");
-  const [designerSubTab, setDesignerSubTab] = useState("assigned"); // 'assigned' | 'revision' | 'rejected'
+  const [designerSubTab, setDesignerSubTab] = useState("assigned"); // 'assigned' | 'revision' | 'rejected' | 'completed'
   const [approvedJobIds, setApprovedJobIds] = useState(new Set());
   const [startedRevisionJobIds, setStartedRevisionJobIds] = useState(() => {
     try {
@@ -1158,6 +1158,35 @@ export const DesignWorkflowPage = () => {
       return !isRev;
     });
   }, [displayedMyJobs, combinedSamples]);
+
+  // Completed design orders. A designer sees their own; a manager sees everyone's, or one designer's when picked.
+  const myCompletedJobs = useMemo(() => {
+    const done = jobs.filter(
+      (j) =>
+        j.designStatus === "COMPLETED" ||
+        j.raw?.designStatus === "COMPLETED" ||
+        j.stage === "COMPLETED" ||
+        j.stage === "PRODUCTION_PLANNING" ||
+        j.status === "Completed" ||
+        j.status === "Approved"
+    );
+    const des = activeSelectedDesigner;
+    const everyone = selectedDesignerProfile === "all" && !(isDesignerUser && des);
+    if (everyone || !des) return done;
+
+    const dId = String(des._id || des.userId || des.employeeId || "");
+    const dName = (des.name || "").toLowerCase().trim();
+    const dEmail = (des.email || "").toLowerCase().trim();
+    return done.filter((j) => {
+      const jId = String(j.designerId || j.raw?.designerId?._id || j.raw?.designerId || "");
+      const jName = (j.designerName || "").toLowerCase().trim();
+      const jEmail = (j.designerEmail || "").toLowerCase().trim();
+      if (dId && jId && jId === dId) return true;
+      if (dName && jName && (jName === dName || jName.includes(dName) || dName.includes(jName))) return true;
+      if (dEmail && jEmail && jEmail === dEmail) return true;
+      return false;
+    });
+  }, [jobs, selectedDesignerProfile, activeSelectedDesigner, isDesignerUser]);
 
   // Standardized helper for Sample Approvals status: only "Approved by Customer", "Approved by Manager", or "Pending"
   const getApprovalStatus = useCallback((sample, targetJob) => {
@@ -3219,6 +3248,14 @@ export const DesignWorkflowPage = () => {
                 {myDesignerRejections.length}
               </span>
             </button>
+            <button
+              type="button"
+              className={`dq-main-tab-btn ${designerSubTab === "completed" ? "active" : ""}`}
+              onClick={() => setDesignerSubTab("completed")}
+            >
+              <span>Completed Orders</span>
+              <span className="dq-main-tab-badge">{myCompletedJobs.length}</span>
+            </button>
           </div>
 
           {/* Table Container */}
@@ -3564,6 +3601,100 @@ export const DesignWorkflowPage = () => {
                                 <Palette size={14} /> Open to Workbench
                               </button>
                             )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )
+            ) : designerSubTab === "completed" ? (
+              /* Completed Orders Tab: finished design jobs of this designer (or of everyone, for a manager) */
+              myCompletedJobs.length === 0 ? (
+                <div className="dq-empty-queue-card">
+                  <CheckCircle2 size={40} color="#94a3b8" style={{ margin: "0 auto 0.75rem" }} />
+                  <h4>No Completed Orders</h4>
+                  <p>
+                    {!isDesignerUser && selectedDesignerProfile === "all"
+                      ? "No design job has been completed yet."
+                      : `${activeSelectedDesigner?.name || "This designer"} has no completed design orders yet.`}
+                  </p>
+                </div>
+              ) : (
+                <table className="dq-panel-table">
+                  <thead>
+                    <tr>
+                      <th>Job Order No.</th>
+                      <th>Priority</th>
+                      <th>Customer</th>
+                      <th>Job Item</th>
+                      {!isDesignerUser && <th>Designer</th>}
+                      <th>Completed On</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myCompletedJobs.map((j) => {
+                      const doneAt = j.designCompletedAt || j.raw?.designCompletedAt || j.completedAt || j.raw?.completedAt || j.updatedAt || j.raw?.updatedAt || null;
+                      const openJob = () => {
+                        setViewingJob(j);
+                        setIsViewingOnly(true);
+                        setIsViewModalOpen(true);
+                      };
+                      return (
+                        <tr key={j._id || j.id}>
+                          <td>
+                            <span className="dq-jobno-link" onClick={openJob} title="Click to view job details">
+                              {j.jobNo}
+                            </span>
+                          </td>
+                          <td><PriorityBadge priority={j.priority} /></td>
+                          <td style={{ fontWeight: 600, color: "#1e293b" }}>{j.customerName}</td>
+                          <td style={{ color: "#334155" }}>{j.title}</td>
+                          {!isDesignerUser && (
+                            <td>
+                              {j.designerName && j.designerName !== "- Unassigned" ? (
+                                <div className="dq-designer-chip">
+                                  <span className="dq-avatar" style={{ backgroundColor: getAvatarColor(j.designerName) }}>
+                                    {getInitials(j.designerName)}
+                                  </span>
+                                  <span style={{ fontWeight: 600 }}>{j.designerName}</span>
+                                </div>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                          )}
+                          <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                            {doneAt
+                              ? new Date(doneAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })
+                              : "—"}
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.35rem",
+                                padding: "0.22rem 0.65rem",
+                                borderRadius: "9999px",
+                                background: "#f0fdf4",
+                                border: "1px solid #bbf7d0",
+                                color: "#15803d",
+                                fontWeight: 600,
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              <CheckCircle2 size={12} />
+                              Completed
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            <button type="button" className="dq-btn-table-view" title="View job details" onClick={openJob}>
+                              <Eye size={13} />
+                              <span>View</span>
+                            </button>
                           </td>
                         </tr>
                       );

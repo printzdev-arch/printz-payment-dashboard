@@ -2,8 +2,8 @@ import React, { useState } from "react";
 
 /**
  * Add / edit form for one employee. The same form serves both.
- * Role is a dropdown, so Admin, Manager, Designer and Operator are all created here.
- * A login is optional and only needs a password (email, role and branch come from the employee).
+ * Only the person's details are entered here. Their role and pages are set in Role Setup.
+ * A login is created afterwards (key icon on the Employees page) and only needs a password.
  */
 
 const idOf = (ref) => (ref && typeof ref === "object" ? ref._id || ref.id || "" : ref || "");
@@ -15,11 +15,10 @@ const buildInitial = (employee, lockedBranchId) => ({
   mobile: employee?.mobile || "",
   email: employee?.email || "",
   branchId: String(idOf(employee?.branchId) || lockedBranchId || ""),
-  roleId: String(idOf(employee?.roleId) || ""),
   joiningDate: dateInput(employee?.joiningDate) || today(),
+  leavingDate: dateInput(employee?.leavingDate),
   dateOfBirth: dateInput(employee?.dateOfBirth),
   address: employee?.address || "",
-  defaultSalary: employee?.defaultSalary ?? "",
 });
 
 export default function EmployeeForm({
@@ -39,10 +38,12 @@ export default function EmployeeForm({
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
 
-  // The chosen role decides whether a login is needed (operators do not sign in)
-  const selectedRole = roles.find((r) => String(r._id || r.id) === values.roleId);
+  // Role and pages come from Role Setup. A login can be created once the employee has pages to sign in with.
+  const selectedRole = roles.find((r) => String(r._id || r.id) === String(idOf(employee?.roleId)));
+  const hasRole = Boolean(idOf(employee?.roleId));
+  const canSignIn = Array.isArray(employee?.pageAccess) ? employee.pageAccess.length > 0 : Boolean(selectedRole?.requiresLogin);
   // An employee that already has a login cannot be given a second one
-  const loginAvailable = canCreateLogin && !employee?.hasLogin && Boolean(selectedRole?.requiresLogin);
+  const loginAvailable = canCreateLogin && isEdit && !employee?.hasLogin && hasRole && canSignIn;
   // A new employee on a login role must get a login; when editing it stays optional
   const loginRequired = loginAvailable && !isEdit;
   const loginOn = loginRequired || (loginAvailable && createLogin);
@@ -62,9 +63,8 @@ export default function EmployeeForm({
     if (!/^\d{10}$/.test(values.mobile.trim())) next.mobile = "Mobile must be exactly 10 digits.";
     if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) next.email = "Enter a valid email.";
     if (!values.branchId) next.branchId = "Select a branch.";
-    if (!isEdit && !values.roleId) next.roleId = "Select a role.";
-    if (values.defaultSalary !== "" && (Number.isNaN(Number(values.defaultSalary)) || Number(values.defaultSalary) < 0)) {
-      next.defaultSalary = "Salary must be a positive number.";
+    if (values.leavingDate && values.joiningDate && values.leavingDate < values.joiningDate) {
+      next.leavingDate = "Leaving date cannot be before the joining date.";
     }
     if (values.dateOfBirth && values.joiningDate && values.dateOfBirth > values.joiningDate) {
       next.dateOfBirth = "Date of birth cannot be after the joining date.";
@@ -85,10 +85,9 @@ export default function EmployeeForm({
       mobile: values.mobile.trim(),
       email: values.email.trim().toLowerCase(),
       branchId: values.branchId,
-      roleId: values.roleId || null,
       dateOfBirth: values.dateOfBirth || null,
       address: values.address.trim(),
-      defaultSalary: values.defaultSalary === "" ? null : Number(values.defaultSalary),
+      leavingDate: values.leavingDate || null,
     };
     // Joining date is set once, when the employee is created
     if (!isEdit) payload.joiningDate = values.joiningDate;
@@ -123,21 +122,8 @@ export default function EmployeeForm({
             { required: true }
           )}
 
-          {field(
-            "roleId",
-            "Role",
-            <select className="emp-select" value={values.roleId} onChange={set("roleId")} disabled={roles.length === 0}>
-              <option value="">{roles.length === 0 ? "Roles unavailable" : "Select role"}</option>
-              {/* An older employee may have a role that is not in the list; keep it visible */}
-              {values.roleId && !selectedRole && <option value={values.roleId}>Current role</option>}
-              {roles.map((r) => (
-                <option key={r._id || r.id} value={r._id || r.id}>{r.name}</option>
-              ))}
-            </select>,
-            { required: !isEdit }
-          )}
-          {field("defaultSalary", "Monthly salary", <input className="emp-input" type="number" min="0" step="0.01" value={values.defaultSalary} onChange={set("defaultSalary")} />)}
           {field("joiningDate", "Joining date", <input className="emp-input" type="date" value={values.joiningDate} onChange={set("joiningDate")} disabled={isEdit} />, { required: true })}
+          {field("leavingDate", "Leaving date", <input className="emp-input" type="date" min={values.joiningDate || undefined} value={values.leavingDate} onChange={set("leavingDate")} />, { hint: "Leave empty while the person is still working." })}
           {field("dateOfBirth", "Date of birth", <input className="emp-input" type="date" max={today()} value={values.dateOfBirth} onChange={set("dateOfBirth")} />)}
           {field("address", "Address", <input className="emp-input" value={values.address} onChange={set("address")} />, { full: true })}
 
@@ -171,8 +157,12 @@ export default function EmployeeForm({
             </div>
           )}
           {isEdit && employee?.hasLogin && <span className="emp-hint emp-login full">This employee already has a login.</span>}
-          {selectedRole && !selectedRole.requiresLogin && !employee?.hasLogin && (
-            <span className="emp-hint emp-login full">{selectedRole.name} does not sign in, so no login is needed.</span>
+          {isEdit && !employee?.hasLogin && (!hasRole || !canSignIn) && (
+            <span className="emp-hint emp-login full">
+              {hasRole
+                ? "This employee has no pages to sign in with. Tick pages in Role Setup to allow a login."
+                : "Set this employee's role and pages in Role Setup before creating a login."}
+            </span>
           )}
         </div>
       </div>

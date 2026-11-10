@@ -8,7 +8,6 @@ const {
   EmployeeLoan,
   LoanRepayment
 } = require("../models");
-const AuditLog = require("../../audit-logs/models/AuditLog");
 const Employee = require("../../employees/models/Employee");
 const Branch = require("../../branches/models/Branch");
 const { sameSchedule, toNames } = require("../../../utils/helpers/weeklyOff.util");
@@ -19,7 +18,6 @@ const HolidayCalendar = require("../../attendance/models/HolidayCalendar");
 const EmployeeBranchAssignment = require("../../employees/models/EmployeeBranchAssignment");
 const ApiError = require("../../../utils/errors/ApiError");
 const { getTodayDateString } = require("../../../utils/helpers/dateUtils");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 
 const money = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
 
@@ -548,28 +546,6 @@ class SalaryService {
       createdBy: userId || null,
       updatedBy: userId || null
     });
-
-    try {
-      await AuditHelper.log({
-        actorId: userId,
-        action: "CREATE",
-        entityType: "SALARY_RUN",
-        entityId: run._id,
-        branchId: run.branchId,
-        before: null,
-        after: {
-          status: "DRAFT",
-          payrollMonth: run.payrollMonth,
-          payrollYear: run.payrollYear,
-          periodStart: bounds.start,
-          periodEnd: bounds.end,
-        },
-        ipAddress: context?.ipAddress || null,
-        userAgent: context?.userAgent || null,
-      });
-    } catch (auditErr) {
-      console.error("[SalaryService.createRun] Audit logging failed:", auditErr.message);
-    }
 
     return attachRunVirtuals(run.toObject ? run.toObject() : run);
   }
@@ -1183,29 +1159,6 @@ class SalaryService {
       }
     }
 
-    try {
-      await AuditHelper.log({
-        actorId: userId,
-        action: "CALCULATE",
-        entityType: "SALARY_RUN",
-        entityId: run._id,
-        branchId: run.branchId,
-        before: beforeCalculationSnapshot,
-        after: {
-          status: "CALCULATED",
-          employeeCount: newRecords.length,
-          totalGrossPay: money(totals.gross),
-          totalDeductions: money(totals.deductions),
-          totalNetPay: money(totals.net),
-          calculatedAt: (options && options.asOfDate) ? new Date(options.asOfDate) : new Date(),
-        },
-        ipAddress: options?.ipAddress || null,
-        userAgent: options?.userAgent || null,
-      });
-    } catch (auditErr) {
-      console.error("[SalaryService.calculateRun] Audit logging failed:", auditErr.message);
-    }
-
     return this.getRun(run._id);
   } catch (err) {
     // Non-transactional failure recovery: wipe partial records and restore backup if available
@@ -1440,27 +1393,6 @@ class SalaryService {
           }
         }
 
-        try {
-          await AuditHelper.log({
-            actorId: userId,
-            action: "PAY",
-            entityType: "SALARY_RUN",
-            entityId: run._id,
-            branchId: run.branchId,
-            before: beforePaySnapshot,
-            after: {
-              status: "PAID",
-              paidAt: run.paidAt,
-              employeeCount: run.employeeCount,
-              totalNetPay: run.totalNetPay,
-            },
-            ipAddress: options?.ipAddress || null,
-            userAgent: options?.userAgent || null,
-          });
-        } catch (auditErr) {
-          console.error("[SalaryService.payRun] Audit logging failed:", auditErr.message);
-        }
-
         return this.getRun(runId);
       } catch (err) {
         lastError = err;
@@ -1483,6 +1415,49 @@ class SalaryService {
     }
 
     if (lastError) throw lastError;
+  }
+
+  /**
+   * Send an approved salary run back to "calculated" so it can be corrected and approved again.
+   * Only an approved run can be sent back: a paid or locked run has had money paid out, and is fixed
+   * with an adjustment in a later payroll instead. A reason is required and is kept on the run.
+   */
+  async reopenRun(runId, reason, userId) {
+    const rId = idString(runId);
+    if (!rId) throw ApiError.validation("Salary run ID is required.");
+    const why = String(reason || "").trim();
+    if (why.length < 5) throw ApiError.validation("A reason of at least 5 characters is required to send a salary run back.");
+
+    const run = await SalaryRun.findOneAndUpdate(
+      { _id: rId, status: "APPROVED" },
+      {
+        $set: {
+          status: "CALCULATED",
+          approvedBy: null,
+          approvedAt: null,
+          reopenedBy: userId || null,
+          reopenedAt: new Date(),
+          reopenReason: why,
+          updatedBy: userId || null,
+        },
+      },
+      { new: true }
+    );
+
+    if (!run) {
+      const current = await SalaryRun.findById(rId);
+      if (!current) throw ApiError.notFound("Salary run not found.");
+      if (current.status === "PAID" || current.status === "LOCKED") {
+        throw ApiError.conflict("A paid or locked salary run cannot be sent back. Correct it with an adjustment in a later payroll.");
+      }
+      if (current.status === "CALCULATING") {
+        throw ApiError.conflict("Salary run is currently calculating.");
+      }
+      throw ApiError.conflict(`Only an approved salary run can be sent back. This run is ${current.status}.`);
+    }
+
+    await SalaryRecord.updateMany({ salaryRunId: run._id, status: "APPROVED" }, { $set: { status: "CALCULATED", updatedBy: userId || null } });
+    return this.getRun(run._id);
   }
 
   async transitionRun(runId, action, userId, options = {}) {
@@ -1541,27 +1516,6 @@ class SalaryService {
       }
       await SalaryRecord.updateMany({ salaryRunId: run._id }, { $set: { status: "APPROVED", updatedBy: userId || null } });
 
-      try {
-        await AuditHelper.log({
-          actorId: userId,
-          action: "APPROVE",
-          entityType: "SALARY_RUN",
-          entityId: run._id,
-          branchId: run.branchId,
-          before: beforeApproveSnapshot,
-          after: {
-            status: "APPROVED",
-            approvedAt: run.approvedAt,
-            employeeCount: run.employeeCount,
-            totalNetPay: run.totalNetPay,
-          },
-          ipAddress: options?.ipAddress || null,
-          userAgent: options?.userAgent || null,
-        });
-      } catch (auditErr) {
-        console.error("[SalaryService.approveRun] Audit logging failed:", auditErr.message);
-      }
-
       return this.getRun(run._id);
     } else if (action === "pay") {
       return this.payRun(runId, userId, options);
@@ -1589,25 +1543,6 @@ class SalaryService {
         throw ApiError.conflict("Only a paid salary run can be locked.");
       }
       await SalaryRecord.updateMany({ salaryRunId: run._id }, { $set: { status: "LOCKED", updatedBy: userId || null } });
-
-      try {
-        await AuditHelper.log({
-          actorId: userId,
-          action: "LOCK",
-          entityType: "SALARY_RUN",
-          entityId: run._id,
-          branchId: run.branchId,
-          before: beforeLockSnapshot,
-          after: {
-            status: "LOCKED",
-            lockedAt: run.lockedAt,
-          },
-          ipAddress: options?.ipAddress || null,
-          userAgent: options?.userAgent || null,
-        });
-      } catch (auditErr) {
-        console.error("[SalaryService.lockRun] Audit logging failed:", auditErr.message);
-      }
 
       return this.getRun(run._id);
     } else {
@@ -1722,7 +1657,6 @@ class SalaryService {
     );
     if (!updated) throw ApiError.conflict("The EMI for this month is already skipped.");
 
-    await this._auditLoanSkip("SKIP_EMI", updated, m, y, userId, context, reason);
     const payrollReset = await this._resetCalculatedRun(loan.branchId, m, y, userId);
     return { ...updated.toObject(), payrollReset };
   }
@@ -1754,7 +1688,6 @@ class SalaryService {
       { $pull: { skippedMonths: { month: m, year: y } }, $set: { updatedBy: userId || null } },
       { new: true }
     );
-    await this._auditLoanSkip("UNSKIP_EMI", updated, m, y, userId, context, "");
     const payrollReset = await this._resetCalculatedRun(loan.branchId, m, y, userId);
     return { ...updated.toObject(), payrollReset };
   }
@@ -1778,24 +1711,6 @@ class SalaryService {
     }).select("_id").lean();
     if (repaid) {
       throw ApiError.conflict(`An EMI for ${month}/${year} was already collected, so it can no longer be ${verb}.`);
-    }
-  }
-
-  async _auditLoanSkip(action, loan, month, year, userId, context, reason) {
-    try {
-      await AuditHelper.log({
-        actorId: userId,
-        action,
-        entityType: "EMPLOYEE_LOAN",
-        entityId: loan._id,
-        branchId: loan.branchId,
-        before: null,
-        after: { loanNumber: loan.loanNumber, month, year, reason: String(reason || "") },
-        ipAddress: context?.ipAddress || null,
-        userAgent: context?.userAgent || null,
-      });
-    } catch (auditErr) {
-      console.error("[SalaryService.loanSkip] Audit logging failed:", auditErr.message);
     }
   }
 
@@ -1935,40 +1850,6 @@ class SalaryService {
         }
       }
     }
-  }
-
-  async listRunAudit(runId) {
-    const rId = idString(runId);
-    if (!rId) throw ApiError.validation("Salary run ID is required.");
-    const logs = await AuditLog.find({ resource: "SALARY_RUN", resourceId: rId })
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .lean();
-    // The salary service logs only the actor's id, so the stored name is the
-    // "System" default; resolve the real name from the user record.
-    const actorIds = [...new Set(logs.map((l) => idString(l.actorId || l.userId)).filter(Boolean))];
-    const nameById = new Map();
-    const UserModel = mongoose.models.User;
-    if (UserModel && actorIds.length) {
-      const users = await UserModel.find({ _id: { $in: actorIds.flatMap((id) => idVariants(id)) } })
-        .select("name username email")
-        .lean()
-        .catch(() => []);
-      users.forEach((u) => nameById.set(idString(u._id), u.name || u.username || u.email || ""));
-    }
-    const displayName = (l) => {
-      const stored = l.actorName || l.userName;
-      if (stored && stored !== "System") return stored;
-      return nameById.get(idString(l.actorId || l.userId)) || stored || "System";
-    };
-    return logs.map((l) => ({
-      _id: l._id,
-      action: l.action,
-      at: l.createdAt || l.timestamp || null,
-      userName: displayName(l),
-      before: l.before ?? l.details?.before ?? null,
-      after: l.after ?? l.details?.after ?? null,
-    }));
   }
 
   async createRepayment(data, userId, authContext) {
@@ -2237,25 +2118,7 @@ class SalaryService {
       throw ApiError.conflict("Adjustment could not be cancelled due to a concurrent status change.");
     }
 
-    // Audit log
     try {
-      await AuditHelper.log({
-        actorId: userId,
-        action: "CANCEL",
-        entityType: "SALARY_ADJUSTMENT",
-        entityId: updated._id,
-        branchId: updated.branchId,
-        before: {
-          status: "PENDING",
-          amount: existing.amount,
-          adjustmentType: existing.adjustmentType
-        },
-        after: {
-          status: "CANCELLED"
-        },
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent
-      });
     } catch (e) {}
 
     return updated;

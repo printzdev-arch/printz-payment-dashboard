@@ -1,14 +1,9 @@
-const AuditLog = require("../../audit-logs/models/AuditLog");
 const JobWorkflowEvent = require("../../job-orders/models/JobWorkflowEvent");
 const JobApproval = require("../../job-orders/models/JobApproval");
 const Notification = require("../../notifications/models/Notification");
 const JobOrder = require("../../job-orders/models/JobOrder");
 
 class ProductionState {
-  static async createAuditLog(data) {
-    return AuditLog.create(data);
-  }
-
   static async createWorkflowEvent(data) {
     return JobWorkflowEvent.create(data);
   }

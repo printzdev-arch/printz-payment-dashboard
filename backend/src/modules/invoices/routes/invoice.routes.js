@@ -111,12 +111,6 @@ router.post(
   invoiceController.shareInvoice
 );
 
-router.get(
-  "/:id/audit-logs",
-  authorizePermission("job", "read"),
-  invoiceController.getAuditLogs
-);
-
 // 5. Invoicing Settlement & Payment Collections
 const SettlementController = require("../../settlements/controllers/settlement.controller");
 const {

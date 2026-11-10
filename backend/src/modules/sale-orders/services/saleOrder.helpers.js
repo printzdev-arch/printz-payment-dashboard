@@ -147,29 +147,6 @@ async function notify({ userIds = [], branchId = null, type, title, message, ord
 }
 
 /**
- * Write an auditLogs entry for an important sale order action. Never fails the business action.
- * (saleOrderEvents remains the order's own timeline; this is the system-wide audit trail.)
- */
-async function audit({ actor, action, order, before = null, after = null }) {
-  try {
-    const auditLogService = require("../../audit-logs/services/auditLog.service");
-    // The auditLogs model keeps: action, resource, resourceId, userId, userName, userRole, branchId, details
-    await auditLogService.log({
-      action,
-      resource: "SALE_ORDER",
-      resourceId: order._id,
-      userId: actor?.userId || null,
-      userName: actor?.name || "System",
-      userRole: actor?.roleLabel || "system",
-      branchId: order.orderBranchId,
-      details: { orderNo: order.orderNo, before, after },
-    });
-  } catch (e) {
-    console.warn("[SaleOrder] audit log failed:", e.message);
-  }
-}
-
-/**
  * Find active users that hold one of the given role codes, optionally limited to a branch.
  * Roles can sit on the user (role / roleIds) or on the linked employee.
  */
@@ -220,6 +197,5 @@ module.exports = {
   runInTransaction,
   addEvent,
   notify,
-  audit,
   findUsersByRole,
 };

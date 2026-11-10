@@ -4,6 +4,8 @@ const jobOrderRepository = require("../../job-orders/models/JobOrder");
 const jobAssignmentRepository = require("../models/JobAssignment");
 const DesignAllocationLock = require("../models/DesignAllocationLock");
 const User = require("../../auth/models/User");
+const Employee = require("../../employees/models/Employee");
+const Branch = require("../../branches/models/Branch");
 const JobWorkflowService = require("../../job-orders/services/jobWorkflow.service");
 const ProductionStateService = require("../../production/services/productionState.service");
 const { emitJobEvent } = require("../../job-orders/services/jobEvents.emitter");
@@ -13,8 +15,9 @@ const DesignHelper = require("./DesignHelper");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
 /**
- * The sample-design pool of the branches: these six designers take the design work of every branch.
- * Manufacturing-unit designers are a separate pool and live in the manufacturing module (sale-orders / mfg).
+ * The six seeded designers (below) keep a fixed rotation order. A job can only go to a designer of ITS OWN branch:
+ * every allocation filters the pool by the job's branch (see designerUsers). Manufacturing-unit designers are a
+ * separate pool and live in the manufacturing module (sale-orders / mfg).
  */
 const BRANCH_DESIGNERS = [
   { name: "Ali Hassan", email: "ali.hassan@printz.com", employeeCode: "EMP-001" },
@@ -128,11 +131,44 @@ class DesignAllocationService {
     return created;
   }
 
-  /** The designers of the pool with their current load and whether they can take a job right now. */
-  static async evaluate(jobId = null, { includeInactive = false } = {}) {
-    // Every active designer stored in the database is part of the pool (inactive ones only when asked for, for management)
+  /** A branch given as an id, an object with an _id, or a branch name: the branch id as text, or null. */
+  static async resolveBranchId(value) {
+    if (!value) return null;
+    const raw = value && typeof value === "object" ? value._id || value.id || value.name : value;
+    if (!raw) return null;
+    if (mongoose.Types.ObjectId.isValid(String(raw)) && String(raw).length === 24) return String(raw);
+    const byName = await Branch.findOne({ name: new RegExp(`^${String(raw).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }).select("_id").lean();
+    return byName ? String(byName._id) : null;
+  }
+
+  /**
+   * The designers (users with the designer role), each with the branch they work in.
+   * A designer's branch is the one of their linked employee record (the same rule the sign-in uses), else the
+   * branch saved on the login. Pass branchId to get only the designers of that branch; a designer with no branch
+   * is not part of any branch's pool.
+   */
+  static async designerUsers({ includeInactive = false, branchId = null } = {}) {
     const userFilter = includeInactive ? { role: "designer" } : { role: "designer", isActive: { $ne: false } };
-    const users = orderDesigners(await User.find(userFilter).lean());
+    const found = orderDesigners(await User.find(userFilter).lean());
+
+    const empIds = [...new Set(found.map((u) => u.employeeId).filter(Boolean).map(String))];
+    const employees = empIds.length
+      ? await Employee.find({ _id: { $in: empIds.flatMap((id) => (mongoose.Types.ObjectId.isValid(id) ? [id, new mongoose.Types.ObjectId(id)] : [id])) } })
+          .select("branchId")
+          .lean()
+      : [];
+    const employeeBranch = new Map(employees.map((e) => [String(e._id), idOf(e.branchId)]));
+    const branchOf = (u) => (u.employeeId && employeeBranch.get(String(u.employeeId))) || idOf(u.branchId) || null;
+
+    const withBranch = found.map((u) => ({ ...u, designerBranchId: branchOf(u) }));
+    if (!branchId) return withBranch;
+    return withBranch.filter((u) => u.designerBranchId && u.designerBranchId === String(branchId));
+  }
+
+  /** The designers of the pool with their current load and whether they can take a job right now. */
+  static async evaluate(jobId = null, { includeInactive = false, branchId = null } = {}) {
+    // Active designers (inactive ones only when asked for, for management); with branchId only that branch's designers
+    const users = await this.designerUsers({ includeInactive, branchId });
 
     let rejectedSet = new Set();
     if (jobId) {
@@ -163,6 +199,7 @@ class DesignAllocationService {
         employeeId: u._id,
         userId: u._id,
         employeeCode: u.employeeCode || u.email,
+        branchId: u.designerBranchId || null,
         name: u.name,
         email: u.email,
         mobile: u.phone || "",
@@ -192,9 +229,12 @@ class DesignAllocationService {
     return null;
   }
 
-  static async lastRoundRobin() {
+  // candidateIds: only assignments given to these designers count, so each branch rotates among its own designers
+  static async lastRoundRobin(candidateIds = null) {
+    const query = { assignmentType: "DESIGNER", assignmentMethod: "ROUND_ROBIN" };
+    if (Array.isArray(candidateIds) && candidateIds.length > 0) query.employeeId = { $in: candidateIds };
     const assignments = await jobAssignmentRepository
-      .find({ assignmentType: "DESIGNER", assignmentMethod: "ROUND_ROBIN" })
+      .find(query)
       .sort({ createdAt: -1 })
       .limit(1);
     return assignments[0] || null;
@@ -217,17 +257,24 @@ class DesignAllocationService {
   }
 
   /** Resolve the designer to use: it must be a member of the pool (id, email, code or name). */
-  static async resolvePoolDesigner(identifier) {
-    const candidates = await this.evaluate();
+  static async resolvePoolDesigner(identifier, { branchId = null } = {}) {
     const key = String(identifier || "").trim().toLowerCase();
-    const found = candidates.find(
-      (c) =>
-        String(c._id) === String(identifier) ||
-        String(c.email || "").toLowerCase() === key ||
-        String(c.employeeCode || "").toLowerCase() === key ||
-        String(c.name || "").trim().toLowerCase() === key
-    );
+    const matches = (c) =>
+      String(c._id) === String(identifier) ||
+      String(c.email || "").toLowerCase() === key ||
+      String(c.employeeCode || "").toLowerCase() === key ||
+      String(c.name || "").trim().toLowerCase() === key;
+
+    const candidates = await this.evaluate(null, { branchId });
+    const found = candidates.find(matches);
     if (!found) {
+      // Say why: the designer exists but works in another branch
+      if (branchId) {
+        const elsewhere = (await this.evaluate()).find(matches);
+        if (elsewhere) {
+          throw ErrorHelper.badRequest(`${elsewhere.name} is not a designer of this job's branch, so the job cannot be given to them.`);
+        }
+      }
       throw ErrorHelper.notFound(`Designer not found in the designer pool: ${identifier}`);
     }
     return found;
@@ -243,8 +290,19 @@ class DesignAllocationService {
       const check = this.checkAllocatable(job, ["DESIGN_QUEUE"]);
       if (!check.ok) return { jobId: String(job._id), assigned: false, reason: check.reason, message: check.message };
 
-      const candidates = await this.evaluate(job._id);
-      const last = await this.lastRoundRobin();
+      // Only designers of this job's branch are considered
+      const jobBranch = idOf(job.branchId) || null;
+      const candidates = await this.evaluate(job._id, { branchId: jobBranch });
+      if (jobBranch && candidates.length === 0) {
+        emitJobEvent("design.noEligibleDesigner", { jobId: String(job._id), jobNo: job.jobNo });
+        return {
+          jobId: String(job._id),
+          assigned: false,
+          reason: "NO_DESIGNER_IN_BRANCH",
+          message: "No designer is set up for this job's branch. Add a designer to the branch first.",
+        };
+      }
+      const last = await this.lastRoundRobin(candidates.map((c) => c.employeeId));
       const pickId = this.pick(candidates, last?.employeeId?._id || last?.employeeId);
       if (!pickId) {
         emitJobEvent("design.noEligibleDesigner", { jobId: String(job._id), jobNo: job.jobNo });
@@ -306,7 +364,7 @@ class DesignAllocationService {
       const check = this.checkAllocatable(job, ASSIGNABLE_STAGES);
       if (!check.ok) throw ErrorHelper.conflict(check.message);
 
-      const designer = await this.resolvePoolDesigner(employeeId);
+      const designer = await this.resolvePoolDesigner(employeeId, { branchId: idOf(job.branchId) || null });
       const assignment = await this.createAssignment(job, designer._id, "MANUAL", user?._id || null);
       return {
         jobId: String(job._id),
@@ -347,15 +405,15 @@ class DesignAllocationService {
       let nextId = null;
       let employeeName = "";
       if (target === "ROUND_ROBIN") {
-        const candidates = await this.evaluate(job._id);
-        const last = await this.lastRoundRobin();
+        const candidates = await this.evaluate(job._id, { branchId: idOf(job.branchId) || null });
+        const last = await this.lastRoundRobin(candidates.map((c) => c.employeeId));
         nextId = this.pick(candidates, last?.employeeId?._id || last?.employeeId, excludeIds);
         if (!nextId) {
           throw ErrorHelper.conflict("NO_ELIGIBLE_DESIGNER: No other eligible designer available for rotation.");
         }
         employeeName = candidates.find((c) => String(c._id) === String(nextId))?.name || "";
       } else {
-        const designer = await this.resolvePoolDesigner(target);
+        const designer = await this.resolvePoolDesigner(target, { branchId: idOf(job.branchId) || null });
         if (current && String(designer._id) === idOf(current.employeeId)) {
           throw ErrorHelper.badRequest("Job is already assigned to this designer.");
         }
@@ -442,15 +500,6 @@ class DesignAllocationService {
       await jobAssignmentRepository.deleteOne({ _id: assignment._id });
       throw err;
     }
-
-    await ProductionStateService.logAudit({
-      action: "ASSIGN",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user: assignedBy ? { _id: assignedBy } : null,
-      branchId: job.branchId,
-      details: { employeeId, designerName, method, sequenceNo: assignment.sequenceNo },
-    });
 
     emitJobEvent("design.assigned", {
       jobId: String(job._id),
@@ -625,9 +674,11 @@ class DesignAllocationService {
     return DesignHelper.markWalkIn(list || []);
   }
 
-  static async pool(user = null, { includeInactive = false } = {}) {
-    const candidates = await this.evaluate(null, { includeInactive });
-    const last = await this.lastRoundRobin();
+  static async pool(user = null, { includeInactive = false, branchId = null } = {}) {
+    const wanted = await this.resolveBranchId(branchId);
+    const scoped = DesignHelper.scopeBranchId(user, wanted);
+    const candidates = await this.evaluate(null, { includeInactive, branchId: scoped });
+    const last = await this.lastRoundRobin(candidates.map((c) => c.employeeId));
     const nextId = this.pick(candidates, last?.employeeId?._id || last?.employeeId);
     return {
       lastAssigned: last?.employeeId || null,
@@ -663,8 +714,8 @@ class DesignAllocationService {
     const byDesigner = new Map(rows.map((r) => [String(r._id), r]));
 
     // Every designer of the pool is listed, also the ones with nothing open
-    const designers = await User.find({ role: "designer" }).select("-password").lean();
-    return orderDesigners(designers)
+    const designers = await this.designerUsers({ includeInactive: true, branchId: scopedBranch });
+    return designers
       .map((u) => {
         const r = byDesigner.get(String(u._id)) || {};
         return {

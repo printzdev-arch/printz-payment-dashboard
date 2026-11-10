@@ -31,6 +31,15 @@ router.get(
   employeeController.getRoleOptions
 );
 
+router.get(
+  "/page-catalog",
+  requirePermission(PERMISSIONS.ADMIN.EMPLOYEE_VIEW, {
+    branchField: "branchId",
+    selfField: "_id",
+  }),
+  employeeController.getPageCatalog
+);
+
 // ── Get by ID (scope-checked in controller/repository) ─────────────────────
 router.get(
   "/:id",

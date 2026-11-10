@@ -64,7 +64,8 @@ const getDesignQueue = asyncHandler(async (req, res) => {
 });
 
 const getDesignerPool = asyncHandler(async (req, res) => {
-  const pool = await DesignAllocationService.pool(req.user);
+  // ?branchId limits the designers to one branch (a manager is always limited to their own)
+  const pool = await DesignAllocationService.pool(req.user, { branchId: req.query.branchId || null });
   return ResponseHelper.ok(res, "Designer pool retrieved successfully", pool);
 });
 

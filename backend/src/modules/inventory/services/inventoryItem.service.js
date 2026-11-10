@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const inventoryItemRepository = require("../models/InventoryItem");
 const inventoryBalanceRepository = require("../models/InventoryBalance");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
 class InventoryItemService {
@@ -126,14 +125,6 @@ class InventoryItemService {
       isStockTracked: data.isStockTracked !== undefined ? Boolean(data.isStockTracked) : true,
     });
 
-    AuditHelper.log({
-      actorId: authContext.user?._id || authContext.user?.id,
-      action: "CREATE",
-      entityType: "INVENTORY_ITEM",
-      entityId: item._id,
-      after: item,
-    }).catch((err) => console.warn("[InventoryItemService] Audit error:", err.message));
-
     return item;
   }
 
@@ -157,15 +148,6 @@ class InventoryItemService {
 
     const updated = await this.itemRepo.update(id, updatePayload);
 
-    AuditHelper.log({
-      actorId: authContext.user?._id || authContext.user?.id,
-      action: "UPDATE",
-      entityType: "INVENTORY_ITEM",
-      entityId: id,
-      before: existing,
-      after: updated,
-    }).catch((err) => console.warn("[InventoryItemService] Audit error:", err.message));
-
     return updated;
   }
 
@@ -177,15 +159,6 @@ class InventoryItemService {
 
     const updated = await this.itemRepo.setActive(id, false);
 
-    AuditHelper.log({
-      actorId: authContext.user?._id || authContext.user?.id,
-      action: "DEACTIVATE",
-      entityType: "INVENTORY_ITEM",
-      entityId: id,
-      before: { isActive: true },
-      after: { isActive: false },
-    }).catch((err) => console.warn("[InventoryItemService] Audit error:", err.message));
-
     return updated;
   }
 
@@ -196,15 +169,6 @@ class InventoryItemService {
     }
 
     const updated = await this.itemRepo.setActive(id, true);
-
-    AuditHelper.log({
-      actorId: authContext.user?._id || authContext.user?.id,
-      action: "ACTIVATE",
-      entityType: "INVENTORY_ITEM",
-      entityId: id,
-      before: { isActive: false },
-      after: { isActive: true },
-    }).catch((err) => console.warn("[InventoryItemService] Audit error:", err.message));
 
     return updated;
   }

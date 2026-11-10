@@ -48,10 +48,6 @@ const posDto = require("./pos/models/dto");
 const productionDto = require("./production/models/dto");
 const publicApprovalDto = require("./public/models/PublicDesignApprovalDto");
 const publicJobDto = require("./public/models/PublicJobRequestDto");
-const slaDto = require("./sla/models/SlaStatusDto");
-const slaConfigDto = require("./sla/models/SlaConfigurationDto");
-const designerPerformanceDto = require("./sla/models/DesignerPerformanceDto");
-const designerRatingDto = require("./sla/models/DesignerRatingDto");
 
 module.exports = {
   ...authDto,
@@ -70,8 +66,4 @@ module.exports = {
   ...productionDto,
   ...publicApprovalDto,
   ...publicJobDto,
-  ...slaDto,
-  ...slaConfigDto,
-  ...designerPerformanceDto,
-  ...designerRatingDto,
 };

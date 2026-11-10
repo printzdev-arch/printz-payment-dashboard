@@ -297,14 +297,6 @@ class ProductionPlanningService {
           }))
         );
 
-        await ProductionStateService.logAudit({
-          action: "PRODUCTION_ORDER_CREATED",
-          resource: "ProductionOrder",
-          resourceId: po._id,
-          user,
-          branchId: job.branchId,
-          details: { productionNo: po.productionNo, jobOrderId: job._id },
-        });
       }
 
       created.push(po);
@@ -553,14 +545,6 @@ class ProductionPlanningService {
       order.planningStatus = "DRAFT";
       await productionOrderRepository.save(order);
 
-      await ProductionStateService.logAudit({
-        action: "PRODUCTION_PLAN_DRAFT_SAVED",
-        resource: "ProductionOrder",
-        resourceId: order._id,
-        user,
-        branchId: order.branchId,
-        details: { productionNo: order.productionNo, operationsCount: newOps.length },
-      });
     } else {
       const wasUnplanned = order.status === "UNASSIGNED";
       order.planningStatus = "PLANNED";
@@ -605,19 +589,6 @@ class ProductionPlanningService {
       } else {
         await productionOrderRepository.save(order);
       }
-
-      await ProductionStateService.logAudit({
-        action: wasUnplanned ? "PRODUCTION_PLANNED" : "PRODUCTION_PLAN_REVISED",
-        resource: "ProductionOrder",
-        resourceId: order._id,
-        user,
-        branchId: order.branchId,
-        details: {
-          productionNo: order.productionNo,
-          planVersion: order.planVersion,
-          operationsCount: allOps.length,
-        },
-      });
 
       await ProductionStateService.dispatchWorkflowEvent({
         jobOrderId: job._id,

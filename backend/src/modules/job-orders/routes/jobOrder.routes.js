@@ -240,31 +240,11 @@ router.post(
   designSampleController.decide
 );
 
-const slaController = require("../../sla/controllers/sla.controller");
-const designerRatingController = require("../../sla/controllers/designerRating.controller");
-const { createDesignerRatingValidator } = require("../../sla/routes/sla.validator");
-
-// ──────────────── SLA & Designer Rating Sub-resources (Spec Parity) ────────────────
-router.get(
-  "/:id/sla",
-  authorizePermission("job", "read"),
-  slaController.getJobOrderSla
-);
-
-router.post(
-  "/:id/designer-ratings",
-  createDesignerRatingValidator,
-  authorizePermission("design", "update"),
-  designerRatingController.createRating
-);
-
-// ──────────────── Job Closure & Customer Feedback Sub-resources ────────────────
+// ──────────────── Job Closure Sub-resources ────────────────
 const JobClosureController = require("../../settlements/controllers/jobClosure.controller");
-const CustomerFeedbackController = require("../../settlements/controllers/customerFeedback.controller");
 const {
   closeJobValidator,
   reopenJobValidator,
-  feedbackValidator,
 } = require("../../settlements/routes/settlement.validator");
 
 router.post(
@@ -285,17 +265,6 @@ router.post(
   reopenJobValidator,
   authorizePermission("job", "update"),
   JobClosureController.reopenJob
-);
-
-router.post(
-  "/:id/feedback",
-  feedbackValidator,
-  CustomerFeedbackController.submitFeedback
-);
-
-router.get(
-  "/:id/feedback",
-  CustomerFeedbackController.getJobFeedback
 );
 
 module.exports = router;

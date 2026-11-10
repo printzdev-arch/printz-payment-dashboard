@@ -72,23 +72,6 @@ class JobWorkflowService {
       details: ctx.details || null,
     });
 
-    // Write audit log
-    await ProductionStateService.logAudit({
-      action: "STATUS_CHANGE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user: ctx.user || (ctx.actorId ? { _id: ctx.actorId } : null),
-      branchId: job.branchId,
-      details: {
-        fromStage,
-        toStage,
-        fromStatus,
-        toStatus,
-        reason: ctx.reason,
-        notes: ctx.notes,
-      },
-    });
-
     // Emit event on shared bus
     emitJobEvent("job.stage.changed", {
       jobId: String(job._id),
@@ -158,14 +141,6 @@ class JobWorkflowService {
       notes: "Job order created",
     });
 
-    await ProductionStateService.logAudit({
-      action: "CREATE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user: actorId ? { _id: actorId } : null,
-      branchId: job.branchId,
-      details: { jobNo: job.jobNo, title: job.title },
-    });
   }
 
   static async recordEvent(job, stage, ctx = {}) {
@@ -208,15 +183,6 @@ class JobWorkflowService {
       notes: "Job placed on hold",
     });
 
-    await ProductionStateService.logAudit({
-      action: "STATUS_CHANGE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user: actorId ? { _id: actorId } : null,
-      branchId: job.branchId,
-      details: { before: fromStatus, after: JOB_STATUSES.ON_HOLD, reason },
-    });
-
     emitJobEvent("job.onHold", { jobId: String(job._id), reason });
     return updated;
   }
@@ -251,15 +217,6 @@ class JobWorkflowService {
       actorId,
       reason: "RESUME",
       notes: "Job resumed from hold",
-    });
-
-    await ProductionStateService.logAudit({
-      action: "STATUS_CHANGE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user: actorId ? { _id: actorId } : null,
-      branchId: job.branchId,
-      details: { before: JOB_STATUSES.ON_HOLD, after: restoreStatus },
     });
 
     emitJobEvent("job.stage.changed", {
@@ -299,15 +256,6 @@ class JobWorkflowService {
       actorId,
       reason,
       notes: "Job cancelled",
-    });
-
-    await ProductionStateService.logAudit({
-      action: "STATUS_CHANGE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user: actorId ? { _id: actorId } : null,
-      branchId: job.branchId,
-      details: { before: fromStatus, after: JOB_STATUSES.CANCELLED, reason },
     });
 
     emitJobEvent("job.cancelled", { jobId: String(job._id), reason });

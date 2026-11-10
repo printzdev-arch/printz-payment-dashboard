@@ -75,11 +75,6 @@ const shareInvoice = asyncHandler(async (req, res) => {
   return ResponseHelper.ok(res, "Invoice shared successfully", result);
 });
 
-const getAuditLogs = asyncHandler(async (req, res) => {
-  const logs = await InvoiceService.getAuditLogs(req.params.id, req.authz);
-  return ResponseHelper.ok(res, "Invoice audit logs retrieved successfully", logs);
-});
-
 module.exports = {
   getPendingEligibleJobOrders,
   getJobOrderEligibility,
@@ -93,5 +88,4 @@ module.exports = {
   finalize,
   getPdf,
   shareInvoice,
-  getAuditLogs,
 };

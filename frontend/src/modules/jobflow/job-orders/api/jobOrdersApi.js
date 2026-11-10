@@ -121,11 +121,6 @@ export const jobOrdersApi = {
     return res.data;
   },
 
-  getJobSla: async (jobId) => {
-    const res = await api.get(`/job-orders/${jobId}/sla`);
-    return res.data;
-  },
-
   submitPublicJobRequest: async (formData) => {
     const res = await api.post("/public/job-requests", formData);
     return res.data;

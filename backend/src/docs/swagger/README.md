@@ -30,18 +30,3 @@ them proper schemas and descriptions.
 ## Signing in from Swagger UI
 
 `POST /auth/login` issues the `accessToken` and `refreshToken`. Paste the `accessToken` into **Authorize**.
-
-## Checking the documentation against the API
-
-With the API running against a test database:
-
-```bash
-node scripts/verifySwagger.js                       # every operation
-node scripts/verifySwagger.js --tag "Sale Orders"   # one group, plus the full sale order walkthrough
-node scripts/verifySwagger.js --show-warn --show-skip
-```
-
-It sends each documented example the way Swagger UI would and fails when an example is rejected, a documented
-route does not exist, a call returns an unexpected 5xx, or a status is not listed in the document. Set
-`API_BASE`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD`, `TEST_DESIGNER_EMAIL` and `TEST_DESIGNER_PASSWORD` to
-use other accounts.

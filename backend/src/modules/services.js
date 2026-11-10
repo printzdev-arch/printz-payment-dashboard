@@ -21,7 +21,6 @@ const reportService = require("./reports/services/report.service");
 const generalService = require("./general/services/general.service");
 const approvalService = require("./approvals/services/approval.service");
 const attachmentService = require("./attachments/services/attachment.service");
-const auditLogService = require("./audit-logs/services/auditLog.service");
 const numberSequenceService = require("./number-sequences/services/numberSequence.service");
 
 // Customer
@@ -73,18 +72,9 @@ const publicDesignApprovalService = require("./public/services/publicDesignAppro
 const publicJobRequestService = require("./public/services/publicJobRequest.service");
 
 // Settlement
-const customerFeedbackService = require("./settlements/services/customerFeedback.service");
 const jobClosureService = require("./settlements/services/jobClosure.service");
 const settlementService = require("./settlements/services/settlement.service");
 const collectionReportService = require("./settlements/services/collectionReport.service");
-const settlementSlaReportService = require("./settlements/services/settlementSlaReport.service");
-
-// SLA
-const designerPerformanceService = require("./sla/services/designerPerformance.service");
-const designerRatingService = require("./sla/services/designerRating.service");
-const slaService = require("./sla/services/sla.service");
-const slaConfigurationService = require("./sla/services/slaConfiguration.service");
-const slaSchedulerService = require("./sla/services/slaScheduler.service");
 
 module.exports = {
   // Auth
@@ -105,7 +95,6 @@ module.exports = {
   generalService,
   approvalService,
   attachmentService,
-  auditLogService,
   numberSequenceService,
 
   // Customer
@@ -157,18 +146,9 @@ module.exports = {
   publicJobRequestService,
 
   // Settlement
-  customerFeedbackService,
   jobClosureService,
   settlementService,
   collectionReportService,
-  settlementSlaReportService,
-
-  // SLA
-  designerPerformanceService,
-  designerRatingService,
-  slaService,
-  slaConfigurationService,
-  slaSchedulerService,
 
   // Salary & Payroll
   salaryService: require("./salary/services/salary.service"),

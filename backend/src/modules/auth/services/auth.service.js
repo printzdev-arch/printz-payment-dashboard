@@ -4,7 +4,6 @@ const User = require("../models/User");
 const Employee = require("../../employees/models/Employee");
 const ApiError = require("../../../utils/errors/ApiError");
 const { jwtTokenService, tokenBlacklistService, bcryptPasswordService, emailService } = require("../../../utils/integrations");
-const AuditLog = require("../../audit-logs/models/AuditLog");
 
 class AuthService {
   async login({ email, password }, requestContext = {}) {
@@ -20,52 +19,30 @@ class AuthService {
     const user = await User.findOne(query).populate("roleIds");
 
     if (!user) {
-      await this._auditLog({
-        event: "AUTH_LOGIN_FAILED",
-        action: "LOGIN_FAILED",
-        userEmail: loginEmail,
-        resourceType: "User",
-        ipAddress: requestContext.ip,
-        userAgent: requestContext.userAgent,
-        status: "FAILED",
-        reason: "User not found",
-      });
       throw ApiError.unauthorized("Invalid email or password");
     }
 
     // 1. Check Disabled / Inactive status
     if (user.status === "DISABLED" || !user.isActive) {
-      await this._auditLog({
-        event: "AUTH_LOGIN_FAILED",
-        action: "LOGIN_FAILED",
-        userId: user._id,
-        userEmail: user.email,
-        resourceType: "User",
-        resourceId: user._id,
-        ipAddress: requestContext.ip,
-        userAgent: requestContext.userAgent,
-        status: "FAILED",
-        reason: "Account disabled/inactive",
-      });
       throw ApiError.forbidden("Account has been disabled. Please contact an administrator.", "ACCOUNT_DISABLED");
     }
 
     // 1b. Check linked Employee active status
     if (user.employeeId) {
       const employee = await Employee.findById(user.employeeId).lean();
-      if (!employee || employee.employmentStatus !== "ACTIVE" || !employee.isActive) {
-        await this._auditLog({
-          event: "AUTH_LOGIN_FAILED",
-          action: "LOGIN_FAILED",
-          userId: user._id,
-          userEmail: user.email,
-          resourceType: "User",
-          resourceId: user._id,
-          ipAddress: requestContext.ip,
-          userAgent: requestContext.userAgent,
-          status: "FAILED",
-          reason: "Linked employee profile is inactive or departed",
-        });
+
+      // No pages ticked (on the employee, or on the role when the employee has no list of their own) means no sign-in
+      if (employee?.roleId) {
+        const Role = require("../models/Role");
+        const empRole = await Role.findById(employee.roleId).select("pageAccess loginAllowed").lean();
+        const effective = Array.isArray(employee.pageAccess) ? employee.pageAccess : empRole && Array.isArray(empRole.pageAccess) ? empRole.pageAccess : null;
+        const roleSaysNo = !Array.isArray(employee.pageAccess) && empRole && empRole.loginAllowed === false;
+        if ((effective && effective.length === 0) || roleSaysNo) {
+          throw ApiError.forbidden("Your role has no pages assigned yet. Please contact an administrator.", "NO_PAGE_ACCESS");
+        }
+      }
+
+      if (!employee ||employee.employmentStatus !== "ACTIVE" || !employee.isActive) {
         throw ApiError.forbidden("Account access denied: Linked employee profile is inactive or departed.", "EMPLOYEE_INACTIVE");
       }
     }
@@ -74,18 +51,6 @@ class AuthService {
     if (user.status === "LOCKED") {
       if (user.lockoutEnd && new Date(user.lockoutEnd) > new Date()) {
         const remainingMinutes = Math.ceil((new Date(user.lockoutEnd) - new Date()) / 60000);
-        await this._auditLog({
-          event: "AUTH_LOGIN_FAILED",
-          action: "LOGIN_FAILED",
-          userId: user._id,
-          userEmail: user.email,
-          resourceType: "User",
-          resourceId: user._id,
-          ipAddress: requestContext.ip,
-          userAgent: requestContext.userAgent,
-          status: "FAILED",
-          reason: `Account locked. Remaining time: ${remainingMinutes}m`,
-        });
         throw ApiError.locked(
           `Account is temporarily locked due to consecutive failed attempts. Please try again in ${remainingMinutes} minute(s).`,
           "ACCOUNT_LOCKED"
@@ -171,21 +136,6 @@ class AuthService {
         isNowLocked = true;
       }
 
-      await this._auditLog({
-        event: isNowLocked ? "AUTH_ACCOUNT_LOCKED" : "AUTH_LOGIN_FAILED",
-        action: isNowLocked ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
-        userId: user._id,
-        userEmail: user.email,
-        resourceType: "User",
-        resourceId: user._id,
-        ipAddress: requestContext.ip,
-        userAgent: requestContext.userAgent,
-        status: "FAILED",
-        reason: isNowLocked
-          ? "Account locked after 5 failed login attempts within 15 minutes"
-          : `Invalid password (Attempt ${currentAttempts}/5)`,
-      });
-
       if (isNowLocked) {
         throw ApiError.locked(
           "Account has been locked for 15 minutes due to 5 consecutive failed login attempts.",
@@ -216,19 +166,6 @@ class AuthService {
     };
 
     const tokenPair = jwtTokenService.generateTokenPair(tokenPayload);
-
-    await this._auditLog({
-      event: "AUTH_LOGIN_SUCCESS",
-      action: "LOGIN",
-      userId: user._id,
-      userEmail: user.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
 
     // The session is just the token pair; the profile is read from GET /auth/me
     return {
@@ -290,7 +227,9 @@ class AuthService {
     if (!userId) {
       throw ApiError.unauthorized("Authentication required");
     }
-    const user = await User.findById(userId).populate("roleIds");
+    // The full profile, built the same way as for every request: branch and role come from the linked employee,
+    // and the person's page list and links are included. (The plain login record can be out of date.)
+    const user = await User.findByIdEnriched(userId);
     if (!user) {
       throw ApiError.notFound("User not found");
     }
@@ -310,16 +249,6 @@ class AuthService {
     }
 
     if (userId) {
-      await this._auditLog({
-        event: "AUTH_LOGOUT",
-        action: "LOGOUT",
-        userId,
-        resourceType: "User",
-        resourceId: userId,
-        ipAddress: typeof input === "object" ? input.ip : null,
-        userAgent: typeof input === "object" ? input.userAgent : null,
-        status: "SUCCESS",
-      });
     }
 
     return {
@@ -400,27 +329,6 @@ class AuthService {
     return jwtTokenService.verifyAccessToken(token);
   }
 
-  async _auditLog(data) {
-    try {
-      await AuditLog.create({
-        action: data.action || data.event,
-        resource: data.resourceType || "User",
-        resourceId: data.resourceId || (data.userId && mongoose.Types.ObjectId.isValid(data.userId) ? data.userId : null),
-        userId: data.userId && mongoose.Types.ObjectId.isValid(data.userId) ? data.userId : null,
-        userName: data.userEmail || "System",
-        userRole: data.userRole || "",
-        branchId: data.branchId && mongoose.Types.ObjectId.isValid(data.branchId) ? data.branchId : null,
-        details: {
-          event: data.event,
-          reason: data.reason,
-          status: data.status,
-        },
-        ipAddress: data.ipAddress,
-      });
-    } catch (_) {
-      // Don't crash auth on audit log write failure
-    }
-  }
 }
 
 module.exports = new AuthService();

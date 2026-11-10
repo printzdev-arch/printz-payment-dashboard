@@ -8,7 +8,6 @@ const holidayCalendarService = require("./holidayCalendar.service");
 const AttendanceCalculationService = require("./attendanceCalculation.service");
 const employeeShiftService = require("../../employee-shift/services/employeeShift.service");
 const attendanceDateUtils = require("../../../utils/helpers/attendanceDateUtils");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 
 class DailyAttendanceService {
@@ -335,16 +334,6 @@ class DailyAttendanceService {
       record.updatedBy = actorId || null;
       await record.save();
 
-      await AuditHelper.log({
-        action: "DAILY_ATTENDANCE_CHECK_IN_UPDATE",
-        actorId,
-        entityType: "DAILY_ATTENDANCE",
-        entityId: record._id,
-        branchId: record.branchId,
-        before: beforeState,
-        after: record.toObject(),
-      });
-
       await record.populate([
         { path: "employeeId", select: "name employeeCode" },
         { path: "branchId", select: "name code" },
@@ -392,15 +381,6 @@ class DailyAttendanceService {
       calculatedAt: calculation.calculatedAt,
       createdBy: actorId || null,
       updatedBy: actorId || null,
-    });
-
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_CHECK_IN",
-      actorId,
-      entityType: "DAILY_ATTENDANCE",
-      entityId: record._id,
-      branchId: record.branchId,
-      after: record.toObject(),
     });
 
     await record.populate([
@@ -508,16 +488,6 @@ class DailyAttendanceService {
       record.updatedBy = actorId || null;
       await record.save();
 
-      await AuditHelper.log({
-        action: "DAILY_ATTENDANCE_CHECK_OUT",
-        actorId,
-        entityType: "DAILY_ATTENDANCE",
-        entityId: record._id,
-        branchId: record.branchId,
-        before: beforeState,
-        after: record.toObject(),
-      });
-
       await record.populate([
         { path: "employeeId", select: "name employeeCode" },
         { path: "branchId", select: "name code" },
@@ -565,15 +535,6 @@ class DailyAttendanceService {
       calculatedAt: calculation.calculatedAt,
       createdBy: actorId || null,
       updatedBy: actorId || null,
-    });
-
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_CHECK_OUT_NO_CHECKIN",
-      actorId,
-      entityType: "DAILY_ATTENDANCE",
-      entityId: record._id,
-      branchId: record.branchId,
-      after: record.toObject(),
     });
 
     await record.populate([
@@ -805,18 +766,6 @@ class DailyAttendanceService {
       updatedBy: actorId || null,
     });
 
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_CREATE",
-      actorId,
-      actorRole: authContext.role || null,
-      userRole: authContext.role || null,
-      entityType: "DAILY_ATTENDANCE",
-      entityId: attendanceRecord._id,
-      branchId: attendanceRecord.branchId,
-      employeeId: attendanceRecord.employeeId,
-      after: attendanceRecord.toObject(),
-    });
-
     await attendanceRecord.populate([
       { path: "employeeId", select: "name employeeCode" },
       { path: "branchId", select: "name code" },
@@ -952,7 +901,7 @@ class DailyAttendanceService {
       throw ApiError.notFound("Daily attendance record not found.");
     }
 
-    if (existing.isLocked && !this._isSuperAdmin(authContext)) {
+    if (existing.isLocked && !authContext.isSuperAdminOnly) {
       throw ApiError.conflict(
         "Attendance record is locked/finalized and cannot be modified without Super Admin authorization.",
         { code: "ATTENDANCE_RECORD_LOCKED", recordId: existing._id }
@@ -1086,20 +1035,6 @@ class DailyAttendanceService {
 
     await existing.save();
 
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_UPDATE",
-      actorId,
-      actorRole: authContext.role || null,
-      userRole: authContext.role || null,
-      entityType: "DAILY_ATTENDANCE",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      employeeId: existing.employeeId,
-      remarks: existing.remarks,
-      before: beforeState,
-      after: existing.toObject(),
-    });
-
     await existing.populate([
       { path: "employeeId", select: "name employeeCode" },
       { path: "branchId", select: "name code" },
@@ -1125,7 +1060,7 @@ class DailyAttendanceService {
       throw ApiError.notFound("Daily attendance record not found.");
     }
 
-    if (existing.isLocked && !this._isSuperAdmin(authContext)) {
+    if (existing.isLocked && !authContext.isSuperAdminOnly) {
       throw ApiError.conflict(
         "Attendance record is locked/finalized and cannot be deleted.",
         { code: "ATTENDANCE_RECORD_LOCKED", recordId: existing._id }
@@ -1136,16 +1071,6 @@ class DailyAttendanceService {
 
     const beforeState = existing.toObject();
     await DailyAttendance.findByIdAndDelete(id);
-
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_DELETE",
-      actorId,
-      entityType: "DAILY_ATTENDANCE",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: null,
-    });
 
     return { _id: id, message: "Attendance record deleted successfully." };
   }
@@ -1423,15 +1348,6 @@ class DailyAttendanceService {
       },
     });
 
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_FINALIZE",
-      actorId,
-      actorRole: authContext.role || null,
-      entityType: "DAILY_ATTENDANCE",
-      branchId,
-      after: { query, matchedCount: result.matchedCount, modifiedCount: result.modifiedCount },
-    });
-
     return {
       message: "Attendance records finalized and locked successfully.",
       matchedCount: result.matchedCount,
@@ -1447,7 +1363,7 @@ class DailyAttendanceService {
       throw ApiError.badRequest("branchId is required to reopen attendance.");
     }
     this._assertBranchAuthorized(branchId, authContext);
-    if (!this._isSuperAdmin(authContext)) {
+    if (!authContext.isSuperAdminOnly) {
       throw ApiError.forbidden("Access denied: Only Super Admin can reopen locked attendance periods.");
     }
 
@@ -1468,15 +1384,6 @@ class DailyAttendanceService {
         lockedAt: null,
         lockedBy: null,
       },
-    });
-
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_REOPEN",
-      actorId,
-      actorRole: authContext.role || null,
-      entityType: "DAILY_ATTENDANCE",
-      branchId,
-      after: { query, matchedCount: result.matchedCount, modifiedCount: result.modifiedCount },
     });
 
     return {
@@ -1582,15 +1489,6 @@ class DailyAttendanceService {
         }
       }
     }
-
-    await AuditHelper.log({
-      action: "DAILY_ATTENDANCE_GENERATE_HOLIDAY_RECORDS",
-      actorId,
-      actorRole: authContext.role || null,
-      entityType: "DAILY_ATTENDANCE",
-      branchId,
-      after: { startDate, endDate, holidaysFound: holidays.length, createdCount },
-    });
 
     return {
       message: `Successfully generated ${createdCount} holiday attendance record(s).`,

@@ -142,6 +142,8 @@ const INITIAL_MASTER_ITEMS = [
   { category: "employeeRoles", name: "Operator", code: "OPERATOR", config: "NO_LOGIN", order: 5 },
   { category: "employeeRoles", name: "Mfg Manager", code: "MFG_MANAGER", order: 6 },
   { category: "employeeRoles", name: "Mfg Designer", code: "MFG_DESIGNER", order: 7 },
+  { category: "employeeRoles", name: "Store Incharge", code: "STORE_INCHARGE", order: 8 },
+  { category: "employeeRoles", name: "Accounting Staff", code: "ACCOUNTING_STAFF", order: 9 },
 
   // productionOperations (Default Sequence)
   {

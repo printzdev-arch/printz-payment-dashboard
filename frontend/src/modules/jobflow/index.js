@@ -39,4 +39,3 @@ export * from "../pos";
 export * from "./master-settings";
 
 // Dashboard
-export * from "./dashboard";

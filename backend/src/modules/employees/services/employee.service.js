@@ -4,7 +4,6 @@ const EmployeeBranchAssignment = require("../models/EmployeeBranchAssignment");
 const User = require("../../auth/models/User");
 const SequenceHelper = require("../../number-sequences/services/SequenceHelper");
 const EncryptionService = require("../../../utils/integrations/EncryptionService");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ScopeHelper = require("../../../utils/helpers/scopeHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 const { calculateAge } = require("../../../utils/helpers/age.util");
@@ -13,9 +12,12 @@ const Role = require("../../auth/models/Role");
 const MasterDefault = require("../../settings/models/MasterDefault");
 const MasterSettingService = require("../../settings/services/masterSetting.service");
 const { roleDisallowsLogin } = require("./roleLogin.helper");
+const { expandKeys } = require("../../auth/constants/pageCatalog");
 
 // Roles that grant full access. Only an admin may hand these out.
 const ADMIN_TIER_ROLE_CODES = ["SUPER_ADMIN", "ADMIN"];
+// Roles that existed before Role Management; they keep working without a page list
+const LEGACY_OPEN_ROLE_CODES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "DESIGNER", "OPERATOR", "MFG_MANAGER", "MFG_DESIGNER"];
 // Config value on an employeeRoles master default that means "this role does not sign in"
 const NO_LOGIN_FLAG = "NO_LOGIN";
 
@@ -204,6 +206,9 @@ class EmployeeService {
               name: item.name,
               description: `${item.name} (created from Employee Roles)`,
               grants: [],
+              // New roles start with no pages (so no login) until pages are ticked in Role Management.
+              // The long-standing roles stay unrestricted.
+              ...(LEGACY_OPEN_ROLE_CODES.includes(code) ? {} : { pageAccess: [] }),
               isSystem: false,
               isActive: true,
             },
@@ -218,7 +223,31 @@ class EmployeeService {
         roleId: String(role._id),
         code,
         name: item.name,
-        requiresLogin: String(item.config || "").trim().toUpperCase() !== NO_LOGIN_FLAG,
+        pageAccess: Array.isArray(role.pageAccess) ? role.pageAccess : null,
+        loginAllowed: typeof role.loginAllowed === "boolean" ? role.loginAllowed : null,
+        requiresLogin:
+          typeof role.loginAllowed === "boolean"
+            ? role.loginAllowed && !(Array.isArray(role.pageAccess) && role.pageAccess.length === 0)
+            : Array.isArray(role.pageAccess)
+              ? role.pageAccess.length > 0
+              : String(item.config || "").trim().toUpperCase() !== NO_LOGIN_FLAG,
+      });
+    }
+
+    // Roles made in Role Management are not in the master list; offer them too
+    const listed = new Set(options.map((o) => o.roleId));
+    const custom = await Role.find({ isActive: true, pageAccess: { $exists: true }, code: { $nin: ADMIN_TIER_ROLE_CODES } })
+      .sort({ name: 1 })
+      .lean();
+    for (const role of custom) {
+      if (listed.has(String(role._id))) continue;
+      options.push({
+        roleId: String(role._id),
+        code: role.code,
+        name: role.name,
+        pageAccess: role.pageAccess,
+        loginAllowed: typeof role.loginAllowed === "boolean" ? role.loginAllowed : null,
+        requiresLogin: (typeof role.loginAllowed === "boolean" ? role.loginAllowed : true) && role.pageAccess.length > 0,
       });
     }
     return options;
@@ -239,12 +268,15 @@ class EmployeeService {
 
   // options.skipOperatorProfile: for a migration that links an operator entry that already exists
   async createEmployee(dto, createdByUserId, authContext = {}, options = {}) {
+    if (dto.pageAccess !== undefined && !this._isSuperAdmin(authContext)) {
+      throw ApiError.forbidden("Only an admin can choose an employee's pages.");
+    }
     if (!dto.name || !dto.mobile || !dto.email || !dto.branchId) {
       throw ApiError.badRequest("Name, mobile, email, and branchId are required.");
     }
 
-    // Role decides access and whether a login is needed, so every new employee has one
-    await this._assertRoleAllowed(dto.roleId, authContext);
+    // The role is optional here: it is set later in Role Setup, together with the employee's pages
+    if (dto.roleId) await this._assertRoleAllowed(dto.roleId, authContext);
 
     const joiningDate = dto.joiningDate ? new Date(dto.joiningDate) : new Date();
     dto.joiningDate = joiningDate;
@@ -332,23 +364,6 @@ class EmployeeService {
       }
 
       return newEmp;
-    });
-
-    // 7. Audit Log
-    await AuditHelper.log({
-      action: "EMPLOYEE_CREATE",
-      actorId: createdByUserId,
-      entityType: "EMPLOYEE",
-      entityId: employee._id,
-      branchId: employee.branchId,
-      after: {
-        _id: employee._id,
-        employeeCode: employee.employeeCode,
-        name: employee.name,
-        email: employee.email,
-        mobile: employee.mobile,
-        branchId: employee.branchId,
-      },
     });
 
     if (!options.skipOperatorProfile) await this._syncOperatorProfile(employee);
@@ -492,6 +507,9 @@ class EmployeeService {
   }
 
   async updateEmployee(id, dto, modifiedByUserId, authContext = {}) {
+    if (dto.pageAccess !== undefined && !this._isSuperAdmin(authContext)) {
+      throw ApiError.forbidden("Only an admin can choose an employee's pages.");
+    }
     const existing = await this.getEmployeeById(id, authContext);
     if (!existing) {
       throw ApiError.notFound("Employee not found or access denied.");
@@ -514,12 +532,77 @@ class EmployeeService {
       }
     }
 
+    // Pages saved on the person decide whether they can sign in; a changed role only matters when they have no list of their own
+    if (dto.pageAccess === null) {
+      // Back on the role's pages, so the role's own rule applies
+      switchedToNoLoginRole = (await roleDisallowsLogin(existing.roleId)).noLogin;
+    } else if (dto.pageAccess !== undefined) {
+      switchedToNoLoginRole = dto.pageAccess.length === 0;
+    } else if (Array.isArray(existing.pageAccess)) {
+      switchedToNoLoginRole = false;
+    }
+
+    // A person on a role that does not sign in can only get pages (and so a login) with a reason on record
+    if (dto.loginException !== undefined || dto.pageAccess !== undefined || dto.roleId !== undefined) {
+      const roleRef = dto.roleId !== undefined ? dto.roleId : existing.roleId;
+      const roleNoLogin = roleRef ? (await roleDisallowsLogin(roleRef)).noLogin : false;
+      const nextPages = dto.pageAccess !== undefined ? dto.pageAccess : existing.pageAccess;
+      const hasPages = Array.isArray(nextPages) && nextPages.length > 0;
+      if (roleNoLogin && hasPages) {
+        const reason =
+          dto.loginException === null
+            ? ""
+            : dto.loginException
+              ? dto.loginException.reason
+              : (existing.loginException && existing.loginException.reason) || "";
+        if (String(reason || "").trim().length < 5) {
+          throw ApiError.validation("This role does not sign in. Give a reason (at least 5 characters) to let this person sign in.");
+        }
+      } else {
+        // No exception is needed any more, so none is kept
+        dto.loginException = null;
+      }
+
+      // On a role that signs in, pages beyond the role's own need a reason on record
+      let needsExtraReason = false;
+      if (!roleNoLogin && hasPages && roleRef) {
+        const refId = String(roleRef._id || roleRef);
+        const roleDoc = mongoose.Types.ObjectId.isValid(refId) ? await Role.findById(refId).select("pageAccess").lean() : null;
+        if (roleDoc) {
+          const rolePagesList = expandKeys(Array.isArray(roleDoc.pageAccess) ? roleDoc.pageAccess : []);
+          const extras = expandKeys(nextPages).filter((k) => !rolePagesList.includes(k));
+          if (extras.length > 0) {
+            needsExtraReason = true;
+            const reason =
+              dto.extraPages === null
+                ? ""
+                : dto.extraPages
+                  ? dto.extraPages.reason
+                  : (existing.extraPages && existing.extraPages.reason) || "";
+            if (String(reason || "").trim().length < 5) {
+              throw ApiError.validation("Pages beyond the role's need a reason (at least 5 characters).");
+            }
+          }
+        }
+      }
+      if (!needsExtraReason) dto.extraPages = null;
+    }
+
+    if (dto.leavingDate) {
+      const joined = new Date(existing.joiningDate);
+      if (new Date(dto.leavingDate) < joined) {
+        throw ApiError.badRequest("Leaving date cannot be earlier than joining date.");
+      }
+    }
+
     if (dto.dateOfBirth !== undefined) {
       dto.dateOfBirth = this._normalizeDateOfBirth(dto.dateOfBirth);
       if (dto.dateOfBirth && existing.joiningDate && dto.dateOfBirth > new Date(existing.joiningDate)) {
         throw ApiError.badRequest("Date of birth cannot be after the joining date.");
       }
     }
+
+    const previousBranch = String((existing.branchId && (existing.branchId._id || existing.branchId)) || "");
 
     const updated = await this._runInTransaction(async (session) => {
       const employee = session
@@ -528,7 +611,33 @@ class EmployeeService {
 
       if (!employee) return null;
 
-      const { branchId, roleId, ...otherFields } = dto;
+      const { branchId, roleId, pageAccess, loginException, extraPages, ...otherFields } = dto;
+      if (pageAccess === null) employee.pageAccess = undefined;
+      else if (pageAccess !== undefined) employee.pageAccess = pageAccess;
+      if (extraPages === null) {
+        employee.extraPages = undefined;
+      } else if (extraPages && extraPages.reason) {
+        let who = "";
+        try {
+          const u = modifiedByUserId ? await User.findById(modifiedByUserId).select("name email").lean() : null;
+          who = (u && (u.name || u.email)) || "";
+        } catch (_) {
+          who = "";
+        }
+        employee.extraPages = { reason: extraPages.reason, setBy: modifiedByUserId || null, setByName: who, setAt: new Date() };
+      }
+      if (loginException === null) {
+        employee.loginException = undefined;
+      } else if (loginException && loginException.reason) {
+        let setByName = "";
+        try {
+          const who = modifiedByUserId ? await User.findById(modifiedByUserId).select("name email").lean() : null;
+          setByName = (who && (who.name || who.email)) || "";
+        } catch (_) {
+          setByName = "";
+        }
+        employee.loginException = { reason: loginException.reason, setBy: modifiedByUserId || null, setByName, setAt: new Date() };
+      }
       const isBranchTransfer =
         branchId && branchId.toString() !== (employee.branchId || "").toString();
       const now = new Date();
@@ -574,6 +683,17 @@ class EmployeeService {
       return employee;
     });
 
+    // A new branch is also written to the person's login (the login keeps its own copy of the branch)
+    const newBranch = String((updated.branchId && (updated.branchId._id || updated.branchId)) || "");
+    if (newBranch && newBranch !== previousBranch) {
+      const Branch = require("../../branches/models/Branch");
+      const branchDoc = mongoose.Types.ObjectId.isValid(newBranch) ? await Branch.findById(newBranch).select("name").lean() : null;
+      await User.updateMany(
+        { employeeId: { $in: [updated._id, String(updated._id)] } },
+        { $set: { branchId: newBranch, branchIds: [newBranch], branch: (branchDoc && branchDoc.name) || "" } }
+      );
+    }
+
     // A role that never signs in (operator) takes the person's login away
     if (switchedToNoLoginRole) {
       await User.updateMany(
@@ -583,16 +703,6 @@ class EmployeeService {
     }
 
     await this._syncOperatorProfile(updated);
-
-    await AuditHelper.log({
-      action: "EMPLOYEE_UPDATE",
-      actorId: modifiedByUserId,
-      entityType: "EMPLOYEE",
-      entityId: id,
-      branchId: updated.branchId,
-      before: existing,
-      after: updated,
-    });
 
     return updated;
   }
@@ -621,15 +731,6 @@ class EmployeeService {
     user.password = newPassword; // hashed by the user model on save
     await user.save();
     require("../../../utils/helpers/authCache").invalidateUser(String(user._id));
-
-    await AuditHelper.log({
-      action: "EMPLOYEE_LOGIN_PASSWORD_RESET",
-      actorId: authContext.userId,
-      entityType: "EMPLOYEE",
-      entityId: employee._id,
-      branchId: employee.branchId && (employee.branchId._id || employee.branchId),
-      after: { employeeCode: employee.employeeCode, userId: user._id },
-    });
 
     return { employeeId: String(employee._id), userId: String(user._id) };
   }
@@ -691,15 +792,6 @@ class EmployeeService {
         employmentStatus: result.status,
       });
     }
-
-    await AuditHelper.log({
-      action: "EMPLOYEE_DEACTIVATE",
-      actorId: authContext.userId,
-      entityType: "EMPLOYEE",
-      entityId: id,
-      branchId: existing.branchId,
-      after: result,
-    });
 
     return result;
   }

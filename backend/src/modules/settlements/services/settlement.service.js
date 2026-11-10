@@ -4,7 +4,6 @@ const Invoice = require("../../invoices/models/Invoice");
 const JobOrder = require("../../job-orders/models/JobOrder");
 const paymentRepository = require("../../invoices/models/Payment");
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
-const auditLogService = require("../../audit-logs/services/auditLog.service");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 const { INVOICE_STATUS } = require("../../invoices/models/invoice.constants");
 const { nextPaymentNo } = require("../../invoices/services/documentNumbers");
@@ -256,25 +255,6 @@ class SettlementService {
     }
     await JobOrder.findByIdAndUpdate(invoice.jobOrderId, { $set: jobUpdate });
 
-    // Audit log
-    await auditLogService.log({
-      action: "PAYMENT_COLLECT",
-      resource: "Payment",
-      resourceId: payment._id,
-      userId: user._id || user.id,
-      userName: user.name || user.username || "System",
-      branchId: invoice.branchId,
-      details: {
-        paymentNo,
-        invoiceId: invoice._id,
-        invoiceNumber: invoice.invoiceNumber,
-        amount,
-        paymentMode: mode,
-        balanceDue: newBalanceDue,
-        paymentStatus: newPaymentStatus,
-      },
-    });
-
     const settlement = await this.getSettlement(invoice._id, authContext, user);
 
     return {
@@ -433,22 +413,6 @@ class SettlementService {
         paymentStatus: newPaymentStatus,
       });
     }
-
-    // Audit log
-    await auditLogService.log({
-      action: "PAYMENT_VOID",
-      resource: "Payment",
-      resourceId: payment._id,
-      userId: user._id || user.id,
-      userName: user.name || user.username || "System",
-      branchId: payment.branchId,
-      details: {
-        paymentNo: payment.paymentNo,
-        invoiceId: payment.invoiceId,
-        amount: payment.amount,
-        reason: reason.trim(),
-      },
-    });
 
     const settlement = await this.getSettlement(payment.invoiceId, authContext, user);
     return {

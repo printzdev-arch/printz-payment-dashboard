@@ -307,7 +307,14 @@ const MoveStock = () => {
             category: item.category || "",
           });
         } else {
-          await deleteStockItem(sourceItemId);
+          // Everything was moved. Set the source quantity to 0 instead of deleting it: a delete now needs an
+          // admin's approval for managers, and a pending request would leave the old quantity in place.
+          await updateStockItem(sourceItemId, {
+            qty: 0,
+            itemName: item.itemName,
+            amount: item.amount,
+            category: item.category || "",
+          });
         }
 
         const currentUser = JSON.parse(localStorage.getItem("user"));

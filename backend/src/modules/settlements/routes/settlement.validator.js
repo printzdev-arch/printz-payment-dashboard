@@ -115,31 +115,10 @@ const reopenJobValidator = [
   validateRequest,
 ];
 
-const feedbackValidator = [
-  param("id").notEmpty().withMessage("Invalid Job Order ID"),
-  body("rating")
-    .isNumeric()
-    .withMessage("Rating must be a number between 1 and 5"),
-  body("comments")
-    .optional()
-    .isString()
-    .trim(),
-  body("feedback")
-    .optional()
-    .isString()
-    .trim(),
-  body("ratingDetails")
-    .optional(),
-  body("channel")
-    .optional(),
-  validateRequest,
-];
-
 module.exports = {
   collectPaymentValidator,
   voidPaymentValidator,
   createReminderValidator,
   closeJobValidator,
   reopenJobValidator,
-  feedbackValidator,
 };

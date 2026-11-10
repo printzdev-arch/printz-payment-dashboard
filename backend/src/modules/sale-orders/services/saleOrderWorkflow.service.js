@@ -16,7 +16,6 @@ const {
   runInTransaction,
   addEvent,
   notify,
-  audit,
 } = require("./saleOrder.helpers");
 const assignment = require("./saleOrderAssignment.service");
 const whatsapp = require("./saleOrderWhatsapp.service");
@@ -290,13 +289,6 @@ async function recordApproval(id, body, actor) {
     });
   });
 
-  await audit({
-    actor,
-    action: approved ? "SALE_ORDER_DESIGN_APPROVED" : "SALE_ORDER_CHANGES_REQUESTED",
-    order,
-    after: { versionNo: latest.versionNo, channel, remarks },
-  });
-
   // Tell the other side
   const payload = approved
     ? { type: NOTIFICATION.APPROVED, title: "Design approved", message: `Order ${order.orderNo}: customer approved design v${latest.versionNo}.` }
@@ -444,12 +436,6 @@ async function dispatchOrder(id, body, actor) {
     });
   });
 
-  await audit({
-    actor,
-    action: "SALE_ORDER_DISPATCHED",
-    order,
-    after: { dispatchNo, mode, packages, trackingRef },
-  });
   await notifyBranch(order, {
     type: NOTIFICATION.DISPATCHED,
     title: "Order is on the way",

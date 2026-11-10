@@ -1,10 +1,12 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './providers/AuthContext.jsx';
+import { canAccessPath, firstAllowedPath, getAllowedPaths } from '../shared/access/pageAccess';
 
 // loginPath: where to send someone who is not signed in (the manufacturing portal has its own login)
 const PrivateRoute = ({ component: Component, children, roles, loginPath }) => {
   const { currentUser, role } = useAuth();
+  const location = useLocation();
 
   const storedUser = (() => {
     try {
@@ -34,6 +36,16 @@ const PrivateRoute = ({ component: Component, children, roles, loginPath }) => {
 
   if (!effectiveUser && !hasToken) {
     return <Navigate to={loginPath || "/login"} replace />;
+  }
+
+  // A role set up in Role Management is limited to the pages ticked for it; the per-route role list does not apply
+  if (getAllowedPaths(effectiveUser)) {
+    if (canAccessPath(effectiveUser, location.pathname)) {
+      if (children) return children;
+      if (typeof Component === 'function') return Component();
+      return Component || null;
+    }
+    return <Navigate to={firstAllowedPath(effectiveUser) || '/profile'} replace />;
   }
 
   // Strictly lock designer users inside Design or Manufacturing routes

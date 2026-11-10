@@ -83,8 +83,7 @@ export const OperationPauseModal = ({
         <form onSubmit={handleSubmit}>
           <div className="jf-modal-body prod-modal-body-stack">
             <div className="prod-modal-alert prod-modal-alert--amber">
-              Pausing stops the working-time clock for this operation. Resume it when work continues. The pause and
-              its reason are recorded in the audit log.
+              Pausing stops the working-time clock for this operation. Resume it when work continues.
             </div>
 
             <div className="jf-form-group">

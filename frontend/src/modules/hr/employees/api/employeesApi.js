@@ -104,10 +104,55 @@ export const employeesApi = {
         code: r.code,
         name: r.name,
         requiresLogin: r.requiresLogin !== false,
+        // The pages the role gives by default (null = the role has no page list yet and can open everything)
+        pageAccess: Array.isArray(r.pageAccess) ? r.pageAccess : null,
       }));
     } catch {
       return [];
     }
+  },
+
+  /** Menu items that can be ticked for an employee, as [{ group, items: [{ key, label }] }]. */
+  getEmployeePageCatalog: async () => {
+    try {
+      const res = await api.get("/employees/page-catalog");
+      return pickArray(res.data);
+    } catch {
+      return [];
+    }
+  },
+
+  // ─── Role Management ──────────────────────────────────────────────────────
+  /** Menu items that can be ticked, as [{ group, items: [{ key, label }] }]. */
+  getPageCatalog: async () => {
+    const res = await api.get("/roles/page-catalog");
+    return pickArray(res.data);
+  },
+
+  /** Every role with the pages it is allowed (pageAccess is undefined for older, unrestricted roles). */
+  listRoles: async () => {
+    const res = await api.get("/roles");
+    return pickArray(res.data, "roles");
+  },
+
+  createRole: async ({ name, description, pageAccess, loginAllowed }) => {
+    const code = String(name || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    const res = await api.post("/roles", { code, name, description, pageAccess, loginAllowed });
+    return res.data?.data || res.data;
+  },
+
+  updateRole: async (id, { name, description, pageAccess, loginAllowed }) => {
+    const res = await api.put(`/roles/${id}`, { name, description, pageAccess, loginAllowed });
+    return res.data?.data || res.data;
+  },
+
+  deleteRole: async (id) => {
+    const res = await api.delete(`/roles/${id}`);
+    return res.data;
   },
 
   /** Branch a non-admin user is limited to, or "" when any branch may be chosen. */

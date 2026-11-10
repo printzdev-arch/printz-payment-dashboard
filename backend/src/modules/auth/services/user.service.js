@@ -5,9 +5,8 @@ const { runPaged, attachPaging } = require("../../../utils/helpers/pagination");
 const Role = require("../models/Role");
 const Branch = require("../../branches/models/Branch");
 const Employee = require("../../employees/models/Employee");
-const AuditLog = require("../../audit-logs/models/AuditLog");
 const ApiError = require("../../../utils/errors/ApiError");
-const { roleDisallowsLogin } = require("../../employees/services/roleLogin.helper");
+const { employeeDisallowsLogin } = require("../../employees/services/roleLogin.helper");
 
 class UserService {
   _buildIdQuery(id) {
@@ -184,20 +183,6 @@ class UserService {
     });
     await user.save();
 
-    await this._auditLog({
-      event: "USER_CREATED",
-      action: "USER_CREATE",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      after: { _id: user._id, name: user.name, email: user.email, role: user.role, branchId: user.branchId },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
-
     return this._enrichUser(user);
   }
 
@@ -224,10 +209,15 @@ class UserService {
       throw ApiError.badRequest("Cannot create user account for an inactive or departed employee.");
     }
 
+    // A login needs a role and pages, which are set in Role Setup
+    if (!employee.roleId) {
+      throw ApiError.badRequest("Set this employee's role and pages in Role Setup before creating a login.");
+    }
+
     // Operators (and any role marked NO_LOGIN) never sign in
-    const noLogin = await roleDisallowsLogin(employee.roleId);
+    const noLogin = await employeeDisallowsLogin(employee);
     if (noLogin.noLogin) {
-      throw ApiError.badRequest(`${noLogin.name} does not sign in, so it cannot have a login.`);
+      throw ApiError.badRequest(`${noLogin.name} has no pages assigned, so a login cannot be created. Tick at least one page first.`);
     }
 
     const empObjectId = new mongoose.Types.ObjectId(empId.toString());
@@ -319,31 +309,6 @@ class UserService {
     const user = new User(userPayload);
     await user.save();
 
-    await this._auditLog({
-      event: "USER_CREATED",
-      action: "USER_CREATE",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      after: {
-        _id: user._id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        roleIds: user.roleIds,
-        branchId: user.branchId,
-        branchIds: user.branchIds,
-        employeeId: user.employeeId,
-        status: user.status,
-      },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
-
     return this._enrichUser(user);
   }
 
@@ -394,19 +359,6 @@ class UserService {
 
     await User.deleteOne(this._buildIdQuery(id));
 
-    await this._auditLog({
-      event: "USER_DELETED",
-      action: "USER_DELETE",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: id,
-      branchId: user.branchId,
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
-
     return { _id: id, message: "User deleted successfully" };
   }
 
@@ -426,22 +378,6 @@ class UserService {
     user.status = "LOCKED";
     user.lockoutEnd = lockoutEnd;
     await user.save();
-
-    await this._auditLog({
-      event: "USER_LOCKED",
-      action: "USER_LOCKED",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      before: beforeState,
-      after: { status: "LOCKED", lockoutEnd },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-      reason,
-    });
 
     const userObj = user.toObject();
     delete userObj.password;
@@ -468,22 +404,6 @@ class UserService {
     user.lockoutEnd = null;
     await user.save();
 
-    await this._auditLog({
-      event: "USER_UNLOCKED",
-      action: "USER_UNLOCKED",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      before: beforeState,
-      after: { status: "ACTIVE", lockoutEnd: null },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-      reason,
-    });
-
     const userObj = user.toObject();
     delete userObj.password;
     delete userObj.resetPasswordToken;
@@ -506,22 +426,6 @@ class UserService {
     user.status = "DISABLED";
     user.isActive = false;
     await user.save();
-
-    await this._auditLog({
-      event: "USER_DISABLED",
-      action: "USER_DISABLED",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      before: beforeState,
-      after: { status: "DISABLED", isActive: false },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-      reason,
-    });
 
     const userObj = user.toObject();
     delete userObj.password;
@@ -546,22 +450,6 @@ class UserService {
     user.isActive = true;
     await user.save();
 
-    await this._auditLog({
-      event: "USER_ENABLED",
-      action: "USER_ENABLED",
-      userId: caller._id || caller.id || caller.userId,
-      userEmail: caller.email,
-      resourceType: "User",
-      resourceId: user._id,
-      branchId: user.branchId,
-      before: beforeState,
-      after: { status: "ACTIVE", isActive: true },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-      reason,
-    });
-
     const userObj = user.toObject();
     delete userObj.password;
     delete userObj.resetPasswordToken;
@@ -569,29 +457,6 @@ class UserService {
     return userObj;
   }
 
-  async _auditLog(data) {
-    try {
-      await AuditLog.create({
-        action: data.action || data.event,
-        resource: data.resourceType || "User",
-        resourceId: data.resourceId && mongoose.Types.ObjectId.isValid(data.resourceId) ? data.resourceId : null,
-        userId: data.userId && mongoose.Types.ObjectId.isValid(data.userId) ? data.userId : null,
-        userName: data.userEmail || "System",
-        userRole: data.userRole || "",
-        branchId: data.branchId && mongoose.Types.ObjectId.isValid(data.branchId) ? data.branchId : null,
-        details: {
-          event: data.event,
-          reason: data.reason,
-          status: data.status,
-          before: data.before,
-          after: data.after,
-        },
-        ipAddress: data.ipAddress,
-      });
-    } catch (_) {
-      // Don't crash on audit log failure
-    }
-  }
 }
 
 module.exports = new UserService();

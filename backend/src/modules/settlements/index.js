@@ -4,9 +4,6 @@
  */
 module.exports = {
   controllers: {
-    get customerFeedback() {
-      return require("./controllers/customerFeedback.controller");
-    },
     get jobClosure() {
       return require("./controllers/jobClosure.controller");
     },
@@ -31,17 +28,11 @@ module.exports = {
     get collectionReport() {
       return require("./services/collectionReport.service");
     },
-    get customerFeedback() {
-      return require("./services/customerFeedback.service");
-    },
     get jobClosure() {
       return require("./services/jobClosure.service");
     },
     get settlement() {
       return require("./services/settlement.service");
-    },
-    get settlementSlaReport() {
-      return require("./services/settlementSlaReport.service");
     },
   },
   validators: {

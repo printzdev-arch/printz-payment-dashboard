@@ -9,6 +9,23 @@ class EstimateService {
   /**
    * Create a new commercial estimate
    */
+  /** The branch a user is limited to (anyone who is not an admin and has a branch), or null. */
+  static branchLimit(user) {
+    if (!user) return null;
+    const role = String(user.role || "").toLowerCase();
+    const code = String(user.roleCode || "").toLowerCase();
+    if (["admin", "super_admin", "superadmin"].includes(role) || ["admin", "super_admin", "internal_admin"].includes(code)) return null;
+    return user.branchId ? String(user.branchId._id || user.branchId) : null;
+  }
+
+  static assertEstimateBranch(estimate, user) {
+    const limit = this.branchLimit(user);
+    const branch = estimate && estimate.branchId ? String(estimate.branchId._id || estimate.branchId) : null;
+    if (limit && branch && branch !== limit) {
+      throw ErrorHelper.forbidden("This estimate belongs to another branch.");
+    }
+  }
+
   static async createEstimate(payload = {}, user = null) {
     let jobOrderId = payload.jobId || payload.jobOrderId;
     let job = null;
@@ -48,6 +65,9 @@ class EstimateService {
     if (!branchId) {
       throw ErrorHelper.badRequest("Branch ID is required for estimate.");
     }
+    // A branch manager can only make estimates for their own branch
+    this.assertEstimateBranch({ branchId }, user);
+    if (job) this.assertEstimateBranch(job, user);
 
     // Customer snapshot
     const customerSnapshot = {
@@ -168,7 +188,9 @@ class EstimateService {
    */
   static async listEstimates(query = {}, user = null) {
     const filter = {};
-    if (query.branchId) filter.branchId = query.branchId;
+    const ownBranch = this.branchLimit(user);
+    if (ownBranch) filter.branchId = ownBranch; // a branch manager sees only their own branch
+    else if (query.branchId) filter.branchId = query.branchId;
     if (query.status) filter.status = query.status;
     if (query.jobOrderId) filter.jobOrderId = query.jobOrderId;
     if (query.customerId) filter.customerId = query.customerId;
@@ -203,11 +225,12 @@ class EstimateService {
   /**
    * Get single estimate by ID or job order number
    */
-  static async getEstimateById(id) {
+  static async getEstimateById(id, user = null) {
     const estimate = await resolveEstimate(id, { lean: true });
     if (!estimate) {
       throw ErrorHelper.notFound(`Estimate not found with identifier: ${id}`);
     }
+    this.assertEstimateBranch(estimate, user);
 
     const job = estimate.jobOrderId ? await JobOrder.findById(estimate.jobOrderId).select("jobNo").lean() : null;
     return {
@@ -225,6 +248,7 @@ class EstimateService {
     if (!estimate) {
       throw ErrorHelper.notFound(`Estimate not found with ID: ${id}`);
     }
+    this.assertEstimateBranch(estimate, user);
 
     const allowed = [
       "status",

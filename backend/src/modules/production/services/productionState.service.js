@@ -1,63 +1,11 @@
 const productionStateRepository = require("../models/ProductionState");
 
 /**
- * Shared production helpers: audit log, workflow events, notifications,
+ * Shared production helpers: workflow events, notifications,
  * job stage updates, validated status changes and progress calculation.
  * Other production services must use these instead of re-implementing them.
  */
 class ProductionStateService {
-  /**
-   * Log an audit event. Never throws: an audit failure must not break the action.
-   */
-  static async logAudit({
-    action,
-    resource,
-    resourceId,
-    user,
-    branchId,
-    details = {},
-    ipAddress = null,
-  }) {
-    try {
-      await productionStateRepository.createAuditLog({
-        action,
-        resource,
-        resourceId,
-        userId: user ? user._id : null,
-        userName: user ? user.name : "System",
-        userRole: user ? user.role : "system",
-        branchId,
-        details,
-        ipAddress,
-      });
-    } catch (err) {
-      console.error("[ProductionState] Audit log error:", err.message);
-    }
-  }
-
-  /**
-   * Audit entry for any status change: who, when, previous status, new status, reason.
-   */
-  static async logStatusChange({
-    resource,
-    resourceId,
-    from,
-    to,
-    reason = "",
-    user = null,
-    branchId = null,
-    extra = {},
-  }) {
-    return this.logAudit({
-      action: "STATUS_CHANGE",
-      resource,
-      resourceId,
-      user,
-      branchId,
-      details: { previousStatus: from, newStatus: to, reason, ...extra },
-    });
-  }
-
   /**
    * Dispatch a workflow event. Never throws.
    */

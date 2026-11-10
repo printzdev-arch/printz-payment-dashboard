@@ -1,4 +1,5 @@
 const express = require("express");
+const requireDeleteApproval = require("../../delete-requests/middleware/requireDeleteApproval");
 const router = express.Router();
 const customerController = require("../controllers/customer.controller");
 const { authenticate } = require("../../../middleware/security/auth.middleware");
@@ -72,6 +73,7 @@ router.post(
 router.delete(
   "/:id",
   requirePermission(PERMISSIONS.CUSTOMER.MANAGE),
+  requireDeleteApproval("customer"),
   customerController.deleteCustomer
 );
 

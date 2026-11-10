@@ -61,10 +61,20 @@ const getEmployees = asyncHandler(async (req, res) => {
  * GET /api/employees/roles
  * Roles that can be given to an employee (master default "Employee Roles").
  */
+const { publicCatalog } = require("../../auth/constants/pageCatalog");
+
 const getRoleOptions = asyncHandler(async (req, res) => {
   const authContext = getAuthContext(req);
   const roles = await employeeService.getRoleOptions(authContext);
   return ResponseHelper.success(res, roles, "Employee roles retrieved successfully.");
+});
+
+/**
+ * GET /api/employees/page-catalog: menu items that can be ticked for an employee
+ */
+const getPageCatalog = asyncHandler(async (req, res) => {
+  const groups = publicCatalog();
+  return ResponseHelper.success(res, groups, "Page catalogue retrieved successfully.");
 });
 
 /**
@@ -114,6 +124,7 @@ module.exports = {
   createEmployee,
   getEmployees,
   getRoleOptions,
+  getPageCatalog,
   getEmployeeById,
   updateEmployee,
   deactivateEmployee,

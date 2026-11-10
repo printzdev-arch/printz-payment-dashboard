@@ -23,7 +23,7 @@ const getEstimates = asyncHandler(async (req, res) => {
 });
 
 const getEstimateById = asyncHandler(async (req, res) => {
-  const estimate = await EstimateService.getEstimateById(req.params.id);
+  const estimate = await EstimateService.getEstimateById(req.params.id, req.user);
   return ResponseHelper.ok(res, "Estimate retrieved successfully", estimate);
 });
 

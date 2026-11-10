@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import NavLink from "../../shared/access/GuardedNavLink.jsx";
+import RestrictedNav from "../../shared/access/RestrictedNav.jsx";
 import "../styles/sidebar.css";
 import { useAuth } from "../../app/providers/AuthContext.jsx";
 import { PageTransition, MotionDropdown, MotionAccordion } from "../../shared/ui/motion";
@@ -28,9 +30,39 @@ import {
   ShoppingCart,
   Layers,
   ArrowLeftRight,
-  Timer,
   Gauge,
-  FileSearch,
+  ClipboardList,
+  CirclePlus,
+  Settings2,
+  CalendarCheck,
+  ShieldCheck,
+  BarChart3,
+  HandCoins,
+  Calculator,
+  FileText,
+  RotateCcw,
+  Contact,
+  QrCode,
+  Briefcase,
+  FileSpreadsheet,
+  Receipt,
+  Palette,
+  ClipboardCheck,
+  Truck,
+  UserCheck,
+  History,
+  Send,
+  Store,
+  LayoutDashboard as DashboardIcon,
+  List,
+  PackagePlus,
+  Search,
+  CalendarClock,
+  PackageSearch,
+  Download,
+  FileCheck,
+  Wallet,
+  Trash2,
 } from "lucide-react";
 import PrintZSidebarIllustration from "../../shared/assets/illustrations/PrintZSidebarIllustration";
 
@@ -99,8 +131,8 @@ const PrintZLogoIcon = () => (
 );
 
 const getPageTitle = (pathname) => {
+  if (pathname.includes("/delete-requests")) return "Delete Requests";
   if (pathname.includes("/master-settings") || pathname.includes("/jobflow/master-settings")) return "Master Defaults & Specifications";
-  if (pathname.includes("/operator-console")) return "Operator Machine Console";
   if (pathname === "/admin-dashboard" || pathname === "/") return "Dashboard";
   if (pathname === "/add-branch") return "Branch Management";
   if (pathname.includes("/admin-daily-readings-revenue")) return "Daily Readings Revenue";
@@ -294,8 +326,12 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
   const navigate = useNavigate();
   const { permissions, logout, currentUser, role } = useAuth();
+  // Someone with a page list sees exactly those pages in the sidebar
+  const restrictedLinks = Array.isArray(currentUser?.pageLinks) ? currentUser.pageLinks : null;
 
   const isAdmin = role === "admin" || currentUser?.role === "admin";
+  // Super Admin logins show their own title in the header
+  const roleTitle = currentUser?.roleCode === "SUPER_ADMIN" ? "Super Admin" : "Admin";
   const {
     isDashboardCapability = isAdmin,
     isPrinterCapability = isAdmin,
@@ -400,6 +436,13 @@ const AdminLayout = ({ children }) => {
     location.pathname.startsWith("/salary"));
 
   const [isSaleOrdersToggled, setIsSaleOrdersToggled] = useState(false);
+  const [isProductionToggled, setIsProductionToggled] = useState(false);
+  const isProductionOpen =
+    !collapsedGroups.production && (
+    isProductionToggled ||
+    location.pathname.startsWith("/production") ||
+    location.pathname.startsWith("/v3/production") ||
+    location.pathname.startsWith("/jobflow/production"));
   const isSaleOrdersOpen =
     !collapsedGroups.saleOrders && (
     isSaleOrdersToggled ||
@@ -419,6 +462,110 @@ const AdminLayout = ({ children }) => {
   const toggleAttendanceData = makeGroupToggle("attendance", isAttendanceOpen, setIsAttendanceToggled);
   const toggleSalaryData = makeGroupToggle("salary", isSalaryOpen, setIsSalaryToggled);
   const toggleSaleOrdersData = makeGroupToggle("saleOrders", isSaleOrdersOpen, setIsSaleOrdersToggled);
+  const toggleProductionData = makeGroupToggle("production", isProductionOpen, setIsProductionToggled);
+
+  // ── Job Flow pages the admin can also open (same pages the manager sidebar lists) ──
+  const [jobFlowToggled, setJobFlowToggled] = useState({});
+  const isLinkActive = (to) => {
+    const [p, q] = String(to).split("?");
+    return location.pathname === p && (!q || location.search.includes(q));
+  };
+  const matchesAny = (prefixes) => prefixes.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
+  const isJobGroupOpen = (key, prefixes) => !collapsedGroups[key] && (Boolean(jobFlowToggled[key]) || matchesAny(prefixes));
+  const toggleJobGroup = (key, open) => {
+    setJobFlowToggled((prev) => ({ ...prev, [key]: !open }));
+    setCollapsedGroups((prev) => ({ ...prev, [key]: open }));
+  };
+
+  const JOBFLOW_BEFORE_PRODUCTION = [
+    {
+      key: "customers", label: "Customers", icon: Contact, match: ["/customers", "/jobflow/customers", "/v3/customers", "/jobflow/qr-request"],
+      children: [
+        { label: "Customer Directory", to: "/customers", icon: Users },
+        { label: "Branch QR Form", to: "/jobflow/qr-request", icon: QrCode },
+      ],
+    },
+    { label: "Job Orders", to: "/jobs", icon: Briefcase, match: ["/jobs", "/jobflow/jobs", "/v3/jobs"] },
+    { label: "Estimates & Quotes", to: "/estimates", icon: FileSpreadsheet, match: ["/estimates", "/jobflow/estimates", "/v3/estimates"] },
+    { label: "Invoice", to: "/jobflow/invoice", icon: Receipt, match: ["/jobflow/invoice", "/invoice", "/invoices"] },
+    { label: "Settlement", to: "/jobflow/settlement", icon: HandCoins, match: ["/jobflow/settlement", "/settlement"] },
+    {
+      key: "design", label: "Design", icon: Palette, match: ["/jobflow/design", "/design", "/v3/design", "/jobflow/designer-jobs", "/designer-jobs", "/designer-dashboard"],
+      children: [
+        { label: "Design Queue", to: "/jobflow/design?view=queue", icon: ClipboardList },
+        { label: "Designer Job Orders", to: "/jobflow/designer-jobs", icon: Briefcase },
+        { label: "Designer My Jobs", to: "/jobflow/design?view=my-jobs", icon: UserCheck },
+        { label: "Designer Dashboard", to: "/designer-dashboard", icon: DashboardIcon },
+      ],
+    },
+  ];
+  const JOBFLOW_AFTER_PRODUCTION = [
+    {
+      key: "qc", label: "Quality Control", icon: ClipboardCheck, match: ["/jobflow/qc", "/quality-control", "/v3/quality-control", "/production/qc"],
+      children: [
+        { label: "QC Inspection Queue", to: "/jobflow/qc?tab=overview", icon: ClipboardCheck },
+        { label: "QC History & Reports", to: "/jobflow/qc?tab=history", icon: History },
+      ],
+    },
+    {
+      key: "delivery", label: "Delivery", icon: Truck, match: ["/jobflow/delivery", "/delivery"],
+      children: [
+        { label: "Dispatch Delivery", to: "/jobflow/delivery?tab=DISPATCH", icon: Send },
+        { label: "Self Pickup", to: "/jobflow/delivery?tab=PICKUP", icon: Store },
+      ],
+    },
+  ];
+
+  const renderJobFlowItem = (item) => {
+    const Icon = item.icon;
+    if (!item.children) {
+      const active = item.exact ? location.pathname === item.to : matchesAny(item.match || [item.to]);
+      return (
+        <li className="sidebar-nav-item" key={item.label}>
+          <NavLink to={item.to} className={`sidebar-link ${active ? "active-link" : ""}`}>
+            <div className="sidebar-link-content">
+              <Icon size={18} className="sidebar-link-icon" />
+              <span>{item.label}</span>
+            </div>
+            {active && <ChevronRight size={16} className="sidebar-active-arrow" />}
+          </NavLink>
+        </li>
+      );
+    }
+    const open = isJobGroupOpen(item.key, item.match);
+    return (
+      <li className="sidebar-nav-item" key={item.key}>
+        <button
+          type="button"
+          onClick={() => toggleJobGroup(item.key, open)}
+          className={`sidebar-dropdown-toggle ${matchesAny(item.match) ? "active-link" : ""}`}
+        >
+          <div className="sidebar-link-content">
+            <Icon size={18} className="sidebar-link-icon" />
+            <span>{item.label}</span>
+          </div>
+          {open ? <ChevronDown size={16} className="sidebar-link-icon" /> : <ChevronRight size={16} className="sidebar-link-icon" />}
+        </button>
+        <MotionAccordion isOpen={open}>
+          <ul className="sidebar-dropdown-list">
+            {item.children.map((child) => {
+              const ChildIcon = child.icon;
+              return (
+                <li className="sidebar-dropdown-item" key={child.to}>
+                  <NavLink to={child.to} className={`sidebar-dropdown-link ${isLinkActive(child.to) ? "active" : ""}`}>
+                    <span className="sidebar-dropdown-link-left">
+                      <ChildIcon size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">{child.label}</span>
+                    </span>
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
+        </MotionAccordion>
+      </li>
+    );
+  };
 
   const isActiveRoute = (route) => location.pathname === route;
 
@@ -467,6 +614,9 @@ const AdminLayout = ({ children }) => {
         </div>
 
         {/* Navigation Items */}
+        {restrictedLinks ? (
+          <RestrictedNav links={restrictedLinks} />
+        ) : (
         <ul className="sidebar-nav-list">
           {/* Dashboard */}
           {isDashboardCapability && (
@@ -517,7 +667,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/sale-orders") ? "active" : ""
                     }`}
                   >
-                    All Orders
+                    <span className="sidebar-dropdown-link-left">
+                      <ClipboardList size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">All Orders</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -527,7 +680,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/sale-orders/new") ? "active" : ""
                     }`}
                   >
-                    New Order
+                    <span className="sidebar-dropdown-link-left">
+                      <CirclePlus size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">New Order</span>
+                    </span>
                   </NavLink>
                 </li>
               </ul>
@@ -563,7 +719,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/attendance/setup") ? "active" : ""
                     }`}
                   >
-                    Setup
+                    <span className="sidebar-dropdown-link-left">
+                      <Settings2 size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Setup</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -573,7 +732,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/attendance/daily") || isActiveRoute("/attendance") ? "active" : ""
                     }`}
                   >
-                    Daily Attendance
+                    <span className="sidebar-dropdown-link-left">
+                      <CalendarCheck size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Daily Attendance</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -583,7 +745,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/attendance/branch-shifts") ? "active" : ""
                     }`}
                   >
-                    Branch Shifts
+                    <span className="sidebar-dropdown-link-left">
+                      <ArrowLeftRight size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Branch Shifts</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -593,7 +758,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/attendance/permissions") ? "active" : ""
                     }`}
                   >
-                    Permissions
+                    <span className="sidebar-dropdown-link-left">
+                      <ShieldCheck size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Permissions</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -603,7 +771,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/attendance/reports") ? "active" : ""
                     }`}
                   >
-                    Reports
+                    <span className="sidebar-dropdown-link-left">
+                      <BarChart3 size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Reports</span>
+                    </span>
                   </NavLink>
                 </li>
               </ul>
@@ -652,7 +823,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/salary/setup") ? "active" : ""
                     }`}
                   >
-                    Salary Setup
+                    <span className="sidebar-dropdown-link-left">
+                      <Sliders size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Salary Setup</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -662,7 +836,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/salary/loans-adjustments") ? "active" : ""
                     }`}
                   >
-                    Loans & Adjustments
+                    <span className="sidebar-dropdown-link-left">
+                      <HandCoins size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Loans & Adjustments</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -672,7 +849,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/salary/processing") || isActiveRoute("/salary") ? "active" : ""
                     }`}
                   >
-                    Payroll Processing
+                    <span className="sidebar-dropdown-link-left">
+                      <Calculator size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Payroll Processing</span>
+                    </span>
                   </NavLink>
                 </li>
                 <li className="sidebar-dropdown-item">
@@ -682,7 +862,10 @@ const AdminLayout = ({ children }) => {
                       isActiveRoute("/salary/records") ? "active" : ""
                     }`}
                   >
-                    Salary Records
+                    <span className="sidebar-dropdown-link-left">
+                      <FileText size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Salary Records</span>
+                    </span>
                   </NavLink>
                 </li>
               </ul>
@@ -737,35 +920,102 @@ const AdminLayout = ({ children }) => {
             </NavLink>
           </li>
 
-          {/* Production (Planning & Orders) */}
+          {/* Job Flow pages: Overview, Customers, Job Orders, Estimates, Invoice, Settlement, Design */}
+          {JOBFLOW_BEFORE_PRODUCTION.map(renderJobFlowItem)}
+
+          {/* Production Dropdown */}
           <li className="sidebar-nav-item">
-            <NavLink
-              to="/v3/production/planning"
-              className={`sidebar-link ${
-                isActiveRoute("/v3/production") ||
-                isActiveRoute("/production") ||
-                isActiveRoute("/v3/production/planning") ||
-                isActiveRoute("/production/planning") ||
-                isActiveRoute("/v3/production/orders") ||
-                isActiveRoute("/production/orders")
-                  ? "active-link"
-                  : ""
+            <button
+              type="button"
+              onClick={toggleProductionData}
+              className={`sidebar-dropdown-toggle ${
+                location.pathname.startsWith("/production") || location.pathname.startsWith("/v3/production") ? "active-link" : ""
               }`}
             >
               <div className="sidebar-link-content">
                 <Layers size={18} className="sidebar-link-icon" />
                 <span>Production</span>
               </div>
-              {(isActiveRoute("/v3/production") ||
-                isActiveRoute("/production") ||
-                isActiveRoute("/v3/production/planning") ||
-                isActiveRoute("/production/planning") ||
-                isActiveRoute("/v3/production/orders") ||
-                isActiveRoute("/production/orders")) && (
-                <ChevronRight size={16} className="sidebar-active-arrow" />
+              {isProductionOpen ? (
+                <ChevronDown size={16} className="sidebar-link-icon" />
+              ) : (
+                <ChevronRight size={16} className="sidebar-link-icon" />
               )}
-            </NavLink>
+            </button>
+
+            <MotionAccordion isOpen={isProductionOpen}>
+              <ul className="sidebar-dropdown-list">
+                <li className="sidebar-dropdown-item">
+                  <NavLink
+                    to="/production/orders"
+                    className={`sidebar-dropdown-link ${
+                      isActiveRoute("/production/orders") || isActiveRoute("/production/planning") ? "active" : ""
+                    }`}
+                  >
+                    <span className="sidebar-dropdown-link-left">
+                      <ClipboardList size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Production Orders</span>
+                    </span>
+                  </NavLink>
+                </li>
+                <li className="sidebar-dropdown-item">
+                  <NavLink
+                    to="/production/queue"
+                    className={`sidebar-dropdown-link ${
+                      isActiveRoute("/production/queue") ? "active" : ""
+                    }`}
+                  >
+                    <span className="sidebar-dropdown-link-left">
+                      <Sliders size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Operation Queue</span>
+                    </span>
+                  </NavLink>
+                </li>
+                <li className="sidebar-dropdown-item">
+                  <NavLink
+                    to="/production/rework"
+                    className={`sidebar-dropdown-link ${
+                      isActiveRoute("/production/rework") || isActiveRoute("/production/reprints") ? "active" : ""
+                    }`}
+                  >
+                    <span className="sidebar-dropdown-link-left">
+                      <RotateCcw size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Rework & Reprint</span>
+                    </span>
+                  </NavLink>
+                </li>
+                <li className="sidebar-dropdown-item">
+                  <NavLink
+                    to="/production/operators"
+                    className={`sidebar-dropdown-link ${
+                      isActiveRoute("/production/operators") ? "active" : ""
+                    }`}
+                  >
+                    <span className="sidebar-dropdown-link-left">
+                      <Users size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Operators</span>
+                    </span>
+                  </NavLink>
+                </li>
+                <li className="sidebar-dropdown-item">
+                  <NavLink
+                    to="/production/reports"
+                    className={`sidebar-dropdown-link ${
+                      isActiveRoute("/production/reports") ? "active" : ""
+                    }`}
+                  >
+                    <span className="sidebar-dropdown-link-left">
+                      <BarChart3 size={14} className="sidebar-dropdown-icon" />
+                      <span className="sidebar-dropdown-text">Production Reports</span>
+                    </span>
+                  </NavLink>
+                </li>
+              </ul>
+            </MotionAccordion>
           </li>
+
+          {/* Quality Control and Delivery */}
+          {JOBFLOW_AFTER_PRODUCTION.map(renderJobFlowItem)}
 
           {isAddAdmin && (
             <>
@@ -818,7 +1068,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/add-printer-manager") ? "active" : ""
                       }`}
                     >
-                      Add Printer
+                      <span className="sidebar-dropdown-link-left">
+                        <CirclePlus size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Add Printer</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -828,7 +1081,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/move-printer-manager") ? "active" : ""
                       }`}
                     >
-                      Move Printer
+                      <span className="sidebar-dropdown-link-left">
+                        <ArrowLeftRight size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Move Printer</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -838,7 +1094,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/printer-list") ? "active" : ""
                       }`}
                     >
-                      Printer List
+                      <span className="sidebar-dropdown-link-left">
+                        <List size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Printer List</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -848,7 +1107,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/display-printer-readings-admin") ? "active" : ""
                       }`}
                     >
-                      Display Readings
+                      <span className="sidebar-dropdown-link-left">
+                        <Gauge size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Display Readings</span>
+                      </span>
                     </NavLink>
                   </li>
                 </ul>
@@ -884,7 +1146,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/add-stock-manager") ? "active" : ""
                       }`}
                     >
-                      Add Stock
+                      <span className="sidebar-dropdown-link-left">
+                        <PackagePlus size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Add Stock</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -894,7 +1159,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/move-stock-manager") ? "active" : ""
                       }`}
                     >
-                      Move Stock
+                      <span className="sidebar-dropdown-link-left">
+                        <ArrowLeftRight size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Move Stock</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -904,7 +1172,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/stock-list") ? "active" : ""
                       }`}
                     >
-                      Stock List
+                      <span className="sidebar-dropdown-link-left">
+                        <ClipboardList size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Stock List</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -914,7 +1185,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/search-stock-list-admin") ? "active" : ""
                       }`}
                     >
-                      Search Stock
+                      <span className="sidebar-dropdown-link-left">
+                        <Search size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Search Stock</span>
+                      </span>
                     </NavLink>
                   </li>
                 </ul>
@@ -952,7 +1226,10 @@ const AdminLayout = ({ children }) => {
                           : ""
                       }`}
                     >
-                      Daily Readings Revenue
+                      <span className="sidebar-dropdown-link-left">
+                        <TrendingUp size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Daily Readings Revenue</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -964,7 +1241,10 @@ const AdminLayout = ({ children }) => {
                           : ""
                       }`}
                     >
-                      Stock Readings Revenue
+                      <span className="sidebar-dropdown-link-left">
+                        <BarChart3 size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Stock Readings Revenue</span>
+                      </span>
                     </NavLink>
                   </li>
                 </ul>
@@ -1000,7 +1280,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/pastDateRequests") ? "active" : ""
                       }`}
                     >
-                      Past Date Requests
+                      <span className="sidebar-dropdown-link-left">
+                        <CalendarClock size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Past Date Requests</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -1010,7 +1293,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/previous-balance-list") ? "active" : ""
                       }`}
                     >
-                      Previous Balance List
+                      <span className="sidebar-dropdown-link-left">
+                        <Wallet size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Previous Balance List</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -1020,7 +1306,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/inventory-tracking") ? "active" : ""
                       }`}
                     >
-                      Inventory Tracking
+                      <span className="sidebar-dropdown-link-left">
+                        <PackageSearch size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Inventory Tracking</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -1030,7 +1319,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/export-data") ? "active" : ""
                       }`}
                     >
-                      Export Data
+                      <span className="sidebar-dropdown-link-left">
+                        <Download size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Export Data</span>
+                      </span>
                     </NavLink>
                   </li>
                   <li className="sidebar-dropdown-item">
@@ -1040,7 +1332,10 @@ const AdminLayout = ({ children }) => {
                         isActiveRoute("/jumbo-xerox-csv-verifier") ? "active" : ""
                       }`}
                     >
-                      Jumbo Xerox CSV Verifier
+                      <span className="sidebar-dropdown-link-left">
+                        <FileCheck size={14} className="sidebar-dropdown-icon" />
+                        <span className="sidebar-dropdown-text">Jumbo Xerox CSV Verifier</span>
+                      </span>
                     </NavLink>
                   </li>
                 </ul>
@@ -1048,57 +1343,14 @@ const AdminLayout = ({ children }) => {
             </li>
           )}
 
-          {/* SLA Monitoring & Designer Scorecard */}
+          {/* Delete Requests: managers ask, admins approve */}
           <li className="sidebar-nav-item">
-            <NavLink
-              to="/sla-dashboard"
-              className={`sidebar-link ${
-                isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla") ? "active-link" : ""
-              }`}
-            >
+            <NavLink to="/delete-requests" className={`sidebar-link ${isActiveRoute("/delete-requests") ? "active-link" : ""}`}>
               <div className="sidebar-link-content">
-                <Gauge size={18} className="sidebar-link-icon" />
-                <span>SLA & Scorecards</span>
+                <Trash2 size={18} className="sidebar-link-icon" />
+                <span>Delete Requests</span>
               </div>
-              {(isActiveRoute("/sla-dashboard") || isActiveRoute("/v3/sla")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
-
-          {/* Enterprise Audit Log Explorer */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/audit-logs"
-              className={`sidebar-link ${
-                isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs") ? "active-link" : ""
-              }`}
-            >
-              <div className="sidebar-link-content">
-                <FileSearch size={18} className="sidebar-link-icon" />
-                <span>Audit Logs</span>
-              </div>
-              {(isActiveRoute("/audit-logs") || isActiveRoute("/v3/audit-logs")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
-            </NavLink>
-          </li>
-
-          {/* Sequential Machine Operator Timers */}
-          <li className="sidebar-nav-item">
-            <NavLink
-              to="/operator-console"
-              className={`sidebar-link ${
-                isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console") ? "active-link" : ""
-              }`}
-            >
-              <div className="sidebar-link-content">
-                <Timer size={18} className="sidebar-link-icon" />
-                <span>Operator Timers</span>
-              </div>
-              {(isActiveRoute("/operator-console") || isActiveRoute("/v3/operator-console")) && (
-                <ChevronRight size={15} className="sidebar-active-arrow" />
-              )}
+              {isActiveRoute("/delete-requests") && <ChevronRight size={15} className="sidebar-active-arrow" />}
             </NavLink>
           </li>
 
@@ -1120,6 +1372,7 @@ const AdminLayout = ({ children }) => {
             </NavLink>
           </li>
         </ul>
+        )}
 
         {/* Bottom Section: PrintZ Sidebar Illustration, Divider, Auto-Hide Toggle & Logout */}
         <div className="sidebar-bottom-section">
@@ -1193,7 +1446,7 @@ const AdminLayout = ({ children }) => {
 
             {/* Breadcrumb Navigation */}
             <div className="topbar-breadcrumb">
-              <span className="breadcrumb-root">Admin</span>
+              <span className="breadcrumb-root">{roleTitle}</span>
               <span className="breadcrumb-separator">/</span>
               <span className="breadcrumb-current">{getPageTitle(location.pathname)}</span>
             </div>
@@ -1242,7 +1495,7 @@ const AdminLayout = ({ children }) => {
                 )}
                 <div className="user-info-text">
                   <span className="user-info-name">{userName}</span>
-                  <span className="user-info-role">Admin</span>
+                  <span className="user-info-role">{roleTitle}</span>
                 </div>
                 <ChevronDown
                   size={16}

@@ -36,6 +36,12 @@ const RoleSchema = new mongoose.Schema(
       default: "",
     },
     grants: [RoleGrantSchema],
+    // Menu items (keys from constants/pageCatalog.js) this role may open. Left unset on older roles, which
+    // means "no page restriction"; an empty list means the role has no pages and so cannot sign in.
+    pageAccess: { type: [String], default: undefined },
+    // Can people with this role have a login? Left unset on older roles, where it is worked out from pageAccess
+    // (and the Operator rule). When false, the role has no pages and its people cannot sign in.
+    loginAllowed: { type: Boolean, default: undefined },
     isSystem: {
       type: Boolean,
       default: false,

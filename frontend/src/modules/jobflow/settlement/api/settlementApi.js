@@ -212,27 +212,6 @@ export const settlementApi = {
     }
   },
 
-  // ── Phase 3: Customer Feedback & Post-delivery Ratings ──
-  submitJobFeedback: async (jobId, feedbackData) => {
-    try {
-      const res = await api.post(`/job-orders/${jobId}/feedback`, feedbackData);
-      return res.data;
-    } catch {
-      const res = await api.post(`/settlement/job-orders/${jobId}/feedback`, feedbackData);
-      return res.data;
-    }
-  },
-
-  getJobFeedback: async (jobId) => {
-    try {
-      const res = await api.get(`/job-orders/${jobId}/feedback`);
-      return res.data;
-    } catch {
-      const res = await api.get(`/settlement/job-orders/${jobId}/feedback`);
-      return res.data;
-    }
-  },
-
   // ── Invoice Reminders & Collections ──
   createInvoiceReminder: async (invoiceId, data) => {
     const res = await api.post(`/settlement/invoices/${invoiceId}/reminders`, data);
@@ -251,11 +230,6 @@ export const settlementApi = {
 
   getInvoiceAgingReport: async (params = {}) => {
     const res = await api.get("/settlement/reports/aging", { params });
-    return res.data;
-  },
-
-  getSettlementTurnaroundSlaReport: async (params = {}) => {
-    const res = await api.get("/settlement/reports/turnaround-sla", { params });
     return res.data;
   },
 

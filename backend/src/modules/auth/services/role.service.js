@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 const Role = require("../models/Role");
 const Permission = require("../models/Permission");
-const AuditLog = require("../../audit-logs/models/AuditLog");
 const ApiError = require("../../../utils/errors/ApiError");
 const PERMISSIONS = require("../../../utils/constants/permissions");
+const { sanitizePageAccess } = require("../constants/pageCatalog");
 
 class RoleService {
   async getRoles() {
@@ -43,24 +43,12 @@ class RoleService {
         permissionCode: g.permissionCode,
         scope: g.scope || "BRANCH",
       })),
+      pageAccess: sanitizePageAccess(roleData.pageAccess),
       isSystem: false,
       isActive: true,
     });
 
     await role.save();
-
-    await this._auditLog({
-      event: "ROLE_CREATED",
-      action: "ROLE_CREATE",
-      userId: caller._id || caller.id,
-      userEmail: caller.email,
-      resourceType: "Role",
-      resourceId: role._id,
-      after: role.toObject(),
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
 
     return role;
   }
@@ -83,6 +71,7 @@ class RoleService {
 
     if (roleData.name) role.name = roleData.name.trim();
     if (roleData.description !== undefined) role.description = roleData.description;
+    if (roleData.pageAccess !== undefined) role.pageAccess = sanitizePageAccess(roleData.pageAccess);
     if (roleData.grants) {
       role.grants = roleData.grants.map((g) => ({
         permissionCode: g.permissionCode,
@@ -94,20 +83,6 @@ class RoleService {
     }
 
     await role.save();
-
-    await this._auditLog({
-      event: "ROLE_UPDATED",
-      action: "ROLE_UPDATE",
-      userId: caller._id || caller.id,
-      userEmail: caller.email,
-      resourceType: "Role",
-      resourceId: role._id,
-      before,
-      after: role.toObject(),
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
 
     return role;
   }
@@ -129,20 +104,6 @@ class RoleService {
     const before = { isActive: role.isActive };
     role.isActive = false;
     await role.save();
-
-    await this._auditLog({
-      event: "ROLE_DEACTIVATED",
-      action: "ROLE_DEACTIVATE",
-      userId: caller._id || caller.id,
-      userEmail: caller.email,
-      resourceType: "Role",
-      resourceId: role._id,
-      before,
-      after: { isActive: false },
-      ipAddress: requestContext.ip,
-      userAgent: requestContext.userAgent,
-      status: "SUCCESS",
-    });
 
     return role;
   }
@@ -235,23 +196,6 @@ class RoleService {
     return Permission.find().sort({ module: 1, code: 1 }).lean();
   }
 
-  async _auditLog(data) {
-    try {
-      await AuditLog.create({
-        action: data.action || data.event,
-        resource: data.resourceType || "Role",
-        resourceId: data.resourceId,
-        userId: data.userId && mongoose.Types.ObjectId.isValid(data.userId) ? data.userId : null,
-        userName: data.userEmail || "System",
-        details: {
-          event: data.event,
-          before: data.before,
-          after: data.after,
-        },
-        ipAddress: data.ipAddress,
-      });
-    } catch (_) {}
-  }
 }
 
 module.exports = new RoleService();

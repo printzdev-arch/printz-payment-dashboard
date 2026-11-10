@@ -3,7 +3,6 @@ const Employee = require("../../employees/models/Employee");
 const EmployeeBranchAssignment = require("../../employees/models/EmployeeBranchAssignment");
 const Branch = require("../../branches/models/Branch");
 const DailyAttendance = require("../../attendance/models/DailyAttendance");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 
 class EmployeeShiftService {
@@ -21,7 +20,6 @@ class EmployeeShiftService {
     }
     throw ApiError.forbidden("Access denied: Only Admins can create, approve, cancel, or end employee branch shifts.");
   }
-
 
   // Branch/employee ids are stored as either strings or ObjectIds across the app, so match both.
   _idIn(val) {
@@ -146,15 +144,6 @@ class EmployeeShiftService {
       approvedBy: actorId || null,
       approvedAt: new Date(),
       createdBy: actorId || new mongoose.Types.ObjectId(),
-    });
-
-    await AuditHelper.log({
-      action: "EMPLOYEE_BRANCH_SHIFT_CREATE",
-      actorId: actorId || authContext.userId,
-      entityType: "EMPLOYEE_BRANCH_ASSIGNMENT",
-      entityId: shift._id,
-      branchId: destinationBranchId,
-      after: shift.toObject(),
     });
 
     return this._shiftPopulate(EmployeeBranchAssignment.findById(shift._id)).lean();
@@ -305,16 +294,6 @@ class EmployeeShiftService {
     shift.cancellationReason = (cancellationReason || "").trim();
     await shift.save();
 
-    await AuditHelper.log({
-      action: "EMPLOYEE_BRANCH_SHIFT_CANCEL",
-      actorId: actorId || authContext.userId,
-      entityType: "EMPLOYEE_BRANCH_ASSIGNMENT",
-      entityId: shift._id,
-      branchId: shift.branchId,
-      before: beforeState,
-      after: shift.toObject(),
-    });
-
     return shift;
   }
 
@@ -359,16 +338,6 @@ class EmployeeShiftService {
     shift.endedEarlyAt = new Date();
     shift.endedEarlyBy = actorId || authContext.userId;
     await shift.save();
-
-    await AuditHelper.log({
-      action: "EMPLOYEE_BRANCH_SHIFT_END_EARLY",
-      actorId: actorId || authContext.userId,
-      entityType: "EMPLOYEE_BRANCH_ASSIGNMENT",
-      entityId: shift._id,
-      branchId: shift.branchId,
-      before: beforeState,
-      after: shift.toObject(),
-    });
 
     return shift;
   }

@@ -87,15 +87,6 @@ class JobInvoiceService {
       notes: `Invoice ${invoiceNo} generated.`,
     });
 
-    await ProductionStateService.logAudit({
-      action: "INVOICE_CREATE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user,
-      branchId: job.branchId,
-      details: { invoiceNo, saleId: sale._id, totalAmount: grandTotal },
-    });
-
     emitJobEvent("job.invoiced", { jobId: String(job._id), invoiceNo, saleId: String(sale._id) });
 
     return {

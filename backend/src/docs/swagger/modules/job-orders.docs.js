@@ -385,26 +385,6 @@ module.exports = {
         },
       },
     },
-    "/job-orders/{id}/designer-ratings": {
-      post: {
-        tags: ["SLA & Performance"],
-        summary: "Submit Designer Rating for Job",
-        operationId: "submitDesignerRatingForJob",
-        description: "Captures customer satisfaction score (1-5) and feedback for the designer.",
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
-        requestBody: {
-          required: true,
-          content: { "application/json": { schema: { $ref: "#/components/schemas/DesignerRatingRequest" } } },
-        },
-        responses: {
-          201: {
-            description: "Rating submitted",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
     "/job-orders/{id}/estimate": {
       post: {
         tags: ["Job Orders"],
@@ -527,7 +507,7 @@ module.exports = {
         tags: ["Job Orders"],
         summary: "Hold Job Order",
         operationId: "holdJobOrder",
-        description: "Pauses job progress and halts active SLA timing.",
+        description: "Pauses job progress.",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
         requestBody: {
@@ -777,22 +757,6 @@ module.exports = {
         responses: {
           200: {
             description: "Sample submitted and approval link generated",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
-          },
-        },
-      },
-    },
-    "/job-orders/{id}/sla": {
-      get: {
-        tags: ["SLA & Performance"],
-        summary: "Get Job SLA Evaluation",
-        operationId: "getJobSlaEvaluation",
-        description: "Computes live SLA status stage-by-stage based on transition history timestamps.",
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],
-        responses: {
-          200: {
-            description: "Job SLA evaluation",
             content: { "application/json": { schema: { $ref: "#/components/schemas/ApiSuccessResponse" } } },
           },
         },

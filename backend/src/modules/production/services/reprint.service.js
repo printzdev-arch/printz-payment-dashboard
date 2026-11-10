@@ -131,23 +131,6 @@ class ReprintService {
       status: "REQUESTED",
     });
 
-    await ProductionStateService.logAudit({
-      action: "REPRINT_REQUEST",
-      resource: "ReprintRequest",
-      resourceId: reprintRequest._id,
-      user,
-      branchId: reprintRequest.branchId,
-      details: {
-        requestNo: reprintRequest.requestNo,
-        reason,
-        quantity,
-        sourceStage,
-        restartFromOperationCode: restartCode,
-        cycleNo,
-        qualityCheckId,
-      },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: job._id,
       productionOrderId: sourceOrder ? sourceOrder._id : null,
@@ -322,22 +305,6 @@ class ReprintService {
     else if (restartOpCode !== "PRINT") nextJobStage = "FINISHING";
     await ProductionStateService.updateJobStage(request.jobOrderId, nextJobStage);
 
-    await ProductionStateService.logAudit({
-      action: "REPRINT_APPROVED",
-      resource: "ReprintRequest",
-      resourceId: request._id,
-      user,
-      branchId,
-      details: {
-        requestNo: request.requestNo,
-        cycleNo,
-        reprintProductionOrderId: reprintOrder._id,
-        quantity: reprintQty,
-        restartFromOperationCode: restartOpCode,
-        operationsCreated: createdOps.length,
-      },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: request.jobOrderId,
       productionOrderId: reprintOrder._id,
@@ -410,15 +377,6 @@ class ReprintService {
     await ProductionStateService.updateJobStage(request.jobOrderId, "ON_HOLD", "ON_HOLD");
     await jobOrderRepository.findByIdAndUpdate(request.jobOrderId, {
       $set: { status: "ON_HOLD", holdReason: cleanReason },
-    });
-
-    await ProductionStateService.logAudit({
-      action: "REPRINT_REJECTED",
-      resource: "ReprintRequest",
-      resourceId: request._id,
-      user,
-      branchId: request.branchId,
-      details: { requestNo: request.requestNo, rejectionReason: cleanReason },
     });
 
     await ProductionStateService.dispatchWorkflowEvent({

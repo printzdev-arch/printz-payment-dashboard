@@ -390,7 +390,7 @@ class JobOrderService {
     const own = String(user.branchId._id || user.branchId);
     const jobBranch = String(job.branchId?._id || job.branchId || "");
     if (jobBranch && jobBranch !== own) {
-      throw ErrorHelper.forbidden("You can only modify job orders of your own branch.");
+      throw ErrorHelper.forbidden("This job order belongs to another branch.");
     }
   }
 
@@ -495,15 +495,6 @@ class JobOrderService {
       }
     }
 
-    await ProductionStateService.logAudit({
-      action: "UPDATE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      user,
-      branchId: job.branchId,
-      details: { fields: Object.keys(set), itemsReplaced },
-    });
-
     return this.get(job._id, user);
   }
 
@@ -595,15 +586,6 @@ class JobOrderService {
     job.estimatedPrice = totals.grandTotal;
     await job.save();
 
-    await ProductionStateService.logAudit({
-      action: "UPDATE",
-      resource: "JobOrderItems",
-      resourceId: job._id,
-      user,
-      branchId: job.branchId,
-      details: { itemsCount: items.length, totals },
-    });
-
     return jobItemRepository.findByJobOrderId(job._id);
   }
 
@@ -643,7 +625,8 @@ class JobOrderService {
       }
     }
 
-    if (query.branchId) filter.branchId = query.branchId;
+    // A user limited to their own branch cannot ask for another branch
+    if (query.branchId && !scope.branchId) filter.branchId = query.branchId;
     if (query.customerId) {
       const custIdStr = String(query.customerId).trim();
       if (mongoose.Types.ObjectId.isValid(custIdStr)) {
@@ -711,6 +694,8 @@ class JobOrderService {
   static async get(id, user = null) {
     const job = await jobOrderRepository.findById(id);
     if (!job) throw ErrorHelper.notFound(`Job Order not found with ID: ${id}`);
+    // A branch manager can only open jobs of their own branch
+    this.assertBranchAccess(job, user);
 
     const [items, currentAssignment, latestSample, files] = await Promise.all([
       jobItemRepository.findByJobOrderId(job._id),

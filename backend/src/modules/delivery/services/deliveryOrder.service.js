@@ -411,15 +411,6 @@ class DeliveryOrderService {
       await deliveryOrder.save();
     }
 
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_JOB_REVIEWED",
-      resource: "DeliveryOrder",
-      resourceId: deliveryOrder._id,
-      user,
-      branchId: deliveryOrder.branchId,
-      details: { jobNo: job.jobNo, deliveryNo: deliveryOrder.deliveryNo },
-    });
-
     return deliveryOrder;
   }
 
@@ -515,15 +506,6 @@ class DeliveryOrderService {
 
     const newOrder = await deliveryOrderRepository.create(orderData);
 
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_ORDER_CREATED",
-      resource: "DeliveryOrder",
-      resourceId: newOrder._id,
-      user,
-      branchId: newOrder.branchId,
-      details: { deliveryNo: newOrder.deliveryNo, jobNo: job.jobNo },
-    });
-
     return newOrder;
   }
 
@@ -580,15 +562,6 @@ class DeliveryOrderService {
     }
 
     await order.save();
-
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_DETAILS_UPDATED",
-      resource: "DeliveryOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: { deliveryNo: order.deliveryNo },
-    });
 
     return order;
   }
@@ -779,19 +752,6 @@ class DeliveryOrderService {
 
     await order.save();
 
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_ASSIGNED",
-      resource: "DeliveryOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: {
-        deliveryNo: order.deliveryNo,
-        assignedTo: order.deliveryPersonName,
-        channels,
-      },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: order.jobOrderId,
       eventType: "delivery.assigned",
@@ -861,15 +821,6 @@ class DeliveryOrderService {
 
     await order.save();
 
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_PACKED",
-      resource: "DeliveryOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: { deliveryNo: order.deliveryNo, notes: order.packingNotes },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: order.jobOrderId,
       eventType: "delivery.packed",
@@ -938,15 +889,6 @@ class DeliveryOrderService {
 
     // Transition Job Order stage to DELIVERY
     await ProductionStateService.updateJobStage(order.jobOrderId, "DELIVERY");
-
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_DISPATCHED",
-      resource: "DeliveryOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: { deliveryNo: order.deliveryNo, deliveryType: order.deliveryType },
-    });
 
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: order.jobOrderId,
@@ -1072,20 +1014,6 @@ class DeliveryOrderService {
     if (remarks) order.remarks = remarks;
 
     await order.save();
-
-    await ProductionStateService.logAudit({
-      action: "DELIVERY_HANDOVER_RECORDED",
-      resource: "DeliveryOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: {
-        deliveryNo: order.deliveryNo,
-        proofNo: proof.proofNo,
-        recipientName: finalRecipient,
-        proofType,
-      },
-    });
 
     return { proof, deliveryOrder: order, message: "Handover evidence recorded successfully" };
   }
@@ -1225,22 +1153,6 @@ class DeliveryOrderService {
       decidedBy: user ? user._id : null,
       decidedAt: new Date(),
       remarks: `Delivered ${order.quantity} units to ${finalRecipient} (${isFullyDelivered ? "Full fulfillment" : `Partial fulfillment: ${totalDeliveredQty}/${requiredJobQty}`}). ${data.remarks || order.remarks || ""}`,
-    });
-
-    await ProductionStateService.logAudit({
-      action: "DELIVERED",
-      resource: "DeliveryOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: {
-        deliveryNo: order.deliveryNo,
-        receivedBy: finalRecipient,
-        quantity: order.quantity,
-        totalDeliveredQty,
-        requiredJobQty,
-        isFullyDelivered,
-      },
     });
 
     return order;

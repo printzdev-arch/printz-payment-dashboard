@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAdmin } = require("../../../middleware/security/admin.middleware");
 const router = express.Router();
 const attendancePolicyController = require("../controllers/attendancePolicy.controller");
 const { authenticate } = require("../../../middleware/security/auth.middleware");
@@ -34,6 +35,7 @@ router.get(
 router.post(
   "/",
   requirePermission(PERMISSIONS.HR.POLICY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   createPolicyValidator,
   attendancePolicyController.createPolicy
 );
@@ -42,6 +44,7 @@ router.post(
 router.put(
   "/:id",
   requirePermission(PERMISSIONS.HR.POLICY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   updatePolicyValidator,
   attendancePolicyController.updatePolicy
 );
@@ -50,6 +53,7 @@ router.put(
 router.put(
   "/:id/status",
   requirePermission(PERMISSIONS.HR.POLICY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   policyStatusValidator,
   attendancePolicyController.updateStatus
 );
@@ -58,6 +62,7 @@ router.put(
 router.delete(
   "/:id",
   requirePermission(PERMISSIONS.HR.POLICY_MANAGE, { branchField: "branchId" }),
+  requireAdmin,
   policyIdParamValidator,
   attendancePolicyController.deletePolicy
 );

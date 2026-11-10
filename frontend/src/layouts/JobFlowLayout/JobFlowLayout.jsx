@@ -18,7 +18,6 @@ import {
 import "../../modules/jobflow/shared/styles/job-flow.css";
 
 const tabs = [
-  { path: "/jobflow", label: "Overview", icon: LayoutDashboard, exact: true },
   { path: "/jobflow/pos", label: "POS Billing", icon: ShoppingCart },
   { path: "/jobflow/customers", label: "Customers", icon: Users },
   { path: "/jobflow/jobs", label: "Job Orders", icon: Briefcase },

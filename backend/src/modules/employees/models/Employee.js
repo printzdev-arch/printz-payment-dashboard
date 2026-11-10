@@ -75,6 +75,36 @@ const EmployeeSchema = new mongoose.Schema(
       ref: "Role",
       default: null,
     },
+    // Menu items (keys from auth/constants/pageCatalog.js) this person may open. Left unset, the role's pages apply;
+    // a list (even an empty one) replaces them. An empty list means no pages, so no login.
+    pageAccess: { type: [String], default: undefined },
+    // Set when an admin lets this person sign in although their role does not (for example an Operator who needs a login).
+    // The reason is required and is kept here so anyone can see why.
+    // Why this person has pages beyond their role's. Required whenever the saved list goes past the role's pages.
+    extraPages: {
+      type: new mongoose.Schema(
+        {
+          reason: { type: String, required: true, trim: true },
+          setBy: { type: mongoose.Schema.Types.Mixed, default: null },
+          setByName: { type: String, default: "" },
+          setAt: { type: Date, default: Date.now },
+        },
+        { _id: false }
+      ),
+      default: undefined,
+    },
+    loginException: {
+      type: new mongoose.Schema(
+        {
+          reason: { type: String, required: true, trim: true },
+          setBy: { type: mongoose.Schema.Types.Mixed, default: null },
+          setByName: { type: String, default: "" },
+          setAt: { type: Date, default: Date.now },
+        },
+        { _id: false }
+      ),
+      default: undefined,
+    },
     reportingManagerId: {
       type: mongoose.Schema.Types.Mixed,
       ref: "Employee",

@@ -214,3 +214,66 @@
   .emp-page { padding: 12px; }
   .emp-form-grid { grid-template-columns: 1fr; }
 }
+
+/* Role Management */
+.emp-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.emp-role-form { padding: 20px; }
+.emp-role-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.emp-cap-head { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 8px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.emp-cap-head h2 { margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; }
+.emp-cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+.emp-cap-group { border: 1px solid #e2e8f0; border-radius: 10px; margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: #fff; min-width: 0; }
+.emp-cap-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; color: #0f172a; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+.emp-role-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.emp-hint-warn { color: #b45309; }
+.emp-link { background: none; border: 0; padding: 0; color: #16a34a; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; }
+
+.emp-td-right { text-align: right; }
+.emp-btn-ghost { visibility: hidden; }
+.emp-table tr.emp-row-filler td { height: 52px; padding: 0; }
+
+.emp-modal-wide { max-width: 880px; }
+.emp-cap-head-form { margin: 4px 0; padding-top: 0; border-top: 0; }
+.emp-cap-head-form .emp-label { margin: 0; }
+
+/* Role Setup: pick an employee, tick their pages */
+.emp-setup-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+.emp-setup-side { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.emp-setup-list { display: flex; flex-direction: column; gap: 6px; max-height: 62vh; overflow-y: auto; }
+.emp-setup-item { text-align: left; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.emp-setup-item:hover { background: #f8fafc; }
+.emp-setup-item.is-active { border-color: #16a34a; background: #f0fdf4; }
+.emp-setup-item strong { font-size: 13px; color: #0f172a; }
+.emp-setup-item span { font-size: 12px; color: #64748b; }
+.emp-setup-main { padding: 20px; min-width: 0; }
+.emp-setup-person { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+.emp-setup-person h2 { margin: 0; font-size: 17px; color: #0f172a; }
+.emp-setup-empty { padding: 48px 16px; text-align: center; color: #64748b; }
+@media (max-width: 860px) { .emp-setup-layout { grid-template-columns: 1fr; } }
+
+/* Employee details popup */
+.emp-detail-title { margin: 14px 0 8px; font-size: 14px; font-weight: 700; color: #0f172a; }
+.emp-detail-title:first-child { margin-top: 0; }
+.emp-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 20px; }
+.emp-detail-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.emp-detail-label { font-size: 12px; color: #64748b; }
+.emp-detail-value { font-size: 14px; color: #0f172a; overflow-wrap: anywhere; }
+.emp-detail-chip { display: block; font-size: 13px; color: #334155; }
+
+/* Role Setup: login section */
+.emp-login-section { margin-top: 22px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.emp-login-section h2 { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #0f172a; }
+.emp-login-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.emp-password-wrap { position: relative; flex: 1; min-width: 240px; max-width: 360px; }
+.emp-password-wrap .emp-input { padding-right: 38px; }
+.emp-password-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: 0; padding: 4px; color: #64748b; cursor: pointer; display: inline-flex; }
+
+/* Role Setup: no-login role note */
+.emp-login-note { margin: 12px 0; padding: 10px 14px; border: 1px solid #fde68a; background: #fffbeb; border-radius: 8px; font-size: 13px; color: #78350f; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.emp-login-note textarea { width: 100%; max-width: 520px; }
+.emp-login-note-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+/* Capability grid: menus with sub-pages */
+.emp-cap-menu { display: flex; flex-direction: column; gap: 6px; }
+.emp-cap-menu-title { font-weight: 600; color: #0f172a; margin-top: 2px; }
+.emp-cap-child { padding-left: 22px; }

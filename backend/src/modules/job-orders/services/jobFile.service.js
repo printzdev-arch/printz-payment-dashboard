@@ -47,15 +47,6 @@ class JobFileService {
       uploadedAt: new Date(),
     });
 
-    await ProductionStateService.logAudit({
-      action: "CREATE",
-      resource: "JobFile",
-      resourceId: fileDoc._id,
-      user,
-      branchId: job.branchId,
-      details: { fileName, fileCategory, versionNo },
-    });
-
     return fileDoc;
   }
 

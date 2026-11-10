@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { deleteOrRequest, isAdminUser } from "../../../../shared/utils/deleteRequest";
 import {
   Search,
   Plus,
@@ -163,12 +164,20 @@ export const CustomersPage = () => {
     const custName = cust.name || cust.companyName || cust.customerCode || "this customer";
 
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete customer "${custName}"? This action cannot be undone.`
+      isAdminUser()
+        ? `Are you sure you want to delete customer "${custName}"? This action cannot be undone.`
+        : `Request deleting customer "${custName}"? An admin has to approve it before it is deleted.`
     );
     if (!confirmDelete) return;
 
     try {
-      await jobFlowApi.deleteCustomer(custId);
+      const outcome = await deleteOrRequest((reason) => jobFlowApi.deleteCustomer(custId, reason));
+      if (outcome.cancelled) return;
+      if (outcome.requested) {
+        // Nothing was deleted: keep the customer on screen
+        toast.info(outcome.message);
+        return;
+      }
       toast.success(`Customer "${custName}" deleted successfully`);
       setCustomers((prev) => prev.filter((c) => (c._id || c.id) !== custId));
       setTotalCount((prev) => Math.max(0, prev - 1));

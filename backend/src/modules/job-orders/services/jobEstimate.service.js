@@ -405,18 +405,6 @@ class JobEstimateService {
     // Ensure all pricing fields are persisted on the job
     await jobOrderRepository.update(job._id, patch);
 
-    await ProductionStateService.logAudit({
-      action: "APPROVE",
-      resource: "JobEstimate",
-      resourceId: job._id,
-      user,
-      branchId: job.branchId,
-      details: {
-        versionNo: approval.versionNo,
-        pricing,
-      },
-    });
-
     emitJobEvent("job.estimate.approved", { jobId: String(job._id), versionNo: approval.versionNo });
     return updated;
   }
@@ -524,15 +512,6 @@ class JobEstimateService {
       console.warn("Transition error during estimate reject, updating directly:", transErr.message);
       updated = await jobOrderRepository.update(job._id, patch);
     }
-
-    await ProductionStateService.logAudit({
-      action: "REJECT",
-      resource: "JobEstimate",
-      resourceId: job._id,
-      user,
-      branchId: job.branchId,
-      details: { reason: rejectionReason },
-    });
 
     emitJobEvent("job.estimate.rejected", { jobId: String(job._id) });
 

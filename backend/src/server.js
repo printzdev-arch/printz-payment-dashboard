@@ -41,8 +41,6 @@ const startServer = async () => {
 
     // Start background schedulers after DB connection is established
     if (env.NODE_ENV !== "test") {
-      const { slaSchedulerService } = require("./modules/services");
-      slaSchedulerService.startScheduler();
       require("./modules/sale-orders/services").saleOrderSchedulerService.startScheduler();
     }
 

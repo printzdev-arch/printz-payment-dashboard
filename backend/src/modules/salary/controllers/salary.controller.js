@@ -41,11 +41,6 @@ exports.createRun = asyncHandler(async (req, res) => {
   assertBranch(req, req.body.branchId);
   return ResponseHelper.cleanCreated(res, "Salary run created.", await service.createRun(req.body, userId(req), reqContext(req)));
 });
-exports.getRunAudit = asyncHandler(async (req, res) => {
-  const existing = await service.getRun(req.params.id);
-  assertBranch(req, existing.branchId);
-  return ResponseHelper.cleanOk(res, "Salary run audit trail retrieved.", await service.listRunAudit(req.params.id));
-});
 exports.getProcessingStatus = asyncHandler(async (req, res) =>
   ResponseHelper.cleanOk(res, "Salary processing status retrieved.", { enabled: isSalaryProcessingEnabled() }));
 exports.getRun = asyncHandler(async (req, res) => {
@@ -62,6 +57,19 @@ exports.approveRun = asyncHandler(async (req, res) => {
   const existing = await service.getRun(req.params.id);
   assertBranch(req, existing.branchId);
   return ResponseHelper.cleanOk(res, "Salary run approved.", await service.transitionRun(req.params.id, "approve", userId(req), reqContext(req)));
+});
+exports.reopenRun = asyncHandler(async (req, res) => {
+  // Admin and Super Admin both reach this route, but only a true Super Admin may send an approved run back
+  if (!req.authz || !req.authz.isSuperAdminOnly) {
+    throw ApiError.forbidden("Only a Super Admin can send an approved salary run back.");
+  }
+  const existing = await service.getRun(req.params.id);
+  assertBranch(req, existing.branchId);
+  return ResponseHelper.cleanOk(
+    res,
+    "Salary run sent back to calculated.",
+    await service.reopenRun(req.params.id, req.body && req.body.reason, userId(req))
+  );
 });
 exports.payRun = asyncHandler(async (req, res) => {
   const existing = await service.getRun(req.params.id);

@@ -183,8 +183,14 @@ export const AssignDesignerModal = ({
       if (allocationMethod === "ROUND_ROBIN") {
         const res = await jobFlowApi.autoAssignDesigner(jobId);
         const resData = res?.data || res || {};
-        if (resData.assigned === false && resData.reason === "NO_ELIGIBLE_DESIGNER") {
-          toast.warning("No eligible designer available under the current workload limit.");
+        if (resData.assigned === false) {
+          // For example: no designer is set up for this job's branch, or all of them are at their workload limit
+          toast.warning(
+            resData.message ||
+              (resData.reason === "NO_ELIGIBLE_DESIGNER"
+                ? "No eligible designer available under the current workload limit."
+                : "The job could not be assigned to a designer.")
+          );
           setLoading(false);
           return;
         }

@@ -103,9 +103,10 @@ export const customersApi = {
     return res.data;
   },
 
-  deleteCustomer: async (id) => {
-    const res = await api.delete(`/customers/${id}`);
-    return res.data;
+  // A manager's delete goes to an admin as a request; `reason` is required for them
+  deleteCustomer: async (id, reason) => {
+    const res = await api.delete(`/customers/${id}`, { data: { reason } });
+    return { ...res.data, status: res.status };
   },
 
   getCustomerRequests: async (params = {}) => {

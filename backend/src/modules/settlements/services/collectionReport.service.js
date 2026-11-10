@@ -1,7 +1,6 @@
 const Invoice = require("../../invoices/models/Invoice");
 const Payment = require("../../invoices/models/Payment");
 const InvoiceReminder = require("../../invoices/models/InvoiceReminder");
-const auditLogService = require("../../audit-logs/services/auditLog.service");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 const { INVOICE_STATUS } = require("../../invoices/models/invoice.constants");
 
@@ -226,21 +225,6 @@ class CollectionReportService {
       scheduledAt,
       remarks: reminderData.remarks || "",
       createdBy: user._id || user.id,
-    });
-
-    await auditLogService.log({
-      action: "REMINDER_CREATE",
-      resource: "InvoiceReminder",
-      resourceId: reminder._id,
-      userId: user._id || user.id,
-      userName: user.name || user.username || "System",
-      branchId: invoice.branchId,
-      details: {
-        invoiceNumber: invoice.invoiceNumber,
-        reminderType,
-        channel,
-        scheduledAt,
-      },
     });
 
     return reminder;

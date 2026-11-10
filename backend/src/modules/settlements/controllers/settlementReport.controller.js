@@ -1,5 +1,4 @@
 const CollectionReportService = require("../services/collectionReport.service");
-const SettlementSlaReportService = require("../services/settlementSlaReport.service");
 const PaymentDto = require("../models/PaymentDto");
 const ResponseHelper = require("../../../utils/helpers/ApiResponseHelper");
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
@@ -42,21 +41,6 @@ class SettlementReportController {
       ...result,
       agingBuckets: buckets,
     });
-  });
-
-  static getSlaReport = asyncHandler(async (req, res) => {
-    const result = await SettlementSlaReportService.getSlaReport(req.query, req.user, req.authz);
-    return ResponseHelper.ok(res, "SLA turnaround report retrieved successfully", result);
-  });
-
-  static getTurnaroundSlaReport = asyncHandler(async (req, res) => {
-    const result = await SettlementSlaReportService.getSlaReport(req.query, req.user, req.authz);
-    return ResponseHelper.ok(res, "SLA turnaround report retrieved successfully", result);
-  });
-
-  static getJobSla = asyncHandler(async (req, res) => {
-    const result = await SettlementSlaReportService.getJobSla(req.params.id, req.user, req.authz);
-    return ResponseHelper.ok(res, "Job order SLA evaluation retrieved successfully", result);
   });
 }
 

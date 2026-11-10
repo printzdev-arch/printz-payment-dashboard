@@ -289,10 +289,6 @@ const schemas = {
     ],
     discountAmount: 500,
   },
-  DesignerRatingRequest: {
-    rating: 5,
-    feedback: "Exceptional speed, immaculate layout, and great attention to branding guidelines!",
-  },
 
   // Design
   AssignDesignerRequest: {
@@ -319,16 +315,6 @@ const schemas = {
     comments: "Color density matches approved proof within Delta-E 1.5 tolerance; trim is razor sharp",
     defects: [],
     correctiveAction: "NONE",
-  },
-
-  // SLA
-  SlaConfigurationRequest: {
-    stage: "DESIGN_QUEUE",
-    jobType: "BROCHURE",
-    priority: "HIGH",
-    targetMinutes: 90,
-    warningMinutes: 60,
-    isActive: true,
   },
 
   // Customers
@@ -516,7 +502,6 @@ const endpoints = {
   "POST /job-orders/{id}/cancel": {
     reason: "Client cancelled event; requested full cancellation before production",
   },
-  "POST /job-orders/{id}/designer-ratings": schemas.DesignerRatingRequest,
   "POST /job-orders/{id}/estimate": schemas.JobOrderEstimateRequest,
   "POST /job-orders/{id}/estimate/approve": {
     comments: "Client formally confirmed estimate via email and paid advance deposit",
@@ -620,13 +605,6 @@ const endpoints = {
   "POST /delivery-orders/{id}/deliver": {
     receivedBy: "Karthik Raja (Store Manager)",
     remarks: "Delivered 2 sealed cartons in good condition",
-  },
-
-  // ── 09 SLA ──
-  "POST /sla-configurations": schemas.SlaConfigurationRequest,
-  "PATCH /sla-configurations/{id}": {
-    targetMinutes: 120,
-    warningMinutes: 90,
   },
 
   // ── 10 Settlement & Invoicing ──

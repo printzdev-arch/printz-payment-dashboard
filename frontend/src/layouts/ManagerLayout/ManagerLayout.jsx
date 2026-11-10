@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import NavLink from "../../shared/access/GuardedNavLink.jsx";
+import RestrictedNav from "../../shared/access/RestrictedNav.jsx";
 import "../styles/sidebar.css";
 import "../../shared/styles/printzTheme.css";
 import { useAuth } from "../../app/providers/AuthContext.jsx";
@@ -59,6 +61,7 @@ import {
   Monitor,
   CheckCircle2,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import PrintZSidebarIllustration from "../../shared/assets/illustrations/PrintZSidebarIllustration";
 
@@ -128,9 +131,9 @@ const PrintZLogoIcon = () => (
 );
 
 const getManagerPageTitle = (pathname, search = "") => {
+  if (pathname.includes("/delete-requests")) return "Delete Requests";
   if (pathname.includes("/master-settings") || pathname.includes("/jobflow/master-settings")) return "Master Defaults & Specifications";
   if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers";
-  if (pathname.includes("/sla-dashboard") || pathname.includes("/sla")) return "SLA Monitoring & Designer Scorecard";
   if (pathname.includes("/employees")) return "Employees";
   if (pathname.includes("/attendance/setup")) return "Attendance Setup";
   if (pathname.includes("/attendance/daily")) return "Daily Attendance";
@@ -334,6 +337,8 @@ const ManagerLayout = ({ children }) => {
     }
   }, [location.pathname]);
   const { logout, currentUser, role } = useAuth();
+  // Someone with a page list sees exactly those pages in the sidebar
+  const restrictedLinks = Array.isArray(currentUser?.pageLinks) ? currentUser.pageLinks : null;
 
   const storedUser = (() => {
     try {
@@ -363,7 +368,7 @@ const ManagerLayout = ({ children }) => {
 
   // Route lock: If designer, allow design routes
   useEffect(() => {
-    if (isDesigner) {
+    if (isDesigner && !restrictedLinks) {
       const isAllowedDesignRoute =
         location.pathname.startsWith("/design") ||
         location.pathname.startsWith("/jobflow/design") ||
@@ -385,7 +390,7 @@ const ManagerLayout = ({ children }) => {
         navigate("/jobflow/design?view=my-jobs", { replace: true });
       }
     }
-  }, [isDesigner, location.pathname, location.search, navigate]);
+  }, [isDesigner, restrictedLinks, location.pathname, location.search, navigate]);
 
 
   // Dynamic user initials
@@ -867,6 +872,9 @@ const ManagerLayout = ({ children }) => {
 
 
         {/* Navigation Items */}
+        {restrictedLinks ? (
+          <RestrictedNav links={restrictedLinks} />
+        ) : (
         <ul className="sidebar-nav-list">
           {!isDesigner && (
             <>
@@ -916,23 +924,6 @@ const ManagerLayout = ({ children }) => {
                     <span>Generate PDF Report</span>
                   </div>
                   {isActiveRoute("/pdf-generator") && (
-                    <ChevronRight size={15} className="sidebar-active-arrow" />
-                  )}
-                </NavLink>
-              </li>
-
-              <li className="sidebar-nav-item">
-                <NavLink
-                  to="/jobflow"
-                  className={`sidebar-link ${isActiveRoute("/jobflow") ? "active-link" : ""
-                    }`}
-                >
-                  <div className="sidebar-link-content">
-                    <Users size={18} className="sidebar-link-icon" />
-                    <span>Overview</span>
-                  </div>
-
-                  {isActiveRoute("/jobflow") && (
                     <ChevronRight size={15} className="sidebar-active-arrow" />
                   )}
                 </NavLink>
@@ -1208,21 +1199,6 @@ const ManagerLayout = ({ children }) => {
 
                 <MotionAccordion isOpen={isSalaryOpen}>
                   <ul className="sidebar-dropdown-list">
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/salary/setup"
-                        className={`sidebar-dropdown-link ${
-                          location.pathname === "/salary/setup" ? "active" : ""
-                        }`}
-                      >
-                        <div className="sidebar-dropdown-link-content">
-                          <span className="sidebar-dropdown-text">Salary Setup</span>
-                        </div>
-                        {location.pathname === "/salary/setup" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
                     <li className="sidebar-dropdown-item">
                       <Link
                         to="/salary/loans-adjustments"
@@ -1993,26 +1969,21 @@ const ManagerLayout = ({ children }) => {
                 </MotionAccordion>
               </li>
 
-              {/* Master Defaults & Specifications */}
+              {/* Delete Requests: managers ask, admins approve */}
               <li className="sidebar-nav-item">
-                <NavLink
-                  to="/jobflow/master-settings"
-                  className={`sidebar-link ${
-                    isActiveRoute("/master-settings") || isActiveRoute("/jobflow/master-settings") ? "active-link" : ""
-                  }`}
-                >
+                <NavLink to="/delete-requests" className={`sidebar-link ${isActiveRoute("/delete-requests") ? "active-link" : ""}`}>
                   <div className="sidebar-link-content">
-                    <Sliders size={18} className="sidebar-link-icon" />
-                    <span>Master Defaults</span>
+                    <Trash2 size={18} className="sidebar-link-icon" />
+                    <span>Delete Requests</span>
                   </div>
-                  {(isActiveRoute("/master-settings") || isActiveRoute("/jobflow/master-settings")) && (
-                    <ChevronRight size={15} className="sidebar-active-arrow" />
-                  )}
+                  {isActiveRoute("/delete-requests") && <ChevronRight size={15} className="sidebar-active-arrow" />}
                 </NavLink>
               </li>
+
             </>
           )}
         </ul>
+        )}
 
 
 

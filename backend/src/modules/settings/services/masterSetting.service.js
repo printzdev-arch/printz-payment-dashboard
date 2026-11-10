@@ -68,6 +68,39 @@ class MasterSettingService {
 
       await MasterDefault.insertMany(docs);
     }
+
+    // Databases seeded before these roles existed never get them from the block above (it only fills empty
+    // categories), so top up any employee role that is still missing, by code.
+    // Only the two newest roles are topped up, so a role an admin removed on purpose is not brought back.
+    const NEW_EMPLOYEE_ROLE_CODES = ["STORE_INCHARGE", "ACCOUNTING_STAFF"];
+    const employeeRoleSeeds = INITIAL_MASTER_ITEMS.filter(
+      (it) => it.category === "employeeRoles" && NEW_EMPLOYEE_ROLE_CODES.includes(it.code)
+    );
+    if (employeeRoleSeeds.length > 0) {
+      const have = new Set(
+        (await MasterDefault.find({ category: "employeeRoles" }).select("code").lean()).map((d) => d.code)
+      );
+      const missingRoles = employeeRoleSeeds.filter((it) => !have.has(it.code || generateCode(it.name)));
+      if (missingRoles.length > 0) {
+        const cat = catMap.employeeRoles || {};
+        await MasterDefault.insertMany(
+          missingRoles.map((it) => ({
+            category: it.category,
+            categoryLabel: cat.displayName || it.category,
+            categoryGroup: cat.categoryGroup || "general",
+            name: it.name,
+            code: it.code || generateCode(it.name),
+            description: "",
+            config: it.config || "",
+            defaultPrice: 0,
+            unit: "pcs",
+            isDefault: false,
+            isActive: true,
+            order: it.order || 1,
+          }))
+        );
+      }
+    }
   }
 
   /**

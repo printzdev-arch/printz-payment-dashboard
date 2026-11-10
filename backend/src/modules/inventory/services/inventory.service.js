@@ -3,7 +3,6 @@ const inventoryItemRepository = require("../models/InventoryItem");
 const inventoryBalanceRepository = require("../models/InventoryBalance");
 const inventoryTransactionRepository = require("../models/InventoryTransaction");
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
 const POSITIVE_TYPES = new Set(["OPENING", "PURCHASE", "RETURN", "TRANSFER_IN"]);
@@ -169,17 +168,6 @@ class InventoryService {
         result = await executeOperations(null);
       }
     }
-
-    // Async Audit Logging (non-blocking)
-    AuditHelper.log({
-      actorId: performedBy,
-      action: `INVENTORY_${typeUpper}`,
-      entityType: "INVENTORY_ITEM",
-      entityId: itemId,
-      before: { quantity: currentQty },
-      after: { quantity: result.newBalance, delta: deltaQty, transactionNo: result.transaction.transactionNo },
-      branchId,
-    }).catch((err) => console.warn("[InventoryService] Audit log failed:", err.message));
 
     return result;
   }

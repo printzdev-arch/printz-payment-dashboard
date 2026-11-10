@@ -33,7 +33,6 @@ const INVOICE_PERMISSIONS = Object.freeze({
   FINALIZE: "invoice.finalize",
   PDF: "invoice.pdf",
   SHARE: "invoice.share",
-  AUDIT_VIEW: "invoice.audit.view",
 });
 
 module.exports = {

@@ -200,7 +200,7 @@ userSchema.statics.enrichUser = async function (user) {
   if (userObj.employeeId) {
     const Employee = require("../../employees/models/Employee");
     const employee = await Employee.findById(userObj.employeeId)
-      .populate("roleId", "code name grants")
+      .populate("roleId", "code name grants pageAccess")
       .populate("branchId", "name code location")
       .lean();
 
@@ -234,6 +234,21 @@ userSchema.statics.enrichUser = async function (user) {
           roleDoc = (await Role.findById(rId).lean()) || {};
         }
 
+        // Only roles that list their pages are restricted to them
+        // The employee's own pages win; otherwise the role's. Super Admin is never limited.
+        const effectivePages = Array.isArray(employee.pageAccess)
+          ? employee.pageAccess
+          : Array.isArray(roleDoc.pageAccess)
+            ? roleDoc.pageAccess
+            : null;
+        if (effectivePages && roleDoc.code !== "SUPER_ADMIN") {
+          const { pathsFor, linksFor } = require("../constants/pageCatalog");
+          const isAdminRole = ["ADMIN", "SUPER_ADMIN"].includes(String(roleDoc.code || "").toUpperCase());
+          userObj.pageAccess = effectivePages;
+          userObj.allowedPaths = pathsFor(effectivePages, { admin: isAdminRole });
+          userObj.pageLinks = linksFor(effectivePages, { admin: isAdminRole });
+        }
+
         if (roleDoc.code) {
           userObj.roleCode = roleDoc.code;
           userObj.role = roleDoc.code.toLowerCase();
@@ -254,6 +269,13 @@ userSchema.statics.enrichUser = async function (user) {
       const b = await Branch.findById(bId).lean();
       if (b) userObj.branch = b.name;
     }
+  }
+
+  // A login with no employee record (like the admin logins) still carries its roles; mark Super Admin so the app can show it
+  if (!userObj.roleCode && Array.isArray(userObj.roleIds) && userObj.roleIds.length > 0) {
+    const Role = require("./Role");
+    const held = await Role.find({ _id: { $in: userObj.roleIds } }).select("code").lean();
+    if (held.some((r) => r.code === "SUPER_ADMIN")) userObj.roleCode = "SUPER_ADMIN";
   }
   return userObj;
 };

@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const purchaseReceiptRepository = require("../models/PurchaseReceipt");
 const inventoryService = require("./inventory.service");
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
 class PurchaseReceiptService {
@@ -124,15 +123,6 @@ class PurchaseReceiptService {
       createdBy,
     });
 
-    AuditHelper.log({
-      actorId: createdBy,
-      action: "CREATE_PURCHASE_DRAFT",
-      entityType: "PURCHASE_RECEIPT",
-      entityId: receipt._id,
-      after: receipt,
-      branchId,
-    }).catch((err) => console.warn("[PurchaseReceiptService] Audit error:", err.message));
-
     return receipt;
   }
 
@@ -166,15 +156,6 @@ class PurchaseReceiptService {
     }
 
     const updated = await this.receiptRepo.update(id, updatePayload);
-
-    AuditHelper.log({
-      actorId: authContext.user?._id || authContext.user?.id,
-      action: "UPDATE_PURCHASE_DRAFT",
-      entityType: "PURCHASE_RECEIPT",
-      entityId: id,
-      before: existing,
-      after: updated,
-    }).catch((err) => console.warn("[PurchaseReceiptService] Audit error:", err.message));
 
     return updated;
   }
@@ -226,15 +207,6 @@ class PurchaseReceiptService {
       if (session) {
         await session.commitTransaction();
       }
-
-      AuditHelper.log({
-        actorId: performedBy,
-        action: "POST_PURCHASE_RECEIPT",
-        entityType: "PURCHASE_RECEIPT",
-        entityId: id,
-        after: updatedReceipt,
-        branchId,
-      }).catch((err) => console.warn("[PurchaseReceiptService] Audit error:", err.message));
 
       return updatedReceipt;
     } catch (err) {
@@ -295,15 +267,6 @@ class PurchaseReceiptService {
       if (session) {
         await session.commitTransaction();
       }
-
-      AuditHelper.log({
-        actorId: performedBy,
-        action: "CANCEL_PURCHASE_RECEIPT",
-        entityType: "PURCHASE_RECEIPT",
-        entityId: id,
-        after: updatedReceipt,
-        branchId,
-      }).catch((err) => console.warn("[PurchaseReceiptService] Audit error:", err.message));
 
       return updatedReceipt;
     } catch (err) {

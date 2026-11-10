@@ -1,8 +1,7 @@
 ﻿/**
  * Request bodies that are accepted by the API as written, keyed by "METHOD /path".
  * They take precedence over the older schema-level examples in payload.examples.js and are used for
- * generated operations too. `scripts/verifySwagger.js` sends every one of these to the running server,
- * so a body that drifts from the validation rules is caught the next time that script runs.
+ * generated operations too.
  */
 const BRANCH_ID = "489571a9af51836599708543"; // Banaswadii
 const USER_ID = "6acf819c312242e3bde22bfb"; // Banaswadi Manager
@@ -70,8 +69,6 @@ module.exports = {
 
   // Job orders & design
   "POST /job-orders/{id}/assignments/reassign": { target: "ROUND_ROBIN", reason: "Reassigned for urgent turnaround" },
-  "POST /job-orders/{id}/designer-ratings": { ratingSource: "MANAGER", rating: 5, feedback: "Excellent speed and layout" },
-  "POST /sla-configurations": { stage: "DESIGN_QUEUE", jobType: "BROCHURE", priority: "URGENT", targetMinutes: 90, warningMinutes: 60, isActive: true },
 
   // Production & delivery
   "POST /production/orders/{id}/hold": { reason: "Waiting for paper stock" },
@@ -201,5 +198,4 @@ module.exports = {
   // Master settings
   "PUT /master-settings/{category}/items/{itemId}": { name: "A4 Glossy", description: "Updated option name", isActive: true },
 };
-
 

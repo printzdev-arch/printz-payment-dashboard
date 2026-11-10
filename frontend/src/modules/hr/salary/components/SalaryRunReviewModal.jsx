@@ -41,7 +41,9 @@ export default function SalaryRunReviewModal({
 }) {
   const maintenance = useSalaryMaintenance();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, currentUser } = useAuth();
+  // Only a Super Admin may send an approved run back
+  const isSuperAdmin = currentUser?.roleCode === "SUPER_ADMIN";
   const canProcess = hasPermission("hr.salary.process");
   const canApprove = hasPermission("hr.salary.approve");
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -60,36 +62,8 @@ export default function SalaryRunReviewModal({
       setRecords([]);
       setError("");
       setSuccessMsg("");
-      setShowAudit(false);
-      setAuditLogs([]);
-      setAuditError("");
     }
   }, [isOpen, runId]);
-
-  const [showAudit, setShowAudit] = useState(false);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [auditLoading, setAuditLoading] = useState(false);
-  const [auditError, setAuditError] = useState("");
-
-  const loadAudit = async () => {
-    try {
-      setAuditLoading(true);
-      setAuditError("");
-      const res = await salaryApi.getRunAudit(runId);
-      const list = res?.data || (Array.isArray(res) ? res : []);
-      setAuditLogs(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setAuditError(err?.response?.data?.message || err?.message || "Failed to load audit trail.");
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
-  const toggleAudit = () => {
-    const next = !showAudit;
-    setShowAudit(next);
-    if (next) loadAudit();
-  };
 
   const loadRunDetails = async () => {
     try {
@@ -112,7 +86,7 @@ export default function SalaryRunReviewModal({
     lock: "Lock this payroll? It becomes read-only and cannot be reopened.",
   };
 
-  const handleAction = async (actionType) => {
+  const handleAction = async (actionType, extra = "") => {
     if (actionLoading) return;
     if (CONFIRM_TEXT[actionType] && !window.confirm(CONFIRM_TEXT[actionType])) return;
     try {
@@ -132,10 +106,12 @@ export default function SalaryRunReviewModal({
       } else if (actionType === "lock") {
         await salaryApi.lockRun(runId);
         setSuccessMsg("Salary run locked and finalized.");
+      } else if (actionType === "reopen") {
+        await salaryApi.reopenRun(runId, extra);
+        setSuccessMsg("Salary run sent back to calculated. Recalculate or approve it again after the correction.");
       }
 
       await loadRunDetails();
-      if (showAudit) loadAudit();
       if (onRunUpdated) onRunUpdated();
     } catch (err) {
       if (flagIfMaintenance(err)) {
@@ -397,37 +373,6 @@ export default function SalaryRunReviewModal({
               </table>
             </div>
           </div>
-
-          {/* Audit trail (loaded on demand) */}
-          <div style={{ marginTop: "16px" }}>
-            <button type="button" className="btn-salary-secondary" onClick={toggleAudit}>
-              {showAudit ? "Hide Audit Trail" : "Show Audit Trail"}
-            </button>
-            {showAudit && (
-              <div style={{ marginTop: "10px", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px 14px", fontSize: "13px" }}>
-                {auditLoading ? (
-                  <span style={{ color: "#64748b" }}>Loading audit trail...</span>
-                ) : auditError ? (
-                  <span style={{ color: "#b91c1c" }}>{auditError}</span>
-                ) : auditLogs.length === 0 ? (
-                  <span style={{ color: "#64748b" }}>No audit events recorded for this run.</span>
-                ) : (
-                  auditLogs.map((log) => (
-                    <div
-                      key={log._id}
-                      style={{ display: "flex", gap: "12px", padding: "4px 0", borderBottom: "1px dashed #e2e8f0" }}
-                    >
-                      <strong style={{ minWidth: "90px" }}>{log.action}</strong>
-                      <span style={{ minWidth: "140px", color: "#475569" }}>
-                        {log.at ? new Date(log.at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}
-                      </span>
-                      <span style={{ color: "#334155" }}>{log.userName || "System"}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Footer State-Based Action Buttons */}
@@ -477,6 +422,27 @@ export default function SalaryRunReviewModal({
                 </button>
               )}
             </>
+          )}
+
+          {status === "APPROVED" && isSuperAdmin && (
+            <button
+              type="button"
+              className="btn-salary-secondary"
+              title="Super Admin only. Not possible once the run is paid."
+              onClick={() => {
+                const reason = window.prompt("Why is this approved payroll being sent back? (at least 5 characters)");
+                if (reason === null) return;
+                if (reason.trim().length < 5) {
+                  setError("Enter a reason of at least 5 characters.");
+                  return;
+                }
+                handleAction("reopen", reason.trim());
+              }}
+              disabled={actionsDisabled}
+            >
+              <RefreshCw size={14} />
+              Send Back to Calculated
+            </button>
           )}
 
           {status === "APPROVED" && canProcess && (

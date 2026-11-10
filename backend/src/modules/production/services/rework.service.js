@@ -124,22 +124,6 @@ class ReworkService {
 
     const firstNewOp = created[0] || activeRework[0] || null;
 
-    await ProductionStateService.logAudit({
-      action: "REWORK",
-      resource: "ProductionOrder",
-      resourceId: order._id,
-      user,
-      branchId: order.branchId,
-      details: {
-        reworkOperationCode: opCode,
-        lines: lineList,
-        quantity: totalQty,
-        qualityCheckId,
-        operationIds: created.map((o) => o._id),
-        reason,
-      },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: order.jobOrderId,
       productionOrderId: order._id,

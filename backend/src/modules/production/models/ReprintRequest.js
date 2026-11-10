@@ -130,12 +130,6 @@ const reprintRequestSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    activityRefs: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "AuditLog",
-      },
-    ],
   },
   {
     timestamps: true,

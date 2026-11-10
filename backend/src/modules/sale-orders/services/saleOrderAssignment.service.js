@@ -24,7 +24,6 @@ const {
   runInTransaction,
   addEvent,
   notify,
-  audit,
   findUsersByRole,
 } = require("./saleOrder.helpers");
 
@@ -310,12 +309,6 @@ async function manualAssign(orderId, body, actor) {
     enforceCapacity: false,
   });
   await notifyAssigned(claimed, profile);
-  await audit({
-    actor,
-    action: "SALE_ORDER_MANUAL_ASSIGNED",
-    order: claimed,
-    after: { designer: profile.displayName, designerUserId: idStr(profile.userId), reason },
-  });
   return claimed;
 }
 
@@ -418,13 +411,6 @@ async function reassign(orderId, body, actor) {
     orderId: order._id,
   });
   await notifyAssigned(result, profile);
-  await audit({
-    actor,
-    action: "SALE_ORDER_REASSIGNED",
-    order: result,
-    before: { designerUserId: oldUserId },
-    after: { designer: profile.displayName, designerUserId: idStr(profile.userId), reason },
-  });
   return result;
 }
 

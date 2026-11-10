@@ -175,18 +175,6 @@ class ProductionOperationService {
     op.operatorName = operator.name;
     await op.save();
 
-    await ProductionStateService.logAudit({
-      action: "ASSIGN",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: {
-        assignedEmployeeId: targetEmployeeId,
-        operationCode: op.operationCode,
-      },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,
       productionOrderId: op.productionOrderId,
@@ -275,15 +263,6 @@ class ProductionOperationService {
     else if (op.operationCode === "PACKING") jobStage = "PACKING";
     await ProductionStateService.updateJobStage(op.jobOrderId, jobStage);
 
-    await ProductionStateService.logAudit({
-      action: "START",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { operationCode: op.operationCode, machineId: op.machineId, machine: op.machine },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,
       productionOrderId: op.productionOrderId,
@@ -322,15 +301,6 @@ class ProductionOperationService {
     });
     await op.save();
 
-    await ProductionStateService.logAudit({
-      action: "PAUSE",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { operationCode: op.operationCode, reason },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,
       productionOrderId: op.productionOrderId,
@@ -364,15 +334,6 @@ class ProductionOperationService {
     op.status = "IN_PROGRESS";
     op.pausedReason = "";
     await op.save();
-
-    await ProductionStateService.logAudit({
-      action: "RESUME",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { operationCode: op.operationCode },
-    });
 
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,
@@ -566,22 +527,6 @@ class ProductionOperationService {
       throw err;
     }
 
-    await ProductionStateService.logAudit({
-      action: "COMPLETE",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: {
-        operationCode: op.operationCode,
-        inputQty: op.inputQty,
-        outputQty: op.outputQty,
-        completedQty: op.completedQty,
-        wastageQty: op.wastageQty,
-        remarks: op.remarks,
-      },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,
       productionOrderId: op.productionOrderId,
@@ -718,15 +663,6 @@ class ProductionOperationService {
     op.remarks = combined || "Machine/material failure";
     await op.save();
 
-    await ProductionStateService.logAudit({
-      action: "FAIL",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { failureReason, remarks: remarkText, affectedQty: op.affectedQty },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,
       productionOrderId: op.productionOrderId,
@@ -767,15 +703,6 @@ class ProductionOperationService {
     op.failureReason = "";
     await op.save();
 
-    await ProductionStateService.logAudit({
-      action: "RETRY",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { operationCode: op.operationCode },
-    });
-
     return op;
   }
 
@@ -809,15 +736,6 @@ class ProductionOperationService {
     op.remarks = reason;
     op.endAt = new Date();
     await op.save();
-
-    await ProductionStateService.logAudit({
-      action: "SKIP",
-      resource: "ProductionOperation",
-      resourceId: op._id,
-      user,
-      branchId: op.branchId,
-      details: { operationCode: op.operationCode, reason },
-    });
 
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: op.jobOrderId,

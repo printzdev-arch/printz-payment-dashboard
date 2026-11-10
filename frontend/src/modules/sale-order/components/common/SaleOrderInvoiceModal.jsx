@@ -131,7 +131,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
 <body>
   <div class="header">
     <div class="brand">
-      <h1>GUNA PRINTZ</h1>
+      <h1PRINTZ</h1>
       <p><strong>${branch.name || "Main Branch"}</strong> · Printing & Digital Solutions</p>
       ${branch.address ? `<p style="font-size: 12px; color: #64748b;">${branch.address}</p>` : ""}
     </div>
@@ -241,7 +241,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
   }
 
   <div class="footer">
-    Thank you for choosing Guna Printz! · This is a computer generated invoice.
+    Thank you for choosing Printz! · This is a computer generated invoice.
   </div>
   <script>window.onload = function() { window.print(); }</script>
 </body>
@@ -356,7 +356,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
                       letterSpacing: "-0.5px",
                     }}
                   >
-                    GUNA PRINTZ
+                     PRINTZ
                   </h2>
                   <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#475569", fontWeight: 500 }}>
                     <strong>{branch.name || "Branch"}</strong> · Printing & Digital Graphics
@@ -796,7 +796,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
                   marginTop: "20px",
                 }}
               >
-                Thank you for your business! · Guna Printz · Computer-generated Tax Invoice
+                Thank you for your business! · Printz · Computer-generated Tax Invoice
               </div>
             </div>
           )}

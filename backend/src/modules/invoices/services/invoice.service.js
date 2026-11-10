@@ -7,7 +7,6 @@ const Branch = require("../../branches/models/Branch");
 const DeliveryOrder = require("../../delivery/models/DeliveryOrder");
 const CommonApproval = require("../../approvals/models/Approval");
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
-const auditLogService = require("../../audit-logs/services/auditLog.service");
 const InvoiceCalculationService = require("./invoiceCalculation.service");
 const InvoicePdfService = require("./invoicePdf.service");
 const { INVOICE_STATUS, INVOICE_TYPE, VARIANCE_POLICY } = require("../models/invoice.constants");
@@ -43,7 +42,6 @@ const resolveGstRate = (requested, fallback = 0) => {
   }
   return rate;
 };
-
 
 // Full payment or advance. When nothing is chosen, a Print Only invoice defaults to full payment.
 const normalizePlan = (plan, job) => {
@@ -503,21 +501,6 @@ class InvoiceService {
         existingActive.updatedBy = user?._id || null;
         await existingActive.save();
 
-        await auditLogService.log({
-          action: "INVOICE_REGENERATE_SETTLEMENT",
-          resource: "Invoice",
-          resourceId: existingActive._id,
-          userId: user?._id,
-          userName: user?.username || "System",
-          branchId: job.branchId,
-          details: {
-            invoiceNumber: existingActive.invoiceNumber,
-            jobOrderId: job._id,
-            grandTotal: calc.grandTotal,
-            balanceDue: calc.balanceDue,
-          },
-        });
-
         return existingActive;
       }
 
@@ -584,19 +567,6 @@ class InvoiceService {
       remarks,
       createdBy: user?._id || null,
       updatedBy: user?._id || null,
-    });
-
-    await auditLogService.log({
-      action: "INVOICE_DRAFT_CREATE",
-      resource: "Invoice", resourceId: newInvoice._id, userId: user?._id, userName: user?.username || "System",
-      branchId: job.branchId,
-      details: {
-        invoiceId: newInvoice._id,
-        jobOrderId: job._id,
-        jobNo: job.jobNo,
-        grandTotal: calc.grandTotal,
-        approvalRequired: calc.approvalRequired,
-      },
     });
 
     return newInvoice;
@@ -686,17 +656,6 @@ class InvoiceService {
       });
     }
 
-    await auditLogService.log({
-      action: "INVOICE_DRAFT_UPDATE",
-      resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
-      branchId: invoice.branchId,
-      details: {
-        grandTotal: calc.grandTotal,
-        varianceAmount: calc.varianceAmount,
-        approvalRequired: calc.approvalRequired,
-      },
-    });
-
     return updated;
   }
 
@@ -754,13 +713,6 @@ class InvoiceService {
       invoice.approvalRemarks = "Directly approved: Within allowed variance tolerance.";
       await invoice.save();
 
-      await auditLogService.log({
-        action: "INVOICE_DIRECT_APPROVE",
-        resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
-        branchId: invoice.branchId,
-        details: { variancePercentage: invoice.variancePercentage },
-      });
-
       return invoice;
     }
 
@@ -781,18 +733,6 @@ class InvoiceService {
     invoice.status = INVOICE_STATUS.PENDING_APPROVAL;
     invoice.approvalId = approval._id;
     await invoice.save();
-
-    await auditLogService.log({
-      action: "INVOICE_SUBMIT_APPROVAL",
-      resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
-      branchId: invoice.branchId,
-      details: {
-        approvalId: approval._id,
-        approvalNo,
-        varianceAmount: invoice.varianceAmount,
-        variancePercentage: invoice.variancePercentage,
-      },
-    });
 
     return invoice;
   }
@@ -827,13 +767,6 @@ class InvoiceService {
     invoice.approvedAt = isApproved ? new Date() : null;
     invoice.approvalRemarks = remarks || (isApproved ? "Approved by authorized approver." : "Rejected by approver.");
     await invoice.save();
-
-    await auditLogService.log({
-      action: isApproved ? "INVOICE_VARIANCE_APPROVE" : "INVOICE_VARIANCE_REJECT",
-      resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
-      branchId: invoice.branchId,
-      details: { decision, remarks },
-    });
 
     return invoice;
   }
@@ -966,17 +899,6 @@ class InvoiceService {
       await JobOrder.findByIdAndUpdate(job._id, { $set: updateFields });
     }
 
-    await auditLogService.log({
-      action: "INVOICE_FINALIZE",
-      resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
-      branchId: invoice.branchId,
-      details: {
-        invoiceNumber,
-        grandTotal: invoice.grandTotal,
-        balanceDue: invoice.balanceDue,
-      },
-    });
-
     return invoice;
   }
 
@@ -1013,15 +935,6 @@ class InvoiceService {
       remarks: isFull ? "Full payment received with the invoice" : "Advance received with the invoice",
     });
 
-    await auditLogService.log({
-      action: "INVOICE_PAYMENT_RECORD",
-      resource: "Payment",
-      resourceId: payment._id,
-      userId: user?._id,
-      userName: user?.username || user?.name || "System",
-      branchId: invoice.branchId,
-      details: { invoiceNumber: invoice.invoiceNumber, amount: diff, paymentType: payment.paymentType, mode },
-    });
     return payment;
   }
 
@@ -1134,37 +1047,12 @@ class InvoiceService {
       throw ErrorHelper.badRequest("Recipient (email or mobile) is required to share invoice.");
     }
 
-    // Write audit record for sharing event
-    await auditLogService.log({
-      action: "INVOICE_SHARE",
-      resource: "Invoice", resourceId: invoice._id, userId: user?._id, userName: user?.username || "System",
-      branchId: invoice.branchId,
-      details: {
-        channel,
-        recipient,
-        invoiceNumber: invoice.invoiceNumber,
-      },
-    });
-
     return {
       success: true,
       channel,
       recipient,
       message: `Invoice ${invoice.invoiceNumber || "DRAFT"} dispatched via ${channel} to ${recipient}.`,
     };
-  }
-
-  /**
-   * 11. Retrieve audit history for an invoice.
-   */
-  static async getAuditLogs(id, authContext = {}) {
-    const invoice = await invoiceRepository.findById(id);
-    if (!invoice) throw ErrorHelper.notFound("Invoice not found.");
-
-    this.assertBranchAccess(invoice.branchId, authContext);
-
-    const AuditLog = mongoose.models.AuditLog || mongoose.model("AuditLog");
-    return AuditLog.find({ entityId: invoice._id }).sort({ createdAt: -1 }).lean();
   }
 }
 

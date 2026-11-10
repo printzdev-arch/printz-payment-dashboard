@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, ShieldCheck, UserCog } from "lucide-react";
 import { toast } from "react-toastify";
 import employeesApi from "../api/employeesApi";
 import EmployeeFilters from "../components/EmployeeFilters";
 import EmployeeTable from "../components/EmployeeTable";
 import EmployeeForm from "../components/EmployeeForm";
+import EmployeeDetailsModal from "../components/EmployeeDetailsModal";
 import Pagination from "../../../../shared/ui/Pagination";
 import "../styles/employees.css";
 
@@ -31,6 +33,10 @@ export default function EmployeesPage() {
 
   const [branches, setBranches] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [viewing, setViewing] = useState(null); // employee whose details are open
+  const navigate = useNavigate();
+  // Role Management is for admins; the server also refuses anyone else
+  const canManageRoles = lockedBranchId === "";
 
   // null = closed, { employee, startWithLogin } = open (employee null means add)
   const [formState, setFormState] = useState(null);
@@ -167,10 +173,23 @@ export default function EmployeesPage() {
           <h1>Employees</h1>
           
         </div>
-        <button type="button" className="emp-btn emp-btn-primary" onClick={() => setFormState({ employee: null, startWithLogin: false })}>
-          <Plus size={15} /> Add employee
-        </button>
+        <div className="emp-header-actions">
+          {canManageRoles && (
+            <button type="button" className="emp-btn" onClick={() => navigate("/employees/roles")}>
+              <ShieldCheck size={15} /> Role Management
+            </button>
+          )}
+          {canManageRoles && (
+            <button type="button" className="emp-btn" onClick={() => navigate("/employees/role-setup")}>
+              <UserCog size={15} /> Role Setup
+            </button>
+          )}
+          <button type="button" className="emp-btn emp-btn-primary" onClick={() => setFormState({ employee: null, startWithLogin: false })}>
+            <Plus size={15} /> Add employee
+          </button>
+        </div>
       </div>
+
 
       <div className="emp-card">
         <EmployeeFilters
@@ -189,6 +208,7 @@ export default function EmployeesPage() {
           canEdit
           canDeactivate
           busyId={busyId}
+          onView={setViewing}
           onEdit={(employee, opts = {}) => setFormState({ employee, startWithLogin: Boolean(opts.focusLogin) })}
           onDeactivate={startDeactivate}
           onResetPassword={(employee) => {
@@ -210,6 +230,15 @@ export default function EmployeesPage() {
           itemLabel="employees"
         />
       </div>
+
+      {viewing && (
+        <EmployeeDetailsModal
+          employee={viewing}
+          roles={roles}
+          onClose={() => setViewing(null)}
+          onOpenRoleSetup={() => navigate("/employees/role-setup")}
+        />
+      )}
 
       {formState && (
         <div className="emp-overlay" onClick={() => !saving && setFormState(null)}>

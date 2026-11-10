@@ -10,7 +10,7 @@
  * - quality-control/api/qcApi
  * - delivery/api/deliveryApi
  * - settlement/api/settlementApi
- * - dashboard/api/dashboardApi
+ * - shared/api/listApi
  */
 
 import { customersApi } from "../../customers/api/customersApi";
@@ -22,7 +22,7 @@ import { qcApi } from "../../quality-control/api/qcApi";
 import { deliveryApi } from "../../delivery/api/deliveryApi";
 import { invoiceApi } from "../../invoice/api/invoiceApi";
 import { settlementApi } from "../../settlement/api/settlementApi";
-import { dashboardApi } from "../../dashboard/api/dashboardApi";
+import { listApi } from "./listApi";
 
 export const jobFlowApi = {
   ...customersApi,
@@ -34,7 +34,7 @@ export const jobFlowApi = {
   ...deliveryApi,
   ...invoiceApi,
   ...settlementApi,
-  ...dashboardApi,
+  ...listApi,
 };
 
 export default jobFlowApi;

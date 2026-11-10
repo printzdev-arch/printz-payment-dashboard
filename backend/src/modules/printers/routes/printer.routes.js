@@ -1,4 +1,5 @@
 const express = require("express");
+const requireDeleteApproval = require("../../delete-requests/middleware/requireDeleteApproval");
 const router = express.Router();
 const printerController = require("../controllers/printer.controller");
 const { authenticate } = require("../../../middleware/security/auth.middleware");
@@ -10,6 +11,6 @@ router.get("/", authorizePermission("printers", "read"), printerController.getAl
 router.get("/:id", authorizePermission("printers", "read"), printerController.getPrinterById);
 router.post("/", authorizePermission("printers", "create"), printerController.createPrinter);
 router.put("/:id", authorizePermission("printers", "update"), printerController.updatePrinter);
-router.delete("/:id", authorizePermission("printers", "delete"), printerController.deletePrinter);
+router.delete("/:id", authorizePermission("printers", "delete"), requireDeleteApproval("printer"), printerController.deletePrinter);
 
 module.exports = router;

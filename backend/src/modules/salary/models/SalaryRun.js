@@ -15,6 +15,10 @@ const SalaryRunSchema = new mongoose.Schema({
   calculatedAt: { type: Date, default: null },
   approvedBy: { type: mongoose.Schema.Types.Mixed, ref: "User", default: null },
   approvedAt: { type: Date, default: null },
+  // Set when a Super Admin sends an approved run back to calculated; the last one is kept
+  reopenedBy: { type: mongoose.Schema.Types.Mixed, ref: "User", default: null },
+  reopenedAt: { type: Date, default: null },
+  reopenReason: { type: String, default: "" },
   paidAt: { type: Date, default: null },
   lockedAt: { type: Date, default: null },
   createdBy: { type: mongoose.Schema.Types.Mixed, ref: "User", default: null },

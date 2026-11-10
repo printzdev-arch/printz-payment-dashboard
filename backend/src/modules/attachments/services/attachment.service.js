@@ -2,7 +2,6 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const attachmentRepository = require("../models/Attachment");
-const auditLogService = require("../../audit-logs/services/auditLog.service");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
 const ALLOWED_EXTENSIONS = new Set([
@@ -98,20 +97,6 @@ class AttachmentService {
       uploadedAt: new Date(),
     });
 
-    await auditLogService.log({
-      actorId: uploadedBy,
-      action: "SAMPLE_UPLOAD",
-      entityType: "ATTACHMENT",
-      entityId: attachment._id,
-      after: {
-        attachmentId: attachment._id,
-        fileName: sanitizedFileName,
-        entityType,
-        entityId,
-        size,
-      },
-    });
-
     return attachment;
   }
 
@@ -150,14 +135,6 @@ class AttachmentService {
     }
 
     const deleted = await this.repository.deleteById(id);
-
-    await auditLogService.log({
-      actorId: userId,
-      action: "DELETE",
-      entityType: "ATTACHMENT",
-      entityId: id,
-      before: attachment,
-    });
 
     return deleted;
   }

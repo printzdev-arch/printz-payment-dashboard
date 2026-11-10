@@ -111,15 +111,6 @@ class DesignSampleService {
       status: "DRAFT",
     });
 
-    await ProductionStateService.logAudit({
-      action: "SAMPLE_UPLOAD",
-      resource: "JobSample",
-      resourceId: sample._id,
-      user,
-      branchId: job.branchId,
-      details: { versionNo, revisionNo: revisionCount },
-    });
-
     return sample;
   }
 
@@ -306,7 +297,6 @@ class DesignSampleService {
 
     return resultObj;
   }
-
 
   /**
    * List all samples for a job with approval records.
@@ -640,15 +630,6 @@ class DesignSampleService {
         }
       }
 
-      await ProductionStateService.logAudit({
-        action: "SAMPLE_APPROVAL",
-        resource: "JobSample",
-        resourceId: sample._id,
-        user,
-        branchId: job.branchId,
-        details: { decision: "APPROVED", comments: decisionData.customerFeedback },
-      });
-
       // Emits sample.approved so Production and Notification modules can react
       emitJobEvent("sample.approved", {
         jobId: String(job._id),
@@ -893,15 +874,6 @@ class DesignSampleService {
         console.warn("Could not auto-create production order:", poErr);
       }
     }
-
-    await ProductionStateService.logAudit({
-      action: "SAMPLE_APPROVAL",
-      resource: "JobSample",
-      resourceId: latestSample?._id || job._id,
-      user,
-      branchId: job.branchId,
-      details: { decision: "APPROVED", comments: data.customerFeedback || "Artwork approved by customer" },
-    });
 
     emitJobEvent("sample.approved", {
       jobId: String(job._id),

@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const HolidayCalendar = require("../models/HolidayCalendar");
 const DailyAttendance = require("../models/DailyAttendance");
 const Branch = require("../../branches/models/Branch");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 
 const { validateStrictDate, getCurrentDateInConfiguredTimezone } = require("../../../utils/helpers/attendanceDateUtils");
@@ -151,15 +150,6 @@ class HolidayCalendarService {
       updatedBy: actorId || null,
     });
 
-    await AuditHelper.log({
-      action: "HOLIDAY_CALENDAR_CREATE",
-      actorId,
-      entityType: "HOLIDAY_CALENDAR",
-      entityId: calendar._id,
-      branchId: calendar.branchId,
-      after: calendar.toObject(),
-    });
-
     return calendar;
   }
 
@@ -296,16 +286,6 @@ class HolidayCalendarService {
     const beforeState = existing.toObject();
     await existing.save();
 
-    await AuditHelper.log({
-      action: "HOLIDAY_CALENDAR_UPDATE",
-      actorId,
-      entityType: "HOLIDAY_CALENDAR",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: existing.toObject(),
-    });
-
     return existing;
   }
 
@@ -335,16 +315,6 @@ class HolidayCalendarService {
     existing.updatedBy = actorId || null;
     await existing.save();
 
-    await AuditHelper.log({
-      action: boolStatus ? "HOLIDAY_CALENDAR_ACTIVATE" : "HOLIDAY_CALENDAR_DEACTIVATE",
-      actorId,
-      entityType: "HOLIDAY_CALENDAR",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: existing.toObject(),
-    });
-
     return existing;
   }
 
@@ -370,16 +340,6 @@ class HolidayCalendarService {
 
     const beforeState = existing.toObject();
     await HolidayCalendar.findByIdAndDelete(id);
-
-    await AuditHelper.log({
-      action: "HOLIDAY_CALENDAR_DELETE",
-      actorId,
-      entityType: "HOLIDAY_CALENDAR",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: null,
-    });
 
     return { _id: id, message: "Holiday calendar deleted successfully." };
   }

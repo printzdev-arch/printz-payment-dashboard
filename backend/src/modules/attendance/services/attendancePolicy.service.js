@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const AttendancePolicy = require("../models/AttendancePolicy");
 const DailyAttendance = require("../models/DailyAttendance");
 const Branch = require("../../branches/models/Branch");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 const { toNames } = require("../../../utils/helpers/weeklyOff.util");
 
@@ -237,16 +236,6 @@ class AttendancePolicyService {
 
     await this._syncBranchWeeklyOff(policy);
 
-    // Audit Logging
-    await AuditHelper.log({
-      action: "ATTENDANCE_POLICY_CREATE",
-      actorId,
-      entityType: "ATTENDANCE_POLICY",
-      entityId: policy._id,
-      branchId: policy.branchId,
-      after: policy.toObject(),
-    });
-
     return policy;
   }
 
@@ -419,16 +408,6 @@ class AttendancePolicyService {
     await existing.save();
     await this._syncBranchWeeklyOff(existing);
 
-    await AuditHelper.log({
-      action: "ATTENDANCE_POLICY_UPDATE",
-      actorId,
-      entityType: "ATTENDANCE_POLICY",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: existing.toObject(),
-    });
-
     return existing;
   }
 
@@ -474,16 +453,6 @@ class AttendancePolicyService {
     await existing.save();
     await this._syncBranchWeeklyOff(existing);
 
-    await AuditHelper.log({
-      action: boolStatus ? "ATTENDANCE_POLICY_ACTIVATE" : "ATTENDANCE_POLICY_DEACTIVATE",
-      actorId,
-      entityType: "ATTENDANCE_POLICY",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: existing.toObject(),
-    });
-
     return existing;
   }
 
@@ -523,16 +492,6 @@ class AttendancePolicyService {
 
     const beforeState = existing.toObject();
     await AttendancePolicy.findByIdAndDelete(id);
-
-    await AuditHelper.log({
-      action: "ATTENDANCE_POLICY_DELETE",
-      actorId,
-      entityType: "ATTENDANCE_POLICY",
-      entityId: existing._id,
-      branchId: existing.branchId,
-      before: beforeState,
-      after: null,
-    });
 
     return { _id: id, message: "Attendance policy deleted successfully." };
   }

@@ -216,7 +216,7 @@ module.exports = {
       post: {
         tags: ["Design & Proofing"],
         summary: "Start Design Work on Job",
-        description: "Transitions job stage to DESIGN_IN_PROGRESS and starts SLA tracking timer.",
+        description: "Transitions job stage to DESIGN_IN_PROGRESS.",
         operationId: "startJobDesign",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { $ref: "#/components/schemas/ObjectId" } }],

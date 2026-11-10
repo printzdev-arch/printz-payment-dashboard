@@ -161,11 +161,6 @@ export const designApi = {
     return res.data;
   },
 
-  submitDesignerRating: async (jobId, ratingData) => {
-    const res = await api.post(`/job-orders/${jobId}/designer-ratings`, ratingData);
-    return res.data;
-  },
-
   // ── General helpers ──
   getJobOrders: async (params = {}) => {
     const res = await api.get("/job-orders", { params });

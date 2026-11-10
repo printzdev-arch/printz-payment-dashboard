@@ -1,3 +1,5 @@
+const { sanitizePageAccess } = require("../../auth/constants/pageCatalog");
+
 class CreateEmployeeDto {
   constructor(data) {
     this.name = data.name;
@@ -11,6 +13,8 @@ class CreateEmployeeDto {
     this.reportingManagerId = data.reportingManagerId || null;
     this.defaultSalary = data.defaultSalary ? Number(data.defaultSalary) : null;
     this.bankDetails = data.bankDetails || null;
+    if (data.leavingDate) this.leavingDate = data.leavingDate;
+    if (data.pageAccess !== undefined && data.pageAccess !== null) this.pageAccess = sanitizePageAccess(data.pageAccess);
   }
 
   static fromRequest(req) {
@@ -30,8 +34,18 @@ class UpdateEmployeeDto {
     if (data.reportingManagerId !== undefined) this.reportingManagerId = data.reportingManagerId;
     if (data.defaultSalary !== undefined) this.defaultSalary = Number(data.defaultSalary);
     if (data.bankDetails !== undefined) this.bankDetails = data.bankDetails;
+    if (data.leavingDate !== undefined) this.leavingDate = data.leavingDate || null;
     if (data.employmentStatus !== undefined) this.employmentStatus = data.employmentStatus;
     if (data.isActive !== undefined) this.isActive = Boolean(data.isActive);
+    // { reason } records why a person has pages beyond their role's; null clears it
+    if (data.extraPages === null) this.extraPages = null;
+    else if (data.extraPages !== undefined) this.extraPages = { reason: String((data.extraPages && data.extraPages.reason) || "").trim() };
+    // { reason } records why a person on a no-login role may sign in; null clears it
+    if (data.loginException === null) this.loginException = null;
+    else if (data.loginException !== undefined) this.loginException = { reason: String((data.loginException && data.loginException.reason) || "").trim() };
+    // null puts the employee back on their role's pages
+    if (data.pageAccess === null) this.pageAccess = null;
+    else if (data.pageAccess !== undefined) this.pageAccess = sanitizePageAccess(data.pageAccess);
   }
 
   static fromRequest(req) {

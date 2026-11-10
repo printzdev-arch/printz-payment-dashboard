@@ -27,8 +27,12 @@ const getAuthContext = (req) => {
       ? req.authz.userBranchIds
       : userBranchIds;
 
+  // Only a true Super Admin (not the Admin role) may override locked attendance
+  const isSuperAdminOnly = Boolean(req.authz?.isSuperAdminOnly || roleNorm === "super_admin");
+
   return {
     isSuperAdmin,
+    isSuperAdminOnly,
     authorizedBranchIds: effectiveBranchIds,
     scopes: req.authz?.scopes || (isSuperAdmin ? ["ALL"] : ["BRANCH"]),
     userId: (user._id || user.id || "").toString(),

@@ -13,7 +13,6 @@ const {
 // Module 02: Common & Master Services
 const approvalRoutes = require("../modules/approvals/routes/approval.routes");
 const attachmentRoutes = require("../modules/attachments/routes/attachment.routes");
-const auditLogRoutes = require("../modules/audit-logs/routes/auditLog.routes");
 const numberSequenceRoutes = require("../modules/number-sequences/routes/numberSequence.routes");
 const branchRoutes = require("../modules/branches/routes/branch.routes");
 const generalRoutes = require("../modules/general/routes/general.routes");
@@ -64,18 +63,11 @@ const customerPortalRoutes = require("../modules/customer-portal/routes/customer
 
 // Module 10: Invoicing & Settlement
 const { invoiceRoutes, paymentRoutes } = require("../modules/invoices/routes");
+const deleteRequestRoutes = require("../modules/delete-requests/routes/deleteRequest.routes");
 const settlementRoutes = require("../modules/settlements/routes/settlement.routes");
 
 // Master Settings & Defaults
 const masterSettingRoutes = require("../modules/settings/routes/masterSetting.routes");
-
-// Module 09: SLA & Performance
-const {
-  slaConfigurationRoutes,
-  slaRoutes,
-  designerRatingRoutes,
-  designerPerformanceRoutes,
-} = require("../modules/sla/routes");
 
 // Module 11: HR Configuration & Daily Attendance
 const {
@@ -116,6 +108,7 @@ const MOUNTS = [
   [["/permissions"], permissionRoutes],
 
   // Common & master services
+  [["/delete-requests"], deleteRequestRoutes],
   [["/branches"], branchRoutes],
   [["/printers"], printerRoutes],
   [["/printer-readings"], printerReadingRoutes],
@@ -125,7 +118,6 @@ const MOUNTS = [
   [["/past-date-requests"], pastDateRequestRoutes],
   [["/reports"], reportRoutes],
   [["/general"], generalRoutes],
-  [["/audit-logs"], auditLogRoutes],
   [["/approvals"], approvalRoutes],
   [["/attachments"], attachmentRoutes],
   [["/number-sequences"], numberSequenceRoutes],
@@ -150,12 +142,6 @@ const MOUNTS = [
   // Job orders & design
   [["/job-orders", "/jobs"], jobOrderRoutes],
   [["/design"], designRoutes],
-
-  // SLA
-  [["/sla-configurations"], slaConfigurationRoutes],
-  [["/sla"], slaRoutes],
-  [["/designer-ratings"], designerRatingRoutes],
-  [["/designers"], designerPerformanceRoutes],
 
   // Production & delivery
   [["/production-orders"], productionOrdersRoutes],

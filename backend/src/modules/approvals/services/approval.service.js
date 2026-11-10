@@ -1,6 +1,5 @@
 const approvalRepository = require("../models/Approval");
 const numberSequenceService = require("../../number-sequences/services/numberSequence.service");
-const auditLogService = require("../../audit-logs/services/auditLog.service");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
 class ApprovalService {
@@ -27,15 +26,6 @@ class ApprovalService {
       comments,
       status: "PENDING",
       requestedAt: new Date(),
-    });
-
-    await auditLogService.log({
-      actorId: requestedBy,
-      action: "CREATE",
-      entityType: "APPROVAL",
-      entityId: approval._id,
-      after: approval.toObject ? approval.toObject() : approval,
-      branchId,
     });
 
     return approval;
@@ -156,17 +146,6 @@ class ApprovalService {
       comments: comments || approval.comments,
     });
 
-    await auditLogService.log({
-      actorId: approverId || authContext.user?._id,
-      actorName: authContext.user?.name,
-      action: "APPROVE",
-      entityType: "APPROVAL",
-      entityId: id,
-      before: beforeState,
-      after: updated,
-      branchId: approval.branchId?._id || approval.branchId,
-    });
-
     return updated;
   }
 
@@ -187,17 +166,6 @@ class ApprovalService {
       approverId: approverId || authContext.user?._id,
       decidedAt: new Date(),
       comments: comments || approval.comments,
-    });
-
-    await auditLogService.log({
-      actorId: approverId || authContext.user?._id,
-      actorName: authContext.user?.name,
-      action: "REJECT",
-      entityType: "APPROVAL",
-      entityId: id,
-      before: beforeState,
-      after: updated,
-      branchId: approval.branchId?._id || approval.branchId,
     });
 
     return updated;
@@ -226,17 +194,6 @@ class ApprovalService {
       approverId: callerId,
       decidedAt: new Date(),
       comments: comments || "Cancelled by requester",
-    });
-
-    await auditLogService.log({
-      actorId: callerId,
-      actorName: authContext.user?.name,
-      action: "CANCEL",
-      entityType: "APPROVAL",
-      entityId: id,
-      before: beforeState,
-      after: updated,
-      branchId: approval.branchId?._id || approval.branchId,
     });
 
     return updated;

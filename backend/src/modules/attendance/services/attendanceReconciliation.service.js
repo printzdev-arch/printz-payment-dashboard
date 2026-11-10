@@ -9,7 +9,6 @@ const dailyAttendanceService = require("./dailyAttendance.service");
 const attendanceEmployeeSyncHelper = require("./attendanceEmployeeSync.helper");
 const employeeShiftService = require("../../employee-shift/services/employeeShift.service");
 const attendanceDateUtils = require("../../../utils/helpers/attendanceDateUtils");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 
 class AttendanceReconciliationService {
@@ -406,25 +405,6 @@ class AttendanceReconciliationService {
         }
       }
     }
-
-    // Audit Log for reconciliation event
-    await AuditHelper.log({
-      action: "ATTENDANCE_RECONCILE",
-      actorId,
-      actorRole: authContext.role || null,
-      userRole: authContext.role || null,
-      entityType: "ATTENDANCE_RECONCILIATION",
-      entityId: new mongoose.Types.ObjectId(),
-      branchId,
-      after: {
-        branchId,
-        attendanceDate,
-        createdCount: results.createdCount,
-        skippedCount: results.skippedCount,
-        failedCount: results.failedCount,
-        autoFillAbsent,
-      },
-    });
 
     return results;
   }

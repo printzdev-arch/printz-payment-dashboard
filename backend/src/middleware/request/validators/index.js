@@ -13,7 +13,6 @@ const posValidators = require("../../../modules/pos/routes/validators");
 const productionValidators = require("../../../modules/production/routes/production.validator");
 const publicValidators = require("../../../modules/public/routes/validators");
 const settlementValidators = require("../../../modules/settlements/routes/settlement.validator");
-const slaValidators = require("../../../modules/sla/routes/sla.validator");
 
 module.exports = {
   ...authValidators,
@@ -28,5 +27,4 @@ module.exports = {
   ...productionValidators,
   ...publicValidators,
   ...settlementValidators,
-  ...slaValidators,
 };

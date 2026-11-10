@@ -51,11 +51,6 @@ export const salaryApi = {
     return res.data;
   },
 
-  getRunAudit: async (id) => {
-    const res = await api.get(`/salary/runs/${id}/audit`);
-    return res.data;
-  },
-
   calculateRun: async (id) => {
     const res = await api.post(`/salary/runs/${id}/calculate`);
     return res.data;
@@ -68,6 +63,12 @@ export const salaryApi = {
 
   payRun: async (id) => {
     const res = await api.post(`/salary/runs/${id}/pay`);
+    return res.data;
+  },
+
+  // Super Admin only: sends an approved (not yet paid) run back to calculated; a reason is required
+  reopenRun: async (id, reason) => {
+    const res = await api.post(`/salary/runs/${id}/reopen`, { reason });
     return res.data;
   },
 

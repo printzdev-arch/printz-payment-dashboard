@@ -4,7 +4,6 @@ const Invoice = require("../../invoices/models/Invoice");
 const JobWorkflowEvent = require("../../job-orders/models/JobWorkflowEvent");
 const ReprintRequest = require("../../production/models/ReprintRequest");
 const paymentRepository = require("../../invoices/models/Payment");
-const auditLogService = require("../../audit-logs/services/auditLog.service");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 const { INVOICE_STATUS } = require("../../invoices/models/invoice.constants");
 const { formatISTDateTime } = require("../../../utils/helpers/dateUtils");
@@ -140,22 +139,6 @@ class JobClosureService {
       },
     });
 
-    // 7. Common Audit Log
-    await auditLogService.log({
-      action: "JOB_CLOSE",
-      resource: "JobOrder",
-      resourceId: job._id,
-      userId: user._id || user.id,
-      userName: user.name || user.username || "System",
-      branchId: job.branchId,
-      details: {
-        jobNo: job.jobNo,
-        closureStatus: "CLOSED",
-        closedAt: job.closedAt,
-        remarks: job.closureRemarks,
-      },
-    });
-
     return {
       id: job._id,
       jobNo: job.jobNo,
@@ -256,20 +239,6 @@ class JobClosureService {
       details: {
         previousClosedAt,
         reopenedAt: new Date(),
-        reason: reason.trim(),
-      },
-    });
-
-    await auditLogService.log({
-      action: "JOB_REOPEN",
-      resource: "JobOrder",
-      resourceId: job._id,
-      userId: user._id || user.id,
-      userName: user.name || user.username || "System",
-      branchId: job.branchId,
-      details: {
-        jobNo: job.jobNo,
-        closureStatus: "OPEN",
         reason: reason.trim(),
       },
     });

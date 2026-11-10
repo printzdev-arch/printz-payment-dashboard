@@ -5,13 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "node scripts/test-pos-rbac-connection.js && node scripts/test-api-http.js",
-    "docs:verify": "node scripts/verifySwagger.js",
-    "init-db": "node scripts/initDatabase.js",
-    "seed:designers": "node scripts/seedDesigners.js",
-    "seed:all": "node scripts/seedAllCollections.js",
-    "seed:rbac": "node scripts/seed-rbac.js"
+    "dev": "nodemon src/server.js"
   },
   "keywords": [
     "express",

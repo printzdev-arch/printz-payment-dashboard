@@ -13,7 +13,6 @@ const EmployeeBranchAssignment = require("./employees/models/EmployeeBranchAssig
 // common
 const Approval = require("./approvals/models/Approval");
 const Attachment = require("./attachments/models/Attachment");
-const AuditLog = require("./audit-logs/models/AuditLog");
 const NumberSequence = require("./number-sequences/models/NumberSequence");
 const Branch = require("./branches/models/Branch");
 const Category = require("./categories/models/Category");
@@ -83,10 +82,6 @@ const ProductionState = require("./production/models/ProductionState");
 const QualityCheck = require("./production/models/QualityCheck");
 const ReprintRequest = require("./production/models/ReprintRequest");
 
-// sla
-const DesignerRating = require("./sla/models/DesignerRating");
-const SlaConfiguration = require("./sla/models/SlaConfiguration");
-
 // saleOrder (Branch -> Manufacturing Unit)
 const saleOrderModels = require("./sale-orders/models");
 
@@ -101,7 +96,6 @@ module.exports = {
   // common
   Approval,
   Attachment,
-  AuditLog,
   NumberSequence,
   Branch,
   Category,
@@ -161,9 +155,6 @@ module.exports = {
   ProductionState,
   QualityCheck,
   ReprintRequest,
-  // sla
-  DesignerRating,
-  SlaConfiguration,
   // settings
   MasterSetting: require("./settings/models/MasterSetting"),
   MasterDefault: require("./settings/models/MasterDefault"),

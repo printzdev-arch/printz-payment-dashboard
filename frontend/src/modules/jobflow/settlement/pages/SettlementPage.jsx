@@ -4,7 +4,6 @@ import {
   Receipt,
   CheckCircle,
   Clock,
-  Star,
   FileText,
   CreditCard,
   Lock,
@@ -33,7 +32,6 @@ import "../styles/settlement.css";
 import InvoiceGeneratorModal from "../components/InvoiceGeneratorModal";
 import CashierSettlementModal from "../components/CashierSettlementModal";
 import JobClosureModal from "../components/JobClosureModal";
-import CustomerFeedbackModal from "../components/CustomerFeedbackModal";
 
 export const SettlementPage = () => {
   const navigate = useNavigate();
@@ -89,7 +87,6 @@ export const SettlementPage = () => {
   const [selectedJobForInvoice, setSelectedJobForInvoice] = useState(null);
   const [selectedInvoiceForCashier, setSelectedInvoiceForCashier] = useState(null);
   const [selectedJobForClosure, setSelectedJobForClosure] = useState(null);
-  const [selectedJobForFeedback, setSelectedJobForFeedback] = useState(null);
 
   useEffect(() => {
     loadAllSettlementData();
@@ -586,14 +583,6 @@ export const SettlementPage = () => {
                           <div style={{ display: "inline-flex", gap: "0.4rem" }}>
                             <button
                               type="button"
-                              className="jf-btn jf-btn-secondary jf-btn-sm"
-                              onClick={() => setSelectedJobForFeedback({ id: job._id, jobNo: job.jobNo })}
-                              title="Collect 5-Star Feedback & Designer Rating"
-                            >
-                              <Star size={13} style={{ color: "#eab308" }} /> Rating
-                            </button>
-                            <button
-                              type="button"
                               className="jf-btn jf-btn-primary jf-btn-sm"
                               onClick={() => setSelectedJobForClosure(job._id)}
                               style={{ background: job.closureStatus === "CLOSED" ? "#334155" : "#0f172a", borderColor: "#0f172a" }}
@@ -637,16 +626,6 @@ export const SettlementPage = () => {
         onClose={() => setSelectedJobForClosure(null)}
         jobId={selectedJobForClosure}
         onClosed={() => {
-          loadAllSettlementData();
-        }}
-      />
-
-      <CustomerFeedbackModal
-        isOpen={Boolean(selectedJobForFeedback)}
-        onClose={() => setSelectedJobForFeedback(null)}
-        jobId={selectedJobForFeedback?.id}
-        jobNo={selectedJobForFeedback?.jobNo}
-        onFeedbackSaved={() => {
           loadAllSettlementData();
         }}
       />

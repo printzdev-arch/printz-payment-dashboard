@@ -3,7 +3,6 @@ const router = express.Router();
 
 const SettlementController = require("../controllers/settlement.controller");
 const JobClosureController = require("../controllers/jobClosure.controller");
-const CustomerFeedbackController = require("../controllers/customerFeedback.controller");
 const SettlementReportController = require("../controllers/settlementReport.controller");
 
 const { authenticate } = require("../../../middleware/security/auth.middleware");
@@ -14,7 +13,6 @@ const {
   createReminderValidator,
   closeJobValidator,
   reopenJobValidator,
-  feedbackValidator,
 } = require("./settlement.validator");
 
 router.use(authenticate);
@@ -99,18 +97,6 @@ router.post(
   JobClosureController.reopenJob
 );
 
-// ── Customer Feedback & Ratings ──
-router.post(
-  "/job-orders/:id/feedback",
-  feedbackValidator,
-  CustomerFeedbackController.submitFeedback
-);
-
-router.get(
-  "/job-orders/:id/feedback",
-  CustomerFeedbackController.getJobFeedback
-);
-
 // ── Settlement Reports ──
 router.get(
   "/reports/collection-summary",
@@ -122,18 +108,6 @@ router.get(
   "/reports/aging",
   authorizePermission("report", "read"),
   SettlementReportController.getInvoiceAgingReport
-);
-
-router.get(
-  "/reports/turnaround-sla",
-  authorizePermission("report", "read"),
-  SettlementReportController.getTurnaroundSlaReport
-);
-
-router.get(
-  "/reports/designer-ratings",
-  authorizePermission("report", "read"),
-  CustomerFeedbackController.getDesignerRatingsSummary
 );
 
 module.exports = router;

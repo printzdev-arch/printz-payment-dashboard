@@ -9,7 +9,6 @@ const attendancePolicyService = require("./attendancePolicy.service");
 const holidayCalendarService = require("./holidayCalendar.service");
 const AttendanceCalculationService = require("./attendanceCalculation.service");
 const attendanceDateUtils = require("../../../utils/helpers/attendanceDateUtils");
-const AuditHelper = require("../../audit-logs/services/AuditHelper");
 const ApiError = require("../../../utils/errors/ApiError");
 
 // In-process lock per employee to guarantee atomic balance deduction and prevent concurrent over-allocation
@@ -378,16 +377,6 @@ class AttendancePermissionService {
       // Synchronize immediately to Daily Attendance if record exists
       await this.syncPermissionsToDailyAttendance(employeeId, permissionDate, actorId, policy);
 
-      await AuditHelper.log({
-        action: "ATTENDANCE_PERMISSION_CREATE",
-        actorId,
-        entityType: "ATTENDANCE_PERMISSION",
-        entityId: permission._id,
-        branchId: empBranchId,
-        before: null,
-        after: permission.toObject(),
-      });
-
       return permission;
     });
   }
@@ -747,16 +736,6 @@ class AttendancePermissionService {
         await this.syncPermissionsToDailyAttendance(employeeId, previousDate, actorId, policy);
       }
 
-      await AuditHelper.log({
-        action: "ATTENDANCE_PERMISSION_UPDATE",
-        actorId,
-        entityType: "ATTENDANCE_PERMISSION",
-        entityId: permission._id,
-        branchId: permission.branchId,
-        before: beforeState,
-        after: permission.toObject(),
-      });
-
       return permission;
     });
   }
@@ -807,16 +786,6 @@ class AttendancePermissionService {
 
       // Synchronize daily attendance permissions with remaining approved permissions
       await this.syncPermissionsToDailyAttendance(employeeId, permission.permissionDate, actorId, policy);
-
-      await AuditHelper.log({
-        action: "ATTENDANCE_PERMISSION_DELETE",
-        actorId,
-        entityType: "ATTENDANCE_PERMISSION",
-        entityId: permission._id,
-        branchId: permission.branchId,
-        before: beforeState,
-        after: permission.toObject(),
-      });
 
       return {
         message: "Permission entry deleted successfully and allowance restored.",

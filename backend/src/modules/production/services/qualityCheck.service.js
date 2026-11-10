@@ -344,15 +344,6 @@ class QualityCheckService {
       remarks: comments || "QC Passed",
     }).catch((err) => console.error("[QC] Job approval record failed:", err.message));
 
-    await ProductionStateService.logAudit({
-      action: "QC_PASS",
-      resource: "QualityCheck",
-      resourceId: qualityCheck._id,
-      user,
-      branchId: order.branchId,
-      details: { result, acceptedQty: accepted, rejectedQty: rejected },
-    });
-
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: order.jobOrderId,
       productionOrderId: order._id,
@@ -501,15 +492,6 @@ class QualityCheckService {
       decidedAt: new Date(),
       remarks: reason,
     }).catch((err) => console.error("[QC] Job approval record failed:", err.message));
-
-    await ProductionStateService.logAudit({
-      action: "QC_ISSUE",
-      resource: "QualityCheck",
-      resourceId: qualityCheck._id,
-      user,
-      branchId: order.branchId,
-      details: { correctiveAction: action, acceptedQty: accepted, rejectedQty: rejected, defects },
-    });
 
     await ProductionStateService.dispatchWorkflowEvent({
       jobOrderId: order.jobOrderId,

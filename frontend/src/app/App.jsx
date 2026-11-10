@@ -22,6 +22,7 @@ import {
   DesignerDashboard as DesignerDashboardPage,
 } from "../modules/dashboard";
 import PastDateRequests from "../modules/admin/pages/requests/PastDateRequests.jsx";
+import DeleteRequests from "../modules/admin/pages/requests/DeleteRequests.jsx";
 import AddPrinterManagerPage from "../modules/inventory/pages/printers/manager/AddPrinterManager.jsx";
 import MovePrinterManagerPage from "../modules/inventory/pages/printers/manager/MovePrinterManager.jsx";
 import PrinterListPage from "../modules/inventory/pages/printers/admin/PrinterList.jsx";
@@ -64,7 +65,6 @@ import SalesInvoice from "../modules/inventory/pages/revenue/manager/SalesInvoic
 
 // PrintZ Feature Modules: JobFlow and POS
 import {
-  JobFlowDashboard,
   CustomersPage,
   CustomerViewPage,
   JobOrdersPage,
@@ -104,7 +104,7 @@ import {
   SalaryRecordsPage,
 } from "../modules/hr/salary";
 
-import { EmployeesPage } from "../modules/hr/employees";
+import { EmployeesPage, RoleManagementPage, RoleSetupPage } from "../modules/hr/employees";
 
 import {
   SaleOrdersListPage,
@@ -133,6 +133,7 @@ const pageTitleMapping = {
   "/admin-dashboard": "Admin Dashboard",
   "/manager-dashboard": "Manager Dashboard",
   "/pastDateRequests": "Past Date Requests",
+  "/delete-requests": "Delete Requests",
   "/add-printer-manager": "Add Printer Manager",
   "/move-printer-manager": "Move Printer Manager",
   "/printer-list": "Printer List",
@@ -152,7 +153,6 @@ const pageTitleMapping = {
   "/export-data": "Export Data",
   "/jumbo-xerox-csv-verifier": "Jumbo Xerox CSV Verifier",
   "/sales-invoice": "Sales Invoice",
-  "/jobflow": "JobFlow Overview",
   "/jobflow/customers": "Customer Master",
   "/customers": "Customer Master",
   "/v3/customers": "Customer Master",
@@ -194,6 +194,8 @@ const pageTitleMapping = {
   "/jobflow/master-settings": "Master Defaults & Specifications",
   "/master-settings": "Master Defaults & Specifications",
   "/employees": "Employees",
+  "/employees/roles": "Role Management",
+  "/employees/role-setup": "Role Setup",
   "/attendance": "Daily Attendance",
   "/attendance/setup": "Attendance Setup",
   "/attendance/daily": "Daily Attendance",
@@ -305,9 +307,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <ExportData />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -331,9 +333,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <InventoryTracking />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -358,9 +360,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <PastDateRequests />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -384,9 +386,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <PreviousBalanceList />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -397,9 +399,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <AdminDailyReadingsRevenue />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -410,9 +412,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <AdminStockReadingsRevenue />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -423,9 +425,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "manager"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <AddPrinterManagerPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -436,9 +438,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "manager"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <MovePrinterManagerPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -449,9 +451,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "manager"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <AddStockManagerPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -462,9 +464,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "manager"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <MoveStockManagerPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -488,9 +490,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "manager"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <AddBranchPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -501,9 +503,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <PrinterListPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -514,9 +516,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <StockListPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -540,9 +542,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["designer", "admin", "manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignerDashboardPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -570,9 +572,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <PrinterListManagerPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -583,9 +585,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <JumboXeroxPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -596,9 +598,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <DisplayPrinterReadingsAdminPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -613,9 +615,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DisplayPrinterReadingsManagerPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -639,9 +641,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <JumboXeroxListAdminPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -665,9 +667,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <TotalAmountListAdminPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -678,9 +680,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <TotalAmountListManagerPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -700,9 +702,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <SearchStockListAdmin />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -713,9 +715,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <SearchStockListManager />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -726,9 +728,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <StockListManagerPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -739,9 +741,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <PdfGenerator />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -763,20 +765,8 @@ const AppContent = () => {
         {/* ========================================================= */}
         {/* PrintZ JobFlow Enterprise Workflow Routes                */}
         {/* ========================================================= */}
-        {/* 1. JobFlow Overview Dashboard */}
-        <Route
-          path="/jobflow"
-          element={
-            <PrivateRoute
-              roles={["manager", "admin"]}
-              component={() => (
-                <ManagerLayout>
-                  <JobFlowDashboard />
-                </ManagerLayout>
-              )}
-            />
-          }
-        />
+        {/* The old JobFlow Overview page is gone: send old links to Job Orders */}
+        <Route path="/jobflow" element={<Navigate to="/jobs" replace />} />
 
         {/* POS Counter Billing & Sales Receipts */}
         <Route path="/v3/sales-pos" element={<Navigate to="/pos" replace />} />
@@ -841,9 +831,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CustomersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -854,9 +844,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CustomersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -867,9 +857,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CustomersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -880,9 +870,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CustomerViewPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -895,9 +885,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <JobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -908,9 +898,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <JobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -921,9 +911,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <JobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -934,9 +924,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <JobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -948,9 +938,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignerJobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -961,9 +951,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignerJobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -974,9 +964,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignerJobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -987,9 +977,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignerJobOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1000,9 +990,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CreateJobOrderPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1013,9 +1003,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CreateJobOrderPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1026,9 +1016,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CreateJobOrderPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1039,9 +1029,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <CreateJobOrderPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1054,9 +1044,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <EstimationPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1067,9 +1057,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <EstimationPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1080,9 +1070,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <EstimationPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1093,9 +1083,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <EstimationPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1106,9 +1096,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <EstimationPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1121,9 +1111,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignWorkflowPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1134,9 +1124,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignWorkflowPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1147,9 +1137,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignWorkflowPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1160,9 +1150,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignWorkflowPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1173,9 +1163,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignWorkflowPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1186,9 +1176,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "designer"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DesignWorkflowPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1201,9 +1191,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ProductionOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1214,9 +1204,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ProductionOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1235,9 +1225,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ProductionPlanningPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1264,9 +1254,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ProductionOrdersPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1277,9 +1267,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <OperationQueuePage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1298,9 +1288,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ReprintBatchesPage initialTab="REWORK" />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1311,9 +1301,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ReprintBatchesPage initialTab="REPRINT" />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1328,9 +1318,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <OperatorsPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1341,9 +1331,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <ProductionReportsPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1356,9 +1346,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <QualityControlPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1369,9 +1359,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <QualityControlPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1382,9 +1372,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <QualityControlPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1395,9 +1385,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin", "qc_inspector", "quality_inspector", "production_manager", "operator", "staff"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <QualityControlPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1410,9 +1400,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DeliveryPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1423,9 +1413,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <DeliveryPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1438,9 +1428,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <InvoicePage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1451,9 +1441,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <InvoicePage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1464,9 +1454,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <InvoicePage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1479,9 +1469,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <SettlementPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1492,9 +1482,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["manager", "admin"]}
               component={() => (
-                <ManagerLayout>
+                <LayoutWrapper>
                   <SettlementPage />
-                </ManagerLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1510,7 +1500,7 @@ const AppContent = () => {
           path="/jobflow/master-settings"
           element={
             <PrivateRoute
-              roles={["manager", "admin", "super_admin"]}
+              roles={["admin", "super_admin"]}
               component={() => (
                 <LayoutWrapper>
                   <MasterSettingsPage />
@@ -1523,7 +1513,7 @@ const AppContent = () => {
           path="/master-settings"
           element={
             <PrivateRoute
-              roles={["manager", "admin", "super_admin"]}
+              roles={["admin", "super_admin"]}
               component={() => (
                 <LayoutWrapper>
                   <MasterSettingsPage />
@@ -1543,9 +1533,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "super_admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <AttendanceSetupPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1569,9 +1559,9 @@ const AppContent = () => {
             <PrivateRoute
               roles={["admin", "super_admin"]}
               component={() => (
-                <AdminLayout>
+                <LayoutWrapper>
                   <BranchShiftsPage />
-                </AdminLayout>
+                </LayoutWrapper>
               )}
             />
           }
@@ -1618,6 +1608,46 @@ const AppContent = () => {
           }
         />
 
+        <Route
+          path="/delete-requests"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              component={() => (
+                <LayoutWrapper>
+                  <DeleteRequests />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/employees/role-setup"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <RoleSetupPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/employees/roles"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <RoleManagementPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+
         {/* ========================================================= */}
         {/* PrintZ Salary & Payroll Module Routes                     */}
         {/* ========================================================= */}
@@ -1626,7 +1656,7 @@ const AppContent = () => {
           path="/salary/setup"
           element={
             <PrivateRoute
-              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              roles={["admin", "super_admin"]}
               component={() => (
                 <LayoutWrapper>
                   <SalarySetupPage />

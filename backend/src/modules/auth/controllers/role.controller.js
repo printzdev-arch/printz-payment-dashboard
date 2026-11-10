@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const Role = require("../models/Role");
 const Permission = require("../models/Permission");
-const auditService = require("../../../utils/integrations/AuditService");
 const PERMISSIONS = require("../../../utils/constants/permissions");
+const { publicCatalog, sanitizePageAccess } = require("../constants/pageCatalog");
 const { asyncHandler, ResponseHelper, ErrorHelper } = require("../../../utils");
 
 /**
@@ -83,6 +83,12 @@ const validateGrantDelegation = async (actingUser, grantsToAssign) => {
 const getRoles = asyncHandler(async (req, res) => {
   const roles = await Role.find({}).sort({ isSystem: -1, code: 1 }).lean();
   return ResponseHelper.success(res, roles, "Roles retrieved successfully.");
+});
+
+// Menu items that can be ticked in Role Management, grouped for display
+const getPageCatalog = asyncHandler(async (req, res) => {
+  const groups = publicCatalog();
+  return ResponseHelper.success(res, groups, "Page catalogue retrieved successfully.");
 });
 
 const getRolesMatrix = asyncHandler(async (req, res) => {
@@ -216,29 +222,26 @@ const createRole = asyncHandler(async (req, res) => {
     await validateGrantDelegation(actingUser, dto.grants);
   }
 
+  // "Can sign in" is explicit: a role that cannot sign in has no pages; one that can needs at least one
+  const loginAllowed = dto.loginAllowed === undefined ? undefined : Boolean(dto.loginAllowed);
+  let pageAccess = sanitizePageAccess(dto.pageAccess);
+  if (loginAllowed === false) pageAccess = [];
+  if (loginAllowed === true && pageAccess.length === 0) {
+    throw ErrorHelper.badRequest("Tick at least one page for a role that can sign in.");
+  }
+
   const role = new Role({
     code,
     name: dto.name.trim(),
     description: dto.description || "",
     grants: dto.grants || [],
+    pageAccess,
+    ...(loginAllowed === undefined ? {} : { loginAllowed }),
     isSystem: Boolean(dto.isSystem),
     isActive: true,
   });
 
   await role.save();
-
-  await auditService.log({
-    event: "ROLE_CREATED",
-    action: "role.created",
-    userId: actingUser?._id,
-    userEmail: actingUser?.email,
-    resourceType: "Role",
-    resourceId: role._id,
-    afterState: role.toObject(),
-    ipAddress: requestContext.ip,
-    userAgent: requestContext.userAgent,
-    status: "SUCCESS",
-  });
 
   return ResponseHelper.created(res, role, "Role created successfully.");
 });
@@ -270,24 +273,34 @@ const updateRole = asyncHandler(async (req, res) => {
     role.grants = dto.grants;
   }
 
+  // The Admin roles always sign in; for every other role the setting is explicit
+  if (dto.loginAllowed !== undefined && !(["SUPER_ADMIN", "ADMIN"].includes(role.code))) {
+    const allowed = Boolean(dto.loginAllowed);
+    const nextPages = allowed
+      ? sanitizePageAccess(dto.pageAccess !== undefined ? dto.pageAccess : role.pageAccess)
+      : [];
+    if (allowed && nextPages.length === 0) {
+      throw ErrorHelper.badRequest("Tick at least one page for a role that can sign in.");
+    }
+    role.loginAllowed = allowed;
+    role.pageAccess = nextPages;
+    dto.pageAccess = undefined; // already applied above
+  }
+
+  if (dto.pageAccess !== undefined) {
+    // Super Admin always has every page. Admin may be limited but always keeps Employees so Role Management stays reachable
+    if (role.code === "SUPER_ADMIN") {
+      throw ErrorHelper.forbidden("Super Admin always has every page and cannot be limited.");
+    }
+    const pages = sanitizePageAccess(dto.pageAccess);
+    if (role.code === "ADMIN" && !pages.includes("employees")) pages.push("employees");
+    role.pageAccess = pages;
+  }
   if (dto.name !== undefined) role.name = dto.name.trim();
   if (dto.description !== undefined) role.description = dto.description;
   if (dto.isActive !== undefined) role.isActive = Boolean(dto.isActive);
 
   await role.save();
-
-  await auditService.log({
-    event: "ROLE_UPDATED",
-    action: "role.updated",
-    userId: actingUser?._id,
-    userEmail: actingUser?.email,
-    resourceType: "Role",
-    resourceId: role._id,
-    afterState: role.toObject(),
-    ipAddress: requestContext.ip,
-    userAgent: requestContext.userAgent,
-    status: "SUCCESS",
-  });
 
   return ResponseHelper.success(res, role, "Role updated successfully.");
 });
@@ -305,6 +318,16 @@ const deleteRole = asyncHandler(async (req, res) => {
 
   if (role.isSystem) {
     throw ErrorHelper.forbidden("Built-in system roles cannot be deleted.");
+  }
+  if (["SUPER_ADMIN", "ADMIN"].includes(role.code)) {
+    throw ErrorHelper.forbidden("The Admin roles cannot be deleted.");
+  }
+
+  // An employee without a role could not sign in, so a role in use must be reassigned first
+  const Employee = require("../../employees/models/Employee");
+  const inUse = await Employee.countDocuments({ roleId: role._id });
+  if (inUse > 0) {
+    throw ErrorHelper.conflict(`${inUse} employee${inUse === 1 ? " is" : "s are"} still using this role. Change their role first.`);
   }
 
   await Role.findByIdAndDelete(id);
@@ -335,6 +358,7 @@ const deactivateRole = asyncHandler(async (req, res) => {
 module.exports = {
   getRoles,
   getRolesMatrix,
+  getPageCatalog,
   getPermissionsCatalogue,
   getRoleById,
   createRole,
