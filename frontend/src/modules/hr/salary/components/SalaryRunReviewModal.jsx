@@ -294,7 +294,6 @@ export default function SalaryRunReviewModal({
               <table className="salary-table">
                 <thead>
                   <tr>
-                    <th>#</th>
                     <th>Employee</th>
                     <th>Monthly Salary</th>
                     <th>Working Days</th>
@@ -315,13 +314,13 @@ export default function SalaryRunReviewModal({
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={16} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                      <td colSpan={15} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
                         Loading employee records...
                       </td>
                     </tr>
                   ) : records.length === 0 ? (
                     <tr>
-                      <td colSpan={16} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                      <td colSpan={15} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
                         No employee calculations recorded yet. Click <strong>"Calculate Payroll"</strong> below to generate breakdown.
                       </td>
                     </tr>
@@ -335,7 +334,6 @@ export default function SalaryRunReviewModal({
                           title="View salary breakdown"
                           onClick={() => setSelectedRecord(rec)}
                         >
-                          <td>{index + 1}</td>
                           <td>
                             <strong>{emp.name || "—"}</strong>
                             <div style={{ fontSize: "11px", color: "#475569" }}>{emp.employeeCode || ""}</div>

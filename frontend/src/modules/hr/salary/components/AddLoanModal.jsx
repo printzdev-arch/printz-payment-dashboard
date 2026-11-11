@@ -167,6 +167,21 @@ export default function AddLoanModal({
             <div className="salary-form-grid full" style={{ gap: "16px" }}>
               <div className="salary-form-grid">
                 <div className="salary-form-group">
+                  <label>Branch</label>
+                  <select
+                    className="salary-form-select"
+                    value={formData.branchId}
+                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, employeeId: "" })}
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="salary-form-group">
                   <label>Employee <span className="req">*</span></label>
                   <select
                     className="salary-form-select"
@@ -187,23 +202,8 @@ export default function AddLoanModal({
                     ))}
                   </select>
                 </div>
-
-                <div className="salary-form-group">
-                  <label>Branch</label>
-                  <select
-                    className="salary-form-select"
-                    value={formData.branchId}
-                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, employeeId: "" })}
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
+              
 
               <div className="salary-form-grid">
                 <div className="salary-form-group">

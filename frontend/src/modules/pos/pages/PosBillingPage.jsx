@@ -68,7 +68,6 @@ export const PosBillingPage = () => {
     CARD: 0,
     BANK: 0,
   });
-  const [amountTendered, setAmountTendered] = useState("");
   const [remarks, setRemarks] = useState("");
 
   // Customer state
@@ -318,7 +317,6 @@ export const PosBillingPage = () => {
     setDiscountAmount(0);
     setGstRate(18);
     setIsDiscountApproved(false);
-    setAmountTendered("");
     setRemarks("");
     setSplitPayments({ CASH: 0, UPI: 0, CARD: 0, BANK: 0 });
   };
@@ -347,24 +345,15 @@ export const PosBillingPage = () => {
     return disc > 500 || (subtotal > 0 && (disc / subtotal) > 0.15);
   }, [subtotal, discountAmount]);
 
-  // Change Due (for CASH mode)
-  const changeDue = useMemo(() => {
-    const paid = Number(amountTendered);
-    if (!paid || paid <= grandTotal) return 0;
-    return Math.round((paid - grandTotal) * 100) / 100;
-  }, [amountTendered, grandTotal]);
-
-  // Quick tender amount buttons
-  const setQuickTender = (val) => {
-    if (val === "EXACT") setAmountTendered(String(grandTotal));
-    else setAmountTendered(String(val));
-  };
-
   // ── STEP 1: Quick Customer Creation ──
   const handleQuickCreateCustomer = async (e) => {
     e.preventDefault();
     if (!newCustName.trim() || !newCustMobile.trim()) {
       toast.warning("Customer Name and Mobile number are required");
+      return;
+    }
+    if (newCustMobile.replace(/D/g, "").length !== 10) {
+      toast.warning("Please enter a valid 10-digit mobile number");
       return;
     }
     setCreatingCustomer(true);
@@ -488,7 +477,7 @@ export const PosBillingPage = () => {
         return;
       }
       const cleanPhone = customerMobile.replace(/\D/g, "");
-      if (cleanPhone.length < 10) {
+      if (cleanPhone.length !== 10) {
         toast.error("Please enter a valid 10-digit mobile number");
         return;
       }
@@ -532,15 +521,11 @@ export const PosBillingPage = () => {
     const calculatedAmountPaid =
       paymentMode === "CREDIT"
         ? 0
-        : paymentMode === "CASH"
-        ? (amountTendered !== "" ? Math.min(Number(amountTendered), grandTotal) : grandTotal)
         : grandTotal;
 
     const calculatedBalanceDue =
       paymentMode === "CREDIT"
         ? grandTotal
-        : paymentMode === "CASH" && amountTendered !== "" && Number(amountTendered) < grandTotal
-        ? grandTotal - Number(amountTendered)
         : 0;
 
     // Credit limit warning
@@ -550,6 +535,17 @@ export const PosBillingPage = () => {
         toast.warning(`Notice: Balance ₹${projectedBal.toFixed(2)} exceeds customer credit limit (₹${selectedCustomerProfile.creditLimit})`);
       }
     }
+
+    // The server only applies discounts per line, so the bill discount is split across the lines
+    // in proportion to their amounts (the last line takes the rounding remainder).
+    const billDiscount = Math.min(Number(discountAmount) || 0, subtotal);
+    let discountLeft = Math.round(billDiscount * 100) / 100;
+    const lineDiscounts = cart.map((it, i) => {
+      if (i === cart.length - 1) return discountLeft;
+      const share = subtotal > 0 ? Math.round(((it.quantity * it.unitPrice) / subtotal) * billDiscount * 100) / 100 : 0;
+      discountLeft = Math.round((discountLeft - share) * 100) / 100;
+      return share;
+    });
 
     setCheckingOut(true);
     try {
@@ -564,11 +560,13 @@ export const PosBillingPage = () => {
           gstin: customerGstin || undefined,
           customerCode: selectedCustomerProfile?.customerCode || undefined,
         },
-        items: cart.map((it) => ({
+        items: cart.map((it, i) => ({
           productId: it.productId,
           quantity: it.quantity,
           unitPrice: it.unitPrice,
-          taxRate: gstRate > 0 ? Number(gstRate) : (it.taxRate || 0),
+          discount: lineDiscounts[i],
+          // The selected GST rate always applies, including 0%
+          taxRate: Number(gstRate) || 0,
           wastageQuantity: Number(it.wastageQuantity || 0),
           wastageReason: it.wastageReason || undefined,
           notes: it.wastageNote || undefined,
@@ -898,7 +896,9 @@ export const PosBillingPage = () => {
                           }}
                           placeholder="Phone Number *"
                           value={customerMobile}
-                          onChange={(e) => setCustomerMobile(e.target.value)}
+                          inputMode="numeric"
+                          maxLength={10}
+                          onChange={(e) => setCustomerMobile(e.target.value.replace(/D/g, "").slice(0, 10))}
                           required
                         />
                       </div>
@@ -1174,40 +1174,33 @@ export const PosBillingPage = () => {
                 </div>
 
                 <div style={{ padding: "0.45rem 0", borderBottom: "1px dashed #e2e8f0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "#475569", fontWeight: 600 }}>
-                      GST / Taxes ({gstRate}%):
-                    </span>
-                    <strong style={{ fontSize: "0.95rem", color: "#059669" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "0.8125rem", color: "#475569", fontWeight: 600 }}>GST / Taxes</span>
+                    <select
+                      value={Number(gstRate) || 0}
+                      onChange={(e) => setGstRate(Number(e.target.value))}
+                      aria-label="GST rate"
+                      style={{
+                        width: "64px",
+                        padding: "0.15rem 0.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: "#475569",
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {[0, 5, 12, 18, 28].map((rate) => (
+                        <option key={rate} value={rate}>
+                          {rate}%
+                        </option>
+                      ))}
+                    </select>
+                    <strong style={{ marginLeft: "auto", fontSize: "0.95rem", color: "#059669" }}>
                       ₹{taxAmount.toFixed(2)}
                     </strong>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.35rem" }}>
-                    {[5, 12, 18, 28].map((rate) => {
-                      const isSelected = gstRate === rate;
-                      return (
-                        <button
-                          key={rate}
-                          type="button"
-                          onClick={() => setGstRate(rate)}
-                          style={{
-                            padding: "0.35rem 0",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            textAlign: "center",
-                            borderRadius: "7px",
-                            cursor: "pointer",
-                            transition: "all 0.15s ease",
-                            border: isSelected ? "1.5px solid #059669" : "1px solid #cbd5e1",
-                            background: isSelected ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#ffffff",
-                            color: isSelected ? "#ffffff" : "#475569",
-                            boxShadow: isSelected ? "0 2px 5px rgba(5, 150, 105, 0.28)" : "none",
-                          }}
-                        >
-                          {rate}%
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
 
@@ -1221,28 +1214,39 @@ export const PosBillingPage = () => {
                   <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", marginBottom: "0.3rem" }}>
                     PAYMENT MODE
                   </div>
-                  <div className="pos-pay-modes">
+                  <select
+                    value={paymentMode}
+                    aria-label="Payment mode"
+                    onChange={(e) => {
+                      const mode = e.target.value;
+                      setPaymentMode(mode);
+                      if (mode === "SPLIT") {
+                        setSplitPayments({
+                          CASH: Math.round(grandTotal / 2),
+                          UPI: Math.round(grandTotal - Math.round(grandTotal / 2)),
+                          CARD: 0,
+                          BANK: 0,
+                        });
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "0.4rem 0.5rem",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      color: "#475569",
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "7px",
+                      cursor: "pointer",
+                    }}
+                  >
                     {["CASH", "UPI", "CARD", "BANK", "CREDIT", "SPLIT"].map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        className={`pos-pay-btn ${paymentMode === mode ? "active" : ""}`}
-                        onClick={() => {
-                          setPaymentMode(mode);
-                          if (mode === "SPLIT") {
-                            setSplitPayments({
-                              CASH: Math.round(grandTotal / 2),
-                              UPI: Math.round(grandTotal - Math.round(grandTotal / 2)),
-                              CARD: 0,
-                              BANK: 0,
-                            });
-                          }
-                        }}
-                      >
+                      <option key={mode} value={mode}>
                         {mode}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 {/* Split Payments Breakdown */}
@@ -1319,56 +1323,6 @@ export const PosBillingPage = () => {
                     ) : (
                       <div style={{ fontSize: "0.72rem", color: "#dc2626", marginTop: "0.25rem" }}>
                         ⚠ Please select an Existing Client profile to track credit balance.
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Cash Tender & Change Due */}
-                {paymentMode === "CASH" && (
-                  <div style={{ background: "#ffffff", padding: "0.6rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
-                      <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}>Tendered:</span>
-                      <input
-                        type="number"
-                        className="jf-input"
-                        placeholder={String(grandTotal)}
-                        value={amountTendered}
-                        onChange={(e) => setAmountTendered(e.target.value)}
-                        style={{ width: "100px", textAlign: "right", padding: "0.25rem 0.4rem", fontSize: "0.85rem" }}
-                      />
-                    </div>
-                    {/* Quick Tender Chips */}
-                    <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginBottom: "0.35rem" }}>
-                      {["EXACT", 50, 100, 200, 500, 2000].map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          onClick={() => setQuickTender(v)}
-                          style={{
-                            background: "#f1f5f9",
-                            border: "1px solid #cbd5e1",
-                            borderRadius: "4px",
-                            padding: "0.15rem 0.4rem",
-                            fontSize: "0.7rem",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {v === "EXACT" ? "Exact" : `₹${v}`}
-                        </button>
-                      ))}
-                    </div>
-                    {changeDue > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", color: "#059669", fontWeight: 700, fontSize: "0.85rem" }}>
-                        <span>Change Due:</span>
-                        <span>₹{changeDue.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {Number(amountTendered) > 0 && Number(amountTendered) < grandTotal && (
-                      <div style={{ display: "flex", justifyContent: "space-between", color: "#dc2626", fontWeight: 700, fontSize: "0.82rem", marginTop: "0.25rem" }}>
-                        <span>Balance Due (Partial):</span>
-                        <span>₹{(grandTotal - Number(amountTendered)).toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -1604,9 +1558,16 @@ export const PosBillingPage = () => {
                                 <button
                                   type="button"
                                   className="jf-btn jf-btn-secondary jf-btn-sm"
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    // The history list has no item lines, so load the full receipt first
                                     setActiveReceipt(r);
                                     setShowThermalModal(true);
+                                    try {
+                                      const full = await posApi.getReceiptById(r._id || r.id);
+                                      setActiveReceipt(full?.data || full || r);
+                                    } catch (err) {
+                                      toast.error("Could not load the receipt items.");
+                                    }
                                   }}
                                   title="Print Slip"
                                 >
@@ -1701,7 +1662,9 @@ export const PosBillingPage = () => {
                     className="jf-input"
                     placeholder="e.g. 9876543210"
                     value={newCustMobile}
-                    onChange={(e) => setNewCustMobile(e.target.value)}
+                    inputMode="numeric"
+                    maxLength={10}
+                    onChange={(e) => setNewCustMobile(e.target.value.replace(/D/g, "").slice(0, 10))}
                     required
                   />
                 </div>

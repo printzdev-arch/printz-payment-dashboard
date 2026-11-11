@@ -260,6 +260,14 @@ export default function LoansAdjustmentsPage() {
     return e.name || `${e.firstName || ""} ${e.lastName || ""}`.trim() || "—";
   };
 
+  // The employee's own branch (falls back to the branch stored on the record itself).
+  const branchNameOf = (rec, employeeRef) => {
+    const b = empOf(employeeRef).branchId || rec?.branchId;
+    if (b && typeof b === "object" && b.name) return b.name;
+    const found = branches.find((x) => String(x._id) === refId(b));
+    return found?.name || "—";
+  };
+
   const loadLookups = async () => {
     try {
       const [branchList, empList] = await Promise.all([
@@ -648,9 +656,9 @@ export default function LoansAdjustmentsPage() {
             <table className="salary-table">
               <thead>
                 <tr>
-                  <th style={{ width: "40px" }}>#</th>
                   <th>Loan Number</th>
                   <th>Employee</th>
+                  <th>Branch</th>
                   <th>Loan Amount</th>
                   <th>EMI Amount</th>
                   <th>Outstanding</th>
@@ -679,11 +687,11 @@ export default function LoansAdjustmentsPage() {
 
                     return (
                       <tr key={l._id || index}>
-                        <td>{(page - 1) * pageSize + index + 1}</td>
                         <td>
                           <strong>{l.loanNumber}</strong>
                         </td>
                         <td>{empName}</td>
+                        <td>{branchNameOf(l, l.employeeId)}</td>
                         <td style={{ fontWeight: 600 }}>₹ {Number(l.loanAmount || 0).toLocaleString("en-IN")}</td>
                         <td>₹ {Number(l.emiAmount || 0).toLocaleString("en-IN")} / mo</td>
                         <td style={{ color: Number(l.outstandingBalance || 0) > 0 ? "#b91c1c" : "#15803d", fontWeight: 700 }}>
@@ -767,9 +775,9 @@ export default function LoansAdjustmentsPage() {
             <table className="salary-table">
               <thead>
                 <tr>
-                  <th style={{ width: "40px" }}>#</th>
                   <th>Loan Number</th>
                   <th>Employee</th>
+                  <th>Branch</th>
                   <th>Repayment Date</th>
                   <th>Amount</th>
                   <th>Previous Balance</th>
@@ -799,9 +807,9 @@ export default function LoansAdjustmentsPage() {
 
                     return (
                       <tr key={r._id || index}>
-                        <td>{(page - 1) * pageSize + index + 1}</td>
                         <td><strong>{loanNo}</strong></td>
                         <td>{empName}</td>
+                        <td>{branchNameOf(r, r.employeeId)}</td>
                         <td>{dateStr}</td>
                         <td style={{ fontWeight: 700, color: "#15803d" }}>
                           ₹ {Number(r.amount || 0).toLocaleString("en-IN")}
@@ -829,8 +837,8 @@ export default function LoansAdjustmentsPage() {
             <table className="salary-table">
               <thead>
                 <tr>
-                  <th style={{ width: "40px" }}>#</th>
                   <th>Employee</th>
+                  <th>Branch</th>
                   <th>Period</th>
                   <th>Type</th>
                   <th>Amount</th>
@@ -860,8 +868,8 @@ export default function LoansAdjustmentsPage() {
 
                     return (
                       <tr key={a._id || index}>
-                        <td>{(page - 1) * pageSize + index + 1}</td>
                         <td><strong>{empName}</strong></td>
+                        <td>{branchNameOf(a, a.employeeId)}</td>
                         <td>{a.payrollMonth}/{a.payrollYear}</td>
                         <td>
                           <span

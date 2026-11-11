@@ -397,7 +397,6 @@ export default function SalarySetupPage() {
             <table className="salary-table">
               <thead>
                 <tr>
-                  <th style={{ width: "40px" }}>#</th>
                   <th>Employee ID</th>
                   <th>Employee Name</th>
                   <th>DOB</th>
@@ -411,13 +410,13 @@ export default function SalarySetupPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                       Loading salary structures...
                     </td>
                   </tr>
                 ) : filteredStructures.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                       No salary structures found. Click <strong>"+ Assign Salary Structure"</strong> to setup an employee.
                     </td>
                   </tr>
@@ -437,7 +436,6 @@ export default function SalarySetupPage() {
 
                     return (
                       <tr key={s._id || index}>
-                        <td>{(page - 1) * pageSize + index + 1}</td>
                         <td>
                           <strong>{empCode}</strong>
                         </td>
@@ -479,7 +477,6 @@ export default function SalarySetupPage() {
             <table className="salary-table">
               <thead>
                 <tr>
-                  <th style={{ width: "40px" }}>#</th>
                   <th>Component Code</th>
                   <th>Component Name</th>
                   <th>Type</th>
@@ -492,20 +489,19 @@ export default function SalarySetupPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                       Loading salary components...
                     </td>
                   </tr>
                 ) : filteredComponents.length === 0 ? (
                   <tr>
-                    <td colSpan={8}style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                       No salary components found. Click <strong>"+ Add Component"</strong> to create one.
                     </td>
                   </tr>
                 ) : (
                   filteredComponents.map((c, index) => (
                     <tr key={c._id || index}>
-                      <td>{index + 1}</td>
                       <td>
                         <strong>{c.code}</strong>
                       </td>
