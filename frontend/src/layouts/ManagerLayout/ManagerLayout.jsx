@@ -6,6 +6,8 @@ import "../styles/sidebar.css";
 import "../../shared/styles/printzTheme.css";
 import { useAuth } from "../../app/providers/AuthContext.jsx";
 import { PageTransition, MotionDropdown, MotionAccordion } from "../../shared/ui/motion";
+import { toast } from "react-toastify";
+import api from "../../shared/services/api";
 import logo from "../../shared/assets/logo.png";
 
 import {
@@ -18,6 +20,7 @@ import {
   Package,
   Layers,
   LogOut,
+  ClipboardCheck,
   User,
   Users,
   UserPlus,
@@ -825,6 +828,32 @@ const ManagerLayout = ({ children }) => {
   const handleCustomersToggleClick = (e) => {
     e.stopPropagation();
     setIsCustomersToggled(!isCustomersOpen);
+  };
+
+  // Branch managers close the day: backend builds the day-end PDF and emails it to the admin
+  const [isEndingDay, setIsEndingDay] = useState(false);
+  const isBranchManager = ["MANAGER", "BRANCH_MANAGER"].includes(String(role || "").toUpperCase().replace(/s+/g, "_"));
+
+  const handleEndDay = async () => {
+    if (isEndingDay) return;
+    const ok = window.confirm(
+      "End the day? All of today's sale orders and sales receipts will be compiled into one PDF and emailed to the admin."
+    );
+    if (!ok) return;
+    setIsEndingDay(true);
+    try {
+      const res = await api.post("/day-end/close");
+      const data = res.data?.data || res.data || {};
+      if (data.delivered === false) {
+        toast.warning("Report generated, but the email was not delivered: SMTP is not configured on the server.");
+      } else {
+        toast.success(`Day-end report emailed to ${data.sentTo || "admin"}`);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not send the day-end report");
+    } finally {
+      setIsEndingDay(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -2014,6 +2043,19 @@ const ManagerLayout = ({ children }) => {
               <span className="sidebar-switch-thumb" />
             </button>
           </div>
+
+          {isBranchManager && (
+            <button
+              type="button"
+              className="sidebar-logout-item sidebar-end-item"
+              onClick={handleEndDay}
+              disabled={isEndingDay}
+              title="Close the day and email the day-end PDF to the admin"
+            >
+              <ClipboardCheck size={18} className="sidebar-logout-icon" />
+              <span>{isEndingDay ? "Sending report..." : "End"}</span>
+            </button>
+          )}
 
           <button
             type="button"

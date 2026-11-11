@@ -133,6 +133,7 @@ const MOUNTS = [
   // POS and payments
   [["/sale-receipts"], saleReceiptRoutes],
   [["/payments"], paymentRoutes],
+  [["/day-end"], require("../modules/day-end/routes/dayEnd.routes")],
 
   // Public & customer portal
   [["/public"], publicRoutes],

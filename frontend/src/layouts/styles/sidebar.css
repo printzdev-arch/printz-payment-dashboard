@@ -572,6 +572,12 @@
 
 .sidebar-logout-item:hover .sidebar-logout-icon { color: #fecaca; }
 
+/* End-of-day button sits just above Logout */
+.sidebar-end-item { margin-bottom: 0; }
+.sidebar-end-item:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+.sidebar-end-item:hover .sidebar-logout-icon { color: #ffffff; }
+.sidebar-end-item:disabled { opacity: 0.6; cursor: progress; }
+
 .sidebar-logout-icon {
   color: rgba(255, 255, 255, 0.55);
   flex-shrink: 0;
