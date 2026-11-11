@@ -81,7 +81,6 @@ const PERMISSIONS = Object.freeze({
     DESIGN_WORK: "mfg.design.work",
     DESIGN_SEND_WHATSAPP: "mfg.design.sendWhatsapp",
     PRINT_DISPATCH: "mfg.print.dispatch",
-    ASSIGNMENT_MANAGE: "mfg.assignment.manage",
   },
   DASHBOARDS: {
     ADMIN_VIEW: "dashboard.admin.view",

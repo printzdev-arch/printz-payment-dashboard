@@ -1,28 +1,53 @@
 import React from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { PRODUCT_TYPES, UNITS, typeLabel } from "../../utils/saleOrderStatus";
 import { emptyItem, lineAmount } from "../../utils/totals";
 import { formatMoney } from "../../utils/format";
+import { useMasterDefaults } from "../../../jobflow/master-settings";
 import "../../styles/sale-order.css";
+
+// Same fallbacks the Job Order form uses when master settings have no entries
+const SPEC_SELECTS = [
+  { key: "paperType", label: "Paper Type", list: "paperTypes", fallback: ["Art Card", "Art Paper", "Simili Paper"], col: "c2" },
+  { key: "paperGsm", label: "Paper GSM", list: "paperGsmList", fallback: ["260 gsm", "310 gsm", "157 gsm"], col: "c2" },
+  { key: "size", label: "Size", list: "sizes", fallback: ["90 x 54 mm (Standard)", "A4 (210 x 297 mm)"], col: "c2" },
+  { key: "color", label: "Color", list: "colors", fallback: ["Full Color (CMYK)", "Black & White (K-Only)"], col: "c2" },
+  { key: "printingSide", label: "Printing Side", list: "printingSides", fallback: ["Double Sided", "Single Sided"], col: "c2" },
+];
 
 // Editable order lines, one roomy card per item. Amounts shown are an estimate; the server recalculates on save.
 export default function OrderItemsEditor({ items, onChange, disabled = false }) {
-  const setField = (idx, field, value) => onChange(items.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
-  const remove = (idx) => onChange(items.filter((_, i) => i !== idx));
-  const add = () => onChange([...items, emptyItem()]);
+  const master = useMasterDefaults();
+  const optionsFor = (s, current) => {
+    const names = (master[s.list] || []).length > 0 ? master[s.list].map((o) => o.name) : s.fallback;
+    // Keep a saved value visible even if it was later removed from master settings
+    return current && !names.includes(current) ? [current, ...names] : names;
+  };
+  const setField = (idx, field, value) => onChange(rows.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
+  // One order = one item. Older drafts saved with several items show a remove button
+  // so they can be trimmed down to one before saving.
+  const rows = items.length > 0 ? items : [emptyItem()];
+  const remove = (idx) => onChange(rows.filter((_, i) => i !== idx));
 
   return (
     <div className="so-item-list">
-      {items.map((it, idx) => (
+      {rows.length > 1 && (
+        <div className="so-alert warn" style={{ marginBottom: 0 }}>
+          <span>An order can have only one item. Remove the extra items before saving.</span>
+        </div>
+      )}
+      {rows.map((it, idx) => (
         <div className="so-item" key={idx}>
-          <div className="so-item-head">
-            <span className="so-item-num">Item {idx + 1}</span>
-            {items.length > 1 && !disabled && (
-              <button type="button" className="so-icon-btn danger" onClick={() => remove(idx)} title="Remove this item">
-                <Trash2 size={15} />
-              </button>
-            )}
-          </div>
+          {rows.length > 1 && (
+            <div className="so-item-head">
+              <span className="so-item-num">Item {idx + 1}</span>
+              {!disabled && (
+                <button type="button" className="so-icon-btn danger" onClick={() => remove(idx)} title="Remove this item">
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="so-item-grid">
             <div className="so-field c4">
@@ -33,7 +58,7 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
                 ))}
               </select>
             </div>
-            <div className="so-field c8">
+            <div className="so-field c6">
               <label>What to make <span className="req">*</span></label>
               <input
                 className="so-input"
@@ -43,6 +68,18 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
                 disabled={disabled}
               />
             </div>
+
+            {SPEC_SELECTS.map((s) => (
+              <div className={`so-field ${s.col}`} key={s.key}>
+                <label>{s.label} <span className="req">*</span></label>
+                <select className="so-select" value={it[s.key] || ""} onChange={(e) => setField(idx, s.key, e.target.value)} disabled={disabled}>
+                  <option value="">Select {s.label}</option>
+                  {optionsFor(s, it[s.key]).map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
 
             <div className="so-field c2">
               <label>Quantity <span className="req">*</span></label>
@@ -56,7 +93,7 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
                 ))}
               </select>
             </div>
-            <div className="so-field c3">
+            <div className="so-field c2">
               <label>Rate (₹) <span className="req">*</span></label>
               <div className="so-prefix">
                 <span>₹</span>
@@ -67,19 +104,13 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
               <label>Tax %</label>
               <input type="number" min="0" className="so-input" value={it.taxRate} onChange={(e) => setField(idx, "taxRate", e.target.value)} disabled={disabled} />
             </div>
-            <div className="so-field c3">
+            <div className="so-field c2">
               <label>Amount</label>
               <div className="so-item-amount">{formatMoney(lineAmount(it))}</div>
             </div>
           </div>
         </div>
       ))}
-
-      {!disabled && (
-        <button type="button" className="so-add-row" onClick={add}>
-          <Plus size={15} /> Add another item
-        </button>
-      )}
     </div>
   );
 }

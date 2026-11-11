@@ -40,12 +40,9 @@ api.interceptors.response.use(
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
 
-      // Redirect to login only if not already on the login page to avoid redirect loops.
-      // The manufacturing unit portal has its own login page.
+      // Redirect to login only if not already on the login page to avoid redirect loops
       const currentPath = window.location.pathname;
-      if (currentPath.startsWith("/mfg")) {
-        window.location.href = "/login?tab=mfg";
-      } else if (currentPath !== "/" && currentPath !== "/login") {
+      if (currentPath !== "/" && currentPath !== "/login") {
         window.location.href = "/";
       }
     }

@@ -1,29 +1,27 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ArrowLeft, BadgeCheck, Download, Lightbulb, PackageCheck, Play, Printer, RefreshCw, Send, Truck, Upload, UserCog } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Download, Hand, Lightbulb, PackageCheck, Printer, RefreshCw, Send, Truck, Upload } from "lucide-react";
 import mfgApi from "../api/mfgApi";
 import saleOrderApi from "../../sale-order/api/saleOrderApi";
 import UploadDesignModal from "../components/UploadDesignModal";
 import SendDesignModal from "../components/SendDesignModal";
-import AssignDesignerModal from "../components/AssignDesignerModal";
+import StartPrintModal from "../components/StartPrintModal";
 import FinishPrintModal from "../components/FinishPrintModal";
 import DispatchModal from "../components/DispatchModal";
 import OrderDetailBody from "../../sale-order/components/common/OrderDetailBody";
 import RecordApprovalModal from "../../sale-order/components/common/RecordApprovalModal";
 import { OrderStatusBadge, PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
 import { errorMessage } from "../../sale-order/utils/format";
-import { getMfgRole } from "../utils/mfgRole";
+import { QUEUE_STATUSES, currentUser, takenByLabel } from "../utils/mfgStages";
 import "../../sale-order/styles/sale-order.css";
 import "../styles/mfg-unit.css";
 
-const REASSIGNABLE = ["ASSIGNED", "IN_DESIGN", "SENT_FOR_APPROVAL", "CHANGES_REQUESTED", "APPROVED"];
-
-// Next-step guidance for the designer, by status
+// What to do next, by status. Anyone at the unit can do it, whoever took the order.
 const hintFor = (status, hasDraft, printFinished) => {
-  if (status === "ASSIGNED") return "This order was assigned to you. Open it to start working on the design.";
-  if (status === "IN_DESIGN" && !hasDraft) return "Prepare the design and upload it as the first version.";
-  if (status === "IN_DESIGN" && hasDraft) return "Your design is ready. Send it to the customer on WhatsApp for approval.";
+  if (QUEUE_STATUSES.includes(status)) return "This order is waiting in the queue. Take it to start the design.";
+  if (status === "IN_DESIGN" && !hasDraft) return "Prepare the design and upload it.";
+  if (status === "IN_DESIGN" && hasDraft) return "The design is ready. Send it to the customer on WhatsApp for approval.";
   if (status === "CHANGES_REQUESTED") return "The customer wants changes. Read the note below and upload a new version.";
   if (status === "SENT_FOR_APPROVAL") return "Waiting for the customer. When they reply or call, record their decision.";
   if (status === "APPROVED") return "The customer approved the design. Download the print file and start printing.";
@@ -36,14 +34,15 @@ const hintFor = (status, hasDraft, printFinished) => {
 export default function MfgOrderPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const me = useMemo(() => getMfgRole(), []);
+  const me = useMemo(() => currentUser(), []);
+  const canWork = me.isMfgUnit || me.isAdmin;
 
   const [order, setOrder] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [modal, setModal] = useState(""); // upload | send | decision | assign | reassign
+  const [modal, setModal] = useState(""); // upload | send | decision | startPrint | finishPrint | dispatch
 
   const load = useCallback(
     async (quiet = false) => {
@@ -78,61 +77,38 @@ export default function MfgOrderPage() {
 
   const status = order.status;
   const draftVersion = (order.designs || []).find((d) => d.status === "DRAFT");
-  const isAssignee = me.isDesigner && String(order.currentAssignment?.designerUserId || "") === me.userId;
-
-  const canStart = isAssignee && status === "ASSIGNED";
-  const canUpload = isAssignee && ["IN_DESIGN", "CHANGES_REQUESTED"].includes(status) && !draftVersion;
-  const canSend = isAssignee && status === "IN_DESIGN" && Boolean(draftVersion);
-  const canDecide = isAssignee && status === "SENT_FOR_APPROVAL";
-  const canWorkPrint = isAssignee || me.isAdmin; // the designer prints and dispatches; an admin can step in
-  const printFinished = Boolean(order.printing?.completedAt);
   const approvedDesign = (order.designs || []).find((d) => d.status === "APPROVED");
-  const canStartPrint = canWorkPrint && status === "APPROVED";
-  const canFinishPrint = canWorkPrint && status === "PRINTING" && !printFinished;
-  const canDispatch = canWorkPrint && status === "PRINTING" && printFinished;
-  const canDownloadPrintFile =
-    (isAssignee || me.isManager) && ["APPROVED", "PRINTING"].includes(status) && Boolean(approvedDesign?.hasPrintFile);
-  const canAssign = me.isManager && ["DRAFT", "PLACED", "WAITING_FOR_DESIGNER"].includes(status);
-  const canReassign = me.isManager && REASSIGNABLE.includes(status);
+  const printFinished = Boolean(order.printing?.completedAt);
+  const takenBy = takenByLabel(order);
 
-  const start = async () => {
+  const can = {
+    take: canWork && QUEUE_STATUSES.includes(status),
+    upload: canWork && ["IN_DESIGN", "CHANGES_REQUESTED"].includes(status) && !draftVersion,
+    send: canWork && status === "IN_DESIGN" && Boolean(draftVersion),
+    decide: canWork && status === "SENT_FOR_APPROVAL",
+    printFile: canWork && ["APPROVED", "PRINTING"].includes(status) && Boolean(approvedDesign?.hasPrintFile),
+    startPrint: canWork && status === "APPROVED",
+    finishPrint: canWork && status === "PRINTING" && !printFinished,
+    dispatch: canWork && status === "PRINTING" && printFinished,
+  };
+
+  const run = (work, okMessage, failMessage) => async () => {
     try {
       setBusy(true);
-      await mfgApi.startDesign(order._id);
-      toast.success("Design started");
+      await work();
+      if (okMessage) toast.success(okMessage);
       await load(true);
     } catch (err) {
-      toast.error(errorMessage(err, "Could not start the design."));
+      toast.error(errorMessage(err, failMessage));
     } finally {
       setBusy(false);
     }
   };
 
-  const startPrint = async () => {
-    try {
-      setBusy(true);
-      await mfgApi.startPrint(order._id);
-      toast.success("Printing started");
-      await load(true);
-    } catch (err) {
-      toast.error(errorMessage(err, "Could not start printing."));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const take = run(() => mfgApi.take(order._id), "You took this order. Start the design.", "Could not take this order.");
+  const downloadPrintFile = run(() => mfgApi.downloadPrintFile(order._id, approvedDesign.versionNo), "", "Could not download the print file.");
 
-  const downloadPrintFile = async () => {
-    try {
-      setBusy(true);
-      await mfgApi.downloadPrintFile(order._id, approvedDesign.versionNo);
-    } catch (err) {
-      toast.error("Could not download the print file. This version may not have one.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const hint = isAssignee ? hintFor(status, Boolean(draftVersion), printFinished) : "";
+  const hint = canWork ? hintFor(status, Boolean(draftVersion), printFinished) : "";
   const afterAction = (message) => async () => {
     setModal("");
     if (message) toast.success(message);
@@ -154,7 +130,7 @@ export default function MfgOrderPage() {
           </div>
           <p>
             {order.customerSnapshot?.name} · from {order.orderBranch?.name}
-            {order.currentAssignment?.designerName && me.isManager ? ` · Designer: ${order.currentAssignment.designerName}` : ""}
+            {takenBy ? ` · Taken by ${takenBy}` : ""}
           </p>
         </div>
 
@@ -162,65 +138,50 @@ export default function MfgOrderPage() {
           <button type="button" className="so-btn secondary" onClick={() => load(true)}>
             <RefreshCw size={14} /> Refresh
           </button>
-          {canStart && (
-            <button type="button" className="so-btn primary" onClick={start} disabled={busy}>
-              <Play size={14} /> {busy ? "Starting..." : "Start Design"}
+          {can.take && (
+            <button type="button" className="so-btn primary" onClick={take} disabled={busy}>
+              <Hand size={15} /> {busy ? "Taking..." : "Take Order"}
             </button>
           )}
-          {canUpload && (
+          {can.upload && (
             <button type="button" className="so-btn primary" onClick={() => setModal("upload")}>
               <Upload size={15} /> Upload Design
             </button>
           )}
-          {canSend && (
+          {can.send && (
             <button type="button" className="so-btn primary" onClick={() => setModal("send")}>
               <Send size={15} /> Send to Customer
             </button>
           )}
-          {canDecide && (
+          {can.decide && (
             <button type="button" className="so-btn primary" onClick={() => setModal("decision")}>
               <BadgeCheck size={15} /> Record Customer Decision
             </button>
           )}
-          {canDownloadPrintFile && (
+          {can.printFile && (
             <button type="button" className="so-btn secondary" onClick={downloadPrintFile} disabled={busy}>
               <Download size={15} /> Print File
             </button>
           )}
-          {canStartPrint && (
-            <button type="button" className="so-btn primary" onClick={startPrint} disabled={busy}>
-              <Printer size={15} /> {busy ? "Starting..." : "Start Printing"}
+          {can.startPrint && (
+            <button type="button" className="so-btn primary" onClick={() => setModal("startPrint")}>
+              <Printer size={15} /> Start Printing
             </button>
           )}
-          {canFinishPrint && (
+          {can.finishPrint && (
             <button type="button" className="so-btn primary" onClick={() => setModal("finishPrint")}>
               <PackageCheck size={15} /> Finish Printing
             </button>
           )}
-          {canDispatch && (
+          {can.dispatch && (
             <button type="button" className="so-btn primary" onClick={() => setModal("dispatch")}>
               <Truck size={15} /> Dispatch to Branch
-            </button>
-          )}
-          {canAssign && (
-            <button type="button" className="so-btn primary" onClick={() => setModal("assign")}>
-              <UserCog size={15} /> Assign Designer
-            </button>
-          )}
-          {canReassign && (
-            <button type="button" className="so-btn secondary" onClick={() => setModal("reassign")}>
-              <UserCog size={15} /> Reassign
             </button>
           )}
         </div>
       </div>
 
-      {hint && (
-        <div className="so-alert success">
-          <Lightbulb size={17} />
-          <span><strong>Next step:</strong> {hint}</span>
-        </div>
-      )}
+      
 
       <OrderDetailBody order={order} events={events} />
 
@@ -233,10 +194,9 @@ export default function MfgOrderPage() {
         onClose={() => setModal("")}
         onDone={(decision) => afterAction(decision === "APPROVED" ? "Design approved" : "Marked for changes")()}
       />
+      <StartPrintModal isOpen={modal === "startPrint"} order={order} onClose={() => setModal("")} onDone={afterAction("Printing started")} />
       <FinishPrintModal isOpen={modal === "finishPrint"} order={order} onClose={() => setModal("")} onDone={afterAction("Printing finished")} />
       <DispatchModal isOpen={modal === "dispatch"} order={order} onClose={() => setModal("")} onDone={afterAction("Order dispatched to the branch")} />
-      <AssignDesignerModal isOpen={modal === "assign"} order={order} mode="assign" onClose={() => setModal("")} onDone={afterAction("Order assigned")} />
-      <AssignDesignerModal isOpen={modal === "reassign"} order={order} mode="reassign" onClose={() => setModal("")} onDone={afterAction("Order reassigned")} />
     </div>
   );
 }

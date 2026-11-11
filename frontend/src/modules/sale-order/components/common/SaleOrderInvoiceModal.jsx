@@ -4,11 +4,130 @@ import logo from "../../../../shared/assets/logo.png";
 import saleOrderApi from "../../api/saleOrderApi";
 import { formatMoney, formatDate, formatDateTime } from "../../utils/format";
 import { typeLabel } from "../../utils/saleOrderStatus";
+import { specSummary } from "../../utils/totals";
 import "../../styles/sale-order.css";
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const rupees = (value) => `₹${Number(value || 0).toFixed(2)}`;
+
+const THERMAL_CSS = `
+  .so-slip { width: 72mm; margin: 0 auto; font-family: "Courier New", Courier, monospace; font-size: 11.5px; line-height: 1.35; color: #000; }
+  .so-slip .c { text-align: center; }
+  .so-slip .logo { height: 38px; width: auto; display: block; margin: 0 auto 4px; }
+  .so-slip .brand { font-size: 15px; font-weight: 800; letter-spacing: 1px; }
+  .so-slip .sub { font-size: 10.5px; }
+  .so-slip .title { font-weight: 800; margin-top: 4px; }
+  .so-slip hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+  .so-slip .row { display: flex; justify-content: space-between; gap: 8px; }
+  .so-slip .row span:last-child { text-align: right; }
+  .so-slip table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .so-slip th { text-align: left; border-bottom: 1px dashed #000; padding: 2px 0; font-weight: 800; }
+  .so-slip td { padding: 3px 0; vertical-align: top; }
+  .so-slip .r { text-align: right; }
+  .so-slip .m { text-align: center; }
+  .so-slip .small { font-size: 10px; }
+  .so-slip .grand { font-size: 13.5px; font-weight: 800; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; margin: 4px 0; }
+  .so-slip .b { font-weight: 800; }
+`;
+
+function buildThermalSlipHtml({ order, branch, customer: c, items, payments, invoiceNo, invoiceDate, isFullyPaid, logoUrl }) {
+  const itemRows = items
+    .map(
+      (it) => `
+      <tr>
+        <td colspan="3">${escapeHtml(it.description || typeLabel(it.productType))}${
+          Number(it.taxRate) > 0 ? ` <span class="small">(${escapeHtml(it.taxRate)}% GST)</span>` : ""
+        }${specSummary(it.specification) ? `<div class="small">${escapeHtml(specSummary(it.specification))}</div>` : ""}</td>
+      </tr>
+      <tr>
+        <td class="small">${escapeHtml(it.quantity)} ${escapeHtml(it.unit || "PCS")} x ${rupees(it.unitPrice)}</td>
+        <td></td>
+        <td class="r">${rupees(it.lineTotal)}</td>
+      </tr>`
+    )
+    .join("");
+
+  const paymentRows = payments
+    .map(
+      (p) => `
+      <div class="row small">
+        <span>${p.paymentType === "FINAL" ? "Final" : "Advance"} · ${escapeHtml(p.mode)}${p.receiptNo ? ` · ${escapeHtml(p.receiptNo)}` : ""}</span>
+        <span>${rupees(p.amount)}</span>
+      </div>`
+    )
+    .join("");
+
+  const finalPaid = Math.max(0, Number(order.amountPaid || 0) - Number(order.advanceAmount || 0));
+
+  return `
+  <div class="so-slip">
+    <div class="c">
+      <img class="logo" src="${logoUrl}" alt="PrintZ" />
+      <div class="brand">PRINTZ</div>
+      <div class="sub">${escapeHtml(branch.name || "Main Branch")} · Printing & Digital Solutions</div>
+      ${branch.address ? `<div class="sub">${escapeHtml(branch.address)}</div>` : ""}
+      <div class="title">TAX INVOICE${isFullyPaid ? " · PAID" : ""}</div>
+    </div>
+    <hr />
+    <div class="row"><span>Invoice:</span><span class="b">${escapeHtml(invoiceNo)}</span></div>
+    <div class="row"><span>Order:</span><span>${escapeHtml(order.orderNo || "—")}</span></div>
+    <div class="row"><span>Date:</span><span>${new Date(invoiceDate).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span></div>
+    <div class="row"><span>Customer:</span><span>${escapeHtml(c.name || "Walk-in Customer")}</span></div>
+    ${c.mobile ? `<div class="row"><span>Mobile:</span><span>${escapeHtml(c.mobile)}</span></div>` : ""}
+    ${order.expectedDeliveryDate ? `<div class="row"><span>Deliver By:</span><span>${escapeHtml(formatDate(order.expectedDeliveryDate))}</span></div>` : ""}
+    ${order.priority === "URGENT" ? `<div class="row b"><span>Priority:</span><span>URGENT</span></div>` : ""}
+    <hr />
+    <table>
+      <thead><tr><th>Item</th><th></th><th class="r">Amount</th></tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+    <hr />
+    <div class="row"><span>Sub total:</span><span>${rupees(order.subtotal)}</span></div>
+    ${Number(order.discountAmount) > 0 ? `<div class="row"><span>Discount:</span><span>- ${rupees(order.discountAmount)}</span></div>` : ""}
+    ${
+      Number(order.urgentChargeAmount) > 0
+        ? `<div class="row"><span>Urgent charge${
+            order.urgentChargeType === "PERCENTAGE" && order.urgentChargeValue ? ` (${escapeHtml(order.urgentChargeValue)}%)` : ""
+          }:</span><span>+ ${rupees(order.urgentChargeAmount)}</span></div>`
+        : ""
+    }
+    <div class="row"><span>Tax (GST):</span><span>${rupees(order.taxAmount)}</span></div>
+    <div class="row grand"><span>GRAND TOTAL:</span><span>${rupees(order.grandTotal)}</span></div>
+    <div class="row"><span>Advance:</span><span>${rupees(order.advanceAmount || order.amountPaid)}</span></div>
+    ${finalPaid > 0 ? `<div class="row"><span>Paid at handover:</span><span>${rupees(finalPaid)}</span></div>` : ""}
+    <div class="row b"><span>Total paid:</span><span>${rupees(order.amountPaid)}</span></div>
+    <div class="row b"><span>Balance due:</span><span>${isFullyPaid ? "₹0.00" : rupees(order.balanceDue)}</span></div>
+    ${payments.length > 0 ? `<hr /><div class="b small">PAYMENTS</div>${paymentRows}` : ""}
+    <hr />
+    <div class="c small">
+      <div class="b">*** Thank you for choosing Printz! ***</div>
+      <div>This is a computer generated invoice.</div>
+    </div>
+  </div>`;
+}
+
+const templateBtnStyle = (active) => ({
+  border: "none",
+  background: active ? "#0f766e" : "transparent",
+  color: active ? "#ffffff" : "#475569",
+  padding: "6px 12px",
+  borderRadius: "6px",
+  fontSize: "12.5px",
+  fontWeight: 600,
+  cursor: "pointer",
+  boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+});
 
 export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onClose }) {
   const [order, setOrder] = useState(initialOrder);
   const [loading, setLoading] = useState(false);
+  const [template, setTemplate] = useState("a4"); // "a4" | "thermal"
 
   useEffect(() => {
     if (!isOpen || !initialOrder?._id) return;
@@ -46,7 +165,53 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
     Number(order.balanceDue || 0) === 0 || order.paymentStatus === "PAID" || order.status === "DELIVERED";
   const finalPaymentAmount = Math.max(0, Number(order.amountPaid || 0) - Number(order.advanceAmount || 0));
 
-  const handlePrint = () => {
+  const slipData = {
+    order,
+    branch,
+    customer: c,
+    items,
+    payments,
+    invoiceNo,
+    invoiceDate,
+    isFullyPaid,
+  };
+
+  const printThermal = () => {
+    const logoUrl = new URL(logo, window.location.origin).href;
+    const w = window.open("", "_blank", "width=420,height=800");
+    if (!w) {
+      window.print();
+      return;
+    }
+    w.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Slip - ${escapeHtml(invoiceNo)}</title>
+  <style>
+    @page { size: 80mm auto; margin: 0; }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    body { padding: 4mm 0; }
+    ${THERMAL_CSS}
+  </style>
+</head>
+<body>
+  ${buildThermalSlipHtml({ ...slipData, logoUrl })}
+  <script>
+    window.onload = function () {
+      var img = document.querySelector("img");
+      var go = function () { window.print(); };
+      if (img && !img.complete) { img.onload = go; img.onerror = go; } else { go(); }
+    };
+  </script>
+</body>
+</html>`);
+    w.document.close();
+  };
+
+  const handlePrint = () => (template === "thermal" ? printThermal() : printA4());
+
+  const printA4 = () => {
     // The print window is a blank page, so the logo needs an absolute address
     const logoUrl = new URL(logo, window.location.origin).href;
     const w = window.open("", "_blank", "width=850,height=950");
@@ -63,6 +228,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
         <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">
           <strong style="color: #0f172a;">${it.description || typeLabel(it.productType)}</strong>
           <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${typeLabel(it.productType)}</div>
+          ${specSummary(it.specification) ? `<div style="font-size: 11px; color: #64748b;">${escapeHtml(specSummary(it.specification))}</div>` : ""}
         </td>
         <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">${it.quantity} ${it.unit || "PCS"}</td>
         <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${Number(it.unitPrice || 0).toFixed(2)}</td>
@@ -304,14 +470,26 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
               </p>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <div
+              role="group"
+              aria-label="Invoice format"
+              style={{ display: "flex", background: "#f1f5f9", padding: "3px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+            >
+              <button type="button" onClick={() => setTemplate("a4")} style={templateBtnStyle(template === "a4")} aria-pressed={template === "a4"}>
+                A4 Invoice
+              </button>
+              <button type="button" onClick={() => setTemplate("thermal")} style={templateBtnStyle(template === "thermal")} aria-pressed={template === "thermal"}>
+                80mm Slip
+              </button>
+            </div>
             <button
               type="button"
               className="so-btn primary"
               style={{ padding: "7px 16px", fontSize: "13px", gap: "6px" }}
               onClick={handlePrint}
             >
-              <Printer size={15} /> Print Invoice
+              <Printer size={15} /> {template === "thermal" ? "Print Slip" : "Print A4"}
             </button>
             <button
               type="button"
@@ -329,6 +507,21 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
         <div className="so-modal-body" style={{ padding: "24px", overflowY: "auto", flex: 1, gap: 0 }}>
           {loading ? (
             <div className="so-loading" style={{ padding: "40px" }}>Loading invoice details...</div>
+          ) : template === "thermal" ? (
+            <div style={{ display: "flex", justifyContent: "center", background: "#f1f5f9", borderRadius: "10px", padding: "20px 12px" }}>
+              <style>{THERMAL_CSS}</style>
+              <div
+                style={{
+                  background: "#ffffff",
+                  width: "80mm",
+                  maxWidth: "100%",
+                  padding: "12px 0",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
+                  borderRadius: "4px",
+                }}
+                dangerouslySetInnerHTML={{ __html: buildThermalSlipHtml({ ...slipData, logoUrl: logo }) }}
+              />
+            </div>
           ) : (
             <div
               style={{
@@ -606,6 +799,9 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
                           <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
                             {typeLabel(it.productType)}
                           </div>
+                          {specSummary(it.specification) && (
+                            <div style={{ fontSize: "11px", color: "#64748b" }}>{specSummary(it.specification)}</div>
+                          )}
                         </td>
                         <td style={{ padding: "10px 12px", textAlign: "center", color: "#334155" }}>
                           {it.quantity} {it.unit || "PCS"}
@@ -813,7 +1009,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
             Close
           </button>
           <button type="button" className="so-btn primary" onClick={handlePrint} style={{ gap: "6px" }}>
-            <Printer size={15} /> Print Invoice
+            <Printer size={15} /> {template === "thermal" ? "Print 80mm Slip" : "Print A4 Invoice"}
           </button>
         </div>
       </div>

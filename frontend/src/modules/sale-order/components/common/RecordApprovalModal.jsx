@@ -6,7 +6,7 @@ import { APPROVAL_CHANNELS } from "../../utils/saleOrderStatus";
 import { errorMessage, fileUrl } from "../../utils/format";
 import "../../styles/sale-order.css";
 
-// Record what the customer decided about the design. Used by the branch and by the designer.
+// Record what the customer decided about the design. Used by the branch and by the manufacturing unit.
 export default function RecordApprovalModal({ isOpen, order, defaultChannel = "CALL_TO_BRANCH", onClose, onDone }) {
   const [decision, setDecision] = useState("APPROVED");
   const [channel, setChannel] = useState(defaultChannel);
@@ -108,7 +108,7 @@ export default function RecordApprovalModal({ isOpen, order, defaultChannel = "C
           />
           <div>
             <strong><MessageSquareWarning size={14} style={{ verticalAlign: "-2px", color: "#dc2626" }} /> Needs changes</strong>
-            <span>Designer will make a new version</span>
+            <span>The manufacturing unit will make a new version</span>
           </div>
         </label>
       </div>

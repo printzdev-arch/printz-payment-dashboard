@@ -1,14 +1,12 @@
-const DailyAttendance = require("../../attendance/models/DailyAttendance");
-const { SaleOrder, MfgDesignerProfile, MfgDesignAssignment } = require("../models");
-const { STATUS, DESIGNER_HOLDING, NOTIFICATION, SALE_ORDER_SETTINGS } = require("../models/saleOrder.constants");
-const { idStr, idVariants, todayIST, dayToDate, notify, findUsersByRole } = require("./saleOrder.helpers");
+const { SaleOrder } = require("../models");
+const { STATUS, MFG_QUEUE, MFG_ACTIVE, NOTIFICATION, SALE_ORDER_SETTINGS } = require("../models/saleOrder.constants");
+const { idStr, todayIST, dayToDate, notify, findUnitUsers } = require("./saleOrder.helpers");
 
 /**
  * Background alerts (every 15 minutes by default):
- *  1. Order not opened 30 min after ASSIGNED -> remind the designer, then the unit manager
+ *  1. Order still in the unit's queue 30 min after it was placed -> remind everyone at the unit
  *  2. No customer reply 24 h after SENT_FOR_APPROVAL -> remind the branch to call the customer
- *  3. Deliver-by date is tomorrow (or past) and not DISPATCHED -> flag overdue
- *  4. Designer absent / on leave today -> OFF_DUTY and tell the unit manager which orders need reassigning
+ *  3. Deliver-by date is tomorrow (or past) and not DISPATCHED -> flag overdue to the branch and the unit
  */
 class SaleOrderSchedulerService {
   constructor() {
@@ -33,59 +31,35 @@ class SaleOrderSchedulerService {
     this.running = true;
     try {
       return {
-        notOpened: await this.remindNotOpened(),
+        waitingInQueue: await this.remindWaitingInQueue(),
         noReply: await this.remindNoReply(),
         overdue: await this.flagOverdue(),
-        absentDesigners: await this.handleAbsentDesigners(),
       };
     } finally {
       this.running = false;
     }
   }
 
-  async remindNotOpened() {
+  async remindWaitingInQueue() {
     const cutoff = new Date(Date.now() - SALE_ORDER_SETTINGS.notOpenedReminderMinutes * 60000);
-    let sent = 0;
-
-    // Stage 1: remind the designer
-    const stage1 = await SaleOrder.find({
-      status: STATUS.ASSIGNED,
-      "currentAssignment.assignedAt": { $lte: cutoff },
+    const orders = await SaleOrder.find({
+      status: { $in: MFG_QUEUE },
+      orderDate: { $lte: cutoff },
       "reminders.notOpenedReminderAt": null,
     }).lean();
-    for (const o of stage1) {
+
+    let sent = 0;
+    for (const o of orders) {
       const claimed = await SaleOrder.updateOne(
-        { _id: o._id, "reminders.notOpenedReminderAt": null, status: STATUS.ASSIGNED },
+        { _id: o._id, "reminders.notOpenedReminderAt": null, status: { $in: MFG_QUEUE } },
         { $set: { "reminders.notOpenedReminderAt": new Date() } }
       );
       if (!claimed.modifiedCount) continue;
       await notify({
-        userIds: [idStr(o.currentAssignment.designerUserId)],
+        userIds: await findUnitUsers(o.manufacturingUnitId),
         type: NOTIFICATION.REMINDER,
-        title: "Order not opened",
-        message: `Order ${o.orderNo} was assigned to you ${SALE_ORDER_SETTINGS.notOpenedReminderMinutes} minutes ago. Please open it.`,
-        orderId: o._id,
-      });
-      sent++;
-    }
-
-    // Stage 2: still unopened a further interval later -> unit manager
-    const stage2 = await SaleOrder.find({
-      status: STATUS.ASSIGNED,
-      "reminders.notOpenedReminderAt": { $lte: cutoff, $ne: null },
-      "reminders.notOpenedEscalatedAt": null,
-    }).lean();
-    for (const o of stage2) {
-      const claimed = await SaleOrder.updateOne(
-        { _id: o._id, "reminders.notOpenedEscalatedAt": null, status: STATUS.ASSIGNED },
-        { $set: { "reminders.notOpenedEscalatedAt": new Date() } }
-      );
-      if (!claimed.modifiedCount) continue;
-      await notify({
-        userIds: await findUsersByRole(["MFG_MANAGER"], o.manufacturingUnitId),
-        type: NOTIFICATION.REMINDER,
-        title: "Order still not opened",
-        message: `Order ${o.orderNo} (${o.currentAssignment.designerName}) has not been opened. Consider reassigning.`,
+        title: "Order waiting in the queue",
+        message: `Order ${o.orderNo} has been waiting for ${SALE_ORDER_SETTINGS.notOpenedReminderMinutes} minutes. Please take it.`,
         orderId: o._id,
       });
       sent++;
@@ -119,18 +93,8 @@ class SaleOrderSchedulerService {
   async flagOverdue() {
     const today = todayIST();
     const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
-    const beforeDispatch = [
-      STATUS.PLACED,
-      STATUS.WAITING_FOR_DESIGNER,
-      STATUS.ASSIGNED,
-      STATUS.IN_DESIGN,
-      STATUS.SENT_FOR_APPROVAL,
-      STATUS.CHANGES_REQUESTED,
-      STATUS.APPROVED,
-      STATUS.PRINTING,
-    ];
     const orders = await SaleOrder.find({
-      status: { $in: beforeDispatch },
+      status: { $in: MFG_ACTIVE },
       expectedDeliveryDate: { $lte: dayToDate(tomorrow) },
       "reminders.overdueFlaggedAt": null,
     }).lean();
@@ -138,14 +102,12 @@ class SaleOrderSchedulerService {
     let flagged = 0;
     for (const o of orders) {
       const claimed = await SaleOrder.updateOne(
-        { _id: o._id, "reminders.overdueFlaggedAt": null, status: { $in: beforeDispatch } },
+        { _id: o._id, "reminders.overdueFlaggedAt": null, status: { $in: MFG_ACTIVE } },
         { $set: { "reminders.overdueFlaggedAt": new Date() } }
       );
       if (!claimed.modifiedCount) continue;
-      const unitUsers = await findUsersByRole(["MFG_MANAGER"], o.manufacturingUnitId);
-      const designer = o.currentAssignment?.designerUserId ? [idStr(o.currentAssignment.designerUserId)] : [];
       await notify({
-        userIds: [idStr(o.createdBy), ...unitUsers, ...designer],
+        userIds: [idStr(o.createdBy), ...(await findUnitUsers(o.manufacturingUnitId))],
         branchId: o.orderBranchId,
         type: NOTIFICATION.OVERDUE,
         title: "Delivery date at risk",
@@ -155,36 +117,6 @@ class SaleOrderSchedulerService {
       flagged++;
     }
     return flagged;
-  }
-
-  async handleAbsentDesigners() {
-    const profiles = await MfgDesignerProfile.find({ isActive: true, employeeId: { $ne: null }, availability: { $ne: "OFF_DUTY" } }).lean();
-    let changed = 0;
-    for (const p of profiles) {
-      const absent = await DailyAttendance.exists({
-        employeeId: { $in: idVariants(p.employeeId) },
-        attendanceDate: todayIST(),
-        status: { $in: ["ABSENT", "ON_LEAVE"] },
-      });
-      if (!absent) continue;
-
-      const moved = await MfgDesignerProfile.updateOne({ _id: p._id, availability: { $ne: "OFF_DUTY" } }, { $set: { availability: "OFF_DUTY" } });
-      if (!moved.modifiedCount) continue;
-      changed++;
-
-      const open = await SaleOrder.find({ "currentAssignment.designerUserId": p.userId, status: { $in: DESIGNER_HOLDING } })
-        .select("orderNo")
-        .lean();
-      await notify({
-        userIds: await findUsersByRole(["MFG_MANAGER"], p.manufacturingUnitId),
-        type: NOTIFICATION.REMINDER,
-        title: "Designer absent today",
-        message: open.length
-          ? `${p.displayName} is absent or on leave. Orders to reassign: ${open.map((o) => o.orderNo).join(", ")}.`
-          : `${p.displayName} is absent or on leave and is now off duty.`,
-      });
-    }
-    return changed;
   }
 }
 

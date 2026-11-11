@@ -140,8 +140,7 @@ const INITIAL_MASTER_ITEMS = [
   { category: "employeeRoles", name: "Super Admin", code: "SUPER_ADMIN", order: 3 },
   { category: "employeeRoles", name: "Designer", code: "DESIGNER", order: 4 },
   { category: "employeeRoles", name: "Operator", code: "OPERATOR", config: "NO_LOGIN", order: 5 },
-  { category: "employeeRoles", name: "Mfg Manager", code: "MFG_MANAGER", order: 6 },
-  { category: "employeeRoles", name: "Mfg Designer", code: "MFG_DESIGNER", order: 7 },
+  // The manufacturing unit signs in with one shared role (MFG-Employee, made in Role Management), not separate manager/designer roles
   { category: "employeeRoles", name: "Store Incharge", code: "STORE_INCHARGE", order: 8 },
   { category: "employeeRoles", name: "Accounting Staff", code: "ACCOUNTING_STAFF", order: 9 },
 

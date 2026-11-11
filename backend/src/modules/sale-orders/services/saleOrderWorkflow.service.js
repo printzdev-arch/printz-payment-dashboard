@@ -1,10 +1,5 @@
 const attachmentService = require("../../attachments/services/attachment.service");
-const {
-  SaleOrder,
-  SaleOrderItem,
-  SaleOrderDesign,
-  MfgDesignAssignment,
-} = require("../models");
+const { SaleOrder, SaleOrderItem, SaleOrderDesign } = require("../models");
 const { STATUS, NOTIFICATION, SALE_ORDER_SETTINGS } = require("../models/saleOrder.constants");
 const {
   err,
@@ -16,8 +11,9 @@ const {
   runInTransaction,
   addEvent,
   notify,
+  findUnitUsers,
+  canWorkUnit,
 } = require("./saleOrder.helpers");
-const assignment = require("./saleOrderAssignment.service");
 const whatsapp = require("./saleOrderWhatsapp.service");
 
 const PREVIEW_EXTENSIONS = ["jpg", "jpeg", "png"];
@@ -35,48 +31,27 @@ async function getOrder(id) {
   return order;
 }
 
-const isAssignee = (order, actor) => idStr(order.currentAssignment?.designerUserId) === actor.userId;
-
-/** Only the assigned designer. Admin may also act where the access matrix gives admin full rights. */
-function assertAssignee(order, actor, { allowAdmin = false } = {}) {
-  if (isAssignee(order, actor) || (allowAdmin && actor.isAdmin)) return;
-  throw err(403, "NOT_ASSIGNEE", "This order is assigned to another designer.");
+/** Anyone who works at the order's manufacturing unit (or an admin) may do every step on it. */
+function assertUnit(order, actor) {
+  if (canWorkUnit(actor, order)) return;
+  throw err(403, "FORBIDDEN", "Only the manufacturing unit handling this order can do this.");
 }
 
 /** Notify the people on the branch side (the order creator and the branch). */
 const notifyBranch = (order, payload) =>
   notify({ userIds: [idStr(order.createdBy)], branchId: order.orderBranchId, orderId: order._id, ...payload });
 
+/** Notify everyone who works at the order's manufacturing unit. */
+const notifyUnit = async (order, payload) =>
+  notify({ userIds: await findUnitUsers(order.manufacturingUnitId), orderId: order._id, ...payload });
+
 /* ------------------------------------------------------------------- design */
-
-/** Designer opens the order for the first time: ASSIGNED -> IN_DESIGN. */
-async function startDesign(id, actor) {
-  const order = await getOrder(id);
-  assertAssignee(order, actor);
-  if (order.status !== STATUS.ASSIGNED) throw invalidStatus(order, [STATUS.ASSIGNED]);
-
-  await runInTransaction(async (session) => {
-    const updated = await SaleOrder.findOneAndUpdate(
-      { _id: order._id, status: STATUS.ASSIGNED },
-      { $set: { status: STATUS.IN_DESIGN } },
-      { new: true, session }
-    );
-    if (!updated) throw invalidStatus(order, [STATUS.ASSIGNED]);
-    await MfgDesignAssignment.updateOne(
-      { _id: order.currentAssignment.assignmentId, seenAt: null },
-      { $set: { seenAt: new Date() } },
-      { session }
-    );
-    await addEvent(session, { order, action: "DESIGN_STARTED", fromStatus: STATUS.ASSIGNED, toStatus: STATUS.IN_DESIGN, actor });
-  });
-  return SaleOrder.findById(order._id).lean();
-}
 
 /** Upload a design version: preview image (sent to the customer) and optional print file (internal). */
 async function uploadDesign(id, files, body, actor) {
   const order = await getOrder(id);
-  assertAssignee(order, actor);
-  const allowed = [STATUS.ASSIGNED, STATUS.IN_DESIGN, STATUS.CHANGES_REQUESTED];
+  assertUnit(order, actor);
+  const allowed = [STATUS.IN_DESIGN, STATUS.CHANGES_REQUESTED];
   if (!allowed.includes(order.status)) throw invalidStatus(order, allowed);
 
   const preview = files?.preview?.[0];
@@ -139,13 +114,6 @@ async function uploadDesign(id, files, body, actor) {
     );
     if (!updated) throw invalidStatus(order, allowed);
 
-    if (order.status === STATUS.ASSIGNED) {
-      await MfgDesignAssignment.updateOne(
-        { _id: order.currentAssignment.assignmentId, seenAt: null },
-        { $set: { seenAt: new Date() } },
-        { session }
-      );
-    }
     await addEvent(session, {
       order,
       action: "DESIGN_VERSION_CREATED",
@@ -162,7 +130,7 @@ async function uploadDesign(id, files, body, actor) {
 /** Send a design version to the customer's WhatsApp: IN_DESIGN -> SENT_FOR_APPROVAL. */
 async function sendDesign(id, versionNo, actor) {
   const order = await getOrder(id);
-  assertAssignee(order, actor, { allowAdmin: true });
+  assertUnit(order, actor);
   if (order.status !== STATUS.IN_DESIGN) throw invalidStatus(order, [STATUS.IN_DESIGN]);
 
   const design = await SaleOrderDesign.findOne({ orderId: order._id, versionNo: Number(versionNo) }).lean();
@@ -215,13 +183,13 @@ async function sendDesign(id, versionNo, actor) {
 
 /* ----------------------------------------------------------------- approval */
 
-/** Record the customer's decision. Branch staff (own branch), the assigned designer, or an admin. */
+/** Record the customer's decision. Branch staff (own branch), the manufacturing unit, or an admin. */
 async function recordApproval(id, body, actor) {
   const order = await getOrder(id);
-  const byDesigner = isAssignee(order, actor);
+  const byUnit = actor.isMfg && canWorkUnit(actor, order);
   const byBranch = actor.isBranchStaff && actor.branchIds.includes(idStr(order.orderBranchId));
-  if (!byDesigner && !byBranch && !actor.isAdmin) {
-    throw err(403, "FORBIDDEN", "Only the order's branch, the assigned designer or an admin can record the customer's decision.");
+  if (!byUnit && !byBranch && !actor.isAdmin) {
+    throw err(403, "FORBIDDEN", "Only the order's branch, its manufacturing unit or an admin can record the customer's decision.");
   }
   if (order.status !== STATUS.SENT_FOR_APPROVAL) throw invalidStatus(order, [STATUS.SENT_FOR_APPROVAL]);
 
@@ -229,7 +197,7 @@ async function recordApproval(id, body, actor) {
   if (!["APPROVED", "CHANGES_REQUESTED"].includes(decision)) {
     throw err(422, "INVALID_DECISION", "Decision must be APPROVED or CHANGES_REQUESTED.");
   }
-  const channel = String(body.channel || (byDesigner ? "CALL_TO_DESIGNER" : "CALL_TO_BRANCH")).toUpperCase();
+  const channel = String(body.channel || (byUnit ? "CALL_TO_DESIGNER" : "CALL_TO_BRANCH")).toUpperCase();
   if (!APPROVAL_CHANNELS.includes(channel)) {
     throw err(422, "INVALID_CHANNEL", `Channel must be one of ${APPROVAL_CHANNELS.join(", ")}.`);
   }
@@ -293,8 +261,8 @@ async function recordApproval(id, body, actor) {
   const payload = approved
     ? { type: NOTIFICATION.APPROVED, title: "Design approved", message: `Order ${order.orderNo}: customer approved design v${latest.versionNo}.` }
     : { type: NOTIFICATION.CHANGES, title: "Changes requested", message: `Order ${order.orderNo}: customer wants changes. ${remarks}` };
-  if (byDesigner) await notifyBranch(order, payload);
-  else await notify({ userIds: [idStr(order.currentAssignment?.designerUserId)], orderId: order._id, ...payload });
+  if (byUnit) await notifyBranch(order, payload);
+  else await notifyUnit(order, payload);
 
   return SaleOrder.findById(order._id).lean();
 }
@@ -303,7 +271,7 @@ async function recordApproval(id, body, actor) {
 
 async function startPrint(id, actor) {
   const order = await getOrder(id);
-  assertAssignee(order, actor, { allowAdmin: true });
+  assertUnit(order, actor);
   if (order.status !== STATUS.APPROVED) throw invalidStatus(order, [STATUS.APPROVED]);
 
   await runInTransaction(async (session) => {
@@ -321,7 +289,7 @@ async function startPrint(id, actor) {
 /** Finish printing: printed quantity must cover the ordered quantity for every item. */
 async function finishPrint(id, body, actor) {
   const order = await getOrder(id);
-  assertAssignee(order, actor, { allowAdmin: true });
+  assertUnit(order, actor);
   if (order.status !== STATUS.PRINTING) throw invalidStatus(order, [STATUS.PRINTING]);
   if (order.printing?.completedAt) throw err(409, "INVALID_STATUS", "Printing is already finished for this order.");
 
@@ -372,13 +340,10 @@ async function finishPrint(id, body, actor) {
   return SaleOrder.findById(order._id).lean();
 }
 
-/** Only the approved version's print file can be downloaded, and only by the designer, unit manager or admin. */
+/** Only the approved version's print file can be downloaded, and only by the order's unit or an admin. */
 async function getPrintFile(id, versionNo, actor) {
   const order = await getOrder(id);
-  const isUnitManager = actor.isMfgManager && actor.branchIds.includes(idStr(order.manufacturingUnitId));
-  if (!actor.isAdmin && !isUnitManager && !isAssignee(order, actor)) {
-    throw err(403, "FORBIDDEN", "You cannot download the print file of this order.");
-  }
+  assertUnit(order, actor);
   const design = await SaleOrderDesign.findOne({ orderId: order._id, versionNo: Number(versionNo) }).lean();
   if (!design) throw err(404, "NOT_FOUND", `Design version ${versionNo} not found.`);
   if (idStr(order.approvedDesignId) !== idStr(design._id)) {
@@ -393,7 +358,7 @@ async function getPrintFile(id, versionNo, actor) {
 /** "Designed and sent to the location": PRINTING (finished) -> DISPATCHED to the ordering branch. */
 async function dispatchOrder(id, body, actor) {
   const order = await getOrder(id);
-  assertAssignee(order, actor, { allowAdmin: true });
+  assertUnit(order, actor);
   if (order.status !== STATUS.PRINTING) throw invalidStatus(order, [STATUS.PRINTING]);
   if (!order.printing?.completedAt) throw err(422, "PRINT_NOT_FINISHED", "Finish printing before dispatching.");
 
@@ -425,7 +390,6 @@ async function dispatchOrder(id, body, actor) {
       { new: true, session }
     );
     if (!updated) throw invalidStatus(order, [STATUS.PRINTING]);
-    await assignment.releaseDesigner(session, order, { assignmentStatus: "COMPLETED", reason: "Dispatched" });
     await addEvent(session, {
       order,
       action: "DISPATCHED",
@@ -441,18 +405,10 @@ async function dispatchOrder(id, body, actor) {
     title: "Order is on the way",
     message: `Order ${order.orderNo} was sent to your branch (${dispatchNo}, ${packages} package${packages > 1 ? "s" : ""}).`,
   });
-
-  // The freed designer slot may serve the next waiting order
-  try {
-    await assignment.processQueue(order.manufacturingUnitId);
-  } catch (e) {
-    console.warn("[SaleOrder] queue processing failed:", e.message);
-  }
   return SaleOrder.findById(order._id).lean();
 }
 
 module.exports = {
-  startDesign,
   uploadDesign,
   sendDesign,
   recordApproval,

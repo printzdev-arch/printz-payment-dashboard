@@ -3,7 +3,7 @@
  */
 const saleOrderService = require("./saleOrder.service");
 const saleOrderWorkflowService = require("./saleOrderWorkflow.service");
-const saleOrderAssignmentService = require("./saleOrderAssignment.service");
+const saleOrderMfgService = require("./saleOrderMfg.service");
 const saleOrderWhatsappService = require("./saleOrderWhatsapp.service");
 const saleOrderSchedulerService = require("./saleOrderScheduler.service");
 const helpers = require("./saleOrder.helpers");
@@ -11,7 +11,7 @@ const helpers = require("./saleOrder.helpers");
 module.exports = {
   saleOrderService,
   saleOrderWorkflowService,
-  saleOrderAssignmentService,
+  saleOrderMfgService,
   saleOrderWhatsappService,
   saleOrderSchedulerService,
   getActor: helpers.getActor,

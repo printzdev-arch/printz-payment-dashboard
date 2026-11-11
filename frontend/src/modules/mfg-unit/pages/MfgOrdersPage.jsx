@@ -1,32 +1,38 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, PackageSearch, Search } from "lucide-react";
 import saleOrderApi from "../../sale-order/api/saleOrderApi";
-import Pagination from "../../sale-order/components/common/Pagination";
-import { OrderStatusBadge, PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
+import Pagination from "../../../shared/ui/Pagination";
+import PageBanner from "../components/PageBanner";
+import { PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
 import { errorMessage, formatDate } from "../../sale-order/utils/format";
-import { getMfgRole } from "../utils/mfgRole";
+import { stageInfo, takenByLabel } from "../utils/mfgStages";
 import "../../sale-order/styles/sale-order.css";
 import "../styles/mfg-unit.css";
 
-const UNIT_STATUSES =
-  "DRAFT,PLACED,WAITING_FOR_DESIGNER,ASSIGNED,IN_DESIGN,SENT_FOR_APPROVAL,CHANGES_REQUESTED,APPROVED,PRINTING,DISPATCHED,RECEIVED_AT_BRANCH,DELIVERED,CANCELLED";
+// Drafts never reach the unit, so they are left out of "All"
+const ALL_UNIT_STATUSES =
+  "PLACED,WAITING_FOR_DESIGNER,ASSIGNED,IN_DESIGN,SENT_FOR_APPROVAL,CHANGES_REQUESTED,APPROVED,PRINTING,DISPATCHED,RECEIVED_AT_BRANCH,DELIVERED,CANCELLED";
 
 const FILTERS = [
-  { value: "", label: "All Status" },
-  { value: "DRAFT,PLACED,WAITING_FOR_DESIGNER", label: "New & Waiting for Designer" },
-  { value: "DRAFT", label: "Drafts" },
-  { value: "ASSIGNED", label: "Assigned" },
+  { value: "", label: "All Orders" },
+  { value: "PLACED,WAITING_FOR_DESIGNER,ASSIGNED", label: "In Queue" },
   { value: "IN_DESIGN,CHANGES_REQUESTED", label: "In Design" },
   { value: "SENT_FOR_APPROVAL", label: "Awaiting Customer" },
-  { value: "APPROVED", label: "Approved" },
-  { value: "PRINTING,DISPATCHED,RECEIVED_AT_BRANCH,DELIVERED", label: "Production & Beyond" },
+  { value: "APPROVED", label: "Ready to Print" },
+  { value: "PRINTING", label: "Printing / Ready to Dispatch" },
+  { value: "DISPATCHED", label: "Dispatched" },
+  { value: "RECEIVED_AT_BRANCH,DELIVERED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
+
+// Every order sent to the unit. Open one to do whatever its next step is.
 export default function MfgOrdersPage() {
   const navigate = useNavigate();
-  const me = useMemo(() => getMfgRole(), []);
-  const [status, setStatus] = useState("");
+  const [params] = useSearchParams();
+  const initialStatus = FILTERS.some((f) => f.value === params.get("status")) ? params.get("status") : "";
+  const [status, setStatus] = useState(initialStatus);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState([]);
@@ -48,7 +54,7 @@ export default function MfgOrdersPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await saleOrderApi.list({ page, limit: pageSize, status: status || UNIT_STATUSES, search: search || undefined });
+      const res = await saleOrderApi.list({ page, limit: pageSize, status: status || ALL_UNIT_STATUSES, search: search || undefined });
       setRows(Array.isArray(res?.data) ? res.data : []);
       setTotal(Number(res?.meta?.total ?? res?.total ?? 0));
     } catch (err) {
@@ -66,12 +72,7 @@ export default function MfgOrdersPage() {
 
   return (
     <div className="so-page">
-      <div className="so-header">
-        <div className="so-title">
-          <h1>{me.isManager ? "All Orders" : "My Orders"}</h1>
-          <p>{me.isManager ? "Every order sent to your manufacturing unit" : "Orders assigned to you"}</p>
-        </div>
-      </div>
+      <PageBanner title="Manufacturing" highlight="Orders" subtitle="Every order sent to the manufacturing unit, its current stage and who took it." />
 
       <div className="so-filters">
         <select className="so-select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
@@ -94,9 +95,9 @@ export default function MfgOrdersPage() {
                 <th>Customer</th>
                 <th>Deliver By</th>
                 <th>Priority</th>
-                {me.isManager && <th>Designer</th>}
+                <th>Taken By</th>
                 <th>Design</th>
-                <th>Status</th>
+                <th>Current Stage</th>
                 <th className="right">Open</th>
               </tr>
             </thead>
@@ -121,9 +122,11 @@ export default function MfgOrdersPage() {
                     <td>{o.customerSnapshot?.name}<div className="muted">{o.customerSnapshot?.mobile}</div></td>
                     <td>{formatDate(o.expectedDeliveryDate)}</td>
                     <td><PriorityTag priority={o.priority} /></td>
-                    {me.isManager && <td>{o.currentAssignment?.designerName || <span className="muted">Not assigned</span>}</td>}
+                    <td>{takenByLabel(o) || <span className="muted">Not taken</span>}</td>
                     <td>{o.currentDesignVersion ? `v${o.currentDesignVersion}` : <span className="muted">—</span>}</td>
-                    <td><OrderStatusBadge status={o.status} /></td>
+                    <td>
+                      <span className={`so-badge ${stageInfo(o).tone}`}>{stageInfo(o).label}</span>
+                    </td>
                     <td className="right"><button type="button" className="so-icon-btn" title="Open order"><Eye size={16} /></button></td>
                   </tr>
                 ))
@@ -131,7 +134,15 @@ export default function MfgOrdersPage() {
             </tbody>
           </table>
         </div>
-        <Pagination total={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} />
+        <Pagination
+          currentPage={page}
+          totalItems={total}
+          itemsPerPage={pageSize}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          pageSizeOptions={[10, 25, 50]}
+          itemLabel="orders"
+        />
       </div>
     </div>
   );

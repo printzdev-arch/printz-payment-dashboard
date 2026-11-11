@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import "../../styles/sale-order.css";
 
 // Shared popup shell: header with title, scrolling body, footer for actions.
-export default function Modal({ isOpen, title, subtitle, onClose, footer, wide = false, children }) {
+export default function Modal({ isOpen, title, subtitle, icon: Icon, onClose, footer, wide = false, children }) {
   useEffect(() => {
     if (!isOpen) return undefined;
     const onKey = (e) => e.key === "Escape" && onClose?.();
@@ -17,9 +17,16 @@ export default function Modal({ isOpen, title, subtitle, onClose, footer, wide =
     <div className="so-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className={`so-modal ${wide ? "wide" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="so-modal-head">
-          <div>
-            <h3>{title}</h3>
-            {subtitle && <p>{subtitle}</p>}
+          <div className="so-modal-title">
+            {Icon && (
+              <span className="so-modal-icon">
+                <Icon size={20} />
+              </span>
+            )}
+            <div>
+              <h3>{title}</h3>
+              {subtitle && <p>{subtitle}</p>}
+            </div>
           </div>
           <button type="button" className="so-modal-close" onClick={onClose} aria-label="Close">
             <X size={20} />

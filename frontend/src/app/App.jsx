@@ -118,7 +118,6 @@ import {
   MfgOrdersPage,
   MfgOrderPage,
   MfgQueuePage,
-  MfgPrintDispatchPage,
 } from "../modules/mfg-unit";
 
 import { AuthProvider, useAuth, AuthContext } from "./providers/AuthContext.jsx";
@@ -210,14 +209,14 @@ const pageTitleMapping = {
   "/sale-orders/new": "New Sale Order",
   "/mfg/dashboard": "Manufacturing Dashboard",
   "/mfg/orders": "Manufacturing Orders",
-  "/mfg/queue": "Waiting Queue",
-  "/mfg/print-dispatch": "Print & Dispatch",
+  "/mfg/queue": "Manufacturing Queue",
 };
 
 // Branch users (and admins) who work with sale orders
 const SALE_ORDER_ROLES = ["admin", "super_admin", "manager", "branch_manager", "branch_manager1", "operator", "branch_staff"];
-// Manufacturing unit staff (admins may look in too)
-const MFG_PORTAL_ROLES = ["mfg_designer", "mfg_manager", "admin", "super_admin"];
+// The manufacturing unit portal. Unit staff get in through their page list (the server gives everyone at the
+// unit exactly the portal pages), so only admins need a role here.
+const MFG_PORTAL_ROLES = ["admin", "super_admin"];
 
 
 
@@ -1804,25 +1803,11 @@ const AppContent = () => {
           }
         />
         <Route
-          path="/mfg/print-dispatch"
-          element={
-            <PrivateRoute
-              loginPath="/login"
-              roles={MFG_PORTAL_ROLES}
-              component={() => (
-                <MfgLayout>
-                  <MfgPrintDispatchPage />
-                </MfgLayout>
-              )}
-            />
-          }
-        />
-        <Route
           path="/mfg/queue"
           element={
             <PrivateRoute
               loginPath="/login"
-              roles={["mfg_manager", "admin", "super_admin"]}
+              roles={MFG_PORTAL_ROLES}
               component={() => (
                 <MfgLayout>
                   <MfgQueuePage />

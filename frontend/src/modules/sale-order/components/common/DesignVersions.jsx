@@ -1,5 +1,5 @@
 import React from "react";
-import { Image as ImageIcon, CheckCircle2, MessageSquareWarning, Send } from "lucide-react";
+import { Image as ImageIcon, CheckCircle2, FileCheck, MessageSquareWarning, Send, Upload } from "lucide-react";
 import { fileUrl, formatDateTime } from "../../utils/format";
 import { typeLabel } from "../../utils/saleOrderStatus";
 import "../../styles/sale-order.css";
@@ -19,7 +19,7 @@ export default function DesignVersions({ designs = [] }) {
       <div className="so-empty" style={{ padding: "26px 10px" }}>
         <ImageIcon size={30} />
         <strong>No design yet</strong>
-        The designer's uploaded design versions will appear here.
+        Design versions uploaded by the manufacturing unit will appear here.
       </div>
     );
   }
@@ -47,20 +47,10 @@ export default function DesignVersions({ designs = [] }) {
                 <span className={`so-badge ${VERSION_TONE[d.status] || "slate"}`}>{typeLabel(d.status)}</span>
                 {idx === 0 && <span className="so-hint">Latest</span>}
               </div>
-              <div className="so-design-meta">
-                Uploaded {formatDateTime(d.createdAt)}
-                {d.sentAt && (
-                  <>
-                    <br />
-                    <Send size={11} style={{ verticalAlign: "-1px" }} /> Sent to customer {formatDateTime(d.sentAt)}
-                  </>
-                )}
-                {d.hasPrintFile && (
-                  <>
-                    <br />
-                    Print-ready file attached
-                  </>
-                )}
+              <div className="so-design-facts">
+                <div><Upload size={13} /> Uploaded {formatDateTime(d.createdAt)}</div>
+                {d.sentAt && <div><Send size={13} /> Sent to customer {formatDateTime(d.sentAt)}</div>}
+                {d.hasPrintFile && <div><FileCheck size={13} /> Print-ready file attached</div>}
               </div>
               {d.designerNotes ? <div className="so-design-note">Designer note: {d.designerNotes}</div> : null}
               {decision && (

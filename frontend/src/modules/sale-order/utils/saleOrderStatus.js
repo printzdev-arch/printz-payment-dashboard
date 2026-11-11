@@ -3,8 +3,8 @@
 export const STATUS_META = {
   DRAFT: { label: "Draft", tone: "slate" },
   PLACED: { label: "Placed", tone: "blue" },
-  WAITING_FOR_DESIGNER: { label: "Waiting for Designer", tone: "amber" },
-  ASSIGNED: { label: "Assigned", tone: "indigo" },
+  WAITING_FOR_DESIGNER: { label: "In Queue", tone: "amber" },
+  ASSIGNED: { label: "In Queue", tone: "amber" },
   IN_DESIGN: { label: "In Design", tone: "violet" },
   SENT_FOR_APPROVAL: { label: "Sent for Approval", tone: "orange" },
   CHANGES_REQUESTED: { label: "Changes Requested", tone: "red" },
@@ -20,21 +20,21 @@ export const statusLabel = (status) => STATUS_META[status]?.label || String(stat
 
 // Main journey shown in the progress stepper
 export const LIFECYCLE = [
-  { key: "DRAFT", label: "Draft", desc: "Order created" },
-  { key: "PLACED", label: "Placed", desc: "Advance collected" },
-  { key: "ASSIGNED", label: "Assigned", desc: "Designer allotted" },
-  { key: "IN_DESIGN", label: "In Design", desc: "Design in progress" },
-  { key: "SENT_FOR_APPROVAL", label: "Customer Approval", desc: "Design sent to customer" },
-  { key: "APPROVED", label: "Approved", desc: "Customer confirmed" },
-  { key: "PRINTING", label: "Printing", desc: "At manufacturing unit" },
-  { key: "DISPATCHED", label: "Dispatched", desc: "On the way to branch" },
-  { key: "RECEIVED_AT_BRANCH", label: "Received", desc: "Arrived at branch" },
-  { key: "DELIVERED", label: "Delivered", desc: "Handed to customer" },
+  { key: "DRAFT", label: "Draft" },
+  { key: "PLACED", label: "Placed" },
+  { key: "IN_DESIGN", label: "In Design" },
+  { key: "SENT_FOR_APPROVAL", label: "Customer Approval" },
+  { key: "APPROVED", label: "Approved" },
+  { key: "PRINTING", label: "Printing" },
+  { key: "DISPATCHED", label: "Dispatched" },
+  { key: "RECEIVED_AT_BRANCH", label: "Received" },
+  { key: "DELIVERED", label: "Delivered" },
 ];
 
 // Where an order sits in the stepper. Side states are mapped onto the nearest main step.
 export const stageIndexOf = (status) => {
-  const map = { WAITING_FOR_DESIGNER: "PLACED", CHANGES_REQUESTED: "SENT_FOR_APPROVAL" };
+  // WAITING_FOR_DESIGNER and ASSIGNED only exist on older orders: they mean the order is still in the queue
+  const map = { WAITING_FOR_DESIGNER: "PLACED", ASSIGNED: "PLACED", CHANGES_REQUESTED: "SENT_FOR_APPROVAL" };
   const key = map[status] || status;
   return LIFECYCLE.findIndex((s) => s.key === key);
 };
@@ -42,8 +42,8 @@ export const stageIndexOf = (status) => {
 export const LIST_STATUS_FILTERS = [
   { value: "", label: "All Status" },
   { value: "DRAFT", label: "Draft" },
-  { value: "PLACED,WAITING_FOR_DESIGNER", label: "Placed / Waiting" },
-  { value: "ASSIGNED,IN_DESIGN", label: "Assigned / In Design" },
+  { value: "PLACED,WAITING_FOR_DESIGNER,ASSIGNED", label: "Placed / In Queue" },
+  { value: "IN_DESIGN", label: "In Design" },
   { value: "SENT_FOR_APPROVAL", label: "Sent for Approval" },
   { value: "CHANGES_REQUESTED", label: "Changes Requested" },
   { value: "APPROVED", label: "Approved" },
@@ -74,7 +74,7 @@ export const PAYMENT_MODES = [
 
 export const APPROVAL_CHANNELS = [
   { value: "CALL_TO_BRANCH", label: "Customer called the branch" },
-  { value: "CALL_TO_DESIGNER", label: "Customer called the designer" },
+  { value: "CALL_TO_DESIGNER", label: "Customer called the manufacturing unit" },
   { value: "WHATSAPP_REPLY", label: "Customer replied on WhatsApp" },
   { value: "IN_PERSON", label: "Customer visited in person" },
 ];
@@ -87,5 +87,4 @@ export const typeLabel = (v) =>
 
 // Roles
 export const BRANCH_ROLES = ["manager", "branch_manager", "branch_manager1", "operator", "branch_staff"];
-export const MFG_ROLES = ["mfg_designer", "mfg_manager"];
 export const ADMIN_ROLES = ["admin", "super_admin"];

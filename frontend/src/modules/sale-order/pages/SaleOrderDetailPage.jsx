@@ -236,7 +236,7 @@ export default function SaleOrderDetailPage() {
         onClose={() => setShowApproval(false)}
         onDone={async (decision) => {
           setShowApproval(false);
-          toast.success(decision === "APPROVED" ? "Design approved. The unit can start printing." : "Sent back to the designer for changes.");
+          toast.success(decision === "APPROVED" ? "Design approved. The unit can start printing." : "Sent back to the manufacturing unit for changes.");
           await load(true);
         }}
       />

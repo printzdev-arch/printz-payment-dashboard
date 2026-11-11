@@ -48,4 +48,28 @@ export const emptyItem = () => ({
   unit: "PCS",
   unitPrice: "",
   taxRate: 18,
+  paperType: "",
+  paperGsm: "",
+  size: "",
+  color: "",
+  printingSide: "",
 });
+
+// Item fields in the form <-> the server's `specification` object
+export const SPEC_FIELDS = [
+  { key: "paperType", specKey: "paperType", label: "Paper Type" },
+  { key: "paperGsm", specKey: "paperGsm", label: "Paper GSM" },
+  { key: "size", specKey: "size", label: "Size" },
+  { key: "color", specKey: "colorMode", label: "Color" },
+  { key: "printingSide", specKey: "sides", label: "Printing Side" },
+];
+
+export const toSpecification = (it) =>
+  SPEC_FIELDS.reduce((spec, f) => ({ ...spec, [f.specKey]: String(it[f.key] || "").trim() }), {});
+
+export const fromSpecification = (spec = {}) =>
+  SPEC_FIELDS.reduce((out, f) => ({ ...out, [f.key]: spec?.[f.specKey] || "" }), {});
+
+// One-line summary, e.g. "Art Card · 300 gsm · A4 · Full Color · Double Sided"
+export const specSummary = (spec = {}) =>
+  SPEC_FIELDS.map((f) => spec?.[f.specKey]).filter(Boolean).join(" · ");

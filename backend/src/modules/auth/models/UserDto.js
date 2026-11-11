@@ -175,6 +175,8 @@ class UserResponseDto {
       pageAccess: raw.pageAccess,
       allowedPaths: raw.allowedPaths,
       pageLinks: raw.pageLinks,
+      isMfgUnit: raw.isMfgUnit || undefined,
+      mfgUnitId: raw.mfgUnitId ? String(raw.mfgUnitId) : undefined,
       status: raw.status || (raw.isActive ? "ACTIVE" : "DISABLED"),
       profilePicUrl: raw.profilePicUrl || null,
       needsReview: raw.needsReview !== undefined ? raw.needsReview : false,

@@ -40,31 +40,21 @@ const CANCELLABLE = [
 // A branch manager may cancel only while design work has not started
 const DESIGN_NOT_STARTED = [STATUS.DRAFT, STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER, STATUS.ASSIGNED];
 
-// Statuses in which a designer holds a slot (activeOrders)
-const DESIGNER_HOLDING = [
-  STATUS.ASSIGNED,
-  STATUS.IN_DESIGN,
-  STATUS.SENT_FOR_APPROVAL,
-  STATUS.CHANGES_REQUESTED,
-  STATUS.APPROVED,
-  STATUS.PRINTING,
-];
-
-const REASSIGNABLE = [
-  STATUS.ASSIGNED,
-  STATUS.IN_DESIGN,
-  STATUS.SENT_FOR_APPROVAL,
-  STATUS.CHANGES_REQUESTED,
-  STATUS.APPROVED,
-];
+/**
+ * Manufacturing unit work stages. Everyone at the unit sees and works the same orders:
+ *  QUEUE  - placed, nobody has taken it yet (WAITING_FOR_DESIGNER / ASSIGNED only exist on older orders)
+ *  DESIGN - taken; being designed or waiting for the customer
+ *  ACTIVE - every stage the unit still has work to do on
+ */
+const MFG_QUEUE = [STATUS.PLACED, STATUS.WAITING_FOR_DESIGNER, STATUS.ASSIGNED];
+const MFG_DESIGN = [STATUS.IN_DESIGN, STATUS.CHANGES_REQUESTED, STATUS.SENT_FOR_APPROVAL];
+const MFG_ACTIVE = [...MFG_QUEUE, ...MFG_DESIGN, STATUS.APPROVED, STATUS.PRINTING];
 
 const ROLE = Object.freeze({
   ADMIN: ["admin", "super_admin", "superadmin", "internal_admin"],
   // Includes the role codes that exist in the database today (BRANCH_MANAGER, BRANCH_MANAGER1, BRANCH_STAFF)
   BRANCH_MANAGER: ["manager", "branch_manager", "branch_manager1"],
   BRANCH_OPERATOR: ["operator", "branch_staff"],
-  MFG_MANAGER: ["mfg_manager"],
-  MFG_DESIGNER: ["mfg_designer"],
 });
 
 const SALE_ORDER_SETTINGS = {
@@ -85,8 +75,8 @@ const SALE_ORDER_SETTINGS = {
 };
 
 const NOTIFICATION = Object.freeze({
-  ASSIGNED: "SALE_ORDER_ASSIGNED",
-  WAITING: "SALE_ORDER_WAITING",
+  TAKEN: "SALE_ORDER_ASSIGNED",
+  NEW_IN_QUEUE: "SALE_ORDER_WAITING",
   DESIGN_SENT: "SALE_ORDER_DESIGN_SENT",
   APPROVED: "SALE_ORDER_APPROVED",
   CHANGES: "SALE_ORDER_CHANGES",
@@ -94,7 +84,6 @@ const NOTIFICATION = Object.freeze({
   DELIVERED: "SALE_ORDER_DELIVERED",
   REMINDER: "SALE_ORDER_REMINDER",
   OVERDUE: "SALE_ORDER_OVERDUE",
-  REASSIGNED: "SALE_ORDER_REASSIGNED",
   CANCELLED: "SALE_ORDER_CANCELLED",
   CUSTOMER_REPLY: "SALE_ORDER_CUSTOMER_REPLY",
 });
@@ -103,8 +92,9 @@ module.exports = {
   STATUS,
   CANCELLABLE,
   DESIGN_NOT_STARTED,
-  DESIGNER_HOLDING,
-  REASSIGNABLE,
+  MFG_QUEUE,
+  MFG_DESIGN,
+  MFG_ACTIVE,
   ROLE,
   NOTIFICATION,
   SALE_ORDER_SETTINGS,

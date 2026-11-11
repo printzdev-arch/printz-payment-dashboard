@@ -27,12 +27,6 @@ export default function Login() {
       return;
     }
 
-    // Manufacturing unit staff have their own portal
-    if (user?.role === "mfg_designer" || user?.role === "mfg_manager") {
-      navigate("/mfg/dashboard");
-      return;
-    }
-
     const isDes =
       user?.role === "designer" ||
       ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah", "guna"].some((n) =>

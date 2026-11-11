@@ -54,6 +54,7 @@ const COLOR_THEMES = {
  * @param {string} [props.badgeBg] - Custom pill background color
  * @param {string} [props.badgeColor] - Custom pill text color
  * @param {Function} [props.onClick] - Optional click handler (e.g. to filter table)
+ * @param {boolean} [props.active=false] - Highlight the card as selected
  * @param {number} [props.delay=0] - Entrance animation delay
  * @param {string} [props.className=""]
  */
@@ -69,6 +70,7 @@ export const PrintzKpiCard = ({
   badgeBg,
   badgeColor,
   onClick,
+  active = false,
   delay = 0,
   className = "",
   style = {},
@@ -88,6 +90,8 @@ export const PrintzKpiCard = ({
         boxSizing: "border-box",
         minWidth: 0,
         maxWidth: "100%",
+        // A selected card (for example the active table filter) gets a ring in its own colour
+        ...(active ? { outline: `2px solid ${theme.badgeColor}`, outlineOffset: "-2px" } : {}),
         ...style,
       }}
     >

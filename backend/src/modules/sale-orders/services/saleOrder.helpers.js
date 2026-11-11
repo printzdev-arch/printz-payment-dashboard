@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const AppError = require("../../../utils/errors/AppError");
 const NumberSequence = require("../../number-sequences/models/NumberSequence");
 const Notification = require("../../notifications/models/Notification");
-const Role = require("../../auth/models/Role");
 const User = require("../../auth/models/User");
 const Employee = require("../../employees/models/Employee");
 const { SaleOrderEvent } = require("../models");
@@ -71,13 +70,14 @@ function getActor(req) {
   const isAdmin = Boolean(req.authz?.isSuperAdmin) || has(ROLE.ADMIN);
   const isBranchManager = has(ROLE.BRANCH_MANAGER);
   const isBranchOperator = has(ROLE.BRANCH_OPERATOR);
-  const isMfgManager = has(ROLE.MFG_MANAGER);
-  const isMfgDesigner = has(ROLE.MFG_DESIGNER);
+  // Someone who works at the manufacturing unit (set when the profile is built from their branch).
+  // Everyone there works every order of the unit: take it, design it, print it, dispatch it.
+  const isMfg = Boolean(user.isMfgUnit) && !isAdmin;
+  const mfgUnitId = isMfg ? idStr(user.mfgUnitId || user.branchId) : null;
 
   let roleLabel = "user";
   if (isAdmin) roleLabel = "admin";
-  else if (isMfgManager) roleLabel = "mfg_manager";
-  else if (isMfgDesigner) roleLabel = "mfg_designer";
+  else if (isMfg) roleLabel = "mfg";
   else if (isBranchManager) roleLabel = "manager";
   else if (isBranchOperator) roleLabel = "operator";
 
@@ -89,12 +89,16 @@ function getActor(req) {
     isAdmin,
     isBranchManager,
     isBranchOperator,
-    isBranchStaff: isBranchManager || isBranchOperator,
-    isMfgManager,
-    isMfgDesigner,
+    isBranchStaff: (isBranchManager || isBranchOperator) && !isMfg,
+    isMfg,
+    mfgUnitId,
     roleLabel,
   };
 }
+
+/** May this caller do the unit's work on this order? Anyone at its unit, or an admin. */
+const canWorkUnit = (actor, order) =>
+  actor.isAdmin || Boolean(actor.isMfg && actor.mfgUnitId && actor.mfgUnitId === idStr(order.manufacturingUnitId));
 
 /** Run work in a MongoDB transaction when the server is a replica set (Atlas is). */
 async function runInTransaction(work) {
@@ -146,37 +150,14 @@ async function notify({ userIds = [], branchId = null, type, title, message, ord
   }
 }
 
-/**
- * Find active users that hold one of the given role codes, optionally limited to a branch.
- * Roles can sit on the user (role / roleIds) or on the linked employee.
- */
-async function findUsersByRole(roleCodes, branchId = null) {
-  const codes = roleCodes.map((c) => String(c).toUpperCase());
-  const roles = await Role.find({ code: { $in: codes } }).select("_id").lean();
-  const roleIds = roles.map((r) => r._id);
-
-  const employees = roleIds.length
-    ? await Employee.find({ roleId: { $in: roleIds } }).select("_id branchId").lean()
-    : [];
-  const employeeBranch = new Map(employees.map((e) => [idStr(e._id), idStr(e.branchId)]));
-
-  const or = [{ role: { $in: [...codes, ...codes.map((c) => c.toLowerCase())] } }];
-  if (roleIds.length) or.push({ roleIds: { $in: roleIds } });
+/** Active logins of everyone who works at a manufacturing unit (their employee record sits at that branch). */
+async function findUnitUsers(unitId) {
+  if (!isValidId(unitId)) return [];
+  const employees = await Employee.find({ branchId: { $in: idVariants(unitId) } }).select("_id").lean();
+  const or = [{ branchId: { $in: idVariants(unitId) } }];
   if (employees.length) or.push({ employeeId: { $in: employees.flatMap((e) => idVariants(e._id)) } });
-
-  const users = await User.find({ isActive: { $ne: false }, $or: or })
-    .select("_id branchId branchIds employeeId")
-    .lean();
-
-  if (!branchId) return users.map((u) => idStr(u._id));
-  const wanted = idStr(branchId);
-  return users
-    .filter((u) => {
-      const ids = new Set([idStr(u.branchId), ...(u.branchIds || []).map(idStr)]);
-      if (u.employeeId) ids.add(employeeBranch.get(idStr(u.employeeId)));
-      return ids.has(wanted);
-    })
-    .map((u) => idStr(u._id));
+  const users = await User.find({ isActive: { $ne: false }, $or: or }).select("_id").lean();
+  return users.map((u) => idStr(u._id));
 }
 
 module.exports = {
@@ -197,5 +178,6 @@ module.exports = {
   runInTransaction,
   addEvent,
   notify,
-  findUsersByRole,
+  findUnitUsers,
+  canWorkUnit,
 };

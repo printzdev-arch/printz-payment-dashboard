@@ -9,33 +9,14 @@ export const mfgApi = {
     return res.data?.data;
   },
 
-  setAvailability: async (availability, userId) => {
-    const res = await api.patch("/mfg/designers/me/availability", { availability, userId });
-    return res.data?.data;
-  },
-
   queue: async () => {
     const res = await api.get("/mfg/queue");
     return unwrapList(res.data);
   },
 
-  designers: async () => {
-    const res = await api.get("/mfg/designers");
-    return unwrapList(res.data);
-  },
-
-  assign: async (orderId, body) => {
-    const res = await api.post(`/sale-orders/${orderId}/assign`, body);
-    return res.data?.data;
-  },
-
-  reassign: async (orderId, body) => {
-    const res = await api.post(`/sale-orders/${orderId}/reassign`, body);
-    return res.data?.data;
-  },
-
-  startDesign: async (orderId) => {
-    const res = await api.post(`/sale-orders/${orderId}/design/start`);
+  // Take an order from the queue; it moves straight into design
+  take: async (orderId) => {
+    const res = await api.post(`/sale-orders/${orderId}/take`);
     return res.data?.data;
   },
 

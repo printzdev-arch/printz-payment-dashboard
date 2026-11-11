@@ -59,7 +59,7 @@ const schemas = {
       customerRequirements: { type: "string", example: "100 visiting cards with the blue logo" },
       remarks: { type: "string" },
       discountAmount: { ...money(0), description: "Order-level discount. Tax is reduced in proportion." },
-      items: { type: "array", minItems: 1, items: schemaRef("SaleOrderItemInput") },
+      items: { type: "array", minItems: 1, maxItems: 1, description: "Exactly one item per order.", items: schemaRef("SaleOrderItemInput") },
     },
   },
   UpdateSaleOrderRequest: {
@@ -77,7 +77,7 @@ const schemas = {
       email: { type: "string", format: "email" },
       address: { type: "string" },
       discountAmount: money(0),
-      items: { type: "array", items: schemaRef("SaleOrderItemInput") },
+      items: { type: "array", minItems: 1, maxItems: 1, description: "Exactly one item per order.", items: schemaRef("SaleOrderItemInput") },
     },
   },
   PlaceSaleOrderRequest: {
@@ -155,30 +155,6 @@ const schemas = {
       reference: { type: "string", description: "Required for non-cash refunds." },
     },
   },
-  AssignDesignerRequest: {
-    type: "object",
-    required: ["designerUserId"],
-    properties: {
-      designerUserId: { $ref: "#/components/schemas/ObjectId" },
-      reason: { type: "string", example: "Urgent order, extra capacity needed", description: "Required when the designer is over capacity." },
-    },
-  },
-  ReassignDesignerRequest: {
-    type: "object",
-    required: ["designerUserId", "reason"],
-    properties: {
-      designerUserId: { $ref: "#/components/schemas/ObjectId" },
-      reason: { type: "string", example: "Designer is on leave today" },
-    },
-  },
-  SetAvailabilityRequest: {
-    type: "object",
-    required: ["availability"],
-    properties: {
-      availability: { type: "string", enum: ["AVAILABLE", "BUSY", "ON_BREAK", "OFF_DUTY"], example: "AVAILABLE" },
-      userId: { $ref: "#/components/schemas/ObjectId" },
-    },
-  },
   UploadDesignRequest: {
     type: "object",
     required: ["preview"],
@@ -218,7 +194,12 @@ const schemas = {
       amountPaid: { type: "number", example: 300 },
       balanceDue: { type: "number", example: 290 },
       paymentStatus: { type: "string", enum: ["UNPAID", "ADVANCE_PAID", "PAID", "REFUNDED"] },
-      currentAssignment: { type: "object", nullable: true, properties: { designerUserId: { $ref: "#/components/schemas/ObjectId" }, designerName: { type: "string" } } },
+      currentAssignment: {
+        type: "object",
+        nullable: true,
+        description: "Who at the manufacturing unit took the order from the queue. Everyone at the unit can still work it.",
+        properties: { designerUserId: { $ref: "#/components/schemas/ObjectId" }, designerName: { type: "string" }, assignedAt: { $ref: "#/components/schemas/DateTimeString" } },
+      },
       items: { type: "array", items: { type: "object", additionalProperties: true } },
       designs: { type: "array", items: { type: "object", additionalProperties: true } },
       payments: { type: "array", items: { type: "object", additionalProperties: true } },
@@ -227,7 +208,6 @@ const schemas = {
       delivery: { type: "object", nullable: true, additionalProperties: true },
       cancellation: { type: "object", nullable: true, additionalProperties: true },
     },
-    description: "Designers receive this without any money fields (subtotal, discountAmount, taxAmount, grandTotal, amountPaid, balanceDue, payments).",
   },
   SaleOrderEvent: {
     type: "object",
@@ -249,28 +229,22 @@ const schemas = {
   MfgDashboard: {
     type: "object",
     properties: {
-      role: { type: "string", enum: ["mfg_designer", "mfg_manager", "admin"] },
-      counts: { type: "object", additionalProperties: { type: "integer" }, example: { ASSIGNED: 1, IN_DESIGN: 2 } },
-      orders: { type: "array", items: { type: "object", additionalProperties: true } },
-      designers: { type: "array", items: schemaRef("MfgDesigner") },
+      counts: {
+        type: "object",
+        description: "Open orders of the unit per status, plus READY_TO_DISPATCH (printing finished, not yet dispatched).",
+        additionalProperties: { type: "integer" },
+        example: { PLACED: 2, IN_DESIGN: 3, SENT_FOR_APPROVAL: 1, APPROVED: 1, PRINTING: 2, READY_TO_DISPATCH: 1 },
+      },
+      myOrders: { type: "array", description: "Open orders the caller took from the queue.", items: { type: "object", additionalProperties: true } },
       notifications: { type: "array", items: { type: "object", additionalProperties: true } },
-    },
-  },
-  MfgDesigner: {
-    type: "object",
-    properties: {
-      userId: { $ref: "#/components/schemas/ObjectId" },
-      displayName: { type: "string", example: "Mfg Designer" },
-      availability: { type: "string", enum: ["AVAILABLE", "BUSY", "ON_BREAK", "OFF_DUTY"] },
-      activeOrders: { type: "integer", example: 1 },
-      maxActiveOrders: { type: "integer", example: 3 },
     },
   },
   MfgQueueItem: {
     type: "object",
     properties: {
       _id: { $ref: "#/components/schemas/ObjectId" }, orderNo: { type: "string" }, status: schemaRef("SaleOrderStatus"),
-      priority: { type: "string" }, minutesWaiting: { type: "integer", example: 42 },
+      priority: { type: "string" }, isQueued: { type: "boolean", description: "true while nobody has taken the order." },
+      minutesWaiting: { type: "integer", example: 42 }, currentAssignment: { type: "object", nullable: true, additionalProperties: true },
     },
   },
 };
@@ -294,14 +268,13 @@ const paths = {
     }),
   },
   "/sale-orders": {
-    get: op(TAG, "listSaleOrders", "List sale orders", "Branch staff see their own branch, unit managers their unit, designers only their assigned orders, admins everything.", {
+    get: op(TAG, "listSaleOrders", "List sale orders", "Branch staff see their own branch, manufacturing unit staff every order of their unit, admins everything.", {
       parameters: [
         paramRef("Page"), paramRef("Limit"), paramRef("Search"),
         { name: "status", in: "query", description: "One status or a comma-separated list.", schema: { type: "string", example: "PLACED,ASSIGNED" } },
         { name: "priority", in: "query", schema: { type: "string", enum: ["NORMAL", "URGENT"] } },
         { name: "branchId", in: "query", schema: schemaRef("ObjectId") },
         { name: "unitId", in: "query", schema: schemaRef("ObjectId") },
-        { name: "designerUserId", in: "query", schema: schemaRef("ObjectId") },
         { name: "fromDate", in: "query", schema: { type: "string", format: "date" } },
         { name: "toDate", in: "query", schema: { type: "string", format: "date" } },
       ],
@@ -343,14 +316,14 @@ const paths = {
     }),
   },
   "/sale-orders/{id}/place": {
-    post: op(TAG, "placeSaleOrder", "Collect the advance and place the order", "Moves DRAFT to PLACED, issues the real order number and an advance receipt, then auto-assigns a designer. Safe to retry with the same `Idempotency-Key`.", {
+    post: op(TAG, "placeSaleOrder", "Collect the advance and place the order", "Moves DRAFT to PLACED, issues the real order number and an advance receipt. The order then waits in the manufacturing unit's queue. Safe to retry with the same `Idempotency-Key`.", {
       parameters: [idParam, paramRef("IdempotencyKey")],
       requestBody: jsonBody("PlaceSaleOrderRequest", { example: { advanceAmount: 300, mode: "CASH" } }),
       responses: { 201: okResponse("Order placed", "SaleOrder"), 200: okResponse("Same Idempotency-Key replayed: original result", "SaleOrder"), ...errors(401, 403, 404, 409, 422) },
     }),
   },
   "/sale-orders/{id}/approval": {
-    post: action("recordSaleOrderApproval", "Record the customer's decision", "Order must be SENT_FOR_APPROVAL. APPROVED moves it to APPROVED; CHANGES_REQUESTED sends it back to the designer.", "SaleOrderApprovalRequest",
+    post: action("recordSaleOrderApproval", "Record the customer's decision", "Order must be SENT_FOR_APPROVAL. APPROVED moves it to APPROVED; CHANGES_REQUESTED sends it back to design. The ordering branch or the manufacturing unit can record it.", "SaleOrderApprovalRequest",
       { decision: "APPROVED", channel: "CALL_TO_BRANCH", remarks: "Customer is happy with the design", versionNo: 1 }),
   },
   "/sale-orders/{id}/receive": {
@@ -365,19 +338,13 @@ const paths = {
     post: action("cancelSaleOrder", "Cancel an order", "Allowed before the parcel is dispatched. A branch manager can cancel until design starts (full refund); after that only an admin can, and enters the refund amount.", "CancelSaleOrderRequest",
       { reason: "Customer no longer needs the order", refundMode: "CASH" }),
   },
-  "/sale-orders/{id}/assign": {
-    post: action("assignSaleOrderDesigner", "Assign a designer manually", "Unit manager or admin. Order must be PLACED or WAITING_FOR_DESIGNER.", "AssignDesignerRequest",
-      { designerUserId: "6ae1ea2d2288a6060ff0f714", reason: "Urgent order" }),
-  },
-  "/sale-orders/{id}/reassign": {
-    post: action("reassignSaleOrderDesigner", "Reassign to another designer", "Unit manager or admin, before printing starts. Status does not change.", "ReassignDesignerRequest",
-      { designerUserId: "6ae1ea2d2288a6060ff0f714", reason: "Designer is on leave today" }),
-  },
-  "/sale-orders/{id}/design/start": {
-    post: action("startSaleOrderDesign", "Start design", "Assigned designer only. ASSIGNED to IN_DESIGN.", null),
+  "/sale-orders/{id}/take": {
+    post: op(TAG_MFG, "takeSaleOrder", "Take an order from the queue", "Anyone at the order's manufacturing unit. Moves a queued order (PLACED, or WAITING_FOR_DESIGNER / ASSIGNED on older orders) to IN_DESIGN and records who took it. If two people take it at once, the second gets 409 ALREADY_TAKEN.", {
+      parameters: [idParam], responses: { 200: okResponse("Order taken", "SaleOrder"), ...errors(401, 403, 404, 409) },
+    }),
   },
   "/sale-orders/{id}/designs": {
-    post: op(TAG_MFG, "uploadSaleOrderDesign", "Upload a design version", "Assigned designer only. Only one DRAFT version at a time. The preview goes to the customer; the print file stays internal.", {
+    post: op(TAG_MFG, "uploadSaleOrderDesign", "Upload a design version", "Anyone at the order's manufacturing unit, once the order is taken (IN_DESIGN or CHANGES_REQUESTED). Only one DRAFT version at a time. The preview goes to the customer; the print file stays internal.", {
       parameters: [idParam],
       requestBody: { required: true, content: { "multipart/form-data": { schema: schemaRef("UploadDesignRequest") } } },
       responses: { 201: okResponse("Version uploaded", "SaleOrder"), ...errors(401, 403, 404, 409, 422) },
@@ -389,7 +356,7 @@ const paths = {
     }),
   },
   "/sale-orders/{id}/designs/{v}/print-file": {
-    get: op(TAG_MFG, "downloadSaleOrderPrintFile", "Download the print file", "Only the approved version, and only for the designer, unit manager or admin. Branch users are refused.", {
+    get: op(TAG_MFG, "downloadSaleOrderPrintFile", "Download the print file", "Only the approved version, and only for the order's manufacturing unit or an admin. Branch users are refused.", {
       parameters: [idParam, versionParam],
       responses: {
         200: { description: "The print file", headers: { "Content-Disposition": { schema: { type: "string", example: 'attachment; filename="print.pdf"' } } }, content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } },
@@ -398,37 +365,27 @@ const paths = {
     }),
   },
   "/sale-orders/{id}/print/start": {
-    post: action("startSaleOrderPrint", "Start printing", "Assigned designer or admin. APPROVED to PRINTING.", null),
+    post: action("startSaleOrderPrint", "Start printing", "Anyone at the order's manufacturing unit, or an admin. APPROVED to PRINTING.", null),
   },
   "/sale-orders/{id}/print/finish": {
     post: action("finishSaleOrderPrint", "Finish printing", "Printed quantity must be at least the ordered quantity. The status stays PRINTING until dispatch.", "FinishPrintRequest",
       { items: [{ lineNo: 1, printedQty: 100 }], spoilageQty: 3, remarks: "Two sheets spoiled and reprinted" }),
   },
   "/sale-orders/{id}/dispatch": {
-    post: action("dispatchSaleOrder", "Dispatch to the branch", "Printing must be finished. Sends the parcel to the ordering branch and frees the designer's slot.", "DispatchSaleOrderRequest",
+    post: action("dispatchSaleOrder", "Dispatch to the branch", "Printing must be finished. Sends the parcel to the ordering branch.", "DispatchSaleOrderRequest",
       { packages: 2, mode: "COURIER", trackingRef: "AWB-123456", carrierDetails: "DTDC" }),
   },
 
   "/mfg/dashboard": {
-    get: op(TAG_MFG, "getMfgDashboard", "Manufacturing dashboard", "A designer sees their own queue. A unit manager or admin sees the unit.", {
+    get: op(TAG_MFG, "getMfgDashboard", "Manufacturing dashboard", "The same for everyone at the unit: open orders per stage, the orders the caller took, and their notifications. Admins see every unit.", {
       parameters: [{ name: "unitId", in: "query", description: "Admins only: limit to one unit.", schema: schemaRef("ObjectId") }],
       responses: { 200: okResponse("Dashboard", "MfgDashboard"), ...errors(401, 403) },
     }),
   },
   "/mfg/queue": {
-    get: op(TAG_MFG, "getMfgQueue", "Waiting queue", "Orders waiting for a designer, urgent first then oldest.", {
+    get: op(TAG_MFG, "getMfgQueue", "Queue", "Every open order of the unit, urgent first then oldest. Queued orders (isQueued) can be taken; the rest show who took them in currentAssignment. The same list for everyone at the unit.", {
+      parameters: [{ name: "unitId", in: "query", description: "Admins only: limit to one unit.", schema: schemaRef("ObjectId") }],
       responses: { 200: { description: "Queue", content: { "application/json": { schema: { allOf: [schemaRef("ApiSuccessResponse"), { type: "object", properties: { data: { type: "array", items: schemaRef("MfgQueueItem") } } }] } } } }, ...errors(401, 403) },
-    }),
-  },
-  "/mfg/designers": {
-    get: op(TAG_MFG, "listMfgDesigners", "Designers of the unit", "For choosing a designer to assign or reassign.", {
-      responses: { 200: { description: "Designers", content: { "application/json": { schema: { allOf: [schemaRef("ApiSuccessResponse"), { type: "object", properties: { data: { type: "array", items: schemaRef("MfgDesigner") } } }] } } } }, ...errors(401, 403) },
-    }),
-  },
-  "/mfg/designers/me/availability": {
-    patch: op(TAG_MFG, "setMfgDesignerAvailability", "Set designer availability", "A designer sets their own; a unit manager or admin can set another designer's with `userId`. AVAILABLE triggers the waiting queue.", {
-      requestBody: jsonBody("SetAvailabilityRequest", { example: { availability: "AVAILABLE" } }),
-      responses: { 200: okResponse("Availability updated"), ...errors(401, 403, 404, 422) },
     }),
   },
 };
@@ -436,7 +393,7 @@ const paths = {
 module.exports = {
   tags: [
     { name: TAG, description: "Orders placed by a branch and made by the manufacturing unit: create, advance, design approval, print, dispatch, receive and deliver." },
-    { name: TAG_MFG, description: "Manufacturing unit portal: dashboard, queue, designers and designer availability, plus design upload and send." },
+    { name: TAG_MFG, description: "Manufacturing unit portal. Everyone at the unit shares it: dashboard, queue (take an order), design upload and send, print and dispatch." },
   ],
   schemas,
   paths,

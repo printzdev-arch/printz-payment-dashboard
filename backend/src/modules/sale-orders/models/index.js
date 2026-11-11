@@ -6,8 +6,6 @@ const SaleOrderItem = require("./SaleOrderItem");
 const SaleOrderPayment = require("./SaleOrderPayment");
 const SaleOrderEvent = require("./SaleOrderEvent");
 const SaleOrderDesign = require("./SaleOrderDesign");
-const MfgDesignerProfile = require("./MfgDesignerProfile");
-const MfgDesignAssignment = require("./MfgDesignAssignment");
 const WhatsappMessage = require("./WhatsappMessage");
 
 module.exports = {
@@ -16,7 +14,5 @@ module.exports = {
   SaleOrderPayment,
   SaleOrderEvent,
   SaleOrderDesign,
-  MfgDesignerProfile,
-  MfgDesignAssignment,
   WhatsappMessage,
 };

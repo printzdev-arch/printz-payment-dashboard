@@ -3,7 +3,7 @@ const whatsappProvider = require("../../../utils/integrations/WhatsAppService");
 const Attachment = require("../../attachments/models/Attachment");
 const { SaleOrder, WhatsappMessage } = require("../models");
 const { NOTIFICATION, SALE_ORDER_SETTINGS } = require("../models/saleOrder.constants");
-const { err, idStr, toObjectId, notify } = require("./saleOrder.helpers");
+const { err, idStr, toObjectId, notify, findUnitUsers } = require("./saleOrder.helpers");
 
 const STATUS_RANK = { QUEUED: 0, SENT: 1, DELIVERED: 2, READ: 3 };
 
@@ -116,7 +116,7 @@ function verifyChallenge(query) {
 }
 
 /**
- * Apply delivery / read ticks and tell the designer and branch when the customer replies.
+ * Apply delivery / read ticks and tell the branch and the manufacturing unit when the customer replies.
  * A reply is not an approval: staff still record the decision.
  */
 async function handleWebhook(body) {
@@ -154,8 +154,7 @@ async function handleWebhook(body) {
         if (!order) continue;
 
         const text = m.text?.body || `(${m.type || "message"})`;
-        const userIds = [idStr(order.createdBy)];
-        if (order.currentAssignment?.designerUserId) userIds.push(idStr(order.currentAssignment.designerUserId));
+        const userIds = [idStr(order.createdBy), ...(await findUnitUsers(order.manufacturingUnitId))];
         await notify({
           userIds,
           branchId: order.orderBranchId,

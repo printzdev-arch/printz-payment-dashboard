@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './providers/AuthContext.jsx';
 import { canAccessPath, firstAllowedPath, getAllowedPaths } from '../shared/access/pageAccess';
 
-// loginPath: where to send someone who is not signed in (the manufacturing portal has its own login)
+// loginPath: where to send someone who is not signed in
 const PrivateRoute = ({ component: Component, children, roles, loginPath }) => {
   const { currentUser, role } = useAuth();
   const location = useLocation();
@@ -23,14 +23,12 @@ const PrivateRoute = ({ component: Component, children, roles, loginPath }) => {
 
   const isDesigner =
     effectiveRole === "designer" ||
-    effectiveRole === "mfg_designer" ||
     ["ali hassan", "siti rahman", "kumar anil", "john lee", "nur aisyah"].some((name) =>
       effectiveName.includes(name)
     );
 
-  // Manufacturing unit staff live in their own portal
-  const isMfgStaff = effectiveRole === "mfg_designer" || effectiveRole === "mfg_manager";
-  const homeFor = () => (isMfgStaff ? "/mfg/dashboard" : isDesigner ? "/jobflow/design?view=my-jobs" : "/");
+  // Manufacturing unit staff have a page list (the unit portal), so the check below already keeps them there
+  const homeFor = () => (isDesigner ? "/jobflow/design?view=my-jobs" : "/");
 
   const hasToken = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("printz_auth_token");
 
@@ -50,15 +48,15 @@ const PrivateRoute = ({ component: Component, children, roles, loginPath }) => {
 
   // Strictly lock designer users inside Design or Manufacturing routes
   if (isDesigner) {
-    const isAllowed = !roles || roles.includes("designer") || roles.includes("mfg_designer");
+    const isAllowed = !roles || roles.includes("designer");
     if (!isAllowed) {
       return <Navigate to={homeFor()} replace />;
     }
   }
 
   if (roles && !roles.includes(role || effectiveRole)) {
-    // If user has designer role and route allows mfg_designer or designer
-    if (isDesigner && (roles.includes("designer") || roles.includes("mfg_designer"))) {
+    // If user has designer role and route allows designers
+    if (isDesigner && roles.includes("designer")) {
       // Allowed
     } else {
       return <Navigate to={homeFor()} replace />;

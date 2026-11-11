@@ -141,7 +141,6 @@ const PAGE_GROUPS = [
         page("mfg-dashboard", "Dashboard", ["/mfg/dashboard", { path: "/mfg", exact: true }], ["mfg", "saleOrder"]),
         page("mfg-orders", "Orders", ["/mfg/orders"], ["mfg", "saleOrder"]),
         page("mfg-queue", "Queue", ["/mfg/queue"], ["mfg", "saleOrder"]),
-        page("mfg-dispatch", "Print & Dispatch", ["/mfg/print-dispatch"], ["mfg", "saleOrder"]),
       ]),
     ],
   },
@@ -220,7 +219,6 @@ const LINKS = {
   "mfg-dashboard": { to: "/mfg/dashboard" },
   "mfg-orders": { to: "/mfg/orders" },
   "mfg-queue": { to: "/mfg/queue" },
-  "mfg-dispatch": { to: "/mfg/print-dispatch" },
 };
 
 // Setup pages are done by an admin: someone who is not an admin does not get them, even if they are ticked.
@@ -244,6 +242,12 @@ const expandKeys = (keys) => {
   });
   return [...new Set(out)];
 };
+
+/**
+ * The manufacturing unit's pages. Everyone who works at the unit gets exactly these
+ * (dashboard, orders, queue), whatever their role, and nothing else.
+ */
+const MFG_PAGE_KEYS = expandKeys(["mfg"]);
 
 /** Keep only known keys, as pages, once each. Anything else is dropped so a typo can never grant access. */
 const sanitizePageAccess = (keys) => expandKeys((Array.isArray(keys) ? keys : []).filter((k) => VALID_KEYS.has(String(k).trim())));
@@ -282,4 +286,15 @@ const publicCatalog = () =>
     ),
   }));
 
-module.exports = { PAGE_GROUPS, PAGE_ITEMS, PARENTS, expandKeys, sanitizePageAccess, pathsFor, permissionPrefixesFor, linksFor, publicCatalog };
+module.exports = {
+  PAGE_GROUPS,
+  PAGE_ITEMS,
+  PARENTS,
+  MFG_PAGE_KEYS,
+  expandKeys,
+  sanitizePageAccess,
+  pathsFor,
+  permissionPrefixesFor,
+  linksFor,
+  publicCatalog,
+};

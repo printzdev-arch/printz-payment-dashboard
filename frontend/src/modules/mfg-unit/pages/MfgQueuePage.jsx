@@ -1,36 +1,41 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Hourglass, RefreshCw, UserCog } from "lucide-react";
+import { Eye, Hand, Hourglass, ListChecks, RefreshCw, Search, UserCheck } from "lucide-react";
 import mfgApi from "../api/mfgApi";
-import AssignDesignerModal from "../components/AssignDesignerModal";
-import { OrderStatusBadge, PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
-import { errorMessage, formatDate } from "../../sale-order/utils/format";
+import PageBanner from "../components/PageBanner";
+import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
+import { stageInfo, takenByLabel, waitingText } from "../utils/mfgStages";
+import { PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
+import { errorMessage, formatDate, formatDateTime, initialsOf } from "../../sale-order/utils/format";
 import "../../sale-order/styles/sale-order.css";
 import "../styles/mfg-unit.css";
 
-const waitingText = (mins) => {
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  return h < 24 ? `${h} h ${mins % 60} min` : `${Math.floor(h / 24)} d ${h % 24} h`;
-};
+const TABS = [
+  { key: "all", label: "All Orders", icon: ListChecks, color: "blue" },
+  { key: "waiting", label: "Not Taken", icon: Hourglass, color: "orange" },
+  { key: "taken", label: "Taken", icon: UserCheck, color: "green" },
+];
 
-// Orders that no designer has picked up yet. URGENT first, then oldest.
+// The unit's shared board: every open order, and who took it. Everyone at the unit sees the same list.
+// An order nobody has taken yet can be taken from here.
 export default function MfgQueuePage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [rows, setRows] = useState([]);
+  const [tab, setTab] = useState(TABS.some((t) => t.key === params.get("show")) ? params.get("show") : "all");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [assigning, setAssigning] = useState(null);
+  const [takingId, setTakingId] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (quiet = false) => {
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       setError("");
       setRows(await mfgApi.queue());
     } catch (err) {
-      setError(errorMessage(err, "Could not load the waiting queue."));
+      setError(errorMessage(err, "Could not load the orders."));
     } finally {
       setLoading(false);
     }
@@ -40,17 +45,68 @@ export default function MfgQueuePage() {
     load();
   }, [load]);
 
+  const counts = useMemo(() => {
+    const waiting = rows.filter((o) => o.isQueued).length;
+    return { all: rows.length, waiting, taken: rows.length - waiting };
+  }, [rows]);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((o) => {
+      if (tab === "waiting" && !o.isQueued) return false;
+      if (tab === "taken" && o.isQueued) return false;
+      if (!q) return true;
+      return [o.orderNo, o.customerSnapshot?.name, o.customerSnapshot?.mobile, o.currentAssignment?.designerName].some((v) =>
+        String(v || "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, tab, search]);
+
+  const take = async (order) => {
+    try {
+      setTakingId(order._id);
+      await mfgApi.take(order._id);
+      toast.success(`You took ${order.orderNo}. Start the design.`);
+      navigate(`/mfg/orders/${order._id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not take this order."));
+      load(true);
+    } finally {
+      setTakingId("");
+    }
+  };
+
   return (
     <div className="so-page">
-      <div className="so-header">
-        <div className="so-title">
-          <h1>Waiting Queue</h1>
-          <p>Orders waiting for a designer. They are assigned automatically when a designer becomes available.</p>
-        </div>
-        <div className="so-header-actions">
-          <button type="button" className="so-btn secondary" onClick={load}>
+      <PageBanner
+        title="Manufacturing"
+        highlight="Queue"
+        subtitle="Every open order of the unit and who took it. Take an order that nobody has taken yet."
+        actions={
+          <button type="button" className="so-btn secondary" onClick={() => load(true)}>
             <RefreshCw size={14} /> Refresh
           </button>
+        }
+      />
+
+      <PrintzKpiGrid minWidth="190px">
+        {TABS.map((t) => (
+          <PrintzKpiCard
+            key={t.key}
+            icon={<t.icon size={20} />}
+            color={t.color}
+            value={counts[t.key]}
+            title={t.label}
+            active={tab === t.key}
+            onClick={() => setTab(t.key)}
+          />
+        ))}
+      </PrintzKpiGrid>
+
+      <div className="so-filters">
+        <div className="so-search">
+          <Search size={16} />
+          <input className="so-input" placeholder="Search by order no., customer or who took it..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -64,63 +120,85 @@ export default function MfgQueuePage() {
                 <th>Order No.</th>
                 <th>Customer</th>
                 <th>Priority</th>
-                <th>Waiting</th>
                 <th>Deliver By</th>
-                <th>Status</th>
+                <th>Current Stage</th>
+                <th>Taken By</th>
                 <th className="right">Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="so-loading">Loading queue...</td></tr>
-              ) : rows.length === 0 ? (
+                <tr><td colSpan={8} className="so-loading">Loading orders...</td></tr>
+              ) : visible.length === 0 ? (
                 <tr>
                   <td colSpan={8}>
                     <div className="so-empty">
                       <Hourglass size={34} />
-                      <strong>The queue is empty</strong>
-                      Every placed order has a designer.
+                      <strong>Nothing here</strong>
+                      {search ? "No order matches your search." : tab === "waiting" ? "Every order has been taken." : "New orders appear here as soon as a branch places them."}
                     </div>
                   </td>
                 </tr>
               ) : (
-                rows.map((o, i) => (
-                  <tr key={o._id}>
-                    <td>{i + 1}</td>
-                    <td>
-                      <button type="button" className="so-back-link" style={{ margin: 0, color: "#0f172a", fontWeight: 700 }} onClick={() => navigate(`/mfg/orders/${o._id}`)}>
-                        {o.orderNo}
-                      </button>
-                    </td>
-                    <td>{o.customerSnapshot?.name}</td>
-                    <td><PriorityTag priority={o.priority} /></td>
-                    <td style={{ color: o.minutesWaiting > 60 ? "#b45309" : undefined, fontWeight: 600 }}>{waitingText(o.minutesWaiting)}</td>
-                    <td>{formatDate(o.expectedDeliveryDate)}</td>
-                    <td><OrderStatusBadge status={o.status} /></td>
-                    <td className="right">
-                      <button type="button" className="so-btn primary sm" onClick={() => setAssigning(o)}>
-                        <UserCog size={13} /> Assign
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                visible.map((o, i) => {
+                  const by = takenByLabel(o);
+                  const stage = stageInfo(o);
+                  return (
+                    <tr key={o._id} className="clickable" onClick={() => navigate(`/mfg/orders/${o._id}`)}>
+                      <td>{i + 1}</td>
+                      <td className="strong">{o.orderNo}</td>
+                      <td>{o.customerSnapshot?.name}<div className="muted">{o.customerSnapshot?.mobile}</div></td>
+                      <td><PriorityTag priority={o.priority} /></td>
+                      <td>{formatDate(o.expectedDeliveryDate)}</td>
+                      <td>
+                        <span className={`so-badge ${stage.tone}`}>{stage.label}</span>
+                        {o.currentDesignVersion ? <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>Design v{o.currentDesignVersion}</div> : null}
+                      </td>
+                      <td>
+                        {o.isQueued ? (
+                          <>
+                            <span className="muted">Not taken yet</span>
+                            <div style={{ fontSize: 12, marginTop: 2, color: o.minutesWaiting > 60 ? "#b45309" : "#64748b", fontWeight: 600 }}>
+                              Waiting {waitingText(o.minutesWaiting)}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span className="so-avatar" style={{ width: 32, height: 32, fontSize: 12 }}>{initialsOf(by)}</span>
+                            <div>
+                              <strong>{by || "—"}</strong>
+                              {o.currentAssignment?.assignedAt && (
+                                <div className="muted" style={{ fontSize: 12 }}>Taken {formatDateTime(o.currentAssignment.assignedAt)}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="right">
+                        {o.isQueued ? (
+                          <button
+                            type="button"
+                            className="so-btn primary sm"
+                            disabled={Boolean(takingId)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              take(o);
+                            }}
+                          >
+                            <Hand size={13} /> {takingId === o._id ? "Taking..." : "Take order"}
+                          </button>
+                        ) : (
+                          <button type="button" className="so-icon-btn" title="Open order"><Eye size={16} /></button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      <AssignDesignerModal
-        isOpen={Boolean(assigning)}
-        order={assigning}
-        mode="assign"
-        onClose={() => setAssigning(null)}
-        onDone={() => {
-          setAssigning(null);
-          toast.success("Order assigned");
-          load();
-        }}
-      />
     </div>
   );
 }

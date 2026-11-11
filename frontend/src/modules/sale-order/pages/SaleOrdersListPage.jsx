@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipboardList, Clock, Eye, FilePen, FileText, Hourglass, PackageCheck, Palette, Plus, Search, ShoppingBag } from "lucide-react";
 import saleOrderApi from "../api/saleOrderApi";
-import KpiCard from "../components/common/KpiCard";
-import Pagination from "../components/common/Pagination";
+import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
+import Pagination from "../../../shared/ui/Pagination";
 import SaleOrderInvoiceModal from "../components/common/SaleOrderInvoiceModal";
 import { OrderStatusBadge, PriorityTag } from "../components/common/OrderStatusBadge";
 import { LIST_STATUS_FILTERS } from "../utils/saleOrderStatus";
@@ -117,48 +117,48 @@ export default function SaleOrdersListPage() {
         </div>
       </div>
 
-      <div className="so-kpi-grid printz-kpi-grid">
-        <KpiCard
-          icon={ClipboardList}
-          tone="green"
+      <PrintzKpiGrid minWidth="190px">
+        <PrintzKpiCard
+          icon={<ClipboardList size={20} />}
+          color="green"
           value={kpis.total}
-          label="Total Orders"
+          title="Total Orders"
           active={!status}
           onClick={() => resetPage(setStatus)("")}
         />
-        <KpiCard
-          icon={FilePen}
-          tone="blue"
+        <PrintzKpiCard
+          icon={<FilePen size={20} />}
+          color="blue"
           value={kpis.draft}
-          label="Drafts"
+          title="Drafts"
           active={status === "DRAFT"}
           onClick={() => resetPage(setStatus)(status === "DRAFT" ? "" : "DRAFT")}
         />
-        <KpiCard
-          icon={Palette}
-          tone="purple"
+        <PrintzKpiCard
+          icon={<Palette size={20} />}
+          color="purple"
           value={kpis.inProgress}
-          label="With the Design Team"
+          title="With the Design Team"
           active={status === IN_PROGRESS}
           onClick={() => resetPage(setStatus)(status === IN_PROGRESS ? "" : IN_PROGRESS)}
         />
-        <KpiCard
-          icon={Hourglass}
-          tone="amber"
+        <PrintzKpiCard
+          icon={<Hourglass size={20} />}
+          color="orange"
           value={kpis.awaiting}
-          label="Awaiting Customer"
+          title="Awaiting Customer"
           active={status === "SENT_FOR_APPROVAL"}
           onClick={() => resetPage(setStatus)(status === "SENT_FOR_APPROVAL" ? "" : "SENT_FOR_APPROVAL")}
         />
-        <KpiCard
-          icon={PackageCheck}
-          tone="teal"
+        <PrintzKpiCard
+          icon={<PackageCheck size={20} />}
+          color="teal"
           value={kpis.approved}
-          label="Approved & Beyond"
+          title="Approved & Beyond"
           active={status === APPROVED_ONWARDS}
           onClick={() => resetPage(setStatus)(status === APPROVED_ONWARDS ? "" : APPROVED_ONWARDS)}
         />
-      </div>
+      </PrintzKpiGrid>
 
       <div className="so-filters">
         <select className="so-select" value={status} onChange={(e) => resetPage(setStatus)(e.target.value)}>
@@ -280,14 +280,13 @@ export default function SaleOrdersListPage() {
           </table>
         </div>
         <Pagination
-          total={total}
-          page={page}
-          pageSize={pageSize}
+          currentPage={page}
+          totalItems={total}
+          itemsPerPage={pageSize}
           onPageChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
+          onItemsPerPageChange={setPageSize}
+          pageSizeOptions={[10, 25, 50]}
+          itemLabel="orders"
         />
       </div>
 

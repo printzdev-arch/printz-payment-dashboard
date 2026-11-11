@@ -1,7 +1,7 @@
 const {
   saleOrderService,
   saleOrderWorkflowService,
-  saleOrderAssignmentService,
+  saleOrderMfgService,
   getActor,
 } = require("../services");
 const { asyncHandler, ResponseHelper } = require("../../../utils");
@@ -73,9 +73,9 @@ const timeline = asyncHandler(async (req, res) => {
 
 /* ---- manufacturing unit side ---- */
 
-const startDesign = asyncHandler(async (req, res) => {
-  const data = await saleOrderWorkflowService.startDesign(req.params.id, getActor(req));
-  return ResponseHelper.success(res, data, "Design started");
+const take = asyncHandler(async (req, res) => {
+  const data = await saleOrderMfgService.takeOrder(req.params.id, getActor(req));
+  return ResponseHelper.success(res, data, "Order taken. You can start the design.");
 });
 
 const uploadDesign = asyncHandler(async (req, res) => {
@@ -115,36 +115,16 @@ const dispatch = asyncHandler(async (req, res) => {
   return ResponseHelper.success(res, data, "Order dispatched to the branch");
 });
 
-const assign = asyncHandler(async (req, res) => {
-  const data = await saleOrderAssignmentService.manualAssign(req.params.id, req.body, getActor(req));
-  return ResponseHelper.success(res, data, "Order assigned");
-});
-
-const reassign = asyncHandler(async (req, res) => {
-  const data = await saleOrderAssignmentService.reassign(req.params.id, req.body, getActor(req));
-  return ResponseHelper.success(res, data, "Order reassigned");
-});
-
 /* ---- /api/mfg ---- */
 
 const mfgDashboard = asyncHandler(async (req, res) => {
-  const data = await saleOrderAssignmentService.getDashboard(getActor(req), req.query);
+  const data = await saleOrderMfgService.getDashboard(getActor(req), req.query);
   return ResponseHelper.success(res, data, "Dashboard retrieved");
 });
 
-const setAvailability = asyncHandler(async (req, res) => {
-  const data = await saleOrderAssignmentService.setAvailability(getActor(req), req.body);
-  return ResponseHelper.success(res, data, "Availability updated");
-});
-
 const mfgQueue = asyncHandler(async (req, res) => {
-  const data = await saleOrderAssignmentService.getQueue(getActor(req), req.query);
-  return ResponseHelper.success(res, data, "Waiting queue retrieved");
-});
-
-const mfgDesigners = asyncHandler(async (req, res) => {
-  const data = await saleOrderAssignmentService.listDesigners(getActor(req), req.query);
-  return ResponseHelper.success(res, data, "Designers retrieved");
+  const data = await saleOrderMfgService.getQueue(getActor(req), req.query);
+  return ResponseHelper.success(res, data, "Queue retrieved");
 });
 
 module.exports = {
@@ -159,7 +139,7 @@ module.exports = {
   list,
   detail,
   timeline,
-  startDesign,
+  take,
   uploadDesign,
   sendDesign,
   approval,
@@ -167,10 +147,6 @@ module.exports = {
   printFinish,
   printFile,
   dispatch,
-  assign,
-  reassign,
   mfgDashboard,
-  setAvailability,
   mfgQueue,
-  mfgDesigners,
 };

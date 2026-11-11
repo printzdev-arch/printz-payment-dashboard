@@ -331,6 +331,16 @@ const deleteRole = asyncHandler(async (req, res) => {
   }
 
   await Role.findByIdAndDelete(id);
+
+  // Employee role options are built from the "employeeRoles" master defaults, and any code listed
+  // there without a role record is re-created on the next load. Remove the entry too so the
+  // deleted role stays deleted.
+  if (role.code) {
+    const MasterDefault = require("../../settings/models/MasterDefault");
+    const escaped = String(role.code).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    await MasterDefault.deleteMany({ category: "employeeRoles", code: new RegExp(`^${escaped}$`, "i") });
+  }
+
   return ResponseHelper.success(res, null, "Role deleted successfully.");
 });
 

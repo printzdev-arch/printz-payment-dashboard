@@ -17,12 +17,6 @@ module.exports = {
     },
   },
   models: {
-    get MfgDesignAssignment() {
-      return require("./models/MfgDesignAssignment");
-    },
-    get MfgDesignerProfile() {
-      return require("./models/MfgDesignerProfile");
-    },
     get SaleOrder() {
       return require("./models/SaleOrder");
     },
@@ -60,8 +54,8 @@ module.exports = {
     get saleOrder() {
       return require("./services/saleOrder.service");
     },
-    get saleOrderAssignment() {
-      return require("./services/saleOrderAssignment.service");
+    get saleOrderMfg() {
+      return require("./services/saleOrderMfg.service");
     },
     get saleOrderScheduler() {
       return require("./services/saleOrderScheduler.service");

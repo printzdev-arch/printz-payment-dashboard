@@ -34,9 +34,9 @@ const {
   runInTransaction,
   addEvent,
   notify,
-  findUsersByRole,
+  findUnitUsers,
+  canWorkUnit,
 } = require("./saleOrder.helpers");
-const assignment = require("./saleOrderAssignment.service");
 const whatsapp = require("./saleOrderWhatsapp.service");
 
 const PAYMENT_MODES = ["CASH", "UPI", "CARD", "BANK_TRANSFER"];
@@ -67,14 +67,8 @@ function visibilityFilter(actor) {
   const or = [];
   const branchObjectIds = actor.branchIds.filter(isValidId).map(toObjectId);
   if (actor.isBranchStaff) or.push({ orderBranchId: { $in: branchObjectIds } });
-  if (actor.isMfgManager) {
-    if (branchObjectIds.length > 0) {
-      or.push({ manufacturingUnitId: { $in: branchObjectIds } });
-    } else {
-      or.push({ manufacturingUnitId: { $exists: true } });
-    }
-  }
-  if (actor.isMfgDesigner) or.push({ "currentAssignment.designerUserId": toObjectId(actor.userId) });
+  // Everyone at the manufacturing unit sees every order sent to the unit
+  if (actor.isMfg && isValidId(actor.mfgUnitId)) or.push({ manufacturingUnitId: toObjectId(actor.mfgUnitId) });
   if (!or.length) throw err(403, "FORBIDDEN", "You do not have access to sale orders.");
   return { $or: or };
 }
@@ -82,11 +76,7 @@ function visibilityFilter(actor) {
 function canSeeOrder(actor, order) {
   if (actor.isAdmin) return true;
   if (actor.isBranchStaff && actor.branchIds.includes(idStr(order.orderBranchId))) return true;
-  if (actor.isMfgManager) {
-    if (actor.branchIds.length === 0 || actor.branchIds.includes(idStr(order.manufacturingUnitId))) return true;
-  }
-  if (actor.isMfgDesigner && idStr(order.currentAssignment?.designerUserId) === actor.userId) return true;
-  return false;
+  return canWorkUnit(actor, order);
 }
 
 async function loadOrder(id, actor) {
@@ -140,6 +130,9 @@ function computeTotals(
 ) {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     throw err(422, "ITEMS_REQUIRED", "At least one item is required.");
+  }
+  if (rawItems.length > 1) {
+    throw err(422, "SINGLE_ITEM_ONLY", "A sale order can have only one item.");
   }
 
   let subtotal = 0;
@@ -596,12 +589,14 @@ async function placeOrder(id, body, actor, { idempotencyKey = null } = {}) {
     throw e;
   }
 
-  // Route to a designer. If this fails the order stays PLACED and the queue picks it up later.
-  try {
-    await assignment.assignDesigner(order._id);
-  } catch (e) {
-    console.error("[SaleOrder] auto-assign failed:", e.message);
-  }
+  // The order now waits in the unit's queue until someone there takes it
+  await notify({
+    userIds: await findUnitUsers(order.manufacturingUnitId),
+    type: NOTIFICATION.NEW_IN_QUEUE,
+    title: "New order in the queue",
+    message: `Order ${order.orderNo} is waiting in the queue.`,
+    orderId: order._id,
+  });
   return getOrderDetail(order._id, actor);
 }
 
@@ -761,11 +756,8 @@ async function deliverOrder(id, body, actor, { idempotencyKey = null } = {}) {
     throw e;
   }
 
-  const recipients = [];
-  if (order.currentAssignment?.designerUserId) recipients.push(idStr(order.currentAssignment.designerUserId));
-  recipients.push(...(await findUsersByRole(["MFG_MANAGER"], order.manufacturingUnitId)));
   await notify({
-    userIds: recipients,
+    userIds: await findUnitUsers(order.manufacturingUnitId),
     type: NOTIFICATION.DELIVERED,
     title: "Order delivered",
     message: `Order ${order.orderNo} was delivered to the customer.`,
@@ -871,7 +863,6 @@ async function cancelOrder(id, body, actor) {
         { session }
       );
     }
-    await assignment.releaseDesigner(session, order, { assignmentStatus: "COMPLETED", reason: "Order cancelled" });
     await addEvent(session, {
       order,
       action: "CANCELLED",
@@ -883,23 +874,16 @@ async function cancelOrder(id, body, actor) {
     });
   });
 
-  const recipients = [];
-  if (order.currentAssignment?.designerUserId) recipients.push(idStr(order.currentAssignment.designerUserId));
+  // A draft never reached the unit, so only tell the unit about orders it already had
+  const unitUsers = order.status === STATUS.DRAFT ? [] : await findUnitUsers(order.manufacturingUnitId);
   await notify({
-    userIds: recipients,
+    userIds: unitUsers,
     branchId: order.orderBranchId,
     type: NOTIFICATION.CANCELLED,
     title: "Order cancelled",
     message: `Order ${order.orderNo} was cancelled.`,
     orderId: order._id,
   });
-
-  // The released designer slot may now serve a waiting order
-  try {
-    await assignment.processQueue(order.manufacturingUnitId);
-  } catch (e) {
-    console.warn("[SaleOrder] queue processing failed:", e.message);
-  }
   return getOrderDetail(order._id, actor);
 }
 
@@ -913,12 +897,11 @@ const withUrls = (design, canSeePrintFile) => ({
 
 async function getOrderDetail(id, actor) {
   const order = await loadOrder(id, actor);
-  const isDesigner = actor.isMfgDesigner && !actor.isAdmin && !actor.isMfgManager && !actor.isBranchStaff;
-  const canSeePrintFile = actor.isAdmin || actor.isMfgManager || idStr(order.currentAssignment?.designerUserId) === actor.userId;
+  const canSeePrintFile = canWorkUnit(actor, order);
 
   const [items, payments, designs, messages, branch, unit] = await Promise.all([
     SaleOrderItem.find({ orderId: order._id }).sort({ lineNo: 1 }).lean(),
-    isDesigner ? [] : SaleOrderPayment.find({ orderId: order._id }).sort({ collectedAt: 1 }).lean(),
+    SaleOrderPayment.find({ orderId: order._id }).sort({ collectedAt: 1 }).lean(),
     SaleOrderDesign.find({ orderId: order._id }).sort({ versionNo: 1 }).lean(),
     WhatsappMessage.find({ orderId: order._id }).sort({ sentAt: -1 }).limit(20).lean(),
     Branch.findById(order.orderBranchId).select("name code").lean(),
@@ -948,12 +931,7 @@ async function getOrderDetail(id, actor) {
     out.invoiceNo = `INV-${out.orderNo.replace(/^SO-?/, "")}`;
     out.invoiceDate = out.orderDate || new Date();
   }
-  if (!isDesigner) out.payments = payments;
-  else {
-    // Designers do not need the money details
-    ["subtotal", "discountAmount", "taxAmount", "urgentChargeAmount", "urgentChargeType", "urgentChargeValue", "grandTotal", "advanceAmount", "amountPaid", "balanceDue"].forEach((f) => delete out[f]);
-    out.items = items.map(({ unitPrice, discount, taxRate, taxAmount, lineTotal, ...rest }) => rest);
-  }
+  out.payments = payments;
   return out;
 }
 
@@ -968,9 +946,6 @@ async function listOrders(query, actor) {
   if (query.priority) and.push({ priority: String(query.priority).toUpperCase() });
   if (query.branchId && isValidId(query.branchId)) and.push({ orderBranchId: toObjectId(query.branchId) });
   if (query.unitId && isValidId(query.unitId)) and.push({ manufacturingUnitId: toObjectId(query.unitId) });
-  if (query.designerUserId && isValidId(query.designerUserId)) {
-    and.push({ "currentAssignment.designerUserId": toObjectId(query.designerUserId) });
-  }
   if (query.fromDate || query.toDate) {
     const range = {};
     if (isDateString(query.fromDate)) range.$gte = dayToDate(query.fromDate);
@@ -986,13 +961,9 @@ async function listOrders(query, actor) {
 
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
-  const isDesigner = actor.isMfgDesigner && !actor.isAdmin && !actor.isMfgManager && !actor.isBranchStaff;
-  const projection = isDesigner
-    ? "-subtotal -discountAmount -taxAmount -grandTotal -advanceAmount -amountPaid -balanceDue -paymentStatus"
-    : "";
 
   const [items, total] = await Promise.all([
-    SaleOrder.find(filter).select(projection).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    SaleOrder.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     SaleOrder.countDocuments(filter),
   ]);
   return { items, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };

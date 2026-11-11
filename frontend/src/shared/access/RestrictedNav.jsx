@@ -17,6 +17,7 @@ import {
   FileText,
   FolderOpen,
   HandCoins,
+  Hourglass,
   Layers,
   LayoutDashboard,
   ListOrdered,
@@ -70,6 +71,9 @@ const PAGE_ICONS = {
   "salary-loans": HandCoins,
   "salary-processing": Calculator,
   "salary-records": Wallet,
+  "mfg-dashboard": LayoutDashboard,
+  "mfg-orders": ClipboardList,
+  "mfg-queue": Hourglass,
 };
 const iconFor = (key) => PAGE_ICONS[key] || FileText;
 

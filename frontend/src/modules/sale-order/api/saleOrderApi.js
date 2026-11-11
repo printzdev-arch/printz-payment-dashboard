@@ -116,6 +116,8 @@ export const saleOrderApi = {
       userId: String(u._id || u.id || ""),
       branchId: isAdmin ? "" : String(branchId || ""),
       name: u.name || "",
+      // Works at the manufacturing unit (the server marks it): can do every step of every unit order
+      isMfgUnit: Boolean(u.isMfgUnit),
     };
   },
 };

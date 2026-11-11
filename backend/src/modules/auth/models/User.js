@@ -196,12 +196,13 @@ userSchema.statics.enrichUser = async function (user) {
   const userObj = user._doc
     ? { ...user._doc }
     : (typeof user.toObject === "function" ? user.toObject({ transform: false }) : { ...user });
+  let homeBranch = null; // the branch this login works at
 
   if (userObj.employeeId) {
     const Employee = require("../../employees/models/Employee");
     const employee = await Employee.findById(userObj.employeeId)
       .populate("roleId", "code name grants pageAccess")
-      .populate("branchId", "name code location")
+      .populate("branchId", "name code location branchType")
       .lean();
 
     if (employee) {
@@ -221,6 +222,7 @@ userSchema.statics.enrichUser = async function (user) {
         if (branchDoc.name) {
           userObj.branch = branchDoc.name;
         }
+        homeBranch = branchDoc;
       }
 
       if (employee.roleId) {
@@ -262,12 +264,15 @@ userSchema.statics.enrichUser = async function (user) {
         userObj.phone = employee.mobile;
       }
     }
-  } else if (!userObj.branch && userObj.branchId) {
+  } else if (userObj.branchId) {
     const Branch = require("../../branches/models/Branch");
-    const bId = userObj.branchId;
+    const bId = userObj.branchId._id || userObj.branchId;
     if (mongoose.Types.ObjectId.isValid(bId)) {
-      const b = await Branch.findById(bId).lean();
-      if (b) userObj.branch = b.name;
+      const b = await Branch.findById(bId).select("name code branchType").lean();
+      if (b) {
+        if (!userObj.branch) userObj.branch = b.name;
+        homeBranch = b;
+      }
     }
   }
 
@@ -276,6 +281,22 @@ userSchema.statics.enrichUser = async function (user) {
     const Role = require("./Role");
     const held = await Role.find({ _id: { $in: userObj.roleIds } }).select("code").lean();
     if (held.some((r) => r.code === "SUPER_ADMIN")) userObj.roleCode = "SUPER_ADMIN";
+  }
+
+  // Everyone who works at the manufacturing unit shares one portal: the same pages (dashboard, orders, queue,
+  // design) and the same orders, whatever role they were given. Their role's own page list does not apply.
+  const roleNorm = String(userObj.roleCode || userObj.role || "").toLowerCase();
+  const isAdminLogin = ["admin", "super_admin", "superadmin", "internal_admin"].includes(roleNorm);
+  if (homeBranch && !isAdminLogin) {
+    const { isManufacturingUnitBranch } = require("../../branches/utils/manufacturingUnit");
+    if (isManufacturingUnitBranch(homeBranch)) {
+      const { MFG_PAGE_KEYS, pathsFor, linksFor } = require("../constants/pageCatalog");
+      userObj.pageAccess = MFG_PAGE_KEYS;
+      userObj.allowedPaths = pathsFor(MFG_PAGE_KEYS, { admin: false });
+      userObj.pageLinks = linksFor(MFG_PAGE_KEYS, { admin: false });
+      userObj.isMfgUnit = true;
+      userObj.mfgUnitId = homeBranch._id;
+    }
   }
   return userObj;
 };

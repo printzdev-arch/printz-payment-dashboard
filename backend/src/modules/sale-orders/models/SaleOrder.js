@@ -32,13 +32,14 @@ const customerSnapshotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// Who at the manufacturing unit took the order from the queue. It only records who started it:
+// everyone at the unit can still work every step. (AUTO / MANUAL / REASSIGN are on older orders.)
 const currentAssignmentSchema = new mongoose.Schema(
   {
-    assignmentId: { type: ObjectId, ref: "MfgDesignAssignment", required: true },
     designerUserId: { type: ObjectId, ref: "User", required: true },
     designerName: { type: String, required: true, trim: true },
     assignedAt: { type: Date, required: true },
-    method: { type: String, enum: ["AUTO", "MANUAL", "REASSIGN"], required: true },
+    method: { type: String, enum: ["TAKEN", "AUTO", "MANUAL", "REASSIGN"], default: "TAKEN" },
   },
   { _id: false }
 );

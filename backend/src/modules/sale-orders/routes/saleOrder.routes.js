@@ -30,11 +30,11 @@ router.post("/:id/receive", requirePermission(SALE_ORDER.RECEIVE), controller.re
 router.post("/:id/deliver", requirePermission(SALE_ORDER.DELIVER), controller.deliver);
 router.post("/:id/cancel", requirePermission(SALE_ORDER.CANCEL), controller.cancel);
 
-// Shared: branch (own) or assigned designer records the customer's decision
+// Shared: branch (own) or the manufacturing unit records the customer's decision
 router.post("/:id/approval", requirePermission(SALE_ORDER.APPROVAL_RECORD), controller.approval);
 
-// Manufacturing unit: designer
-router.post("/:id/design/start", requirePermission(MFG.DESIGN_WORK), controller.startDesign);
+// Manufacturing unit: anyone at the unit takes an order from the queue and works every step of it
+router.post("/:id/take", requirePermission(MFG.DESIGN_WORK), controller.take);
 router.post(
   "/:id/designs",
   requirePermission(MFG.DESIGN_WORK),
@@ -49,9 +49,5 @@ router.get("/:id/designs/:v/print-file", requirePermission(MFG.PRINT_DISPATCH), 
 router.post("/:id/print/start", requirePermission(MFG.PRINT_DISPATCH), controller.printStart);
 router.post("/:id/print/finish", requirePermission(MFG.PRINT_DISPATCH), controller.printFinish);
 router.post("/:id/dispatch", requirePermission(MFG.PRINT_DISPATCH), controller.dispatch);
-
-// Manufacturing unit: manager
-router.post("/:id/assign", requirePermission(MFG.ASSIGNMENT_MANAGE), controller.assign);
-router.post("/:id/reassign", requirePermission(MFG.ASSIGNMENT_MANAGE), controller.reassign);
 
 module.exports = router;

@@ -4,10 +4,10 @@ import { toast } from "react-toastify";
 import { ArrowLeft, CheckCircle2, ClipboardList, Clock, Package, Paperclip, Receipt, Search, User } from "lucide-react";
 import saleOrderApi from "../api/saleOrderApi";
 import Section from "../components/common/Section";
-import KpiCard from "../components/common/KpiCard";
+import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
 import OrderItemsEditor from "../components/branch/OrderItemsEditor";
 import ReferenceFilePicker from "../components/branch/ReferenceFilePicker";
-import { calcTotals, emptyItem } from "../utils/totals";
+import { SPEC_FIELDS, calcTotals, emptyItem, fromSpecification, toSpecification } from "../utils/totals";
 import { errorMessage, formatMoney, isoDay, toDateInput } from "../utils/format";
 import "../styles/sale-order.css";
 
@@ -86,6 +86,7 @@ export default function CreateSaleOrderPage() {
             unit: it.unit,
             unitPrice: it.unitPrice,
             taxRate: it.taxRate,
+            ...fromSpecification(it.specification),
           }))
         );
         setAttached((o.referenceFiles || []).length);
@@ -156,9 +157,12 @@ export default function CreateSaleOrderPage() {
     if (!form.expectedDeliveryDate || form.expectedDeliveryDate < earliest) {
       return form.priority === "URGENT" ? "Deliver-by date cannot be in the past." : "Deliver-by date must be tomorrow or later (urgent orders may use today).";
     }
+    if (items.length !== 1) return "An order can have only one item. Remove the extra items.";
     for (let i = 0; i < items.length; i += 1) {
       const it = items[i];
       if (!it.description.trim()) return `Item ${i + 1}: describe what to make.`;
+      const missing = SPEC_FIELDS.find((f) => !String(it[f.key] || "").trim());
+      if (missing) return `Item ${i + 1}: select the ${missing.label.toLowerCase()}.`;
       if (!(Number(it.quantity) > 0)) return `Item ${i + 1}: quantity must be more than 0.`;
       if (!(Number(it.unitPrice) > 0)) return `Item ${i + 1}: rate must be more than 0.`;
     }
@@ -195,6 +199,7 @@ export default function CreateSaleOrderPage() {
         unit: it.unit,
         unitPrice: Number(it.unitPrice),
         taxRate: Number(it.taxRate || 0),
+        specification: toSpecification(it),
       })),
     };
 
@@ -241,38 +246,12 @@ export default function CreateSaleOrderPage() {
       </div>
 
       {/* ─── Dashboard UI KPI Cards ─────────────────────────────────── */}
-      <div className="so-kpi-grid printz-kpi-grid">
-        <KpiCard
-          icon={Package}
-          tone="teal"
-          value={items.length}
-          label="Order Items"
-        />
-        <KpiCard
-          icon={ClipboardList}
-          tone="blue"
-          value={totalQuantity}
-          label="Total Quantity"
-        />
-        <KpiCard
-          icon={Clock}
-          tone="amber"
-          value={deliveryDisplay}
-          label="Deliver By"
-        />
-        <KpiCard
-          icon={Paperclip}
-          tone="purple"
-          value={files.length + attached}
-          label="Reference Files"
-        />
-        <KpiCard
-          icon={CheckCircle2}
-          tone="green"
-          value={formatMoney(totals.grandTotal)}
-          label="Estimated Total"
-        />
-      </div>
+      <PrintzKpiGrid minWidth="190px">
+        <PrintzKpiCard icon={<ClipboardList size={20} />} color="blue" value={totalQuantity} title="Total Quantity" />
+        <PrintzKpiCard icon={<Clock size={20} />} color="orange" value={deliveryDisplay} title="Deliver By" />
+        <PrintzKpiCard icon={<Paperclip size={20} />} color="purple" value={files.length + attached} title="Reference Files" />
+        <PrintzKpiCard icon={<CheckCircle2 size={20} />} color="green" value={formatMoney(totals.grandTotal)} title="Estimated Total" />
+      </PrintzKpiGrid>
 
       {error && <div className="so-alert error"><span>{error}</span></div>}
 

@@ -7,12 +7,8 @@ const PERMISSIONS = require("../../../utils/constants/permissions");
 
 router.use(authenticate);
 
-// Designer / unit manager / admin: the service decides what each role sees
-router.get("/dashboard", controller.mfgDashboard);
-router.patch("/designers/me/availability", controller.setAvailability);
-
-// Unit manager
-router.get("/queue", requirePermission(PERMISSIONS.MFG.ASSIGNMENT_MANAGE), controller.mfgQueue);
-router.get("/designers", requirePermission(PERMISSIONS.MFG.ASSIGNMENT_MANAGE), controller.mfgDesigners);
+// Manufacturing unit portal: everyone at the unit sees the same dashboard and queue (admins see every unit)
+router.get("/dashboard", requirePermission(PERMISSIONS.MFG.DESIGN_WORK), controller.mfgDashboard);
+router.get("/queue", requirePermission(PERMISSIONS.MFG.DESIGN_WORK), controller.mfgQueue);
 
 module.exports = router;

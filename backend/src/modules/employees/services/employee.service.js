@@ -17,7 +17,7 @@ const { expandKeys } = require("../../auth/constants/pageCatalog");
 // Roles that grant full access. Only an admin may hand these out.
 const ADMIN_TIER_ROLE_CODES = ["SUPER_ADMIN", "ADMIN"];
 // Roles that existed before Role Management; they keep working without a page list
-const LEGACY_OPEN_ROLE_CODES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "DESIGNER", "OPERATOR", "MFG_MANAGER", "MFG_DESIGNER"];
+const LEGACY_OPEN_ROLE_CODES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "DESIGNER", "OPERATOR"];
 // Config value on an employeeRoles master default that means "this role does not sign in"
 const NO_LOGIN_FLAG = "NO_LOGIN";
 

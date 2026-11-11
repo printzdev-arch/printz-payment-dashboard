@@ -1,20 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   AlertTriangle,
   FileText,
-  History,
   IndianRupee,
   Info,
   MessageCircle,
   Package,
-  Paperclip,
   Palette,
+  Paperclip,
   Truck,
   User,
 } from "lucide-react";
 import Section from "./Section";
+import { SPEC_FIELDS } from "../../utils/totals";
 import OrderProgress from "./OrderProgress";
-import OrderTimeline from "./OrderTimeline";
 import DesignVersions from "./DesignVersions";
 import { PriorityTag } from "./OrderStatusBadge";
 import { fileUrl, formatDate, formatDateTime, formatMoney, initialsOf } from "../../utils/format";
@@ -22,26 +21,35 @@ import { typeLabel } from "../../utils/saleOrderStatus";
 import "../../styles/sale-order.css";
 
 const MESSAGE_TONE = { QUEUED: "slate", SENT: "blue", DELIVERED: "teal", READ: "green", FAILED: "red" };
+const KV = { gridTemplateColumns: "112px 1fr" };
 
-// Everything about one order. Used by the branch detail page and the manufacturing unit work page.
-// Money blocks only show when the server sent money fields (designers do not receive them).
+// Everything about one order, the same for the branch and the manufacturing unit:
+//   customer | order details
+//   item (full width)
+//   design files + reference files (tabs) | payment
+//   production & delivery | WhatsApp messages   (only when there is something to show)
 export default function OrderDetailBody({ order, events }) {
+  const [filesTab, setFilesTab] = useState("design");
   const hasMoney = order.grandTotal !== undefined;
   const c = order.customerSnapshot || {};
-  const latestChange = [...(order.designs || [])]
+  const items = order.items || [];
+  const designs = order.designs || [];
+  const references = order.referenceFiles || [];
+  const messages = order.whatsappMessages || [];
+  const latestChange = [...designs]
     .filter((d) => d.status === "CHANGES_REQUESTED")
     .sort((a, b) => b.versionNo - a.versionNo)[0];
+  const hasDelivery = order.printing?.startedAt || order.dispatch?.dispatchNo || order.delivery?.deliveredAt || order.cancellation?.cancelledAt;
 
   return (
     <>
-      <OrderProgress status={order.status} />
+      <OrderProgress status={order.status} events={events || []} />
 
-      {order.status === "WAITING_FOR_DESIGNER" && (
+      {["PLACED", "WAITING_FOR_DESIGNER", "ASSIGNED"].includes(order.status) && (
         <div className="so-alert info">
           <Info size={17} />
           <span>
-            <strong>No designer is free right now.</strong> The order is queued and will be assigned automatically as soon
-            as a designer becomes available.
+            <strong>Waiting in the manufacturing unit's queue.</strong> Someone at the unit will take it and start the design.
           </span>
         </div>
       )}
@@ -51,120 +59,252 @@ export default function OrderDetailBody({ order, events }) {
           <span>
             <strong>The customer asked for changes.</strong>{" "}
             {latestChange?.customerDecision?.changeNotes ? `“${latestChange.customerDecision.changeNotes}”` : ""} The
-            designer will upload a new version.
+            manufacturing unit will upload a new version.
           </span>
         </div>
       )}
 
-      <div className="so-detail-grid">
-        <div className="so-detail-main">
-          <Section icon={User} title="Customer" subtitle="Details taken when the order was created">
-            <div className="so-person" style={{ marginBottom: 16 }}>
-              <span className="so-avatar">{initialsOf(c.name)}</span>
-              <div>
-                <h4>{c.name || "—"}</h4>
-                <p>
-                  {c.mobile || "—"}
-                  {c.email ? ` · ${c.email}` : ""}
-                </p>
+      {/* ── Row 1: customer | order details ─────────────────────────────────── */}
+      <div className="so-two-col">
+        <Section icon={User} title="Customer">
+          <div className="so-person" style={{ marginBottom: 14 }}>
+            <span className="so-avatar">{initialsOf(c.name)}</span>
+            <div>
+              <h4>{c.name || "—"}</h4>
+              <p>{c.mobile || "—"}</p>
+            </div>
+          </div>
+          <dl className="so-kv" style={KV}>
+            <dt>WhatsApp</dt>
+            <dd>
+              {c.whatsappNumber || "—"}{" "}
+              <span className={`so-badge ${c.whatsappOptIn ? "green" : "amber"}`}>
+                {c.whatsappOptIn ? "Agreed to messages" : "Not agreed"}
+              </span>
+            </dd>
+            {c.email ? (
+              <>
+                <dt>Email</dt>
+                <dd>{c.email}</dd>
+              </>
+            ) : null}
+            {c.address ? (
+              <>
+                <dt>Address</dt>
+                <dd>{c.address}</dd>
+              </>
+            ) : null}
+            <dt>Design brief</dt>
+            <dd>{order.customerRequirements || <span className="so-hint">No brief was entered.</span>}</dd>
+          </dl>
+        </Section>
+
+        <Section icon={FileText} title="Order Details">
+          <div className="so-od-grid">
+          <dl className="so-kv" style={KV}>
+            <dt>Priority</dt>
+            <dd><PriorityTag priority={order.priority} /></dd>
+            <dt>Deliver by</dt>
+            <dd>{formatDate(order.expectedDeliveryDate)}</dd>
+            <dt>Branch</dt>
+            <dd>{order.orderBranch?.name || "—"}</dd>
+            <dt>Mfg. unit</dt>
+            <dd>{order.manufacturingUnit?.name || "—"}</dd>
+            <dt>Placed on</dt>
+            <dd>{order.status === "DRAFT" ? "Not placed yet" : formatDateTime(order.orderDate)}</dd>
+            <dt>Taken by</dt>
+            <dd>
+              {order.currentAssignment?.designerName || <span className="so-hint">Not taken yet</span>}
+              {order.currentAssignment?.assignedAt && <div className="so-hint">{formatDateTime(order.currentAssignment.assignedAt)}</div>}
+            </dd>
+            {order.currentDesignVersion ? (
+              <>
+                <dt>Design</dt>
+                <dd>Version {order.currentDesignVersion}</dd>
+              </>
+            ) : null}
+          </dl>
+          <aside className="so-od-files">
+            <div className="so-od-files-title">Reference Files <span className="so-tab-count">{references.length}</span></div>
+            {references.length === 0 ? (
+              <div className="so-od-files-empty">
+                <Paperclip size={22} />
+                <span>No reference files attached</span>
+              </div>
+            ) : (
+              <div className="so-thumbs">
+                {references.map((f) => {
+                  const isImage = /^image\//.test(f.mimeType || "");
+                  return (
+                    <a key={f._id} className="so-thumb" href={fileUrl(f.url)} target="_blank" rel="noreferrer" title={f.fileName}>
+                      {isImage ? <img src={fileUrl(f.url)} alt={f.fileName} /> : <FileText size={22} />}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </aside>
+          </div>
+        </Section>
+      </div>
+
+      {/* ── Row 2: item ─────────────────────────────────────────────────────── */}
+      <Section icon={Package} title="Item" flush>
+        <div className="so-table-wrap">
+          <table className="so-table so-item-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style={{ width: 110 }}>Qty</th>
+                {hasMoney && <th className="right" style={{ width: 120 }}>Rate</th>}
+                {hasMoney && <th className="right" style={{ width: 90 }}>Tax</th>}
+                {hasMoney && <th className="right" style={{ width: 130 }}>Total</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it) => {
+                const chips = SPEC_FIELDS.map((f) => [f.label, it.specification?.[f.specKey]]).filter(([, v]) => v);
+                return (
+                  <tr key={it._id}>
+                    <td>
+                      <span className="strong">{typeLabel(it.productType)}</span>
+                      <div className="muted">{it.description}</div>
+                      {chips.length > 0 && (
+                        <div className="so-chips">
+                          {chips.map(([label, value]) => (
+                            <span className="so-chip" key={label}><em>{label}</em><b>{value}</b></span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <span className="strong">{it.quantity}</span> {String(it.unit || "").toLowerCase()}
+                    </td>
+                    {hasMoney && <td className="right">{formatMoney(it.unitPrice)}</td>}
+                    {hasMoney && <td className="right">{it.taxRate}%</td>}
+                    {hasMoney && <td className="right strong">{formatMoney(it.lineTotal)}</td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      {/* ── Row 3: files (design / reference tabs) | payment ────────────────── */}
+      <div className="so-two-col">
+        <section className="so-section">
+          <div className="so-section-head">
+            <span className="so-section-icon"><Palette size={18} /></span>
+            <div className="so-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={filesTab === "design"} className={filesTab === "design" ? "active" : ""} onClick={() => setFilesTab("design")}>
+                Design Files <span className="so-tab-count">{designs.length}</span>
+              </button>
+              <button type="button" role="tab" aria-selected={filesTab === "whatsapp"} className={filesTab === "whatsapp" ? "active" : ""} onClick={() => setFilesTab("whatsapp")}>
+                WhatsApp Sent <span className="so-tab-count">{messages.length}</span>
+              </button>
+            </div>
+          </div>
+          <div className="so-section-body">
+            {filesTab === "design" ? (
+              <DesignVersions designs={designs} />
+            ) : messages.length === 0 ? (
+              <div className="so-empty" style={{ padding: "26px 10px" }}>
+                <MessageCircle size={30} />
+                <strong>No WhatsApp message sent yet</strong>
+                Messages sent to the customer will be listed here.
+              </div>
+            ) : (
+              <div className="so-rows">
+                {messages.map((m) => (
+                  <div className="so-row" key={m._id}>
+                    <span>
+                      <strong>{typeLabel(m.purpose)}</strong>
+                      <div className="sub">
+                        {formatDateTime(m.sentAt)} · to {m.toNumber}
+                      </div>
+                      {m.error ? <div className="sub" style={{ color: "#b91c1c" }}>{m.error}</div> : null}
+                    </span>
+                    <span className={`so-badge ${MESSAGE_TONE[m.status] || "slate"}`}>{m.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {hasMoney && (
+          <Section icon={IndianRupee} title="Payment" flush>
+            <div className="so-summary">
+              <div className="so-summary-row">
+                <span>Sub total</span>
+                <strong>{formatMoney(order.subtotal)}</strong>
+              </div>
+              {Number(order.discountAmount) > 0 && (
+                <div className="so-summary-row">
+                  <span>Discount</span>
+                  <strong>− {formatMoney(order.discountAmount)}</strong>
+                </div>
+              )}
+              {Number(order.urgentChargeAmount) > 0 && (
+                <div className="so-summary-row" style={{ color: "#d97706" }}>
+                  <span>
+                    Urgent charge
+                    {order.urgentChargeType === "PERCENTAGE" && order.urgentChargeValue ? ` (${order.urgentChargeValue}%)` : ""}
+                  </span>
+                  <strong>+ {formatMoney(order.urgentChargeAmount)}</strong>
+                </div>
+              )}
+              <div className="so-summary-row">
+                <span>Tax</span>
+                <strong>{formatMoney(order.taxAmount)}</strong>
+              </div>
+              <div className="so-summary-row total">
+                <span>Order total</span>
+                <strong>{formatMoney(order.grandTotal)}</strong>
+              </div>
+              <div className="so-summary-row paid">
+                <span>Paid</span>
+                <strong>{formatMoney(order.amountPaid)}</strong>
+              </div>
+              <div className="so-summary-row due">
+                <span>Balance due</span>
+                <strong>{formatMoney(order.balanceDue)}</strong>
               </div>
             </div>
-            <dl className="so-kv">
-              <dt>WhatsApp</dt>
-              <dd>
-                {c.whatsappNumber || "—"}{" "}
-                <span className={`so-badge ${c.whatsappOptIn ? "green" : "amber"}`}>
-                  {c.whatsappOptIn ? "Agreed to messages" : "Not agreed"}
-                </span>
-              </dd>
-              {c.address ? (
-                <>
-                  <dt>Address</dt>
-                  <dd>{c.address}</dd>
-                </>
-              ) : null}
-            </dl>
-            <div className="so-hint" style={{ margin: "16px 0 8px 0", fontWeight: 600, color: "#334155" }}>
-              Design brief
-            </div>
-            <div className="so-brief">{order.customerRequirements || "No brief was entered."}</div>
+            {(order.payments || []).length > 0 && (
+              <div className="so-rows so-pay-list">
+                {order.payments.map((p) => (
+                  <div className="so-row" key={p._id}>
+                    <span>
+                      <strong>{typeLabel(p.paymentType)}</strong> · {typeLabel(p.mode)}
+                      <div className="sub">
+                        {p.receiptNo} · {formatDateTime(p.collectedAt)}
+                      </div>
+                    </span>
+                    <strong>{formatMoney(p.amount)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
+        )}
+      </div>
 
-          <Section icon={Package} title="Items" subtitle={`${(order.items || []).length} item(s) in this order`} flush>
-            <div className="so-table-wrap">
-              <table className="so-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 40 }}>#</th>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    {hasMoney && <th className="right">Rate</th>}
-                    {hasMoney && <th className="right">Tax</th>}
-                    {hasMoney && <th className="right">Total</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(order.items || []).map((it) => (
-                    <tr key={it._id}>
-                      <td>{it.lineNo}</td>
-                      <td>
-                        <span className="strong">{typeLabel(it.productType)}</span>
-                        <div className="muted">{it.description}</div>
-                      </td>
-                      <td>
-                        {it.quantity} {String(it.unit || "").toLowerCase()}
-                      </td>
-                      {hasMoney && <td className="right">{formatMoney(it.unitPrice)}</td>}
-                      {hasMoney && <td className="right">{it.taxRate}%</td>}
-                      {hasMoney && <td className="right strong">{formatMoney(it.lineTotal)}</td>}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-
-          <Section
-            icon={Palette}
-            title="Design Versions"
-            subtitle="Designs prepared by the manufacturing unit and the customer's decision"
-          >
-            <DesignVersions designs={order.designs || []} />
-          </Section>
-
-          <Section icon={History} title="Activity" subtitle="Everything that happened to this order">
-            <OrderTimeline events={events || []} />
-          </Section>
-        </div>
-
-        <div className="so-detail-side">
-          <Section icon={FileText} title="Order Details">
-            <dl className="so-kv" style={{ gridTemplateColumns: "112px 1fr" }}>
-              <dt>Priority</dt>
-              <dd><PriorityTag priority={order.priority} /></dd>
-              <dt>Deliver by</dt>
-              <dd>{formatDate(order.expectedDeliveryDate)}</dd>
-              <dt>Branch</dt>
-              <dd>{order.orderBranch?.name || "—"}</dd>
-              <dt>Mfg. unit</dt>
-              <dd>{order.manufacturingUnit?.name || "—"}</dd>
-              <dt>Designer</dt>
-              <dd>{order.currentAssignment?.designerName || <span className="so-hint">Not assigned yet</span>}</dd>
-              <dt>Placed on</dt>
-              <dd>{order.status === "DRAFT" ? "Not placed yet" : formatDateTime(order.orderDate)}</dd>
-            </dl>
-          </Section>
-
-          {(order.printing?.startedAt || order.dispatch?.dispatchNo || order.delivery?.deliveredAt || order.cancellation?.cancelledAt) && (
+      {/* ── Row 4: production & delivery (only once printing or dispatch has started) ── */}
+      {hasDelivery && (
             <Section icon={Truck} title="Production & Delivery">
-              <dl className="so-kv" style={{ gridTemplateColumns: "112px 1fr" }}>
+              <dl className="so-kv" style={KV}>
                 {order.printing?.startedAt && (
                   <>
                     <dt>Printing</dt>
                     <dd>
                       {order.printing.completedAt
-                        ? `${order.printing.printedQty} printed${order.printing.spoilageQty ? `, ${order.printing.spoilageQty} spoiled` : ""} · ${formatDateTime(order.printing.completedAt)}`
-                        : `Started ${formatDateTime(order.printing.startedAt)}`}
+                        ? `${order.printing.printedQty} printed${order.printing.spoilageQty ? `, ${order.printing.spoilageQty} spoiled` : ""}`
+                        : "In progress"}
+                      <div className="so-hint">
+                        {order.printing.completedAt ? `Finished ${formatDateTime(order.printing.completedAt)}` : `Started ${formatDateTime(order.printing.startedAt)}`}
+                      </div>
                     </dd>
                   </>
                 )}
@@ -184,7 +324,8 @@ export default function OrderDetailBody({ order, events }) {
                   <>
                     <dt>Received</dt>
                     <dd>
-                      {order.dispatch.packagesReceived} of {order.dispatch.packages} package(s) · {formatDateTime(order.dispatch.receivedAtBranchAt)}
+                      {order.dispatch.packagesReceived} of {order.dispatch.packages} package(s)
+                      <div className="so-hint">{formatDateTime(order.dispatch.receivedAtBranchAt)}</div>
                       {order.dispatch.receiveRemarks ? <div className="so-hint">{order.dispatch.receiveRemarks}</div> : null}
                     </dd>
                   </>
@@ -193,7 +334,8 @@ export default function OrderDetailBody({ order, events }) {
                   <>
                     <dt>Delivered</dt>
                     <dd>
-                      To {order.delivery.receivedByName} · {formatDateTime(order.delivery.deliveredAt)}
+                      To {order.delivery.receivedByName}
+                      <div className="so-hint">{formatDateTime(order.delivery.deliveredAt)}</div>
                       {order.delivery.remarks ? <div className="so-hint">{order.delivery.remarks}</div> : null}
                     </dd>
                   </>
@@ -209,102 +351,7 @@ export default function OrderDetailBody({ order, events }) {
                 )}
               </dl>
             </Section>
-          )}
-
-          {hasMoney && (
-            <Section icon={IndianRupee} title="Payment" flush>
-              <div className="so-summary">
-                <div className="so-summary-row">
-                  <span>Sub total</span>
-                  <strong>{formatMoney(order.subtotal)}</strong>
-                </div>
-                {Number(order.discountAmount) > 0 && (
-                  <div className="so-summary-row">
-                    <span>Discount</span>
-                    <strong>− {formatMoney(order.discountAmount)}</strong>
-                  </div>
-                )}
-                {Number(order.urgentChargeAmount) > 0 && (
-                  <div className="so-summary-row" style={{ color: "#d97706" }}>
-                    <span>
-                      Urgent charge
-                      {order.urgentChargeType === "PERCENTAGE" && order.urgentChargeValue ? ` (${order.urgentChargeValue}%)` : ""}
-                    </span>
-                    <strong>+ {formatMoney(order.urgentChargeAmount)}</strong>
-                  </div>
-                )}
-                <div className="so-summary-row">
-                  <span>Tax</span>
-                  <strong>{formatMoney(order.taxAmount)}</strong>
-                </div>
-                <div className="so-summary-row total">
-                  <span>Order total</span>
-                  <strong>{formatMoney(order.grandTotal)}</strong>
-                </div>
-                <div className="so-summary-row paid">
-                  <span>Paid</span>
-                  <strong>{formatMoney(order.amountPaid)}</strong>
-                </div>
-                <div className="so-summary-row due">
-                  <span>Balance due</span>
-                  <strong>{formatMoney(order.balanceDue)}</strong>
-                </div>
-              </div>
-              {(order.payments || []).length > 0 && (
-                <div className="so-rows" style={{ padding: "0 22px 14px 22px", borderTop: "1px solid #f1f5f9" }}>
-                  {order.payments.map((p) => (
-                    <div className="so-row" key={p._id}>
-                      <span>
-                        <strong>{typeLabel(p.paymentType)}</strong> · {typeLabel(p.mode)}
-                        <div className="sub">
-                          {p.receiptNo} · {formatDateTime(p.collectedAt)}
-                        </div>
-                      </span>
-                      <strong>{formatMoney(p.amount)}</strong>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-          )}
-
-          <Section icon={Paperclip} title="Reference Files" subtitle="Logos and samples from the customer">
-            {(order.referenceFiles || []).length === 0 ? (
-              <div className="so-hint">No reference files attached.</div>
-            ) : (
-              <div className="so-thumbs">
-                {order.referenceFiles.map((f) => {
-                  const isImage = /^image\//.test(f.mimeType || "");
-                  return (
-                    <a key={f._id} className="so-thumb" href={fileUrl(f.url)} target="_blank" rel="noreferrer" title={f.fileName}>
-                      {isImage ? <img src={fileUrl(f.url)} alt={f.fileName} /> : (<><FileText size={22} /> {f.fileName}</>)}
-                    </a>
-                  );
-                })}
-              </div>
-            )}
-          </Section>
-
-          {(order.whatsappMessages || []).length > 0 && (
-            <Section icon={MessageCircle} title="WhatsApp Messages">
-              <div className="so-rows">
-                {order.whatsappMessages.map((m) => (
-                  <div className="so-row" key={m._id}>
-                    <span>
-                      <strong>{typeLabel(m.purpose)}</strong>
-                      <div className="sub">
-                        {formatDateTime(m.sentAt)} · to {m.toNumber}
-                      </div>
-                      {m.error ? <div className="sub" style={{ color: "#b91c1c" }}>{m.error}</div> : null}
-                    </span>
-                    <span className={`so-badge ${MESSAGE_TONE[m.status] || "slate"}`}>{m.status}</span>
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
-        </div>
-      </div>
+      )}
     </>
   );
 }

@@ -4,6 +4,8 @@ const { ObjectId } = mongoose.Schema.Types;
 
 const specificationSchema = new mongoose.Schema(
   {
+    paperType: { type: String, default: "", trim: true },
+    paperGsm: { type: String, default: "", trim: true },
     size: { type: String, default: "", trim: true },
     material: { type: String, default: "", trim: true },
     colorMode: { type: String, default: "", trim: true },
