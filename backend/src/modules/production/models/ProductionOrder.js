@@ -356,7 +356,7 @@ productionOrderSchema.statics.findActiveOrders = async function (branchId = null
   };
   if (branchId) orderQuery.branchId = branchId;
 
-  return this.find(orderQuery)
+  const orders = await this.find(orderQuery)
     .sort({ createdAt: -1 })
     .select(
       "_id productionNo jobOrderId jobItemId branchId priority status plannedQty plannedStart plannedEnd cycleNo cycleType approvedSample specificationsSnapshot createdAt updatedAt"
@@ -364,6 +364,10 @@ productionOrderSchema.statics.findActiveOrders = async function (branchId = null
     .populate("jobOrderId", "jobNo title customerName customerPhone dueDate priority stage")
     .populate("branchId", "name code")
     .lean();
+
+  // A production order always belongs to a job order. When the job order was deleted the populated field comes
+  // back empty: those leftovers have no job number, customer or product, so they are not shown in the queue.
+  return orders.filter((o) => o.jobOrderId && typeof o.jobOrderId === "object");
 };
 
 productionOrderSchema.statics.findByIdWithDetails = async function (id) {

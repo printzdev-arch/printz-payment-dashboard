@@ -361,7 +361,48 @@ jobOrderSchema.index({ branchId: 1, createdAt: -1 });
 jobOrderSchema.index({ customerId: 1, createdAt: -1 });
 jobOrderSchema.index({ idempotencyKey: 1 }, { sparse: true });
 
-const JobOrder = mongoose.models.JobOrder || mongoose.model("JobOrder", jobOrderSchema, "jobOrders");
+/**
+ * Deleting a job order also removes the production work that belongs to it (production orders, their
+ * operations, reprint requests and quality checks). Without this they stay behind with no job number,
+ * customer or product, and show up as empty rows in Production Tracking.
+ * Models are looked up when the hook runs, because the production module loads after this one.
+ */
+const removeProductionFor = async (jobOrderId) => {
+  if (!jobOrderId) return;
+  const model = (name) => mongoose.models[name];
+  const ProductionOrder = model("ProductionOrder");
+  const ProductionOperation = model("ProductionOperation");
+  const ReprintRequest = model("ReprintRequest");
+  const QualityCheck = model("QualityCheck");
+
+  if (ProductionOrder) {
+    const orders = await ProductionOrder.find({ jobOrderId }).select("_id").lean();
+    const orderIds = orders.map((o) => o._id);
+    if (ProductionOperation) {
+      await ProductionOperation.deleteMany({ $or: [{ jobOrderId }, ...(orderIds.length ? [{ productionOrderId: { $in: orderIds } }] : [])] });
+    }
+    await ProductionOrder.deleteMany({ jobOrderId });
+  }
+  if (ReprintRequest) await ReprintRequest.deleteMany({ jobOrderId });
+  if (QualityCheck) await QualityCheck.deleteMany({ jobOrderId });
+};
+
+jobOrderSchema.post("findOneAndDelete", async function (doc) {
+  try {
+    await removeProductionFor(doc?._id);
+  } catch (e) {
+    console.warn("[JobOrder] could not remove production records:", e.message);
+  }
+});
+jobOrderSchema.post("deleteOne", { document: true, query: false }, async function () {
+  try {
+    await removeProductionFor(this._id);
+  } catch (e) {
+    console.warn("[JobOrder] could not remove production records:", e.message);
+  }
+});
+
+const JobOrder =mongoose.models.JobOrder || mongoose.model("JobOrder", jobOrderSchema, "jobOrders");
 
 
 // === INJECTED REPOSITORY STATICS ===
