@@ -7,7 +7,7 @@ import {
   FaSave,
   FaEdit,
 } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Pagination from "../../../../../shared/ui/Pagination";
@@ -1057,7 +1057,6 @@ const StockList = () => {
 
   return (
     <div className="stock-readings-container">
-      <ToastContainer />
       <div className="stock-page-header">
         <h2>Stock Readings for {branchName}</h2>
         <p>View and edit stock readings for selected date.</p>

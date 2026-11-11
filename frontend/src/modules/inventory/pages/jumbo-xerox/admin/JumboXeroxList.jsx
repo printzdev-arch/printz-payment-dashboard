@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { getBranches, getJumboXeroxReadings, getPrinterReadings, getPrinters, getStockReadings, getTotalAmounts } from "../../../api"
-import { ToastContainer, toast } from "react-toastify"
+import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { FaCalendarAlt, FaExclamationTriangle, FaDownload } from "react-icons/fa"
 import "../../../styles/jumboXerox.css"
@@ -542,7 +542,6 @@ const JumboXeroxList = () => {
 
   return (
     <div className="add-assets-page-container">
-      <ToastContainer />
 
       {/* Page Header Banner (No illustration) */}
       <div

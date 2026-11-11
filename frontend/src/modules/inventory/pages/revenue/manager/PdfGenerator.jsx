@@ -17,7 +17,7 @@ import {
 import PdfGeneratorTable from "../../../components/PdfGeneratorTable.jsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../../../styles/dailyStockRevenue.css";
 import "../../../styles/printerreadings.css";
@@ -1327,7 +1327,6 @@ const PdfGenerator = () => {
 
   return (
     <div className="revenue-page-container">
-      <ToastContainer />
 
       {/* Header Banner - Full Width Green Gradient */}
       <div className="printz-header-banner-full">

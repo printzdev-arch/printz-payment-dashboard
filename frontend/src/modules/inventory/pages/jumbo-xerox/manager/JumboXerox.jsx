@@ -3,7 +3,7 @@ import React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createJumboXeroxReading, createPastDateRequest, getCurrentUser, getJumboXeroxMachines, getJumboXeroxReadings, getPastDateRequests, getPrinters, getTotalAmounts } from "../../../api";
 import { useAuth } from "../../../../../app/providers/AuthContext";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaCalendarAlt,
@@ -877,7 +877,6 @@ const JumboXerox = () => {
 
   return (
     <div className="jumbo-main-container">
-      <ToastContainer />
       <div className="jumbo-page-header">
         <h2>Add Jumbo Xerox Readings for {branchName}</h2>
         <p>Submit usage details for this branch.</p>

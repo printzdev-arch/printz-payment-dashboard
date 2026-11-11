@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import jsPDF from "jspdf";
 import { getBranches, getJumboXeroxConfigurations, getJumboXeroxReadings, getPrinterReadings, getPrinters, getStockReadings, getTotalAmounts, getUsers } from "../../../api";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   Building2,
@@ -1165,7 +1165,6 @@ const AdminDailyReadingsRevenue = () => {
 
   return (
     <div className="revenue-page-container">
-      <ToastContainer />
 
       {/* Modern Header Banner */}
       <div className="printz-header-banner-full">

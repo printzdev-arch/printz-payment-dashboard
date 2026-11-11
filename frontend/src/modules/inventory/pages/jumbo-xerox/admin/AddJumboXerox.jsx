@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { deleteJumboXeroxMachine, getBranches, getJumboXeroxMachines, getPrinters, updateJumboXeroxMachine } from "../../../api";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   Printer,
@@ -230,7 +230,6 @@ const AddJumboXerox = () => {
 
   return (
     <div className="add-assets-page-container">
-      <ToastContainer />
       <Popup {...popup} />
 
       {/* Header Banner - Clean emerald design, no illustration */}

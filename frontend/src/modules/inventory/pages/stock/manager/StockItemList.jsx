@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createStockItem, getStockItems } from '../../../api';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../../../styles/stockitemlist.css';
 import Pagination from '../../../../../shared/ui/Pagination';
@@ -82,7 +82,6 @@ const StockItemList = () => {
 
   return (
     <div className="stock-item-list-container">
-      <ToastContainer />
       <h2>Stock Price List</h2>
       <table className="stock-table">
         <thead>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../app/providers/AuthContext.jsx';
 import { FaUser, FaCamera, FaEnvelope, FaPhone, FaBuilding, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/profile.css';
 
@@ -138,7 +138,6 @@ const Profile = () => {
 
   return (
     <div className="profile-page-wrapper">
-      <ToastContainer />
 
       {error && (
         <div

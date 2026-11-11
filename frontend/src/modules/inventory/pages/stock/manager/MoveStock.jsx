@@ -18,7 +18,6 @@ import {
   AlertCircle,
   PackageSearch,
 } from "lucide-react";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../../../../../shared/styles/printzTheme.css";
 import "../../../styles/movestock.css";
@@ -527,7 +526,6 @@ const MoveStock = () => {
 
   return (
     <div className="move-stock-page-container">
-      <ToastContainer />
       <Popup {...popup} />
 
       {/* Full Header Banner - Green gradient banner without illustration */}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { createTotalAmount, getProfile, getTotalAmounts, updateTotalAmount } from "../../../api"
 import { useAuth } from "../../../../../app/providers/AuthContext"
-import { ToastContainer, toast } from "react-toastify"
+import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import {
   FaCalendarAlt,
@@ -300,7 +300,6 @@ const TotalAmountList = () => {
 
   return (
     <div className="add-assets-page-container">
-      <ToastContainer />
 
       {/* Modern Banner Header (No illustration) */}
       <div

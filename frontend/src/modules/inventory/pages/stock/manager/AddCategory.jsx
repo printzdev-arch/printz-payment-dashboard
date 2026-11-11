@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { createCategory } from "../../../api";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { X, FolderPlus, Tag, Hash, Loader2 } from "lucide-react";
 import "../../../styles/addcategory.css";
@@ -50,7 +50,6 @@ const AddCategoryPopup = ({ onClose }) => {
 
   return (
     <div className="add-category-popup">
-      <ToastContainer />
       <div className="popup">
         <div className="popup-content">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>

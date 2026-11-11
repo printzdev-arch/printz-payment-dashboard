@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import jsPDF from "jspdf";
 import { getBranches, searchPrinterReadings, searchPrinters } from "../../../api";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   Printer,
@@ -418,7 +418,6 @@ const DisplayPrinterReadings = () => {
 
   return (
     <div className="display-readings-page-container">
-      <ToastContainer />
 
       {/* Full Header Banner - Green gradient banner without illustration */}
       <div

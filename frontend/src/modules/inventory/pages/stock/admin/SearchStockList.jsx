@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Package,
 } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../../../../../shared/styles/printzTheme.css";
 import "../../../styles/stocklist.css";
@@ -337,7 +337,6 @@ const SearchStockList = () => {
 
   return (
     <div className="stock-page-container">
-      <ToastContainer />
 
       {/* Full Header Banner - Green gradient banner without illustration */}
       <div

@@ -28,7 +28,6 @@ import "../../../styles/addstock.css";
 import Popup from "../../../../../shared/ui/Popup/Popup";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
-import { ToastContainer } from "react-toastify";
 import { AddStockIllustration } from "../../../../../shared/assets/illustrations";
 import Pagination from "../../../../../shared/ui/Pagination";
 
@@ -1072,7 +1071,6 @@ const AddStock = () => {
 
   return (
     <div className="add-stock-container">
-      <ToastContainer />
       <Popup {...popup} />
 
       {/* Full Header Banner with light green background from left to right */}

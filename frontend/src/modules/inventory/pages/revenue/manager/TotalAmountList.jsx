@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createTotalAmount, getProfile, getTotalAmounts, updateTotalAmount } from "../../../api";
 import { useAuth } from "../../../../../app/providers/AuthContext";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaCalendarAlt,
@@ -293,7 +293,6 @@ const TotalAmountList = () => {
 
   return (
     <div className="total-amount-container">
-      <ToastContainer />
       <div className="total-page-header">
         <h2>Total Amount Readings for {branchName}</h2>
         <p>View and edit printer readings for selected date.</p>

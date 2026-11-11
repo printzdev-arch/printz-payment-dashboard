@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useAuth } from "../../../app/providers/AuthContext.jsx";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
 import {
@@ -121,7 +121,6 @@ const ForgotPassword = () => {
         fontFamily: "'Poppins', sans-serif",
       }}
     >
-      <ToastContainer position="top-right" autoClose={4000} />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { createJumboXeroxReading, getCurrentUser, getJumboXeroxReadings, getTotalAmounts, updateJumboXeroxReading } from "../../../api"
 import { useAuth } from "../../../../../app/providers/AuthContext"
-import { ToastContainer, toast } from "react-toastify"
+import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { FaCalendarAlt, FaSave, FaRedo, FaExclamationTriangle, FaEdit } from "react-icons/fa"
 import "../../../styles/totalAmountDisplay.css"
@@ -375,7 +375,6 @@ const JumboXeroxList = () => {
 
   return (
     <div className="jumbo-main-container">
-      <ToastContainer />
       <div className="jumbo-page-header">
         <h2>Jumbo Xerox Management for {branchName}</h2>
         <p>{hasExistingJumboData ? "View and edit" : "Add new"} Jumbo Xerox data</p>

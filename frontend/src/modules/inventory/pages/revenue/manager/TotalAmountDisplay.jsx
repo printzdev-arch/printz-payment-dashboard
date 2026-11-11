@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPastDateRequest, createTotalAmount, getJumboXeroxReadings, getPastDateRequests, getPrinterReadings, getPrinters, getProfile, getStockReadings, getTotalAmounts } from "../../../api";
 import { useAuth } from "../../../../../app/providers/AuthContext";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaCalendarAlt,
@@ -692,7 +692,6 @@ const TotalAmountDisplay = () => {
 
   return (
     <div className="total-amount-container">
-      <ToastContainer />
       <div className="total-page-header">
         <h2>Add Total Amount Readings for {branchName}</h2>
         <p>Submit usage details for this branch.</p>

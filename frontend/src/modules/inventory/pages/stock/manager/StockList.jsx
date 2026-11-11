@@ -10,7 +10,7 @@ import {
   FaLock,
   FaTimes,
 } from "react-icons/fa"
-import { toast, ToastContainer } from "react-toastify"
+import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import "../../../styles/stocklist.css"
@@ -922,7 +922,6 @@ const StockList = () => {
 
   return (
     <div className="stock-readings-container">
-      <ToastContainer />
       <div className="stock-page-header">
         <h2>Add Stock Readings for {branchName}</h2>
         <p>Submit usage details for this branch. ({stocks.length} items available)</p>

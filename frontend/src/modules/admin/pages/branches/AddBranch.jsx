@@ -4,7 +4,6 @@ import Popup from "../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../shared/hooks/usePopup";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import BranchIllustration from "../../../../shared/assets/illustrations/BranchIllustration";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import "../../../../shared/styles/printzTheme.css";
@@ -432,7 +431,6 @@ const AddBranch = () => {
 
   return (
     <div className="printz-page-container">
-      <ToastContainer position="top-right" autoClose={3000} />
       <Popup {...popup} />
 
       {/* Full Header Banner with light green background from left to right */}

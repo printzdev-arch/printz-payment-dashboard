@@ -22,7 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../../../../../shared/styles/printzTheme.css";
 import "../../../styles/printerlist.css";
@@ -293,7 +293,6 @@ const PrinterList = () => {
 
   return (
     <div className="printer-list-page-container">
-      <ToastContainer />
 
       {/* Full Header Banner - Green gradient banner without illustration */}
       <div

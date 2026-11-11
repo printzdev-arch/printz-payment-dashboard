@@ -59,7 +59,7 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
   // Calculate actual numeric progression rank strictly based on current stage and status
   const getStageRank = (stg, sts) => {
     if (isDesignOnly) {
-      if (isCompletedStage || (currentRank === 6 && balanceRemaining <= 0)) return 6;
+      if (isCompletedStage) return 6;
       const s = String(stg || "").toUpperCase().trim();
       const st = String(sts || "").toUpperCase().trim();
       if (["COMPLETED", "SETTLED", "CLOSED"].includes(s) || ["COMPLETED", "SETTLED", "CLOSED"].includes(st)) {

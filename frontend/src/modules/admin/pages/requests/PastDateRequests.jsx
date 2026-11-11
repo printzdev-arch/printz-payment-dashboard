@@ -7,7 +7,7 @@ import Popup from "../../../../shared/ui/Popup/Popup.jsx";
 import Pagination from "../../../../shared/ui/Pagination.jsx";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect.jsx";
 import CalendarSelect from "../../../../shared/ui/selects/CalendarSelect.jsx";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   Calendar,
@@ -315,7 +315,6 @@ const PastDateRequests = () => {
 
   return (
     <div className="add-assets-page-container">
-      <ToastContainer />
       <Popup {...popup} />
 
       {/* Header Banner - Clean emerald design, no illustration */}
