@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
  * - name (Unique String)
  * - code (Unique String)
  * - address (String)
+ * - phone (String)
  * - branchType (String)
  * - weeklyOffDays (Array of Strings)
  * - createdAt (Date)
@@ -28,6 +29,11 @@ const branchSchema = new mongoose.Schema(
       uppercase: true,
     },
     address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    phone: {
       type: String,
       trim: true,
       default: "",
@@ -60,6 +66,7 @@ const branchSchema = new mongoose.Schema(
           name: ret.name,
           code: ret.code,
           address: ret.address || "",
+          phone: ret.phone || "",
           branchType: ret.branchType || "retail",
           weeklyOffDays: ret.weeklyOffDays || [],
           manufacturingUnitId: ret.manufacturingUnitId || null,
