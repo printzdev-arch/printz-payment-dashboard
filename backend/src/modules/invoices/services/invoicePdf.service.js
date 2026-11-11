@@ -1,6 +1,17 @@
 /**
  * Invoice PDF & Printable HTML Rendering Service
  */
+const fs = require("fs");
+const path = require("path");
+
+// The logo is embedded in the HTML so the printed page needs no extra request
+let LOGO_DATA_URI = "";
+try {
+  LOGO_DATA_URI = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, "../../../assets/logo.png")).toString("base64")}`;
+} catch (e) {
+  // No logo file: the invoice is still rendered, without the logo
+}
+
 class InvoicePdfService {
   static renderPrintHtml(invoice) {
     const doc = invoice.toObject ? invoice.toObject() : invoice;
@@ -66,6 +77,7 @@ class InvoicePdfService {
 <body>
   <div class="header">
     <div>
+      ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />` : ""}
       <div class="company-title">PRINTZ PAYMENT DASHBOARD</div>
       <div style="font-size: 13px; color: #475569; margin-top: 4px;">
         <strong>${branch.name || "Main Branch"}</strong> (${branch.code || "HQ"})<br>

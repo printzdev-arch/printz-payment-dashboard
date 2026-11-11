@@ -873,7 +873,7 @@ const ManagerLayout = ({ children }) => {
 
         {/* Navigation Items */}
         {restrictedLinks ? (
-          <RestrictedNav links={restrictedLinks} />
+          <RestrictedNav links={restrictedLinks} isDesigner={isDesigner} />
         ) : (
         <ul className="sidebar-nav-list">
           {!isDesigner && (

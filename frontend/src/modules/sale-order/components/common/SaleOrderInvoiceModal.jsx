@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Printer, X, FileText, CheckCircle2, PackageCheck } from "lucide-react";
+import logo from "../../../../shared/assets/logo.png";
 import saleOrderApi from "../../api/saleOrderApi";
 import { formatMoney, formatDate, formatDateTime } from "../../utils/format";
 import { typeLabel } from "../../utils/saleOrderStatus";
@@ -46,6 +47,8 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
   const finalPaymentAmount = Math.max(0, Number(order.amountPaid || 0) - Number(order.advanceAmount || 0));
 
   const handlePrint = () => {
+    // The print window is a blank page, so the logo needs an absolute address
+    const logoUrl = new URL(logo, window.location.origin).href;
     const w = window.open("", "_blank", "width=850,height=950");
     if (!w) {
       window.print();
@@ -131,7 +134,8 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
 <body>
   <div class="header">
     <div class="brand">
-      <h1PRINTZ</h1>
+      <img src="${logoUrl}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />
+      <h1>PRINTZ</h1>
       <p><strong>${branch.name || "Main Branch"}</strong> · Printing & Digital Solutions</p>
       ${branch.address ? `<p style="font-size: 12px; color: #64748b;">${branch.address}</p>` : ""}
     </div>
@@ -347,6 +351,7 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
                 }}
               >
                 <div>
+                  <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", marginBottom: "6px" }} />
                   <h2
                     style={{
                       margin: 0,

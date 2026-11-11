@@ -334,7 +334,6 @@ export default function SalaryRecordsPage() {
           <table className="salary-table">
             <thead>
               <tr>
-                <th style={{ width: "40px" }}>#</th>
                 <th>Employee ID</th>
                 <th>Employee Name</th>
                 <th>Working Days</th>
@@ -350,13 +349,13 @@ export default function SalaryRecordsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                  <td colSpan={10} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                     Loading salary records...
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={11}style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                  <td colSpan={10} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                     No salary records found for the selected filters.
                   </td>
                 </tr>
@@ -371,7 +370,6 @@ export default function SalaryRecordsPage() {
 
                   return (
                     <tr key={r._id || index}>
-                      <td>{(page - 1) * pageSize + index + 1}</td>
                       <td>
                         <strong>{empCode}</strong>
                       </td>

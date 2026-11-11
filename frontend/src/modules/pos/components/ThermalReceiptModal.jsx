@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { X, Printer, Share2, FileDown, FileText, CheckCircle2 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import posApi from "../api/posApi";
+import logo from "../../../shared/assets/logo.png";
 
 export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
   const [template, setTemplate] = useState("thermal"); // "thermal" | "a4"
@@ -42,7 +44,16 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
   const amountPaid = Number(receipt.amountPaid !== undefined ? receipt.amountPaid : grandTotal);
   const balanceDue = Number(receipt.balanceDue !== undefined ? receipt.balanceDue : Math.max(0, grandTotal - amountPaid));
 
-  return (
+  // Rendered straight into <body> so the print stylesheet can hide the rest of the app
+  // and print only the receipt (inside the app layout it was clipped by scroll containers).
+  const pageRule =
+    template === "a4"
+      ? "@page { size: A4; margin: 10mm; }"
+      : "@page { size: 80mm auto; margin: 0; }";
+
+  return createPortal(
+    <div className="pos-print-portal">
+      <style>{`@media print { ${pageRule} }`}</style>
     <div
       className="jf-modal-overlay"
       onClick={onClose}
@@ -174,6 +185,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
           {template === "thermal" ? (
             <div className="thermal-receipt-modal" id="printable-thermal-receipt">
             <div className="thermal-receipt-header">
+              <img src={logo} alt="PrintZ" style={{ height: "42px", width: "auto", display: "block", margin: "0 auto 0.35rem" }} />
               <div className="thermal-brand">PRINTZ DIGITAL STUDIO</div>
               <div className="thermal-sub">Digital Printing & Commercial Reprographics</div>
               <div className="thermal-sub">Banaswadi Main Road, Bangalore</div>
@@ -303,6 +315,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #059669", paddingBottom: "1rem" }}>
               <div>
+                <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", marginBottom: "0.4rem" }} />
                 <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#059669", margin: 0 }}>PRINTZ STUDIO</h1>
                 <div style={{ fontSize: "0.85rem", color: "#475569" }}>Digital Printing & Commercial Reprographics</div>
                 <div style={{ fontSize: "0.8rem", color: "#475569" }}>Banaswadi Main Road, Bangalore - 560043</div>
@@ -414,6 +427,8 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
         </div>
       </div>
     </div>
+    </div>,
+    document.body
   );
 };
 

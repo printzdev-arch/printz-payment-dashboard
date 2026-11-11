@@ -234,6 +234,21 @@ export default function AssignSalaryStructureModal({
             <div className="salary-form-grid full" style={{ gap: "16px" }}>
               <div className="salary-form-grid">
                 <div className="salary-form-group">
+                  <label>Branch</label>
+                  <select
+                    className="salary-form-select"
+                    value={formData.branchId}
+                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, employeeId: "" })}
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                 <div className="salary-form-group">
                   <label>
                     Employee <span className="req">*</span>
                   </label>
@@ -252,22 +267,6 @@ export default function AssignSalaryStructureModal({
                       .map((emp) => (
                       <option key={emp._id || emp.id} value={emp._id || emp.id}>
                         {emp.employeeCode ? `[${emp.employeeCode}] ` : ""}{emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="salary-form-group">
-                  <label>Branch</label>
-                  <select
-                    className="salary-form-select"
-                    value={formData.branchId}
-                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, employeeId: "" })}
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name}
                       </option>
                     ))}
                   </select>

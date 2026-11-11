@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import logo from "../../../../shared/assets/logo.png";
 import { Printer, X, CheckCircle, Clock, ShieldCheck, Receipt, CreditCard } from "lucide-react";
 
 export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, onSettle }) => {
@@ -78,6 +79,8 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
   const isPaid = balanceDue <= 0 || doc.status === "PAID" || doc.paymentStatus === "PAID";
 
   const handlePrint = () => {
+    // The print window is a blank page, so the logo needs an absolute address
+    const logoUrl = new URL(logo, window.location.origin).href;
     const printWin = window.open("", "_blank", "width=850,height=950");
     if (!printWin) {
       window.print();
@@ -263,6 +266,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
         <div class="bill-card">
           <div class="bill-header">
             <div>
+              <img src="${logoUrl}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />
               <div class="brand-title">GUNA PRINTZ</div>
               <div class="brand-subtitle">Commercial Printing, Designing & Offset Press</div>
               <div class="brand-address">
@@ -543,6 +547,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               marginBottom: "1.25rem"
             }}>
               <div>
+                <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", marginBottom: "6px" }} />
                 <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "#065f46", letterSpacing: "-0.02em" }}>
                   GUNA PRINTZ
                 </div>

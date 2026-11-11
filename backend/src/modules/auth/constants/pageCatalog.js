@@ -19,7 +19,12 @@ const parent = (key, label, children) => ({ key, label, children });
 const PAGE_GROUPS = [
   {
     group: "Dashboard",
-    items: [page("dashboard", "Dashboard", ["/admin-dashboard", "/manager-dashboard"], ["dashboard"])],
+    // Account Sheet and Generate PDF Report sit right under Dashboard, each as its own sidebar item
+    items: [
+      page("dashboard", "Dashboard", ["/admin-dashboard", "/manager-dashboard"], ["dashboard"]),
+      page("account-sheet", "Account Sheet", ["/printer-readings-manager"], ["inventory", "printer", "printers", "printerReadings"]),
+      page("pdf-report", "Generate PDF Report", ["/pdf-generator"], ["inventory", "report"]),
+    ],
   },
   {
     group: "Sale Orders",
@@ -124,7 +129,6 @@ const PAGE_GROUPS = [
         page("revenue-totals", "Total Amount", ["/total-amount-display", "/total-amount-list-admin", "/total-amount-list-manager"], ["inventory", "dashboard", "report"]),
         page("previous-balance", "Previous Balance List", ["/previous-balance-list"], ["inventory", "dashboard", "report"]),
       ]),
-      page("pdf-report", "Generate PDF Report", ["/pdf-generator"], ["inventory", "report"]),
       page("export-data", "Export Data", ["/export-data"], ["report"]),
       page("delete-requests", "Delete Requests", ["/delete-requests"], []),
       page("past-date-requests", "Past Date Requests", ["/pastDateRequests"], ["approval"]),
@@ -208,6 +212,7 @@ const LINKS = {
   "revenue-stock": { to: "/admin-stock-readings-revenue" },
   "revenue-totals": { to: "/total-amount-list-manager", adminTo: "/total-amount-list-admin" },
   "previous-balance": { to: "/previous-balance-list" },
+  "account-sheet": { to: "/printer-readings-manager" },
   "pdf-report": { to: "/pdf-generator" },
   "export-data": { to: "/export-data" },
   "delete-requests": { to: "/delete-requests" },

@@ -361,7 +361,6 @@ export default function PayrollProcessingPage() {
           <table className="salary-table">
             <thead>
               <tr>
-                <th style={{ width: "40px" }}>#</th>
                 <th>Month / Year</th>
                 <th>Branch</th>
                 <th>Total Staff</th>
@@ -375,13 +374,13 @@ export default function PayrollProcessingPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                     Loading salary runs...
                   </td>
                 </tr>
               ) : filteredRuns.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
                     No salary runs found. Click <strong>"+ Create Salary Run"</strong> to start monthly payroll.
                   </td>
                 </tr>
@@ -393,7 +392,6 @@ export default function PayrollProcessingPage() {
 
                   return (
                     <tr key={r._id || index}>
-                      <td>{(page - 1) * pageSize + index + 1}</td>
                       <td>
                         <strong>{runLabel(r)}</strong>
                         {r.status === "CALCULATED" && approval?.midMonth && (

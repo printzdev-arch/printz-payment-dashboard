@@ -4,6 +4,7 @@ import { useAuth } from "../../../../../app/providers/AuthContext.jsx";
 import "../../../styles/sales.css";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import logo from "../../../../../shared/assets/logo.png";
 
 const SalesInvoice = () => {
   const [salesHistory, setSalesHistory] = useState([]);
@@ -86,7 +87,8 @@ const SalesInvoice = () => {
           <button className="close-btn" onClick={onClose}>&times;</button>
           <div className="receipt-container" id={`receipt-content-${receipt.id}`}>
             <div className="receipt-header">
-              <h3>COMPANY NAME / LOGO</h3>
+              <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", margin: "0 auto 6px" }} />
+              <h3>PRINTZ</h3>
               <p>Branch: {userBranch}</p>
               <p>Invoice No: {receipt.id}</p>
             </div>

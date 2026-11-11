@@ -49,7 +49,6 @@ import {
   Palette,
   ClipboardCheck,
   Truck,
-  UserCheck,
   History,
   Send,
   Store,
@@ -492,10 +491,9 @@ const AdminLayout = ({ children }) => {
     {
       key: "design", label: "Design", icon: Palette, match: ["/jobflow/design", "/design", "/v3/design", "/jobflow/designer-jobs", "/designer-jobs", "/designer-dashboard"],
       children: [
+        { label: "Designer Dashboard", to: "/designer-dashboard", icon: DashboardIcon },
         { label: "Design Queue", to: "/jobflow/design?view=queue", icon: ClipboardList },
         { label: "Designer Job Orders", to: "/jobflow/designer-jobs", icon: Briefcase },
-        { label: "Designer My Jobs", to: "/jobflow/design?view=my-jobs", icon: UserCheck },
-        { label: "Designer Dashboard", to: "/designer-dashboard", icon: DashboardIcon },
       ],
     },
   ];
@@ -552,7 +550,8 @@ const AdminLayout = ({ children }) => {
               const ChildIcon = child.icon;
               return (
                 <li className="sidebar-dropdown-item" key={child.to}>
-                  <NavLink to={child.to} className={`sidebar-dropdown-link ${isLinkActive(child.to) ? "active" : ""}`}>
+                  {/* className is a function so NavLink does not add its own "active" class for every link on the same path */}
+                  <NavLink to={child.to} className={() => `sidebar-dropdown-link ${isLinkActive(child.to) ? "active" : ""}`}>
                     <span className="sidebar-dropdown-link-left">
                       <ChildIcon size={14} className="sidebar-dropdown-icon" />
                       <span className="sidebar-dropdown-text">{child.label}</span>
