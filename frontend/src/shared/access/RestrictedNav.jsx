@@ -38,6 +38,7 @@ import { MotionAccordion } from "../ui/motion";
 // One icon per page (keys come from the page list on the server); anything new falls back to a document icon
 const PAGE_ICONS = {
   dashboard: LayoutDashboard,
+  "sale-orders": PackageCheck,
   "sale-orders-all": ClipboardList,
   "sale-orders-new": PlusCircle,
   pos: ShoppingCart,
