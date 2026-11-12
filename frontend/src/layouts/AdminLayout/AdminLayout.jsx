@@ -434,7 +434,6 @@ const AdminLayout = ({ children }) => {
     isSalaryToggled ||
     location.pathname.startsWith("/salary"));
 
-  const [isSaleOrdersToggled, setIsSaleOrdersToggled] = useState(false);
   const [isProductionToggled, setIsProductionToggled] = useState(false);
   const isProductionOpen =
     !collapsedGroups.production && (
@@ -442,10 +441,6 @@ const AdminLayout = ({ children }) => {
     location.pathname.startsWith("/production") ||
     location.pathname.startsWith("/v3/production") ||
     location.pathname.startsWith("/jobflow/production"));
-  const isSaleOrdersOpen =
-    !collapsedGroups.saleOrders && (
-    isSaleOrdersToggled ||
-    location.pathname.startsWith("/sale-orders"));
 
   // Closing a group must also override the route-based auto-open, otherwise a
   // group whose page is currently open could never be collapsed.
@@ -460,7 +455,6 @@ const AdminLayout = ({ children }) => {
   const toggleAdditionalData = makeGroupToggle("additional", isAdditionalOpen, setIsAdditionalToggled);
   const toggleAttendanceData = makeGroupToggle("attendance", isAttendanceOpen, setIsAttendanceToggled);
   const toggleSalaryData = makeGroupToggle("salary", isSalaryOpen, setIsSalaryToggled);
-  const toggleSaleOrdersData = makeGroupToggle("saleOrders", isSaleOrdersOpen, setIsSaleOrdersToggled);
   const toggleProductionData = makeGroupToggle("production", isProductionOpen, setIsProductionToggled);
 
   // ── Job Flow pages the admin can also open (same pages the manager sidebar lists) ──
@@ -601,7 +595,7 @@ const AdminLayout = ({ children }) => {
               className="sidebar-brand-logo-img"
             />
           </div>
-          <button
+          {/* <button
             type="button"
             className="sidebar-collapse-arrow-btn"
             onClick={() => setIsSidebarCollapsed(true)}
@@ -609,7 +603,7 @@ const AdminLayout = ({ children }) => {
             aria-label="Close sidebar"
           >
             <ChevronLeft size={18} />
-          </button>
+          </button> */}
         </div>
 
         {/* Navigation Items */}
@@ -637,12 +631,11 @@ const AdminLayout = ({ children }) => {
             </li>
           )}
 
-          {/* Sale Orders Dropdown */}
+          {/* Sale Orders */}
           <li className="sidebar-nav-item">
-            <button
-              type="button"
-              onClick={toggleSaleOrdersData}
-              className={`sidebar-dropdown-toggle ${
+            <NavLink
+              to="/sale-orders"
+              className={`sidebar-link ${
                 location.pathname.startsWith("/sale-orders") ? "active-link" : ""
               }`}
             >
@@ -650,43 +643,10 @@ const AdminLayout = ({ children }) => {
                 <PackageCheck size={18} className="sidebar-link-icon" />
                 <span>Sale Orders</span>
               </div>
-              {isSaleOrdersOpen ? (
-                <ChevronDown size={16} className="sidebar-link-icon" />
-              ) : (
-                <ChevronRight size={16} className="sidebar-link-icon" />
+              {location.pathname.startsWith("/sale-orders") && (
+                <ChevronRight size={16} className="sidebar-active-arrow" />
               )}
-            </button>
-
-            <MotionAccordion isOpen={isSaleOrdersOpen}>
-              <ul className="sidebar-dropdown-list">
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/sale-orders"
-                    className={`sidebar-dropdown-link ${
-                      isActiveRoute("/sale-orders") ? "active" : ""
-                    }`}
-                  >
-                    <span className="sidebar-dropdown-link-left">
-                      <ClipboardList size={14} className="sidebar-dropdown-icon" />
-                      <span className="sidebar-dropdown-text">All Orders</span>
-                    </span>
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/sale-orders/new"
-                    className={`sidebar-dropdown-link ${
-                      isActiveRoute("/sale-orders/new") ? "active" : ""
-                    }`}
-                  >
-                    <span className="sidebar-dropdown-link-left">
-                      <CirclePlus size={14} className="sidebar-dropdown-icon" />
-                      <span className="sidebar-dropdown-text">New Order</span>
-                    </span>
-                  </NavLink>
-                </li>
-              </ul>
-            </MotionAccordion>
+            </NavLink>
           </li>
 
           {/* Attendance Dropdown */}

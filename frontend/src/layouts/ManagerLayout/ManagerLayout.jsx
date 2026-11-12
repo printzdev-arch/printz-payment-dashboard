@@ -720,26 +720,6 @@ const ManagerLayout = ({ children }) => {
     setIsSalaryToggled(!isSalaryOpen);
   };
 
-  // Sale Orders Route & State
-  const isSaleOrdersRoute = location.pathname.startsWith("/sale-orders");
-  const [isSaleOrdersToggled, setIsSaleOrdersToggled] = useState(null);
-  const isSaleOrdersOpen =
-    isSaleOrdersToggled !== null ? isSaleOrdersToggled : isSaleOrdersRoute;
-
-  const handleSaleOrdersClick = () => {
-    if (!isSaleOrdersRoute) {
-      navigate("/sale-orders");
-      setIsSaleOrdersToggled(true);
-    } else {
-      setIsSaleOrdersToggled(!isSaleOrdersOpen);
-    }
-  };
-
-  const handleSaleOrdersToggleClick = (e) => {
-    e.stopPropagation();
-    setIsSaleOrdersToggled(!isSaleOrdersOpen);
-  };
-
   const currentSettlementTab = (() => {
     if (!isSettlementRoute) return "";
     const params = new URLSearchParams(location.search);
@@ -858,7 +838,7 @@ const ManagerLayout = ({ children }) => {
               className="sidebar-brand-logo-img"
             />
           </div>
-          <button
+          {/* <button
             type="button"
             className="sidebar-collapse-arrow-btn"
             onClick={() => setIsSidebarCollapsed(true)}
@@ -866,7 +846,7 @@ const ManagerLayout = ({ children }) => {
             aria-label="Close sidebar"
           >
             <ChevronLeft size={18} />
-          </button>
+          </button> */}
         </div>
 
 
@@ -929,96 +909,22 @@ const ManagerLayout = ({ children }) => {
                 </NavLink>
               </li>
 
-              {/* Sale Orders with Submenu */}
+              {/* Sale Orders */}
               <li className="sidebar-nav-item">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleSaleOrdersClick}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleSaleOrdersClick();
-                    }
-                  }}
-                  className={`sidebar-link ${isSaleOrdersRoute ? "active-link" : ""}`}
-                  style={{
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    ...(isSaleOrdersRoute
-                      ? {
-                        backgroundColor: "rgba(22, 163, 74, 0.15)",
-                        borderLeft: "3px solid #16a34a",
-                        color: "#ffffff",
-                      }
-                      : {}),
-                  }}
+                <NavLink
+                  to="/sale-orders"
+                  className={`sidebar-link ${
+                    location.pathname.startsWith("/sale-orders") ? "active-link" : ""
+                  }`}
                 >
                   <div className="sidebar-link-content">
-                    <PackageCheck
-                      size={18}
-                      className="sidebar-link-icon"
-                      style={isSaleOrdersRoute ? { color: "#16a34a" } : {}}
-                    />
+                    <PackageCheck size={18} className="sidebar-link-icon" />
                     <span>Sale Orders</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleSaleOrdersToggleClick}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      padding: "4px",
-                      cursor: "pointer",
-                      color: isSaleOrdersRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "transform 0.2s ease",
-                      transform: isSaleOrdersOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                    aria-label="Toggle Sale Orders submenu"
-                  >
-                    <ChevronDown size={15} className="sidebar-link-icon" />
-                  </button>
-                </div>
-
-                <MotionAccordion isOpen={isSaleOrdersOpen}>
-                  <ul className="sidebar-dropdown-list">
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/sale-orders"
-                        className={`sidebar-dropdown-link ${
-                          location.pathname === "/sale-orders" ? "active" : ""
-                        }`}
-                      >
-                        <div className="sidebar-dropdown-link-content">
-                          <span className="sidebar-dropdown-text">All Orders</span>
-                        </div>
-                        {location.pathname === "/sale-orders" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/sale-orders/new"
-                        className={`sidebar-dropdown-link ${
-                          location.pathname === "/sale-orders/new" ? "active" : ""
-                        }`}
-                      >
-                        <div className="sidebar-dropdown-link-content">
-                          <span className="sidebar-dropdown-text">New Order</span>
-                        </div>
-                        {location.pathname === "/sale-orders/new" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                  </ul>
-                </MotionAccordion>
+                  {location.pathname.startsWith("/sale-orders") && (
+                    <ChevronRight size={15} className="sidebar-active-arrow" />
+                  )}
+                </NavLink>
               </li>
 
               {/* Attendance with Submenu */}
