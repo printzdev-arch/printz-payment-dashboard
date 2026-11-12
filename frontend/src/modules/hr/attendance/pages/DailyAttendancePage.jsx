@@ -78,22 +78,40 @@ export default function DailyAttendancePage() {
   const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
 
   // Temporary branch shifting is Admin-only (mirrors the backend check).
-  const isAdmin = useMemo(() => {
+  const currentUser = useMemo(() => {
     try {
       const rawUser = localStorage.getItem("user");
-      const user = rawUser ? JSON.parse(rawUser) : {};
-      const role = (user.roleCode || user.role || "").toString().toLowerCase().trim();
-      const perms = user.permissions;
-      const hasWildcard = Array.isArray(perms)
-        ? perms.includes("*")
-        : typeof perms === "string"
-          ? perms === "*"
-          : Boolean(perms && typeof perms === "object" && perms["*"]);
-      return ["admin", "super_admin", "internal_admin"].includes(role) || hasWildcard;
+      return rawUser ? JSON.parse(rawUser) : {};
     } catch {
-      return false;
+      return {};
     }
   }, []);
+
+  const isAdmin = useMemo(() => {
+    const role = (currentUser.roleCode || currentUser.role || "").toString().toLowerCase().trim();
+    const perms = currentUser.permissions;
+    const hasWildcard = Array.isArray(perms)
+      ? perms.includes("*")
+      : typeof perms === "string"
+        ? perms === "*"
+        : Boolean(perms && typeof perms === "object" && perms["*"]);
+    return ["admin", "super_admin", "internal_admin"].includes(role) || hasWildcard;
+  }, [currentUser]);
+
+  const assignedBranchIds = useMemo(() => {
+    const ids = (currentUser.branchIds || [])
+      .map((b) => (b && b._id ? b._id.toString() : (b ? b.toString() : "")))
+      .filter(Boolean);
+    const primary = currentUser.branchId?._id || currentUser.branchId;
+    if (primary) {
+      const pStr = primary.toString();
+      if (!ids.includes(pStr)) ids.unshift(pStr);
+    }
+    return ids;
+  }, [currentUser]);
+
+  const assignedBranchName = currentUser.branchName || currentUser.branch || "";
+  const isBranchLocked = !isAdmin && branches.length === 1 && (assignedBranchIds.length > 0 || Boolean(assignedBranchName));
 
   useEffect(() => {
     loadInitialDropdowns();
@@ -113,6 +131,26 @@ export default function DailyAttendancePage() {
   const loadInitialDropdowns = async () => {
     try {
       const branchesData = await attendanceApi.getBranches();
+      if (!isAdmin) {
+        let scoped = [];
+        if (assignedBranchIds.length > 0) {
+          scoped = branchesData.filter((b) => assignedBranchIds.includes(String(b._id)));
+        } else if (assignedBranchName) {
+          const target = assignedBranchName.toLowerCase().trim();
+          scoped = branchesData.filter(
+            (b) =>
+              b.name?.toLowerCase().trim() === target ||
+              b.name?.toLowerCase().includes(target)
+          );
+        }
+        if (scoped.length > 0) {
+          setBranches(scoped);
+          if (scoped.length === 1) {
+            setSelectedBranchId(String(scoped[0]._id));
+          }
+          return;
+        }
+      }
       setBranches(branchesData);
     } catch (err) {
       console.error("Failed to load branches:", err);
@@ -310,13 +348,21 @@ export default function DailyAttendancePage() {
           />
         </div>
 
-        {/* Branch Dropdown */}
+        {/* Branch Dropdown (Locked badge for branch-assigned non-admins) */}
         <div className="attendance-filter-item">
-          <SearchableBranchSelect
-            value={selectedBranchId}
-            onChange={setSelectedBranchId}
-            branches={branches}
-          />
+          {isBranchLocked ? (
+            <div className="attendance-branch-locked-badge" title="Assigned Branch (Fixed)">
+              <Building2 size={14} />
+              <span>{branches[0]?.name || assignedBranchName || "My Branch"}</span>
+              <span className="attendance-branch-tag">Assigned</span>
+            </div>
+          ) : (
+            <SearchableBranchSelect
+              value={selectedBranchId}
+              onChange={setSelectedBranchId}
+              branches={branches}
+            />
+          )}
         </div>
 
         {/* Search employee input */}
