@@ -53,6 +53,26 @@ class EmailService {
     }
   }
 
+  /** True only when real SMTP settings exist; otherwise mail goes to a dev inbox / console and is NOT delivered. */
+  isSmtpConfigured() {
+    return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  }
+
+  async sendDayEndReport({ to, subject, text, filename, pdf }) {
+    const transporter = await this.getTransporter();
+    const fromAddress = process.env.SMTP_FROM || '"Printz Portal" <no-reply@printz.shop>';
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to,
+      subject,
+      text,
+      attachments: [{ filename, content: pdf, contentType: "application/pdf" }],
+    });
+    const previewUrl = nodemailer.getTestMessageUrl ? nodemailer.getTestMessageUrl(info) : null;
+    if (previewUrl) console.log(`[Email Preview URL]: ${previewUrl}`);
+    return { info, delivered: this.isSmtpConfigured(), previewUrl: previewUrl || null };
+  }
+
   async sendPasswordResetEmail({ to, name, resetUrl }) {
     const transporter = await this.getTransporter();
     const fromAddress = process.env.SMTP_FROM || '"Printz Portal" <no-reply@printz.shop>';

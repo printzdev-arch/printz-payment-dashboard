@@ -6,6 +6,7 @@ import "../styles/sidebar.css";
 import "../../shared/styles/printzTheme.css";
 import { useAuth } from "../../app/providers/AuthContext.jsx";
 import { PageTransition, MotionDropdown, MotionAccordion } from "../../shared/ui/motion";
+import EndDayButton from "../../modules/day-end/components/EndDayButton.jsx";
 import logo from "../../shared/assets/logo.png";
 
 import {
@@ -2014,6 +2015,8 @@ const ManagerLayout = ({ children }) => {
               <span className="sidebar-switch-thumb" />
             </button>
           </div>
+
+          <EndDayButton />
 
           <button
             type="button"

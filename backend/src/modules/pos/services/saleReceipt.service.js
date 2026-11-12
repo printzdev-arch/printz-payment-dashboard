@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const SaleReceipt = require("../models/SaleReceipt");
 const SaleReceiptItem = require("../models/SaleReceiptItem");
+const { resolvePrintService, isPrintServiceId } = require("../constants/printServices");
 let Product, InventoryItem, InventoryTransaction, InventoryBalance, Branch, Customer;
 try {
   Product = require("../../inventory/models/Product");
@@ -344,6 +345,42 @@ class SaleReceiptService {
 
     const calculatedLines = [];
     for (const line of items) {
+      // Print services (Color / B&W) are not inventory products: priced server-side, no stock movement
+      if (line && line.printService) {
+        const svc = resolvePrintService(line.printService);
+        if (!svc || !line.quantity || Number(line.quantity) <= 0) {
+          throw ErrorHelper.badRequest("Valid print type, sides, paper type and positive quantity are required for print lines");
+        }
+        const taxRate = line.taxRate !== undefined && line.taxRate !== null ? Number(line.taxRate) : 0;
+        const calculated = SaleReceiptHelper.calculateLineItem({
+          quantity: Number(line.quantity),
+          unitPrice: svc.unitPrice,
+          discount: Number(line.discount || 0),
+          taxRate,
+        });
+        calculatedLines.push({
+          productId: svc.productId,
+          productCode: "PRINT",
+          productName: svc.productName,
+          unit: "PAGE",
+          isStockTracked: false,
+          isStockItem: false,
+          quantity: calculated.quantity,
+          unitPrice: calculated.unitPrice,
+          discount: calculated.discount,
+          taxRate: calculated.taxRate,
+          baseAmount: calculated.baseAmount,
+          taxableAmount: calculated.taxableAmount,
+          taxAmount: calculated.taxAmount,
+          lineTotal: calculated.lineTotal,
+          consumptionSnapshot: [],
+          wastageQuantity: 0,
+          wastageReason: null,
+          notes: line.notes || null,
+        });
+        continue;
+      }
+
       if (!line.productId || !line.quantity || Number(line.quantity) <= 0) {
         throw ErrorHelper.badRequest("Valid productId and positive quantity are required for each line");
       }
@@ -698,6 +735,7 @@ class SaleReceiptService {
       // 2. Post Inventory Deductions for Stock-Tracked Products and Consumables
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        if (isPrintServiceId(item.productId)) continue; // print services have no stock
         const product = await this.invItemRepo.findById(item.productId, session);
         if (!product) {
           throw ErrorHelper.notFound(`Product item '${item.productId}' not found`);
@@ -1093,6 +1131,7 @@ class SaleReceiptService {
       const reversalTxns = [];
 
       for (const item of items) {
+        if (isPrintServiceId(item.productId)) continue; // print services have no stock to restore
         const product = await this.invItemRepo.findById(item.productId, session);
         const restoreQty = Number(item.quantity) + Number(item.wastageQuantity || 0);
 

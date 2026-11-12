@@ -30,13 +30,22 @@
     "morgan": "^1.10.0",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.15",
+    "pdfkit": "^0.15.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
   "nodemonConfig": {
-    "watch": ["src", ".env"],
+    "watch": [
+      "src",
+      ".env"
+    ],
     "ext": "js,json,env",
-    "ignore": ["uploads/*", "node_modules/*", "tests/*", "*.log"]
+    "ignore": [
+      "uploads/*",
+      "node_modules/*",
+      "tests/*",
+      "*.log"
+    ]
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.3.0",

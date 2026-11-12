@@ -30,6 +30,7 @@ import {
   X,
   FileText,
   IndianRupee,
+  Palette,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -39,6 +40,22 @@ import posApi from "../api/posApi";
 import ThermalReceiptModal from "../components/ThermalReceiptModal";
 import VoidSaleModal from "../components/VoidSaleModal";
 import "../styles/pos.css";
+
+// Print services sold at the counter. Prices are re-checked on the server (backend/src/modules/pos/constants/printServices.js).
+// Rate is per printed page; double-sided is charged for two pages per sheet.
+const PRINT_SERVICES = [
+  { key: "COLOR", label: "Color Print", code: "SVC-COLOR", icon: Palette },
+  { key: "BW", label: "Black / White", code: "SVC-BW", icon: FileText },
+];
+const PRINT_SIDES = [
+  { key: "SINGLE", label: "Single", multiplier: 1 },
+  { key: "DOUBLE", label: "Double", multiplier: 2 },
+];
+const PRINT_PAPERS = [
+  { key: "PLAIN", label: "Plain", rate: 10 },
+  { key: "BOND", label: "Bond", rate: 20 },
+  { key: "LEGAL", label: "Legal", rate: 30 },
+];
 
 export const PosBillingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,6 +107,12 @@ export const PosBillingPage = () => {
   const [newCustAddress, setNewCustAddress] = useState("");
   const [newCustCreditLimit, setNewCustCreditLimit] = useState(0);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+
+  // Print service popup (Color Print / Black & White)
+  const [printModal, setPrintModal] = useState(null); // service object or null
+  const [printSides, setPrintSides] = useState("SINGLE");
+  const [printPaper, setPrintPaper] = useState("PLAIN");
+  const [printQty, setPrintQty] = useState(1);
 
   // Branch Stock Check & Order Intent Modal (Step 2)
   const [blockedStockProduct, setBlockedStockProduct] = useState(null);
@@ -283,6 +306,68 @@ export const PosBillingPage = () => {
         },
       ];
     });
+  };
+
+  // Print service cards render inside the same grid as products so the columns line up
+  const visiblePrintServices = PRINT_SERVICES.filter(
+    (s) =>
+      (selectedCategory === "ALL" || selectedCategory === "SERVICES") &&
+      (!searchQuery || s.label.toLowerCase().includes(searchQuery.toLowerCase()) || "print".includes(searchQuery.toLowerCase()))
+  );
+
+  const openPrintModal = (service) => {
+    setPrintSides("SINGLE");
+    setPrintPaper("PLAIN");
+    setPrintQty(1);
+    setPrintModal(service);
+  };
+
+  const printUnitPrice = useMemo(() => {
+    const side = PRINT_SIDES.find((s) => s.key === printSides);
+    const paper = PRINT_PAPERS.find((p) => p.key === printPaper);
+    return (paper?.rate || 0) * (side?.multiplier || 1);
+  }, [printSides, printPaper]);
+
+  const addPrintToCart = () => {
+    const qty = Math.floor(Number(printQty));
+    if (!printModal || !qty || qty <= 0) {
+      toast.warning("Enter a quantity of at least 1");
+      return;
+    }
+    const side = PRINT_SIDES.find((s) => s.key === printSides);
+    const paper = PRINT_PAPERS.find((p) => p.key === printPaper);
+    const lineKey = `SVC-PRINT-${printModal.key}-${printSides}-${printPaper}`;
+    const name = `${printModal.label} - ${side.label} side - ${paper.label}`;
+
+    setCart((prev) => {
+      const existing = prev.find((it) => it.productId === lineKey);
+      if (existing) {
+        return prev.map((it) => (it.productId === lineKey ? { ...it, quantity: it.quantity + qty } : it));
+      }
+      return [
+        ...prev,
+        {
+          productId: lineKey,
+          productCode: printModal.code,
+          productName: name,
+          quantity: qty,
+          unitPrice: printUnitPrice,
+          taxRate: 0,
+          unit: "PAGE",
+          currentStock: 0,
+          source: "PRINT",
+          isService: true,
+          printService: { printType: printModal.key, sides: printSides, paperType: printPaper },
+          sheetsPerUnit: 1,
+          wastageQuantity: 0,
+          wastageReason: "",
+          wastageNote: "",
+          showConsumption: false,
+        },
+      ];
+    });
+    toast.success(`${name} × ${qty} added`);
+    setPrintModal(null);
   };
 
   const updateCartQty = (productId, delta) => {
@@ -560,17 +645,27 @@ export const PosBillingPage = () => {
           gstin: customerGstin || undefined,
           customerCode: selectedCustomerProfile?.customerCode || undefined,
         },
-        items: cart.map((it, i) => ({
-          productId: it.productId,
-          quantity: it.quantity,
-          unitPrice: it.unitPrice,
-          discount: lineDiscounts[i],
-          // The selected GST rate always applies, including 0%
-          taxRate: Number(gstRate) || 0,
-          wastageQuantity: Number(it.wastageQuantity || 0),
-          wastageReason: it.wastageReason || undefined,
-          notes: it.wastageNote || undefined,
-        })),
+        items: cart.map((it, i) =>
+          it.isService
+            ? {
+                // Print service: priced on the server from the selection, no stock movement
+                printService: it.printService,
+                quantity: it.quantity,
+                discount: lineDiscounts[i],
+                taxRate: Number(gstRate) || 0,
+              }
+            : {
+                productId: it.productId,
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                discount: lineDiscounts[i],
+                // The selected GST rate always applies, including 0%
+                taxRate: Number(gstRate) || 0,
+                wastageQuantity: Number(it.wastageQuantity || 0),
+                wastageReason: it.wastageReason || undefined,
+                notes: it.wastageNote || undefined,
+              }
+        ),
         paymentMode,
         splitPayments: splitList,
         amountPaid: calculatedAmountPaid,
@@ -736,13 +831,46 @@ export const PosBillingPage = () => {
                   <RefreshCw size={24} className="jf-spin" style={{ margin: "0 auto 0.5rem" }} />
                   <div>Loading catalog & stock items...</div>
                 </div>
-              ) : filteredProducts.length === 0 ? (
+              ) : filteredProducts.length === 0 && visiblePrintServices.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "3rem", color: "#475569" }}>
                   <Package size={32} style={{ margin: "0 auto 0.5rem", opacity: 0.5 }} />
                   <div>No products match your search or filter.</div>
                 </div>
               ) : (
                 <div className="pos-products-grid">
+                  {visiblePrintServices.map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <div key={s.key} className="pos-product-card" onClick={() => openPrintModal(s)}>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
+                            <span className="pos-prod-code">{s.code}</span>
+                            <span className="pos-source-tag">Service</span>
+                          </div>
+                          <div className="pos-prod-name" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                            <Icon size={16} style={{ color: "#059669" }} /> {s.label}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="pos-prod-meta">
+                            <span className="pos-prod-price">from ₹{PRINT_PAPERS[0].rate.toFixed(2)}</span>
+                            <span className="pos-prod-unit">per page</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="pos-add-btn"
+                            style={{ marginTop: "0.5rem" }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPrintModal(s);
+                            }}
+                          >
+                            <Plus size={14} /> Add Line
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                   {filteredProducts.map((p) => {
                     const price = Number(p.saleRate || 0);
                     const stock = Number(p.currentStock || 0);
@@ -1051,7 +1179,8 @@ export const PosBillingPage = () => {
                         </button>
                       </div>
 
-                      {/* Step 3: Asset Consumption & Wastage Controls Toggle */}
+                      {/* Step 3: Asset Consumption & Wastage Controls Toggle (not for print services) */}
+                      {!it.isService && (
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.25rem" }}>
                         <span style={{ fontSize: "0.7rem", color: "#475569" }}>
                           Consumption: <strong>{it.quantity} {it.unit || "sheets"}</strong>
@@ -1069,9 +1198,10 @@ export const PosBillingPage = () => {
                           <Sparkles size={11} /> {it.showConsumption ? "Hide Asset & Wastage" : "Adjust Consumption / Wastage"}
                         </button>
                       </div>
+                      )}
 
                       {/* Step 3: Asset Consumption Drawer */}
-                      {it.showConsumption && (
+                      {!it.isService && it.showConsumption && (
                         <div className="pos-consumption-box">
                           <div className="pos-consumption-row">
                             <span style={{ color: "#475569", fontWeight: 600 }}>Extra Sheets / Wastage:</span>
@@ -1626,6 +1756,77 @@ export const PosBillingPage = () => {
       />
 
       {/* ── MODAL 3: QUICK CREATE CUSTOMER ── */}
+      {/* Print service popup */}
+      {printModal && (
+        <div className="jf-modal-overlay" onClick={() => setPrintModal(null)}>
+          <div className="jf-modal jf-modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="jf-modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <printModal.icon size={18} style={{ color: "#059669" }} />
+                <h2 className="jf-modal-title">{printModal.label}</h2>
+              </div>
+              <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={() => setPrintModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addPrintToCart();
+              }}
+            >
+              <div className="jf-modal-body" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                <div className="jf-form-group">
+                  <label className="jf-label">Side</label>
+                  <select className="jf-select" value={printSides} onChange={(e) => setPrintSides(e.target.value)}>
+                    {PRINT_SIDES.map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="jf-form-group">
+                  <label className="jf-label">Paper Type</label>
+                  <select className="jf-select" value={printPaper} onChange={(e) => setPrintPaper(e.target.value)}>
+                    {PRINT_PAPERS.map((p) => (
+                      <option key={p.key} value={p.key}>
+                        {p.label} = ₹{p.rate}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="jf-form-group">
+                  <label className="jf-label">Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    className="jf-input"
+                    value={printQty}
+                    onChange={(e) => setPrintQty(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#475569" }}>
+                  <span>₹{printUnitPrice.toFixed(2)} × {Math.max(0, Math.floor(Number(printQty)) || 0)}</span>
+                  <strong style={{ color: "#059669" }}>
+                    ₹{(printUnitPrice * Math.max(0, Math.floor(Number(printQty)) || 0)).toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+              <div className="jf-modal-footer">
+                <button type="button" className="jf-btn jf-btn-secondary" onClick={() => setPrintModal(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="jf-btn jf-btn-primary">
+                  <Plus size={14} /> Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showQuickCustomerModal && (
         <div className="jf-modal-overlay">
           <div className="jf-modal jf-modal-sm">
