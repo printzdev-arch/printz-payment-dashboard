@@ -100,3 +100,83 @@
   color: #475569;
   border: 1px solid #e2e8f0;
 }
+
+.jf-table tbody tr.settlement-filler-row td {
+  height: 64px;
+  padding: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+}
+
+.jf-table tbody tr.settlement-filler-row:hover td {
+  background: transparent;
+}
+
+/* Settlement KPI Grid (matching PrintZ Dashboard / Attendance KPI style, full width) */
+.settlement-feature-container .printz-kpi-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1280px) {
+  .settlement-feature-container .printz-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .settlement-feature-container .printz-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settlement-feature-container .printz-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  min-height: 82px;
+  box-sizing: border-box;
+}
+
+.settlement-feature-container .printz-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 14px -2px rgba(0, 0, 0, 0.06);
+}
+
+.settlement-feature-container .printz-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settlement-feature-container .printz-kpi-values {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.settlement-feature-container .printz-kpi-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.settlement-feature-container .printz-kpi-label {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 3px;
+  font-weight: 500;
+}

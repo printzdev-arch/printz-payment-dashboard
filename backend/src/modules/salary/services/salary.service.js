@@ -10,7 +10,6 @@ const {
 } = require("../models");
 const Employee = require("../../employees/models/Employee");
 const Branch = require("../../branches/models/Branch");
-const { sameSchedule, toNames } = require("../../../utils/helpers/weeklyOff.util");
 const { computeLopDays } = require("../../../utils/helpers/lop.util");
 const AttendancePolicy = require("../../attendance/models/AttendancePolicy");
 const DailyAttendance = require("../../attendance/models/DailyAttendance");
@@ -619,9 +618,6 @@ class SalaryService {
       }
 
       const branchVariants = idVariants(run.branchId);
-      const branchDoc = mongoose.Types.ObjectId.isValid(idString(run.branchId))
-        ? await Branch.findById(idString(run.branchId)).select("name weeklyOffDays").lean()
-        : null;
       const employees = await Employee.find({
         branchId: { $in: branchVariants },
         employmentStatus: "ACTIVE",
@@ -780,15 +776,6 @@ class SalaryService {
           !Number.isFinite(leaveAllowance) || leaveAllowance < 0) {
         throw ApiError.validation(
           `Cannot calculate payroll: attendance policy '${policy.name || policy.code || policy._id}' is missing working hours per day or monthly leave allowance. Update the policy and calculate again.`
-        );
-      }
-
-      // The attendance policy is the authoritative weekly-off schedule. A
-      // conflicting branch-level schedule would make payroll and attendance disagree.
-      if (branchDoc && Array.isArray(branchDoc.weeklyOffDays) && branchDoc.weeklyOffDays.length > 0 &&
-          !sameSchedule(branchDoc.weeklyOffDays, policy.weeklyOffDays)) {
-        throw ApiError.validation(
-          `Cannot calculate payroll: weekly-off days differ between branch '${branchDoc.name}' (${branchDoc.weeklyOffDays.join(", ")}) and attendance policy '${policy.name || policy.code}' (${toNames(policy.weeklyOffDays).join(", ") || "none"}). The attendance policy is authoritative; update the policy or re-save it so the branch value is synchronized, then calculate again.`
         );
       }
 

@@ -25,7 +25,9 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
+import Pagination from "../../../../shared/ui/Pagination";
 import settlementApi from "../api/settlementApi";
+import "../../../../shared/styles/printzTheme.css";
 import "../styles/settlement.css";
 
 // Phase 2 & 3 Modals
@@ -77,6 +79,12 @@ export const SettlementPage = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("ALL"); // ALL | UNPAID | PARTIAL | PAID
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, paymentFilter, itemsPerPage]);
 
   // Data
   const [pendingEligibleJobs, setPendingEligibleJobs] = useState([]);
@@ -240,6 +248,35 @@ export const SettlementPage = () => {
     );
   };
 
+  const pendingList = filterPendingList();
+  const outstandingList = filterOutstandingList();
+  const closureList = filterClosureList();
+
+  const paginateList = (list) => {
+    const totalPages = Math.max(1, Math.ceil(list.length / itemsPerPage));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safePage - 1) * itemsPerPage;
+    return {
+      rows: list.slice(startIndex, startIndex + itemsPerPage),
+      safePage,
+      totalPages,
+    };
+  };
+
+  const pendingPage = paginateList(pendingList);
+  const outstandingPage = paginateList(outstandingList);
+  const closurePage = paginateList(closureList);
+
+  const renderFillerRows = (rowCount, colSpan) => {
+    if (rowCount === 0) return null;
+    const fillerCount = Math.max(0, itemsPerPage - rowCount);
+    return Array.from({ length: fillerCount }, (_, i) => (
+      <tr key={`settlement-filler-${i}`} className="settlement-filler-row" aria-hidden="true">
+        <td colSpan={colSpan} />
+      </tr>
+    ));
+  };
+
   // KPI Calculations
   const totalOutstandingDue = outstandingInvoices.reduce((acc, curr) => acc + (curr.balanceDue || 0), 0);
   const totalCollectedToday = outstandingInvoices.reduce((acc, curr) => acc + (curr.amountPaid || 0), 0);
@@ -252,62 +289,45 @@ export const SettlementPage = () => {
     >
       <div className="settlement-feature-container">
         {/* KPI Summary Cards */}
-        <div className="settlement-summary-cards">
-          <div className="settlement-card">
-            <div style={{ background: "#fef2f2", padding: "0.75rem", borderRadius: "10px", color: "#dc2626" }}>
-              <Wallet size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>
-                ₹{totalOutstandingDue.toFixed(2)}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                Total Outstanding Balance Due
-              </div>
-            </div>
-          </div>
-
-          <div className="settlement-card">
-            <div style={{ background: "#dcfce7", padding: "0.75rem", borderRadius: "10px", color: "#15803d" }}>
-              <CreditCard size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>
-                ₹{totalCollectedToday.toFixed(2)}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                Total Collected Payments
-              </div>
-            </div>
-          </div>
-
-          <div className="settlement-card">
-            <div style={{ background: "#fff7ed", padding: "0.75rem", borderRadius: "10px", color: "#ea580c" }}>
-              <AlertCircle size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>
-                {overdueInvoicesCount}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                Overdue / 30+ Days Aging
+        <div className="printz-kpi-grid" style={{ marginBottom: 0 }}>
+          {[
+            {
+              label: "Total Outstanding Balance Due",
+              value: `₹${totalOutstandingDue.toFixed(2)}`,
+              iconClass: "pink",
+              Icon: Wallet,
+            },
+            {
+              label: "Total Collected Payments",
+              value: `₹${totalCollectedToday.toFixed(2)}`,
+              iconClass: "green",
+              Icon: CreditCard,
+            },
+            {
+              label: "Overdue / 30+ Days Aging",
+              value: overdueInvoicesCount,
+              iconClass: "orange",
+              Icon: AlertCircle,
+            },
+            {
+              label: "Jobs Closed & Locked",
+              value: `${allJobOrders.filter((j) => j.closureStatus === "CLOSED").length} / ${allJobOrders.length}`,
+              iconClass: "blue",
+              Icon: Lock,
+            },
+          ].map(({ label, value, iconClass, Icon }) => (
+            <div key={label} className="printz-kpi-card">
+              <div className="printz-kpi-top">
+                <div className={`printz-summary-icon ${iconClass}`}>
+                  <Icon size={20} strokeWidth={2.3} color="#ffffff" />
+                </div>
+                <div className="printz-kpi-values">
+                  <div className="printz-kpi-number">{value}</div>
+                  <div className="printz-kpi-label">{label}</div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="settlement-card">
-            <div style={{ background: "#eff6ff", padding: "0.75rem", borderRadius: "10px", color: "#2563eb" }}>
-              <Lock size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>
-                {allJobOrders.filter((j) => j.closureStatus === "CLOSED").length} / {allJobOrders.length}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                Jobs Closed & Locked
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Search & Status Filters */}
@@ -361,7 +381,7 @@ export const SettlementPage = () => {
                 Pending Invoicing Queue
               </h3>
               <span style={{ fontSize: "0.85rem", color: "#475569" }}>
-                Total: <strong>{filterPendingList().length}</strong> eligible jobs
+                Total: <strong>{pendingList.length}</strong> eligible jobs
               </span>
             </div>
 
@@ -380,14 +400,14 @@ export const SettlementPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filterPendingList().length === 0 ? (
+                  {pendingList.length === 0 ? (
                     <tr>
                       <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No pending jobs currently waiting for tax invoicing.
                       </td>
                     </tr>
                   ) : (
-                    filterPendingList().map((job) => (
+                    pendingPage.rows.map((job) => (
                       <tr key={job._id}>
                         <td>
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
@@ -422,8 +442,21 @@ export const SettlementPage = () => {
                       </tr>
                     ))
                   )}
+                  {renderFillerRows(pendingPage.rows.length, 8)}
                 </tbody>
               </table>
+            </div>
+            <div style={{ borderTop: "1px solid #f1f5f9" }}>
+              <Pagination
+                variant="compact"
+                currentPage={pendingPage.safePage}
+                totalItems={pendingList.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), pendingPage.totalPages))}
+                onItemsPerPageChange={setItemsPerPage}
+                pageSizeOptions={[10, 20, 50, 100]}
+                itemLabel="jobs"
+              />
             </div>
           </div>
         )}
@@ -437,7 +470,7 @@ export const SettlementPage = () => {
                 Outstanding Invoices
               </h3>
               <span style={{ fontSize: "0.85rem", color: "#475569" }}>
-                Total: <strong>{filterOutstandingList().length}</strong> invoices
+                Total: <strong>{outstandingList.length}</strong> invoices
               </span>
             </div>
 
@@ -448,6 +481,7 @@ export const SettlementPage = () => {
                     <th>Invoice No</th>
                     <th>Linked Job</th>
                     <th>Priority</th>
+                    <th>Job Type</th>
                     <th>Customer Name</th>
                     <th>Aging Analysis</th>
                     <th>Total Invoiced</th>
@@ -457,14 +491,14 @@ export const SettlementPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filterOutstandingList().length === 0 ? (
+                  {outstandingList.length === 0 ? (
                     <tr>
                       <td colSpan={10} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No invoices match the selected filter.
                       </td>
                     </tr>
                   ) : (
-                    filterOutstandingList().map((inv) => (
+                    outstandingPage.rows.map((inv) => (
                       <tr key={inv._id}>
                         <td>
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>{inv.invoiceNumber}</div>
@@ -473,9 +507,6 @@ export const SettlementPage = () => {
                           <div style={{ fontWeight: 600 }}>{inv.jobNo}</div>
                         </td>
                         <td><PriorityBadge priority={inv.priority} /></td>
-                        <td>
-                          <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
-                        </td>
                         <td>
                           <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
                         </td>
@@ -520,8 +551,21 @@ export const SettlementPage = () => {
                       </tr>
                     ))
                   )}
+                  {renderFillerRows(outstandingPage.rows.length, 10)}
                 </tbody>
               </table>
+            </div>
+            <div style={{ borderTop: "1px solid #f1f5f9" }}>
+              <Pagination
+                variant="compact"
+                currentPage={outstandingPage.safePage}
+                totalItems={outstandingList.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), outstandingPage.totalPages))}
+                onItemsPerPageChange={setItemsPerPage}
+                pageSizeOptions={[10, 20, 50, 100]}
+                itemLabel="invoices"
+              />
             </div>
           </div>
         )}
@@ -535,7 +579,7 @@ export const SettlementPage = () => {
                 Job Closure
               </h3>
               <span style={{ fontSize: "0.85rem", color: "#475569" }}>
-                Total: <strong>{filterClosureList().length}</strong> job orders
+                Total: <strong>{closureList.length}</strong> job orders
               </span>
             </div>
 
@@ -553,14 +597,14 @@ export const SettlementPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filterClosureList().length === 0 ? (
+                  {closureList.length === 0 ? (
                     <tr>
                       <td colSpan={7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
                         No job orders found.
                       </td>
                     </tr>
                   ) : (
-                    filterClosureList().map((job) => (
+                    closurePage.rows.map((job) => (
                       <tr key={job._id}>
                         <td>
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
@@ -594,8 +638,21 @@ export const SettlementPage = () => {
                       </tr>
                     ))
                   )}
+                  {renderFillerRows(closurePage.rows.length, 7)}
                 </tbody>
               </table>
+            </div>
+            <div style={{ borderTop: "1px solid #f1f5f9" }}>
+              <Pagination
+                variant="compact"
+                currentPage={closurePage.safePage}
+                totalItems={closureList.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), closurePage.totalPages))}
+                onItemsPerPageChange={setItemsPerPage}
+                pageSizeOptions={[10, 20, 50, 100]}
+                itemLabel="job orders"
+              />
             </div>
           </div>
         )}

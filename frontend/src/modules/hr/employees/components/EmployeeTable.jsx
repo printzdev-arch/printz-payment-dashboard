@@ -69,22 +69,23 @@ export default function EmployeeTable({
               const active = e.isActive !== false && e.employmentStatus === "ACTIVE";
               return (
                 <tr key={e._id} className={active ? "" : "is-inactive"}>
-                  <td>{e.employeeCode}</td>
-                  <td>
+                  {/* data-label is shown beside each value when the table turns into cards on phones */}
+                  <td data-label="Code">{e.employeeCode}</td>
+                  <td className="emp-td-name" data-label="Name">
                     <div className="emp-cell-name">{e.name}</div>
                     <div className="emp-cell-sub">{e.email}</div>
                   </td>
-                  <td>{e.mobile}</td>
-                  <td>{nameOf(e.branchId) || "—"}</td>
-                  <td>{roleLabel(e)}</td>
-                  <td>{formatDate(e.joiningDate)}</td>
-                  <td>
+                  <td data-label="Mobile">{e.mobile}</td>
+                  <td data-label="Branch">{nameOf(e.branchId) || "—"}</td>
+                  <td data-label="Role">{roleLabel(e)}</td>
+                  <td data-label="Joined">{formatDate(e.joiningDate)}</td>
+                  <td data-label="Status">
                     <span className={`emp-badge ${STATUS_CLASS[e.employmentStatus] || "emp-badge-inactive"}`}>
                       {STATUS_LABEL[e.employmentStatus] || e.employmentStatus}
                     </span>
                   </td>
                   {showActions && (
-                    <td>
+                    <td className="emp-td-actions">
                       <div className="emp-actions">
                         {onView && (
                           <button

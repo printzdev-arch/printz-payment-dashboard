@@ -246,9 +246,13 @@ userSchema.statics.enrichUser = async function (user) {
         if (effectivePages && roleDoc.code !== "SUPER_ADMIN") {
           const { pathsFor, linksFor } = require("../constants/pageCatalog");
           const isAdminRole = ["ADMIN", "SUPER_ADMIN"].includes(String(roleDoc.code || "").toUpperCase());
+          // Branch managers do not get the Employees module, even if it is ticked for them. The page is only
+          // hidden: pageAccess keeps it so other screens (attendance, salary) can still load the employee list.
+          const isManagerRole = ["MANAGER", "BRANCH_MANAGER", "BRANCH_MANAGER1"].includes(String(roleDoc.code || "").toUpperCase());
+          const shownPages = isManagerRole ? effectivePages.filter((k) => k !== "employees") : effectivePages;
           userObj.pageAccess = effectivePages;
-          userObj.allowedPaths = pathsFor(effectivePages, { admin: isAdminRole });
-          userObj.pageLinks = linksFor(effectivePages, { admin: isAdminRole });
+          userObj.allowedPaths = pathsFor(shownPages, { admin: isAdminRole });
+          userObj.pageLinks = linksFor(shownPages, { admin: isAdminRole });
         }
 
         if (roleDoc.code) {

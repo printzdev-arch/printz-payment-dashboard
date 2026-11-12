@@ -3,24 +3,9 @@ const AttendancePolicy = require("../models/AttendancePolicy");
 const DailyAttendance = require("../models/DailyAttendance");
 const Branch = require("../../branches/models/Branch");
 const ApiError = require("../../../utils/errors/ApiError");
-const { toNames } = require("../../../utils/helpers/weeklyOff.util");
 
 class AttendancePolicyService {
-  /**
-   * The effective attendance policy is the authoritative weekly-off schedule.
-   * Mirror it onto Branch.weeklyOffDays so the two can never disagree.
-   */
-  async _syncBranchWeeklyOff(policy) {
-    if (!policy || !policy.branchId || policy.isActive === false) return;
-    try {
-      await Branch.updateOne(
-        { _id: policy.branchId },
-        { $set: { weeklyOffDays: toNames(policy.weeklyOffDays) } }
-      );
-    } catch (err) {
-      console.error("[AttendancePolicyService] Failed to sync branch weekly offs:", err.message);
-    }
-  }
+  // Weekly off days live only on the attendance policy (AttendancePolicy.weeklyOffDays), never on the branch.
 
   // ─── Authorization Helpers ───────────────────────────────────────────────
 
@@ -234,8 +219,6 @@ class AttendancePolicyService {
       updatedBy: actorId || null,
     });
 
-    await this._syncBranchWeeklyOff(policy);
-
     return policy;
   }
 
@@ -406,7 +389,6 @@ class AttendancePolicyService {
 
     const beforeState = existing.toObject();
     await existing.save();
-    await this._syncBranchWeeklyOff(existing);
 
     return existing;
   }
@@ -451,7 +433,6 @@ class AttendancePolicyService {
     existing.isActive = boolStatus;
     existing.updatedBy = actorId || null;
     await existing.save();
-    await this._syncBranchWeeklyOff(existing);
 
     return existing;
   }

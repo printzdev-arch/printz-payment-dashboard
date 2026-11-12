@@ -75,7 +75,6 @@ class BranchService {
       address: typeof branchData.address === "string" ? branchData.address.trim() : "",
       phone: typeof branchData.phone === "string" ? branchData.phone.trim() : "",
       branchType: typeof branchData.branchType === "string" ? branchData.branchType.trim() : "retail",
-      weeklyOffDays: Array.isArray(branchData.weeklyOffDays) ? branchData.weeklyOffDays : [],
       manufacturingUnitId:
         branchData.manufacturingUnitId !== undefined
           ? await this.resolveManufacturingUnitId(branchData.manufacturingUnitId)
@@ -138,10 +137,6 @@ class BranchService {
 
     if (branchData.branchType !== undefined) {
       updates.branchType = typeof branchData.branchType === "string" ? branchData.branchType.trim() : "retail";
-    }
-
-    if (branchData.weeklyOffDays !== undefined) {
-      updates.weeklyOffDays = Array.isArray(branchData.weeklyOffDays) ? branchData.weeklyOffDays : [];
     }
 
     if (branchData.manufacturingUnitId !== undefined) {

@@ -135,7 +135,6 @@ const getManagerPageTitle = (pathname, search = "") => {
   if (pathname.includes("/delete-requests")) return "Delete Requests";
   if (pathname.includes("/master-settings") || pathname.includes("/jobflow/master-settings")) return "Master Defaults & Specifications";
   if (pathname.includes("/stock-transfers")) return "Warehouse Stock Transfers";
-  if (pathname.includes("/employees")) return "Employees";
   if (pathname.includes("/attendance/setup")) return "Attendance Setup";
   if (pathname.includes("/attendance/daily")) return "Daily Attendance";
   if (pathname.includes("/attendance/permissions")) return "Attendance Permissions";
@@ -1124,22 +1123,6 @@ const ManagerLayout = ({ children }) => {
                     </li>
                   </ul>
                 </MotionAccordion>
-              </li>
-
-              {/* Employees */}
-              <li className="sidebar-nav-item">
-                <NavLink
-                  to="/employees"
-                  className={`sidebar-link ${isActiveRoute("/employees") ? "active-link" : ""}`}
-                >
-                  <div className="sidebar-link-content">
-                    <Users size={18} className="sidebar-link-icon" />
-                    <span>Employees</span>
-                  </div>
-                  {isActiveRoute("/employees") && (
-                    <ChevronRight size={15} className="sidebar-active-arrow" />
-                  )}
-                </NavLink>
               </li>
 
               {/* Salary & Payroll with Submenu */}

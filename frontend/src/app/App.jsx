@@ -1592,12 +1592,12 @@ const AppContent = () => {
           }
         />
 
-        {/* Employees: one place to add and manage every employee */}
+        {/* Employees: one place to add and manage every employee. Admins only; branch managers do not get this module. */}
         <Route
           path="/employees"
           element={
             <PrivateRoute
-              roles={["admin", "super_admin", "manager", "branch_manager"]}
+              roles={["admin", "super_admin"]}
               component={() => (
                 <LayoutWrapper>
                   <EmployeesPage />

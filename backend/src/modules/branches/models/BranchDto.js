@@ -5,27 +5,28 @@
  * - name
  * - code
  * - address
+ * - phone
  * - branchType
- * - weeklyOffDays
+ * - manufacturingUnitId
  * - createdAt
  * - updatedAt
  */
 
 class CreateBranchDto {
-  constructor({ name, code, address = "", branchType = "retail", weeklyOffDays = [], manufacturingUnitId, createdAt, updatedAt } = {}) {
+  constructor({ name, code, address = "", phone = "", branchType = "retail", manufacturingUnitId, createdAt, updatedAt } = {}) {
     this.name = typeof name === "string" ? name.trim() : "";
     this.code = typeof code === "string" ? code.trim().toUpperCase() : "";
     this.address = typeof address === "string" ? address.trim() : "";
+    this.phone = typeof phone === "string" ? phone.trim() : "";
     this.branchType = typeof branchType === "string" ? branchType.trim() : "retail";
-    this.weeklyOffDays = Array.isArray(weeklyOffDays) ? weeklyOffDays : [];
     if (manufacturingUnitId !== undefined) this.manufacturingUnitId = manufacturingUnitId;
     if (createdAt) this.createdAt = createdAt;
     if (updatedAt) this.updatedAt = updatedAt;
   }
 
   static fromRequest(req) {
-    const { name, code, address, branchType, weeklyOffDays, manufacturingUnitId, createdAt, updatedAt } = req.body || {};
-    return new CreateBranchDto({ name, code, address, branchType, weeklyOffDays, manufacturingUnitId, createdAt, updatedAt });
+    const { name, code, address, phone, branchType, manufacturingUnitId, createdAt, updatedAt } = req.body || {};
+    return new CreateBranchDto({ name, code, address, phone, branchType, manufacturingUnitId, createdAt, updatedAt });
   }
 }
 
@@ -34,8 +35,8 @@ class UpdateBranchDto {
     if (data.name !== undefined) this.name = typeof data.name === "string" ? data.name.trim() : data.name;
     if (data.code !== undefined) this.code = typeof data.code === "string" ? data.code.trim().toUpperCase() : data.code;
     if (data.address !== undefined) this.address = typeof data.address === "string" ? data.address.trim() : data.address;
+    if (data.phone !== undefined) this.phone = typeof data.phone === "string" ? data.phone.trim() : data.phone;
     if (data.branchType !== undefined) this.branchType = typeof data.branchType === "string" ? data.branchType.trim() : data.branchType;
-    if (data.weeklyOffDays !== undefined) this.weeklyOffDays = Array.isArray(data.weeklyOffDays) ? data.weeklyOffDays : [];
     if (data.manufacturingUnitId !== undefined) this.manufacturingUnitId = data.manufacturingUnitId;
   }
 
@@ -52,8 +53,8 @@ class BranchResponseDto {
       name: branch.name,
       code: branch.code,
       address: branch.address || "",
+      phone: branch.phone || "",
       branchType: branch.branchType || "retail",
-      weeklyOffDays: branch.weeklyOffDays || [],
       manufacturingUnitId: branch.manufacturingUnitId ? branch.manufacturingUnitId.toString() : null,
       createdAt: branch.createdAt,
       updatedAt: branch.updatedAt,

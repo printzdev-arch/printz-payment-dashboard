@@ -21,7 +21,17 @@ import {
   AlertCircle,
   Pencil,
   Tag,
+  Phone,
+  Layers,
+  Factory,
 } from "lucide-react";
+
+const BRANCH_TYPES = [
+  { value: "retail", label: "Retail" },
+  { value: "manufacturing", label: "Manufacturing" },
+  { value: "warehouse", label: "Warehouse" },
+  { value: "corporate", label: "Corporate" },
+];
 
 /* ---------------------------------------------------------------------- */
 /*  SHARED MODAL STYLE TOKENS                                             */
@@ -162,6 +172,9 @@ const AddBranch = () => {
   const [branchName, setBranchName] = useState("");
   const [branchCode, setBranchCode] = useState("");
   const [branchAddress, setBranchAddress] = useState("");
+  const [branchPhone, setBranchPhone] = useState("");
+  const [branchType, setBranchType] = useState("retail");
+  const [manufacturingUnitId, setManufacturingUnitId] = useState("");
   const [editingBranch, setEditingBranch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -212,6 +225,9 @@ const AddBranch = () => {
     setBranchName("");
     setBranchCode("");
     setBranchAddress("");
+    setBranchPhone("");
+    setBranchType("retail");
+    setManufacturingUnitId("");
     setShowModal(true);
   };
 
@@ -221,7 +237,16 @@ const AddBranch = () => {
     setBranchName("");
     setBranchCode("");
     setBranchAddress("");
+    setBranchPhone("");
+    setBranchType("retail");
+    setManufacturingUnitId("");
   };
+
+  const manufacturingUnits = branches.filter(
+    (b) =>
+      String(b.branchType || "").toLowerCase() === "manufacturing" &&
+      String(b.id || b._id) !== String(editingBranch?.id || editingBranch?._id || "")
+  );
 
   const handleAddBranch = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -243,6 +268,10 @@ const AddBranch = () => {
         code: branchCode.trim().toUpperCase(),
         address: branchAddress.trim(),
         location: branchAddress.trim(),
+        phone: branchPhone.trim(),
+        branchType: branchType || "retail",
+        manufacturingUnitId:
+          branchType === "manufacturing" ? null : manufacturingUnitId || null,
         date: currentDate,
         isActive: true,
       };
@@ -282,6 +311,9 @@ const AddBranch = () => {
     setBranchName(branch.name || "");
     setBranchCode(branch.code || "");
     setBranchAddress(branch.address || "");
+    setBranchPhone(branch.phone || "");
+    setBranchType(branch.branchType || "retail");
+    setManufacturingUnitId(branch.manufacturingUnitId ? String(branch.manufacturingUnitId) : "");
     setShowModal(true);
   };
 
@@ -313,6 +345,10 @@ const AddBranch = () => {
         code: branchCode.trim().toUpperCase(),
         address: branchAddress.trim(),
         location: branchAddress.trim(),
+        phone: branchPhone.trim(),
+        branchType: branchType || "retail",
+        manufacturingUnitId:
+          branchType === "manufacturing" ? null : manufacturingUnitId || null,
         date: editingBranch.date,
       };
 
@@ -413,6 +449,42 @@ const AddBranch = () => {
           }}
         >
           {row.code || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "branchType",
+      label: "TYPE",
+      sortable: true,
+      render: (row) => {
+        const type = (row.branchType || "retail").toLowerCase();
+        const isMfg = type === "manufacturing";
+        return (
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: "12px",
+              textTransform: "capitalize",
+              color: isMfg ? "#1d4ed8" : "#475569",
+              background: isMfg ? "#eff6ff" : "#f1f5f9",
+              border: `1px solid ${isMfg ? "#bfdbfe" : "#e2e8f0"}`,
+              padding: "2px 8px",
+              borderRadius: "6px",
+              display: "inline-block",
+            }}
+          >
+            {type}
+          </span>
+        );
+      },
+    },
+    {
+      key: "phone",
+      label: "PHONE",
+      sortable: true,
+      render: (row) => (
+        <span style={{ fontSize: "13px", color: "#334155" }}>
+          {row.phone || "-"}
         </span>
       ),
     },
@@ -593,8 +665,8 @@ const AddBranch = () => {
         data={branches}
         loading={loading}
         emptyMessage="No branches available"
-        searchPlaceholder="Search branches by name or code..."
-        searchKeys={["name", "code", "address", "date"]}
+        searchPlaceholder="Search branches by name, code, phone or type..."
+        searchKeys={["name", "code", "address", "phone", "branchType", "date"]}
         onView={(row) => setViewingBranch(row)}
         onEdit={handleEditBranch}
         onDelete={(branch) => {
@@ -617,11 +689,7 @@ const AddBranch = () => {
                   <h3 style={MODAL_HEADER_TITLE_STYLE}>
                     {editingBranch ? "Edit Branch" : "Add Branch"}
                   </h3>
-                  <p style={MODAL_HEADER_SUBTITLE_STYLE}>
-                    {editingBranch
-                      ? "Update existing branch information and address"
-                      : "Create a new branch location for your store"}
-                  </p>
+                  
                 </div>
               </div>
 
@@ -726,6 +794,102 @@ const AddBranch = () => {
                     />
                   </div>
                 </div>
+
+                {/* Phone Number & Branch Type (2-column row) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="printz-form-field">
+                    <label className="printz-form-label">Phone Number</label>
+                    <div className="printz-input-wrapper-modern">
+                      <span className="printz-input-badge-icon badge-green">
+                        <Phone size={16} />
+                      </span>
+                      <input
+                        type="tel"
+                        className="printz-input-clean"
+                        placeholder="e.g. 9876543210"
+                        value={branchPhone}
+                        onChange={(e) => setBranchPhone(e.target.value)}
+                        disabled={loading}
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          background: "transparent",
+                          width: "100%",
+                          fontSize: "13.5px",
+                          color: "#0f172a",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="printz-form-field">
+                    <label className="printz-form-label">Branch Type</label>
+                    <div className="printz-input-wrapper-modern">
+                      <span className="printz-input-badge-icon badge-blue">
+                        <Layers size={16} />
+                      </span>
+                      <select
+                        className="printz-input-clean"
+                        value={branchType}
+                        onChange={(e) => {
+                          const nextType = e.target.value;
+                          setBranchType(nextType);
+                          if (nextType === "manufacturing") setManufacturingUnitId("");
+                        }}
+                        disabled={loading}
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          background: "transparent",
+                          width: "100%",
+                          fontSize: "13.5px",
+                          color: "#0f172a",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {BRANCH_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Manufacturing Unit (for non-manufacturing branches) */}
+                {branchType !== "manufacturing" && (
+                  <div className="printz-form-field">
+                    <label className="printz-form-label">Manufacturing Unit</label>
+                    <div className="printz-input-wrapper-modern">
+                      <span className="printz-input-badge-icon badge-blue">
+                        <Factory size={16} />
+                      </span>
+                      <select
+                        className="printz-input-clean"
+                        value={manufacturingUnitId}
+                        onChange={(e) => setManufacturingUnitId(e.target.value)}
+                        disabled={loading}
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          background: "transparent",
+                          width: "100%",
+                          fontSize: "13.5px",
+                          color: "#0f172a",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="">None (Default / Auto-resolve)</option>
+                        {manufacturingUnits.map((unit) => (
+                          <option key={unit.id || unit._id} value={unit.id || unit._id}>
+                            {unit.name} ({unit.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Actions */}
@@ -1011,6 +1175,38 @@ const AddBranch = () => {
                 }}
               >
                 <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
+                  Phone Number
+                </div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>
+                  {viewingBranch.phone || "-"}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                }}
+              >
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
+                  Branch Type
+                </div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a", textTransform: "capitalize" }}>
+                  {viewingBranch.branchType || "retail"}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                }}
+              >
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
                   Date Added
                 </div>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1018,6 +1214,32 @@ const AddBranch = () => {
                   <span>{viewingBranch.date || viewingBranch.createdAt?.split("T")[0] || "N/A"}</span>
                 </div>
               </div>
+
+              {String(viewingBranch.branchType || "").toLowerCase() !== "manufacturing" && (
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                  }}
+                >
+                  <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569", textTransform: "uppercase", marginBottom: "4px" }}>
+                    Manufacturing Unit
+                  </div>
+                  <div style={{ fontSize: "13.5px", color: "#334155" }}>
+                    {(() => {
+                      if (!viewingBranch.manufacturingUnitId) return "Default / Auto-resolve";
+                      const unit = branches.find(
+                        (b) => String(b.id || b._id) === String(viewingBranch.manufacturingUnitId)
+                      );
+                      // The saved unit may have been deleted; never show its raw id
+                      return unit ? `${unit.name} (${unit.code})` : "Unit not found (deleted). Edit this branch to choose another.";
+                    })()}
+                  </div>
+                </div>
+              )}
 
               <div
                 style={{

@@ -9,8 +9,9 @@ const mongoose = require("mongoose");
  * - address (String)
  * - phone (String)
  * - branchType (String)
- * - weeklyOffDays (Array of Strings)
  * - createdAt (Date)
+ *
+ * Weekly off days are NOT stored here; they live only on the branch's AttendancePolicy.
  * - updatedAt (Date)
  */
 const branchSchema = new mongoose.Schema(
@@ -43,10 +44,6 @@ const branchSchema = new mongoose.Schema(
       trim: true,
       default: "retail",
     },
-    weeklyOffDays: {
-      type: [String],
-      default: [],
-    },
     // Manufacturing unit that serves this retail branch (sale order flow)
     manufacturingUnitId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -68,7 +65,6 @@ const branchSchema = new mongoose.Schema(
           address: ret.address || "",
           phone: ret.phone || "",
           branchType: ret.branchType || "retail",
-          weeklyOffDays: ret.weeklyOffDays || [],
           manufacturingUnitId: ret.manufacturingUnitId || null,
           createdAt: ret.createdAt,
           updatedAt: ret.updatedAt,

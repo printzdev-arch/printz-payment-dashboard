@@ -226,7 +226,6 @@ async function ensureManufacturingUnit() {
         code: "MFG-01",
         address: "Central Manufacturing Facility",
         branchType: "manufacturing",
-        weeklyOffDays: ["Sunday"],
       });
       console.log("[SaleOrder] Auto-created Central Manufacturing Unit (MFG-01)");
     } catch (e) {
