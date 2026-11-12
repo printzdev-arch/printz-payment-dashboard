@@ -84,7 +84,7 @@ const PAGE_GROUPS = [
       page("employees", "Employees", ["/employees"], ["admin.employee", "hr.employee", "hr.self"]),
       parent("attendance", "Attendance", [
         page("attendance-setup", "Setup", ["/attendance/setup"], ["hr.attendance", "hr.policy", "hr.holiday", "hr.self"]),
-        page("attendance-daily", "Daily Attendance", ["/attendance/daily", { path: "/attendance", exact: true }], ["hr.attendance", "hr.regularization", "hr.leave", "hr.self"]),
+        page("attendance-daily", "Daily Attendance", ["/attendance/daily", { path: "/attendance", exact: true }], ["hr.attendance", "hr.policy.view", "hr.regularization", "hr.leave", "hr.self"]),
         page("attendance-shifts", "Branch Shifts", ["/attendance/branch-shifts"], ["hr.attendance", "admin.employee"]),
         page("attendance-permissions", "Permissions", ["/attendance/permissions"], ["hr.attendance", "hr.leave", "hr.self"]),
         page("attendance-reports", "Reports", ["/attendance/reports"], ["hr.attendance", "hr.self"]),

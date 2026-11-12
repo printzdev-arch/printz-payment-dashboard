@@ -28,6 +28,9 @@ const isTrueSuperAdmin = (user = {}) => {
 const requirePermission = (permissionCode, options = {}) => {
   return async (req, res, next) => {
     try {
+      if (!permissionCode || typeof permissionCode !== "string") {
+        return next(ErrorHelper.internal("Invalid route permission configuration."));
+      }
       if (!req.user) {
         return next(ErrorHelper.unauthorized("Authentication required."));
       }
