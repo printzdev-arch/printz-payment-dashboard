@@ -126,6 +126,12 @@ const EmployeeSchema = new mongoose.Schema(
   }
 );
 
+// Employee list is ordered by name within a branch; sign-in and sync look an employee up by email; role screens count by role
+EmployeeSchema.index({ name: 1 });
+EmployeeSchema.index({ branchId: 1, name: 1 });
+EmployeeSchema.index({ email: 1 });
+EmployeeSchema.index({ roleId: 1 });
+
 // The signed-in user is cached with its employee profile; clear the cache when an employee changes
 const authCache = require("../../../utils/helpers/authCache");
 ["save", "findOneAndUpdate", "findOneAndDelete", "updateOne", "updateMany", "deleteOne", "deleteMany"].forEach((op) => {

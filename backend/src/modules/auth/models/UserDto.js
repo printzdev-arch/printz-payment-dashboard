@@ -1,4 +1,5 @@
 const ErrorHelper = require("../../../utils/errors/ApiError");
+const { isStrongPassword, PASSWORD_MESSAGE } = require("../../../utils/validation/fieldRules");
 
 /**
  * User Management & RBAC Data Transfer Objects (DTOs)
@@ -41,8 +42,8 @@ class CreateUserDto {
         throw ErrorHelper.badRequest("Name is required to create an admin account");
       }
     }
-    if (!this.password || this.password.length < 6) {
-      throw ErrorHelper.badRequest("Password is required and must be at least 6 characters long");
+    if (!isStrongPassword(this.password)) {
+      throw ErrorHelper.badRequest(PASSWORD_MESSAGE);
     }
     if (this.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -94,8 +95,8 @@ class UpdateUserDto {
         throw ErrorHelper.badRequest("Invalid email address format");
       }
     }
-    if (this.password !== undefined && this.password.length < 6) {
-      throw ErrorHelper.badRequest("Password must be at least 6 characters long");
+    if (this.password !== undefined && !isStrongPassword(this.password)) {
+      throw ErrorHelper.badRequest(PASSWORD_MESSAGE);
     }
     if (this.role !== undefined && !["admin", "manager"].includes(this.role)) {
       throw ErrorHelper.badRequest("Role must be either 'admin' or 'manager'");

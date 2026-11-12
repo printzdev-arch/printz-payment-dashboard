@@ -185,6 +185,10 @@ productionOperationSchema.index({ assignedEmployeeId: 1, status: 1 });
 productionOperationSchema.index({ operationCode: 1, status: 1 });
 productionOperationSchema.index({ branchId: 1, status: 1 });
 productionOperationSchema.index({ machineId: 1, status: 1 });
+// Dashboard reads: recent failures, open rework and machine utilisation windows
+productionOperationSchema.index({ status: 1, endAt: -1 });
+productionOperationSchema.index({ isRework: 1, status: 1 });
+productionOperationSchema.index({ machineId: 1, startAt: 1 });
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Statics (must be defined BEFORE mongoose.model() compiles the schema)      */

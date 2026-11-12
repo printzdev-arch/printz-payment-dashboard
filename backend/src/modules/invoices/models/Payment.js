@@ -1,3 +1,4 @@
+const { roundMoney } = require("../../../utils/validation/roundMoney");
 ﻿const mongoose = require("mongoose");
 
 /**
@@ -141,9 +142,13 @@ paymentSchema.pre("save", function (next) {
 paymentSchema.index({ invoiceId: 1, createdAt: -1 });
 paymentSchema.index({ jobOrderId: 1, createdAt: -1 });
 paymentSchema.index({ branchId: 1, paymentDate: -1 });
+// Payment history of an invoice and collection reports are ordered by payment date
+paymentSchema.index({ invoiceId: 1, paymentDate: -1 });
+paymentSchema.index({ collectedBy: 1, paymentDate: -1 });
 paymentSchema.index(
   { idempotencyKey: 1 },
-  { unique: true, sparse: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } }
+  // The partial filter already skips payments without a key; MongoDB rejects it combined with `sparse`
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } }
 );
 
 const Payment = mongoose.models.Payment || mongoose.model("Payment", paymentSchema);
@@ -202,7 +207,7 @@ paymentSchema.statics.sumInvoiceTimePayments = async function (invoiceId) {
     status: { $in: ["COMPLETED", "PAID", "SUCCESS"] },
     paymentType: { $in: ["ADVANCE", "FULL"] },
   }).lean();
-  return Math.round(rows.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) * 100) / 100;
+  return roundMoney(rows.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
 };
 
 paymentSchema.statics.findByJobOrderId = async function (jobOrderId) {

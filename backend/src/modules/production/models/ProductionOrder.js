@@ -220,6 +220,12 @@ const productionOrderSchema = new mongoose.Schema(
 productionOrderSchema.index({ jobOrderId: 1, status: 1 });
 productionOrderSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 productionOrderSchema.index({ jobOrderId: 1, jobItemId: 1, cycleType: 1, cycleNo: 1 });
+// Order list is newest-first; the production dashboard reads by status with update / planned / actual end dates
+productionOrderSchema.index({ createdAt: -1 });
+productionOrderSchema.index({ branchId: 1, createdAt: -1 });
+productionOrderSchema.index({ status: 1, updatedAt: -1 });
+productionOrderSchema.index({ status: 1, plannedEnd: 1 });
+productionOrderSchema.index({ status: 1, actualEnd: -1 });
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Instance methods                                                           */

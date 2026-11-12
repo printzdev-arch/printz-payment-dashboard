@@ -227,9 +227,14 @@ class AttendanceCalculationService {
     const lateGraceMinutes = Number.isFinite(Number(policy.lateGraceMinutes)) ? Number(policy.lateGraceMinutes) : 15;
     const earlyCheckoutGraceMinutes = Number.isFinite(Number(policy.earlyCheckoutGraceMinutes)) ? Number(policy.earlyCheckoutGraceMinutes) : 0;
     const breakDurationMinutes = Number.isFinite(Number(policy.breakDurationMinutes)) ? Number(policy.breakDurationMinutes) : 60;
-    const requiredWorkingHours = Number(policy.workingHoursPerDay || 8);
-    const halfDayHours = Number(policy.halfDayHours || 4);
-    const fullDayHours = Number(policy.fullDayHours || 8);
+    // A policy value that is missing, text or not above zero falls back to the standard day (never NaN)
+    const positiveOr = (value, fallback) => {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? n : fallback;
+    };
+    const requiredWorkingHours = positiveOr(policy.workingHoursPerDay, 8);
+    const halfDayHours = positiveOr(policy.halfDayHours, 4);
+    const fullDayHours = positiveOr(policy.fullDayHours, 8);
     const overtimeEnabled = policy.overtimeEnabled !== undefined ? Boolean(policy.overtimeEnabled) : true;
 
     const hasCheckIn = Boolean(checkIn && this.timeToMinutes(checkIn) !== null);

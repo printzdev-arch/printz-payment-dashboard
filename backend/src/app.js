@@ -68,6 +68,9 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
+// Drop MongoDB operator keys ($ne, $gt, ...) from body, query and params before any route sees them
+app.use(require("./middleware/request/sanitize.middleware").sanitizeRequest);
+
 // Request Logging in dev
 if (env.NODE_ENV !== "test") {
   app.use(morgan("dev"));

@@ -157,6 +157,10 @@ const saleReceiptSchema = new mongoose.Schema(
 saleReceiptSchema.index({ branchId: 1, saleDate: -1 });
 saleReceiptSchema.index({ customerId: 1, saleDate: -1 });
 saleReceiptSchema.index({ status: 1, paymentStatus: 1 });
+// Receipt lists are newest-first; day-end and reports read a branch by status and sale date
+saleReceiptSchema.index({ createdAt: -1 });
+saleReceiptSchema.index({ branchId: 1, createdAt: -1 });
+saleReceiptSchema.index({ branchId: 1, status: 1, saleDate: -1 });
 
 
 // === INJECTED REPOSITORY STATICS ===

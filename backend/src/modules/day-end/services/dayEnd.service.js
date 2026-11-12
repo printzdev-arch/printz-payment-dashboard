@@ -11,7 +11,7 @@ const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DEFAULT_ADMIN_EMAIL = "nithya.baskaran0005@gmail.com";
 
 const money = (n) => `Rs. ${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
+const round2 = (n) => require("../../../utils/validation/roundMoney").roundMoney(n || 0);
 
 /** Start/end of the current day in India time, as UTC Date objects. */
 function istDayRange(now = new Date()) {

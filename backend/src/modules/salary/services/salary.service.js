@@ -17,9 +17,10 @@ const DailyAttendance = require("../../attendance/models/DailyAttendance");
 const HolidayCalendar = require("../../attendance/models/HolidayCalendar");
 const EmployeeBranchAssignment = require("../../employees/models/EmployeeBranchAssignment");
 const ApiError = require("../../../utils/errors/ApiError");
+const fieldRules = require("../../../utils/validation/fieldRules");
 const { getTodayDateString } = require("../../../utils/helpers/dateUtils");
 
-const money = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
+const money = (n) => require("../../../utils/validation/roundMoney").roundMoney(n || 0);
 
 const idVariants = (id) => {
   if (!id) return [];
@@ -1576,7 +1577,9 @@ class SalaryService {
     if (!employee) throw ApiError.notFound("Employee not found.");
     if (idString(employee.branchId) !== idString(data.branchId)) throw ApiError.validation("branchId does not match employee branch.");
     const amount = Number(data.amount);
-    if (!(amount > 0)) throw ApiError.validation("Adjustment amount must be greater than zero.");
+    if (!(amount > 0) || !fieldRules.isAmount(amount, { allowZero: false })) {
+      throw ApiError.validation("Adjustment amount must be greater than zero, with at most 2 decimal places.");
+    }
 
     // Check if payroll for this period is already finalized
     const existingRun = await SalaryRun.findOne({
@@ -1603,9 +1606,14 @@ class SalaryService {
     if (!employee) throw ApiError.notFound("Employee not found.");
     if (idString(employee.branchId) !== idString(data.branchId)) throw ApiError.validation("branchId does not match employee branch.");
     const amount = Number(data.loanAmount);
-    if (!(amount > 0)) throw ApiError.validation("loanAmount must be greater than zero.");
+    if (!(amount > 0) || !fieldRules.isAmount(amount, { allowZero: false })) {
+      throw ApiError.validation("loanAmount must be greater than zero, with at most 2 decimal places.");
+    }
     const emi = Number(data.emiAmount);
-    if (!(emi > 0)) throw ApiError.validation("emiAmount must be greater than zero.");
+    if (!(emi > 0) || !fieldRules.isAmount(emi, { allowZero: false })) {
+      throw ApiError.validation("emiAmount must be greater than zero, with at most 2 decimal places.");
+    }
+    if (emi > amount) throw ApiError.validation("emiAmount cannot be more than the loan amount.");
     const loanNumber = (data.loanNumber && String(data.loanNumber).trim()) || `LN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     // Auto-deduction is on unless explicitly turned off.
@@ -1889,6 +1897,9 @@ class SalaryService {
   async createComponent(data, userId) {
     const code = String(data.code || "").trim().toUpperCase();
     if (!code) throw ApiError.validation("Component code is required.");
+    if (String(data.calculationType || "").toUpperCase() === "PERCENTAGE" && !fieldRules.isPercentage(data.defaultAmount ?? 0)) {
+      throw ApiError.validation("A percentage component must have a rate between 0 and 100.");
+    }
     const branchId = data.branchId ? idString(data.branchId) : null;
     const existing = await SalaryComponent.findOne({ code, branchId: { $in: branchId ? idVariants(branchId) : [null] } });
     if (existing) throw ApiError.conflict(`Salary component with code '${code}' already exists for this branch.`);

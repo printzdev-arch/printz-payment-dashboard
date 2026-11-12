@@ -37,7 +37,7 @@ class SettlementService {
   }
 
   static round2(val) {
-    return Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+    return require("../../../utils/validation/roundMoney").roundMoney(val);
   }
 
   /**
@@ -124,7 +124,48 @@ class SettlementService {
   /**
    * Record a payment against an existing invoice.
    */
+  /**
+   * Runs work while holding a short lock on the invoice. Two payments sent at the same moment used to both pass the
+   * balance check and together collect more than the invoice was worth. With the lock they are handled one by one,
+   * so the second payment sees the balance left by the first.
+   */
+  static async _withInvoiceLock(invoiceId, work) {
+    const holdMs = 20000; // a crashed request frees the invoice after this long
+    const deadline = Date.now() + 8000;
+    for (;;) {
+      const now = new Date();
+      const got = await Invoice.findOneAndUpdate(
+        { _id: invoiceId, $or: [{ paymentLock: null }, { paymentLock: { $exists: false } }, { paymentLock: { $lt: now } }] },
+        { $set: { paymentLock: new Date(now.getTime() + holdMs) } },
+        { new: false, timestamps: false }
+      ).lean();
+      if (got) break;
+      if (Date.now() > deadline) {
+        throw ErrorHelper.conflict("Another payment for this invoice is being recorded. Please try again in a moment.");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 40 + Math.floor(Math.random() * 40)));
+    }
+    try {
+      return await work();
+    } finally {
+      await Invoice.updateOne({ _id: invoiceId }, { $set: { paymentLock: null } }, { timestamps: false }).catch(() => {});
+    }
+  }
+
   static async collectPayment(invoiceId, paymentData = {}, user = null, authContext = {}) {
+    if (!user) throw ErrorHelper.unauthorized("Authentication required.");
+    let ref = null;
+    try {
+      ref = await Invoice.findById(invoiceId).select("_id").lean();
+      if (!ref) ref = await Invoice.findOne({ jobOrderId: invoiceId, isDeleted: { $ne: true } }).select("_id").lean();
+    } catch (e) {
+      ref = null; // an id that cannot be looked up is reported as "not found" by the call below
+    }
+    if (!ref) return this._collectPaymentUnlocked(invoiceId, paymentData, user, authContext);
+    return this._withInvoiceLock(ref._id, () => this._collectPaymentUnlocked(invoiceId, paymentData, user, authContext));
+  }
+
+  static async _collectPaymentUnlocked(invoiceId, paymentData = {}, user = null, authContext = {}) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
 
     let invoice = await Invoice.findById(invoiceId);
@@ -353,7 +394,20 @@ class SettlementService {
   /**
    * Void a payment and recalculate settlement.
    */
-  static async voidPayment(paymentId, { reason }, user = null, authContext = {}) {
+  static async voidPayment(paymentId, body = {}, user = null, authContext = {}) {
+    if (!user) throw ErrorHelper.unauthorized("Authentication required.");
+    let invoiceRef = null;
+    try {
+      const found = await Payment.findById(paymentId).select("invoiceId").lean();
+      invoiceRef = found && found.invoiceId;
+    } catch (e) {
+      invoiceRef = null;
+    }
+    if (!invoiceRef) return this._voidPaymentUnlocked(paymentId, body, user, authContext);
+    return this._withInvoiceLock(invoiceRef, () => this._voidPaymentUnlocked(paymentId, body, user, authContext));
+  }
+
+  static async _voidPaymentUnlocked(paymentId, { reason } = {}, user = null, authContext = {}) {
     if (!user) throw ErrorHelper.unauthorized("Authentication required.");
     if (!reason || !reason.trim()) {
       throw ErrorHelper.badRequest("Void reason is required.");

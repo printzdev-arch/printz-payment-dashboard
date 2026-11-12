@@ -278,6 +278,10 @@ deliveryOrderSchema.index({ jobOrderId: 1, status: 1 });
 deliveryOrderSchema.index({ branchId: 1, status: 1 });
 deliveryOrderSchema.index({ expectedDeliveryDate: 1 });
 deliveryOrderSchema.index({ assignedAt: -1 });
+// Delivery list is newest-first, optionally within a branch or for a driver
+deliveryOrderSchema.index({ createdAt: -1 });
+deliveryOrderSchema.index({ branchId: 1, createdAt: -1 });
+deliveryOrderSchema.index({ driverId: 1, status: 1 });
 
 const DeliveryOrder =
   mongoose.models.DeliveryOrder ||

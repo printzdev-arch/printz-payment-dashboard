@@ -8,6 +8,8 @@ const ErrorHelper = require("../../../utils/errors/ApiError");
 const { INVOICE_STATUS } = require("../../invoices/models/invoice.constants");
 const { formatISTDateTime } = require("../../../utils/helpers/dateUtils");
 
+const { roundMoney } = require("../../../utils/validation/roundMoney");
+
 class JobClosureService {
   static assertBranchAccess(branchId, authContext, user) {
     if (!branchId) return;
@@ -81,10 +83,10 @@ class JobClosureService {
       const paymentsByInvoice = await paymentRepository.findValidPaymentsByInvoiceIds(invoices.map((inv) => inv._id));
       for (const inv of invoices) {
         const validPayments = paymentsByInvoice.get(String(inv._id)) || [];
-        const amountPaid = Math.round((validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + Number.EPSILON) * 100) / 100;
-        const invoiceTotal = Math.round((Number(inv.grandTotal || 0) + Number.EPSILON) * 100) / 100;
-        const applicableAdvance = Math.round((Number(inv.advanceApplied || inv.advancePaid || 0) + Number.EPSILON) * 100) / 100;
-        const balanceDue = Math.max(0, Math.round((invoiceTotal - amountPaid - applicableAdvance + Number.EPSILON) * 100) / 100);
+        const amountPaid = roundMoney(validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
+        const invoiceTotal = roundMoney(Number(inv.grandTotal || 0));
+        const applicableAdvance = roundMoney(Number(inv.advanceApplied || inv.advancePaid || 0));
+        const balanceDue = Math.max(0, roundMoney(invoiceTotal - amountPaid - applicableAdvance));
 
         inv.paidAmount = amountPaid;
         inv.balanceDue = balanceDue;
@@ -102,7 +104,7 @@ class JobClosureService {
       }
     }
 
-    job.outstandingBalance = Math.round((totalOutstanding + Number.EPSILON) * 100) / 100;
+    job.outstandingBalance = roundMoney(totalOutstanding);
     if (invoices.length > 0) {
       job.paymentStatus = totalOutstanding <= 0 ? "PAID" : "PARTIAL";
     }

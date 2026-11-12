@@ -158,6 +158,11 @@ customerSchema.index({ email: 1 });
 customerSchema.index({ company: 1 });
 customerSchema.index({ companyName: 1 });
 customerSchema.index({ visitedBranches: 1 });
+// Customer list is newest-first; duplicate checks look a customer up by phone and GSTIN
+customerSchema.index({ createdAt: -1 });
+customerSchema.index({ branchId: 1, createdAt: -1 });
+customerSchema.index({ phone: 1 });
+customerSchema.index({ gstin: 1 });
 customerSchema.index({ name: "text", mobile: "text", customerCode: "text", email: "text", company: "text", companyName: "text" });
 
 

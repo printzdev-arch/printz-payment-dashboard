@@ -77,6 +77,10 @@ const jobSampleSchema = new mongoose.Schema(
 );
 
 jobSampleSchema.index({ jobOrderId: 1, versionNo: -1 });
+// Sample review list is ordered by last update; the designer dashboard counts a designer's samples by status
+jobSampleSchema.index({ updatedAt: -1, createdAt: -1 });
+jobSampleSchema.index({ submittedBy: 1, status: 1, updatedAt: -1 });
+jobSampleSchema.index({ status: 1, updatedAt: -1 });
 
 const JobSample = mongoose.models.JobSample || mongoose.model("JobSample", jobSampleSchema, "jobSamples");
 

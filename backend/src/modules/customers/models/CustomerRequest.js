@@ -261,6 +261,10 @@ const customerRequestSchema = new mongoose.Schema(
 
 customerRequestSchema.index({ branchId: 1, status: 1 });
 customerRequestSchema.index({ customerPhone: 1, createdAt: -1 });
+// Request list is newest-first, optionally within a branch and status
+customerRequestSchema.index({ createdAt: -1 });
+customerRequestSchema.index({ branchId: 1, createdAt: -1 });
+customerRequestSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 
 const CustomerRequest =
   mongoose.models.CustomerRequest ||

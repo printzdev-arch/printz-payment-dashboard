@@ -140,6 +140,8 @@ const deliveryProofSchema = new mongoose.Schema(
 deliveryProofSchema.index({ deliveryOrderId: 1, deliveredAt: -1 });
 deliveryProofSchema.index({ jobOrderId: 1, deliveredAt: -1 });
 deliveryProofSchema.index({ branchId: 1, deliveredAt: -1 });
+// Proof list is newest-first
+deliveryProofSchema.index({ createdAt: -1 });
 deliveryProofSchema.index({ proofNo: 1 }, { unique: true, sparse: true });
 
 const DeliveryProof =

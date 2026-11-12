@@ -4,6 +4,7 @@ const inventoryItemController = require("../controllers/inventoryItem.controller
 const { authenticate } = require("../../../middleware/security/auth.middleware");
 const { requirePermission } = require("../../../middleware/security/permission.middleware");
 const PERMISSIONS = require("../../../utils/constants/permissions");
+const { createInventoryItemValidator, updateInventoryItemValidator } = require("./validators");
 
 router.use(authenticate);
 
@@ -25,6 +26,7 @@ router.get(
 router.post(
   "/",
   requirePermission(PERMISSIONS.INVENTORY.ITEM_MANAGE),
+  createInventoryItemValidator,
   inventoryItemController.createInventoryItem
 );
 
@@ -32,6 +34,7 @@ router.post(
 router.patch(
   "/:id",
   requirePermission(PERMISSIONS.INVENTORY.ITEM_MANAGE),
+  updateInventoryItemValidator,
   inventoryItemController.updateInventoryItem
 );
 

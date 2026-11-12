@@ -4,6 +4,7 @@ const purchaseReceiptController = require("../controllers/purchaseReceipt.contro
 const { authenticate } = require("../../../middleware/security/auth.middleware");
 const { requirePermission } = require("../../../middleware/security/permission.middleware");
 const PERMISSIONS = require("../../../utils/constants/permissions");
+const { purchaseReceiptValidator, updatePurchaseReceiptValidator } = require("./validators");
 
 router.use(authenticate);
 
@@ -11,6 +12,7 @@ router.use(authenticate);
 router.post(
   "/",
   requirePermission(PERMISSIONS.INVENTORY.PURCHASE_CREATE, { branchField: "branchId" }),
+  purchaseReceiptValidator,
   purchaseReceiptController.createDraftReceipt
 );
 
@@ -18,6 +20,7 @@ router.post(
 router.patch(
   "/:id",
   requirePermission(PERMISSIONS.INVENTORY.PURCHASE_CREATE, { branchField: "branchId" }),
+  updatePurchaseReceiptValidator,
   purchaseReceiptController.updateDraftReceipt
 );
 

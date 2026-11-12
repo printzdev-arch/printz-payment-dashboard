@@ -4,6 +4,7 @@ const inventoryTransactionController = require("../controllers/inventoryTransact
 const { authenticate } = require("../../../middleware/security/auth.middleware");
 const { requirePermission } = require("../../../middleware/security/permission.middleware");
 const PERMISSIONS = require("../../../utils/constants/permissions");
+const { postAdjustmentValidator, postIssueValidator, postOpeningStockValidator } = require("./validators");
 
 router.use(authenticate);
 
@@ -11,6 +12,7 @@ router.use(authenticate);
 router.post(
   "/adjustments",
   requirePermission(PERMISSIONS.INVENTORY.ADJUST, { branchField: "branchId" }),
+  postAdjustmentValidator,
   inventoryTransactionController.recordAdjustment
 );
 
@@ -18,6 +20,7 @@ router.post(
 router.post(
   "/issues",
   requirePermission(PERMISSIONS.INVENTORY.ADJUST, { branchField: "branchId" }),
+  postIssueValidator,
   inventoryTransactionController.recordIssue
 );
 
@@ -25,6 +28,7 @@ router.post(
 router.post(
   "/opening",
   requirePermission(PERMISSIONS.INVENTORY.ITEM_MANAGE, { branchField: "branchId" }),
+  postOpeningStockValidator,
   inventoryTransactionController.recordOpeningStock
 );
 

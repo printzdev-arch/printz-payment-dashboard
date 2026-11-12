@@ -38,5 +38,9 @@ const DeleteRequestSchema = new mongoose.Schema(
 );
 
 DeleteRequestSchema.index({ resourceType: 1, resourceId: 1, status: 1 });
+// Request list is ordered by request time, for everyone (admin) or for the requester
+DeleteRequestSchema.index({ requestedAt: -1 });
+DeleteRequestSchema.index({ requestedBy: 1, requestedAt: -1 });
+DeleteRequestSchema.index({ status: 1, requestedAt: -1 });
 
 module.exports = mongoose.models.DeleteRequest || mongoose.model("DeleteRequest", DeleteRequestSchema);

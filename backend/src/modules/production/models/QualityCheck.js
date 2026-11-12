@@ -169,6 +169,9 @@ const qualityCheckSchema = new mongoose.Schema(
 qualityCheckSchema.index({ productionOrderId: 1, checkedAt: -1 });
 qualityCheckSchema.index({ jobOrderId: 1, result: 1 });
 qualityCheckSchema.index({ branchId: 1, result: 1 });
+// Latest check of a job (delivery eligibility) and the branch QC list ordered by check time
+qualityCheckSchema.index({ jobOrderId: 1, createdAt: -1 });
+qualityCheckSchema.index({ branchId: 1, checkedAt: -1 });
 
 /**
  * A failed inspection must always name a corrective action, otherwise the

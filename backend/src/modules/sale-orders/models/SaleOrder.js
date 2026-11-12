@@ -185,6 +185,13 @@ saleOrderSchema.index({ manufacturingUnitId: 1, status: 1 });
 saleOrderSchema.index({ "currentAssignment.designerUserId": 1, status: 1 });
 saleOrderSchema.index({ "customerSnapshot.mobile": 1 });
 saleOrderSchema.index({ status: 1, expectedDeliveryDate: 1 });
+// Order list is newest-first for a branch or a unit; day-end reads a branch by order date; the unit board is ordered by priority
+saleOrderSchema.index({ createdAt: -1 });
+saleOrderSchema.index({ orderBranchId: 1, createdAt: -1 });
+saleOrderSchema.index({ manufacturingUnitId: 1, createdAt: -1 });
+saleOrderSchema.index({ orderBranchId: 1, orderDate: -1 });
+saleOrderSchema.index({ manufacturingUnitId: 1, status: 1, priority: -1, orderDate: 1 });
+saleOrderSchema.index({ status: 1, updatedAt: 1 });
 
 module.exports =
   mongoose.models.SaleOrder || mongoose.model("SaleOrder", saleOrderSchema);

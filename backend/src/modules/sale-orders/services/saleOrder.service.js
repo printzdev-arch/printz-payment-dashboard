@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Branch = require("../../branches/models/Branch");
 const Customer = require("../../customers/models/Customer");
+const fieldRules = require("../../../utils/validation/fieldRules");
 const attachmentService = require("../../attachments/services/attachment.service");
 const Attachment = require("../../attachments/models/Attachment");
 const {
@@ -93,6 +94,13 @@ function buildCustomerSnapshot(body, customer) {
   const name = String(body.customerName || customer?.name || "").trim();
   const mobile = normalizeMobile(body.mobile || customer?.mobile || customer?.phone);
   if (!name) throw err(422, "CUSTOMER_NAME_REQUIRED", "Customer name is required.");
+  // A name typed on the order form (no saved customer) must be a proper name, never markup or symbols
+  if (!customer && !fieldRules.isBusinessName(name)) {
+    throw err(422, "CUSTOMER_NAME_INVALID", "Customer name must be 2-100 characters and may not contain special characters such as < > # $ % ^ * = { }.");
+  }
+  if (body.email && !fieldRules.isEmail(body.email)) {
+    throw err(422, "CUSTOMER_EMAIL_INVALID", "Customer email is not a valid email address.");
+  }
   if (!mobile) throw err(422, "INVALID_MOBILE", "Mobile must be 10 digits and start with 6, 7, 8 or 9.");
 
   const whatsappRaw = body.whatsappNumber || mobile;
@@ -147,9 +155,12 @@ function computeTotals(
     if (!String(it.productType || "").trim() || !String(it.description || "").trim() || !String(it.unit || "").trim()) {
       throw err(422, "ITEMS_REQUIRED", `Item ${line}: productType, description and unit are required.`);
     }
-    if (!(quantity > 0)) throw err(422, "ITEMS_REQUIRED", `Item ${line}: quantity must be greater than 0.`);
-    if (!(unitPrice > 0)) throw err(422, "ITEMS_REQUIRED", `Item ${line}: rate must be greater than 0.`);
-    if (!(taxRate >= 0)) throw err(422, "ITEMS_REQUIRED", `Item ${line}: tax rate cannot be negative.`);
+    if (!fieldRules.isQuantity(it.quantity)) throw err(422, "ITEMS_REQUIRED", `Item ${line}: quantity must be a number greater than 0.`);
+    if (!fieldRules.isAmount(it.unitPrice ?? it.rate, { allowZero: false })) {
+      throw err(422, "ITEMS_REQUIRED", `Item ${line}: rate must be a number greater than 0 with at most 2 decimal places.`);
+    }
+    if (!fieldRules.isPercentage(it.taxRate || 0)) throw err(422, "ITEMS_REQUIRED", `Item ${line}: tax rate must be between 0 and 100.`);
+    if (!Number.isFinite(discount)) throw err(422, "DISCOUNT_TOO_HIGH", `Item ${line}: discount must be a number.`);
 
     const gross = round2(quantity * unitPrice);
     if (!(discount >= 0) || discount > gross) {
@@ -178,13 +189,22 @@ function computeTotals(
 
   subtotal = round2(subtotal);
   const discountAmount = round2(Number(orderDiscount || 0));
-  if (!(discountAmount >= 0) || discountAmount > subtotal) {
+  if (!Number.isFinite(discountAmount) || !(discountAmount >= 0) || discountAmount > subtotal) {
     throw err(422, "DISCOUNT_TOO_HIGH", "Discount cannot be more than the sub total.");
   }
 
   let urgentChargeAmount = 0;
   const chargeVal = round2(Number(urgentChargeValue || 0));
   const chargeType = urgentChargeType === "PERCENTAGE" ? "PERCENTAGE" : "AMOUNT";
+  if (!Number.isFinite(chargeVal) || chargeVal < 0) {
+    throw err(422, "INVALID_URGENT_CHARGE", "Urgent charge must be a number that is 0 or more.");
+  }
+  if (chargeType === "PERCENTAGE" && chargeVal > 100) {
+    throw err(422, "INVALID_URGENT_CHARGE", "Urgent charge percentage must be between 0 and 100.");
+  }
+  if (chargeType === "AMOUNT" && chargeVal > fieldRules.LIMITS.MAX_AMOUNT) {
+    throw err(422, "INVALID_URGENT_CHARGE", "Urgent charge amount is too large.");
+  }
   if (priority === "URGENT" && chargeVal > 0) {
     if (chargeType === "PERCENTAGE") {
       urgentChargeAmount = round2((subtotal * chargeVal) / 100);
