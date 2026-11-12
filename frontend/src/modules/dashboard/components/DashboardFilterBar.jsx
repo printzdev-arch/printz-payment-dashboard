@@ -12,10 +12,19 @@ const DATA_TYPE_OPTIONS = [
   { value: "joborders", label: "Job Orders" },
 ];
 
+// The label shows the real current month (it used to be fixed to "Oct 1 - Oct 31, 2026")
+const currentMonthLabel = () => {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const short = (d) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  return `This Month (${short(first)} - ${short(last)}, ${now.getFullYear()})`;
+};
+
 const DATE_RANGE_OPTIONS = [
   { value: "today", label: "Today" },
   { value: "last7days", label: "Last 7 Days" },
-  { value: "mtd", label: "This Month (Oct 1 - Oct 31, 2026)" },
+  { value: "mtd", label: currentMonthLabel() },
   { value: "lastmonth", label: "Last Month" },
   { value: "custom", label: "Custom Range..." },
 ];
@@ -35,7 +44,7 @@ const DashboardFilterBar = ({
   onApply,
   isLoading = false,
   isBranchLocked = false,
-  lockedBranchName = "Chennai Branch",
+  lockedBranchName = "Branch",
   showCompareWith = false,
   compareWith = "previous_period",
   onChangeCompareWith,
@@ -53,7 +62,7 @@ const DashboardFilterBar = ({
             {isBranchLocked ? (
               <div className="printz-dash-locked-branch">
                 <span className="printz-dash-status-dot" />
-                <span>{lockedBranchName || "Chennai Branch"}</span>
+                <span>{lockedBranchName || "Branch"}</span>
               </div>
             ) : (
               <select

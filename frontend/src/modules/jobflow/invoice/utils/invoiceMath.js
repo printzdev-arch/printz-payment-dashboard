@@ -6,7 +6,10 @@
  * figures the server saves. Change one, change the other.
  */
 
-export const round2 = (val) => Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+// The same half-away-from-zero rounding as the server (10.075 -> 10.08)
+import { round2 } from "../../../../shared/utils/validation";
+
+export { round2 };
 
 const num = (v) => {
   const n = Number(v);
@@ -61,12 +64,12 @@ export const calculateInvoiceTotals = ({
     } else {
       lineDiscount = Math.min(baseAmount, Math.max(0, num(it.discountValue || it.discountAmount)));
     }
-    return { qty, unitPrice, baseAmount, lineDiscount, taxRate: commonRate !== null ? commonRate : Math.max(0, num(it.taxRate)) };
+    return { qty, unitPrice, baseAmount, lineDiscount, taxRate: commonRate !== null ? commonRate : Math.min(100, Math.max(0, num(it.taxRate))) };
   });
 
   const charges = (additionalCharges || []).map((ch) => ({
     amount: round2(Math.max(0, num(ch.amount))),
-    taxRate: commonRate !== null ? commonRate : Math.max(0, num(ch.taxRate)),
+    taxRate: commonRate !== null ? commonRate : Math.min(100, Math.max(0, num(ch.taxRate))),
   }));
 
   const itemBases = lines.map((l) => round2(l.baseAmount - l.lineDiscount));

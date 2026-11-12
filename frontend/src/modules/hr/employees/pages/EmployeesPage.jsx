@@ -1,3 +1,4 @@
+import { passwordError } from "../../../../shared/utils/validation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, ShieldCheck, UserCog } from "lucide-react";
@@ -146,7 +147,8 @@ export default function EmployeesPage() {
   };
 
   const confirmResetPassword = async () => {
-    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters.");
+    const passwordMsg = passwordError(newPassword);
+    if (passwordMsg) return toast.error(passwordMsg);
     const target = resetting;
     setBusyId(target._id);
     try {

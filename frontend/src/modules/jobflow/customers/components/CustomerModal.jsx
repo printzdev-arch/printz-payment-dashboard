@@ -1,3 +1,4 @@
+import { businessNameError, emailError, pincodeError, onlyDigits } from "../../../../shared/utils/validation";
 import React, { useState, useEffect } from "react";
 import { X, AlertCircle } from "lucide-react";
 import jobFlowApi from "../api/customersApi";
@@ -125,7 +126,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
     city: "",
     state: "",
     postcode: "",
-    country: "Malaysia",
+    country: "India",
     companyName: "",
     gstin: "",
     defaultBranch: activeBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
@@ -158,7 +159,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
       city: "",
       state: "",
       postcode: "",
-      country: "Malaysia",
+      country: "India",
       companyName: matched.companyName || matched.company || "",
       gstin: matched.gstin || "",
       defaultBranch: activeBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
@@ -268,7 +269,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
           city: customer.address?.city || customer.city || "",
           state: customer.address?.state || customer.state || "",
           postcode: customer.address?.postcode || customer.postcode || "",
-          country: customer.address?.country || customer.country || "Malaysia",
+          country: customer.address?.country || customer.country || "India",
           companyName: customer.companyName || (customer.type === "company" ? customer.name : ""),
           gstin: customer.gstin || customer.taxNo || "",
           defaultBranch: customer.defaultBranch || customer.branchId?.name || customer.branchName || activeBranch.branchName || DEFAULT_MANAGER_BRANCH_NAME,
@@ -337,7 +338,8 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
       }
       return;
     }
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const cleaned = name === "postcode" ? onlyDigits(value, 6) : value;
+    setFormData((prev) => ({ ...prev, [name]: cleaned }));
     if (fieldErrors[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: null }));
     }
@@ -345,8 +347,21 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast.error("Customer name is required");
+    const nameMsg = businessNameError(formData.name, { label: "Customer name" });
+    if (nameMsg) {
+      toast.error(nameMsg);
+      setFieldErrors((prev) => ({ ...prev, name: nameMsg }));
+      return;
+    }
+    const emailMsg = emailError(formData.email);
+    if (emailMsg) {
+      toast.error(emailMsg);
+      setFieldErrors((prev) => ({ ...prev, email: emailMsg }));
+      return;
+    }
+    const postcodeMsg = pincodeError(formData.postcode);
+    if (postcodeMsg) {
+      toast.error(postcodeMsg);
       return;
     }
     const phoneDigits = String(formData.phone || "").replace(/\D/g, "");
@@ -734,7 +749,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                       name="addressLine1"
                       value={formData.addressLine1}
                       onChange={handleChange}
-                      placeholder="12, Jalan Sri Petaling"
+                      placeholder="12, MG Road"
                       className="jf-input"
                       style={{ width: "100%", boxSizing: "border-box" }}
                     />
@@ -747,7 +762,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                         name="city"
                         value={formData.city}
                         onChange={handleChange}
-                        placeholder="Kuala Lumpur"
+                        placeholder="Bengaluru"
                         className="jf-input"
                         style={{ width: "100%", boxSizing: "border-box" }}
                       />
@@ -759,7 +774,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                         name="state"
                         value={formData.state}
                         onChange={handleChange}
-                        placeholder="Wilayah Persekutuan"
+                        placeholder="Karnataka"
                         className="jf-input"
                         style={{ width: "100%", boxSizing: "border-box" }}
                       />

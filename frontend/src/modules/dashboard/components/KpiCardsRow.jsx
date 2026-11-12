@@ -48,8 +48,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "stock-val",
           title: "Total Stock Value",
-          value: formatINR(kpis.totalStockValue?.value ?? 1845200),
-          trend: kpis.totalStockValue?.trend || "+8% vs last month",
+          value: formatINR(kpis.totalStockValue?.value ?? 0),
+          trend: kpis.totalStockValue?.trend || "",
           trendType: "up",
           colorClass: "green",
           icon: <IndianRupee size={20} strokeWidth={2.4} color="#ffffff" />,
@@ -57,8 +57,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "stock-avail",
           title: "Available Items",
-          value: (kpis.availableItems?.value ?? 620) + " units",
-          trend: kpis.availableItems?.trend || "+12% vs last month",
+          value: (kpis.availableItems?.value ?? 0) + " units",
+          trend: kpis.availableItems?.trend || "",
           trendType: "up",
           colorClass: "blue",
           icon: <Package size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -66,8 +66,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "stock-low",
           title: "Low Stock Items",
-          value: (kpis.lowStockItems?.value ?? 90) + " items",
-          trend: kpis.lowStockItems?.trend || "+5% vs last month",
+          value: (kpis.lowStockItems?.value ?? 0) + " items",
+          trend: kpis.lowStockItems?.trend || "",
           trendType: "down",
           colorClass: "orange",
           icon: <AlertTriangle size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -75,7 +75,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "stock-out",
           title: "Out of Stock Items",
-          value: (kpis.outOfStockItems?.value ?? 35) + " items",
+          value: (kpis.outOfStockItems?.value ?? 0) + " items",
           trend: kpis.outOfStockItems?.trend || "Action Required",
           trendType: "down",
           colorClass: "rose",
@@ -84,7 +84,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "stock-reserved",
           title: "Reserved in Production",
-          value: (kpis.reservedStock?.value ?? 280) + " units",
+          value: (kpis.reservedStock?.value ?? 0) + " units",
           trend: kpis.reservedStock?.trend || "Allocated",
           trendType: "neutral",
           colorClass: "purple",
@@ -93,7 +93,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "stock-turn",
           title: "Total Categories",
-          value: (kpis.totalCategories?.value ?? 14) + " categories",
+          value: (kpis.totalCategories?.value ?? 0) + " categories",
           trend: kpis.totalCategories?.trend || "Active Catalogs",
           trendType: "up",
           colorClass: "teal",
@@ -108,8 +108,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "revenue",
           title: "Total Revenue",
-          value: formatINR(kpis.totalRevenue?.value ?? 1245230),
-          trend: kpis.totalRevenue?.trend || "+12% vs last month",
+          value: formatINR(kpis.totalRevenue?.value ?? 0),
+          trend: kpis.totalRevenue?.trend || "",
           trendType: "up",
           colorClass: "green",
           icon: <IndianRupee size={20} strokeWidth={2.4} color="#ffffff" />,
@@ -117,8 +117,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "collected",
           title: "Amount Collected",
-          value: formatINR(kpis.amountCollected?.value ?? 1020450),
-          trend: kpis.amountCollected?.trend || "+8% vs last month",
+          value: formatINR(kpis.amountCollected?.value ?? 0),
+          trend: kpis.amountCollected?.trend || "",
           trendType: "up",
           colorClass: "blue",
           icon: <Wallet size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -126,8 +126,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "pending",
           title: "Pending Amount",
-          value: formatINR(kpis.pendingAmount?.value ?? 224780),
-          trend: kpis.pendingAmount?.trend || "+5% vs last month",
+          value: formatINR(kpis.pendingAmount?.value ?? 0),
+          trend: kpis.pendingAmount?.trend || "",
           trendType: "down",
           colorClass: "orange",
           icon: <Clock size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -135,8 +135,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "cash-sales",
           title: "Cash Collections",
-          value: formatINR(kpis.cashCollections?.value ?? 430000),
-          trend: kpis.cashCollections?.trend || "+10% vs last month",
+          value: formatINR(kpis.cashCollections?.value ?? 0),
+          trend: kpis.cashCollections?.trend || "",
           trendType: "up",
           colorClass: "purple",
           icon: <Coins size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -144,8 +144,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "upi-sales",
           title: "UPI / Online Sales",
-          value: formatINR(kpis.upiSales?.value ?? 590450),
-          trend: kpis.upiSales?.trend || "+15% vs last month",
+          value: formatINR(kpis.upiSales?.value ?? 0),
+          trend: kpis.upiSales?.trend || "",
           trendType: "up",
           colorClass: "teal",
           icon: <CreditCard size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -153,8 +153,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "aov",
           title: "Avg Order Value",
-          value: formatINR(kpis.avgOrderValue?.value ?? 6694),
-          trend: kpis.avgOrderValue?.trend || "+4% vs last month",
+          value: formatINR(kpis.avgOrderValue?.value ?? 0),
+          trend: kpis.avgOrderValue?.trend || "",
           trendType: "up",
           colorClass: "pink",
           icon: <TrendingUp size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -168,8 +168,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "emp-total",
           title: "Total Employees",
-          value: (kpis.totalEmployees?.value ?? 28) + " staff",
-          trend: kpis.totalEmployees?.trend || "0% vs last month",
+          value: (kpis.totalEmployees?.value ?? 0) + " staff",
+          trend: kpis.totalEmployees?.trend || "",
           trendType: "neutral",
           colorClass: "green",
           icon: <Users size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -177,7 +177,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "emp-duty",
           title: "On Duty Today",
-          value: (kpis.onDuty?.value ?? 26) + " active",
+          value: (kpis.onDuty?.value ?? 0) + " active",
           trend: kpis.onDuty?.trend || "93% attendance",
           trendType: "up",
           colorClass: "blue",
@@ -186,7 +186,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "emp-leave",
           title: "On Leave Today",
-          value: (kpis.onLeave?.value ?? 2) + " staff",
+          value: (kpis.onLeave?.value ?? 0) + " staff",
           trend: kpis.onLeave?.trend || "Approved leave",
           trendType: "neutral",
           colorClass: "orange",
@@ -195,7 +195,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "emp-prod",
           title: "Production Team",
-          value: (kpis.productionTeam?.value ?? 16) + " operators",
+          value: (kpis.productionTeam?.value ?? 0) + " operators",
           trend: kpis.productionTeam?.trend || "57% workforce",
           trendType: "neutral",
           colorClass: "purple",
@@ -204,7 +204,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "emp-des",
           title: "Design Team",
-          value: (kpis.designTeam?.value ?? 6) + " designers",
+          value: (kpis.designTeam?.value ?? 0) + " designers",
           trend: kpis.designTeam?.trend || "21% workforce",
           trendType: "neutral",
           colorClass: "pink",
@@ -213,7 +213,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "emp-ops",
           title: "Operations & Sales",
-          value: (kpis.opsTeam?.value ?? 6) + " members",
+          value: (kpis.opsTeam?.value ?? 0) + " members",
           trend: kpis.opsTeam?.trend || "22% workforce",
           trendType: "neutral",
           colorClass: "teal",
@@ -228,8 +228,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "des-assigned",
           title: "Assigned Designs",
-          value: (kpis.assignedDesigns?.value ?? 48) + " tasks",
-          trend: kpis.assignedDesigns?.trend || "+14% vs last month",
+          value: (kpis.assignedDesigns?.value ?? 0) + " tasks",
+          trend: kpis.assignedDesigns?.trend || "",
           trendType: "up",
           colorClass: "purple",
           icon: <Palette size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -237,8 +237,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "des-approved",
           title: "Approved Designs",
-          value: (kpis.approvedDesigns?.value ?? 38) + " ready",
-          trend: kpis.approvedDesigns?.trend || "+18% vs last month",
+          value: (kpis.approvedDesigns?.value ?? 0) + " ready",
+          trend: kpis.approvedDesigns?.trend || "",
           trendType: "up",
           colorClass: "green",
           icon: <CheckCircle2 size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -246,7 +246,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "des-rev",
           title: "Revisions Required",
-          value: (kpis.revisions?.value ?? 6) + " active",
+          value: (kpis.revisions?.value ?? 0) + " active",
           trend: kpis.revisions?.trend || "Customer Feedback",
           trendType: "down",
           colorClass: "orange",
@@ -255,7 +255,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "des-rej",
           title: "Rejected Samples",
-          value: (kpis.rejected?.value ?? 4) + " rejected",
+          value: (kpis.rejected?.value ?? 0) + " rejected",
           trend: kpis.rejected?.trend || "In Redesign",
           trendType: "down",
           colorClass: "rose",
@@ -288,7 +288,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "prod-active",
           title: "In Production",
-          value: (kpis.inProduction?.value ?? 24) + " jobs",
+          value: (kpis.inProduction?.value ?? 0) + " jobs",
           trend: kpis.inProduction?.trend || "Active Station",
           trendType: "up",
           colorClass: "green",
@@ -297,8 +297,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "prod-completed",
           title: "Completed Today",
-          value: (kpis.completedToday?.value ?? 18) + " jobs",
-          trend: kpis.completedToday?.trend || "+12% vs last month",
+          value: (kpis.completedToday?.value ?? 0) + " jobs",
+          trend: kpis.completedToday?.trend || "",
           trendType: "up",
           colorClass: "blue",
           icon: <CheckCircle2 size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -306,7 +306,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "prod-qc",
           title: "QC Inspection",
-          value: (kpis.qcPending?.value ?? 8) + " pending",
+          value: (kpis.qcPending?.value ?? 0) + " pending",
           trend: kpis.qcPending?.trend || "Under Review",
           trendType: "neutral",
           colorClass: "orange",
@@ -315,7 +315,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "prod-rework",
           title: "Rework Queue",
-          value: (kpis.rework?.value ?? 2) + " jobs",
+          value: (kpis.rework?.value ?? 0) + " jobs",
           trend: kpis.rework?.trend || "Priority Rework",
           trendType: "down",
           colorClass: "rose",
@@ -324,7 +324,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "prod-delivery",
           title: "Ready for Delivery",
-          value: (kpis.readyForDelivery?.value ?? 14) + " ready",
+          value: (kpis.readyForDelivery?.value ?? 0) + " ready",
           trend: kpis.readyForDelivery?.trend || "Packaged",
           trendType: "up",
           colorClass: "teal",
@@ -334,7 +334,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           id: "prod-efficiency",
           title: "Station Efficiency",
           value: "92%",
-          trend: "+4% vs last month",
+          trend: "",
           trendType: "up",
           colorClass: "purple",
           icon: <TrendingUp size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -348,8 +348,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "jobs-total",
           title: "Total Job Orders",
-          value: (kpis.totalJobOrders?.value ?? 186) + " orders",
-          trend: kpis.totalJobOrders?.trend || "+15% vs last month",
+          value: (kpis.totalJobOrders?.value ?? 0) + " orders",
+          trend: kpis.totalJobOrders?.trend || "",
           trendType: "up",
           colorClass: "blue",
           icon: <FileText size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -357,7 +357,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "jobs-new",
           title: "New Enquiries",
-          value: (kpis.newEnquiries?.value ?? 12) + " new",
+          value: (kpis.newEnquiries?.value ?? 0) + " new",
           trend: kpis.newEnquiries?.trend || "Awaiting quote",
           trendType: "up",
           colorClass: "purple",
@@ -366,7 +366,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "jobs-design",
           title: "In Design Stage",
-          value: (kpis.inDesign?.value ?? 22) + " jobs",
+          value: (kpis.inDesign?.value ?? 0) + " jobs",
           trend: kpis.inDesign?.trend || "Active Studio",
           trendType: "neutral",
           colorClass: "pink",
@@ -375,7 +375,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "jobs-prod",
           title: "In Production",
-          value: (kpis.inProduction?.value ?? 24) + " jobs",
+          value: (kpis.inProduction?.value ?? 0) + " jobs",
           trend: kpis.inProduction?.trend || "Printing / Cutting",
           trendType: "neutral",
           colorClass: "orange",
@@ -384,7 +384,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "jobs-pickup",
           title: "Ready for Pickup",
-          value: (kpis.readyPickup?.value ?? 14) + " orders",
+          value: (kpis.readyPickup?.value ?? 0) + " orders",
           trend: kpis.readyPickup?.trend || "Ready",
           trendType: "up",
           colorClass: "teal",
@@ -393,8 +393,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "jobs-closed",
           title: "Completed & Closed",
-          value: (kpis.completedJobs?.value ?? 114) + " orders",
-          trend: kpis.completedJobs?.trend || "+18% vs last month",
+          value: (kpis.completedJobs?.value ?? 0) + " orders",
+          trend: kpis.completedJobs?.trend || "",
           trendType: "up",
           colorClass: "green",
           icon: <CheckCircle2 size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -411,8 +411,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "branches",
             title: "Total Branches",
-            value: kpis.totalBranches?.value ?? 8,
-            trend: kpis.totalBranches?.subtitle || "7 Active • 1 Inactive",
+            value: kpis.totalBranches?.value ?? 0,
+            trend: kpis.totalBranches?.subtitle || "",
             trendType: "neutral",
             colorClass: "green",
             icon: <Building2 size={20} strokeWidth={2.4} color="#ffffff" />,
@@ -420,7 +420,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "managers",
             title: "Branch Managers",
-            value: kpis.totalManagers?.value ?? 8,
+            value: kpis.totalManagers?.value ?? 0,
             trend: "Assigned",
             trendType: "neutral",
             colorClass: "blue",
@@ -429,8 +429,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "employees",
             title: "Total Employees",
-            value: kpis.totalEmployees?.value ?? 124,
-            trend: kpis.totalEmployees?.trend || "+6% vs last month",
+            value: kpis.totalEmployees?.value ?? 0,
+            trend: kpis.totalEmployees?.trend || "",
             trendType: "up",
             colorClass: "orange",
             icon: <Users size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -438,8 +438,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "designers",
             title: "Total Designers",
-            value: kpis.totalDesigners?.value ?? 28,
-            trend: kpis.totalDesigners?.trend || "+12% vs last month",
+            value: kpis.totalDesigners?.value ?? 0,
+            trend: kpis.totalDesigners?.trend || "",
             trendType: "up",
             colorClass: "purple",
             icon: <Palette size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -447,8 +447,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "revenue",
             title: "Total Revenue",
-            value: formatINR(kpis.totalRevenue?.value ?? 4852900),
-            trend: kpis.totalRevenue?.trend || "+15% vs last month",
+            value: formatINR(kpis.totalRevenue?.value ?? 0),
+            trend: kpis.totalRevenue?.trend || "",
             trendType: "up",
             colorClass: "green",
             icon: <IndianRupee size={20} strokeWidth={2.4} color="#ffffff" />,
@@ -456,8 +456,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "collected",
             title: "Amount Collected",
-            value: formatINR(kpis.amountCollected?.value ?? 3921450),
-            trend: kpis.amountCollected?.trend || "+13% vs last month",
+            value: formatINR(kpis.amountCollected?.value ?? 0),
+            trend: kpis.amountCollected?.trend || "",
             trendType: "up",
             colorClass: "blue",
             icon: <Wallet size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -465,8 +465,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
           {
             id: "pending",
             title: "Pending Amount",
-            value: formatINR(kpis.pendingAmount?.value ?? 931450),
-            trend: kpis.pendingAmount?.trend || "-8% vs last month",
+            value: formatINR(kpis.pendingAmount?.value ?? 0),
+            trend: kpis.pendingAmount?.trend || "",
             trendType: "down",
             colorClass: "rose",
             icon: <Clock size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -479,8 +479,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "orders",
           title: "Total Job Orders",
-          value: kpis.totalJobOrders?.value ?? 186,
-          trend: kpis.totalJobOrders?.trend || "+15% vs last month",
+          value: kpis.totalJobOrders?.value ?? 0,
+          trend: kpis.totalJobOrders?.trend || "",
           trendType: "up",
           colorClass: "purple",
           icon: <FileText size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -488,8 +488,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "completed",
           title: "Completed Jobs",
-          value: kpis.completedJobs?.value ?? 142,
-          trend: kpis.completedJobs?.trend || "+18% vs last month",
+          value: kpis.completedJobs?.value ?? 0,
+          trend: kpis.completedJobs?.trend || "",
           trendType: "up",
           colorClass: "green",
           icon: <CheckCircle2 size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -497,7 +497,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "employees",
           title: "Branch Employees",
-          value: kpis.totalEmployees?.value ?? 14,
+          value: kpis.totalEmployees?.value ?? 0,
           trend: "On Duty Staff",
           trendType: "neutral",
           colorClass: "orange",
@@ -506,7 +506,7 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "designers",
           title: "Branch Designers",
-          value: kpis.totalDesigners?.value ?? 4,
+          value: kpis.totalDesigners?.value ?? 0,
           trend: "Assigned",
           trendType: "neutral",
           colorClass: "pink",
@@ -515,8 +515,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "revenue",
           title: "Branch Revenue",
-          value: formatINR(kpis.totalRevenue?.value ?? 1245230),
-          trend: kpis.totalRevenue?.trend || "+12% vs last month",
+          value: formatINR(kpis.totalRevenue?.value ?? 0),
+          trend: kpis.totalRevenue?.trend || "",
           trendType: "up",
           colorClass: "green",
           icon: <IndianRupee size={20} strokeWidth={2.4} color="#ffffff" />,
@@ -524,8 +524,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "collected",
           title: "Amount Collected",
-          value: formatINR(kpis.amountCollected?.value ?? 1020450),
-          trend: kpis.amountCollected?.trend || "+8% vs last month",
+          value: formatINR(kpis.amountCollected?.value ?? 0),
+          trend: kpis.amountCollected?.trend || "",
           trendType: "up",
           colorClass: "blue",
           icon: <Wallet size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -533,8 +533,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
         {
           id: "pending",
           title: "Pending Amount",
-          value: formatINR(kpis.pendingAmount?.value ?? 224780),
-          trend: kpis.pendingAmount?.trend || "+5% vs last month",
+          value: formatINR(kpis.pendingAmount?.value ?? 0),
+          trend: kpis.pendingAmount?.trend || "",
           trendType: "down",
           colorClass: "rose",
           icon: <Clock size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -547,8 +547,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
       {
         id: "revenue",
         title: "Total Revenue",
-        value: formatINR(kpis.totalRevenue?.value ?? 1245230),
-        trend: kpis.totalRevenue?.trend || "+12% vs last month",
+        value: formatINR(kpis.totalRevenue?.value ?? 0),
+        trend: kpis.totalRevenue?.trend || "",
         trendType: "up",
         colorClass: "green",
         icon: <IndianRupee size={20} strokeWidth={2.4} color="#ffffff" />,
@@ -556,8 +556,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
       {
         id: "collected",
         title: "Amount Collected",
-        value: formatINR(kpis.amountCollected?.value ?? 1020450),
-        trend: kpis.amountCollected?.trend || "+8% vs last month",
+        value: formatINR(kpis.amountCollected?.value ?? 0),
+        trend: kpis.amountCollected?.trend || "",
         trendType: "up",
         colorClass: "blue",
         icon: <Wallet size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -565,8 +565,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
       {
         id: "pending",
         title: "Pending Amount",
-        value: formatINR(kpis.pendingAmount?.value ?? 224780),
-        trend: kpis.pendingAmount?.trend || "+5% vs last month",
+        value: formatINR(kpis.pendingAmount?.value ?? 0),
+        trend: kpis.pendingAmount?.trend || "",
         trendType: "down",
         colorClass: "orange",
         icon: <Clock size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -574,8 +574,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
       {
         id: "jobs",
         title: "Total Job Orders",
-        value: kpis.totalJobOrders?.value ?? 186,
-        trend: kpis.totalJobOrders?.trend || "+15% vs last month",
+        value: kpis.totalJobOrders?.value ?? 0,
+        trend: kpis.totalJobOrders?.trend || "",
         trendType: "up",
         colorClass: "purple",
         icon: <FileText size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -583,8 +583,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
       {
         id: "completed",
         title: "Completed Jobs",
-        value: kpis.completedJobs?.value ?? 142,
-        trend: kpis.completedJobs?.trend || "+18% vs last month",
+        value: kpis.completedJobs?.value ?? 0,
+        trend: kpis.completedJobs?.trend || "",
         trendType: "up",
         colorClass: "green",
         icon: <CheckCircle2 size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -592,8 +592,8 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
       {
         id: "employees",
         title: "Total Employees",
-        value: kpis.totalEmployees?.value ?? 28,
-        trend: kpis.totalEmployees?.trend || "0% vs last month",
+        value: kpis.totalEmployees?.value ?? 0,
+        trend: kpis.totalEmployees?.trend || "",
         trendType: "neutral",
         colorClass: "teal",
         icon: <Users size={20} strokeWidth={2.3} color="#ffffff" />,
@@ -620,19 +620,19 @@ const KpiCardsRow = ({ kpis = {}, dataType = "overview", isAdmin = false, select
 
           {/* Bottom row: Trend indicator matching reference */}
           <div className="printz-kpi-bottom">
-            {card.trendType === "up" && (
+            {card.trend && card.trendType === "up" && (
               <span className="printz-kpi-trend-up">
                 <ArrowUp size={12} strokeWidth={2.8} />
                 {card.trend}
               </span>
             )}
-            {card.trendType === "down" && (
+            {card.trend && card.trendType === "down" && (
               <span className="printz-kpi-trend-down">
                 <ArrowDown size={12} strokeWidth={2.8} />
                 {card.trend}
               </span>
             )}
-            {card.trendType === "neutral" && (
+            {card.trend && card.trendType === "neutral" && (
               <span className="printz-kpi-trend-neutral">
                 <span style={{ display: "inline-block", width: "4px", height: "4px", borderRadius: "50%", background: "#64748b", marginRight: "4px" }} />
                 {card.trend}

@@ -347,7 +347,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                 ` : ""}
                 ${(cgstTotal + sgstTotal) > 0 ? `
                   <tr>
-                    <td style="color: #64748b;">SST / Tax:</td>
+                    <td style="color: #64748b;">GST:</td>
                     <td style="text-align: right;">₹ ${(cgstTotal + sgstTotal).toFixed(2)}</td>
                   </tr>
                 ` : ""}
@@ -740,7 +740,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                     )}
                     {(cgstTotal + sgstTotal) > 0 && (
                       <tr>
-                        <td style={{ padding: "4px 6px", color: "#64748b" }}>SST / Tax:</td>
+                        <td style={{ padding: "4px 6px", color: "#64748b" }}>GST:</td>
                         <td style={{ padding: "4px 6px", textAlign: "right" }}>₹ {(cgstTotal + sgstTotal).toFixed(2)}</td>
                       </tr>
                     )}

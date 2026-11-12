@@ -1,4 +1,14 @@
 import React, { useState } from "react";
+import {
+  personNameError,
+  mobileError,
+  emailError,
+  dateOfBirthError,
+  dateRangeError,
+  passwordError,
+  onlyMobile,
+  onlyPersonName,
+} from "../../../../shared/utils/validation";
 
 /**
  * Add / edit form for one employee. The same form serves both.
@@ -49,7 +59,9 @@ export default function EmployeeForm({
   const loginOn = loginRequired || (loginAvailable && createLogin);
 
   const set = (key) => (e) => {
-    const value = e.target.value;
+    let value = e.target.value;
+    if (key === "mobile") value = onlyMobile(value);
+    if (key === "name") value = onlyPersonName(value);
     setValues((prev) => {
       const next = { ...prev, [key]: value };
       return next;
@@ -59,18 +71,23 @@ export default function EmployeeForm({
 
   const validate = () => {
     const next = {};
-    if (values.name.trim().length < 2) next.name = "Enter the employee's name.";
-    if (!/^\d{10}$/.test(values.mobile.trim())) next.mobile = "Mobile must be exactly 10 digits.";
-    if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) next.email = "Enter a valid email.";
+    const nameMsg = personNameError(values.name, { label: "Employee name" });
+    if (nameMsg) next.name = nameMsg;
+    const mobileMsg = mobileError(values.mobile);
+    if (mobileMsg) next.mobile = mobileMsg;
+    const emailMsg = emailError(values.email, { required: true });
+    if (emailMsg) next.email = emailMsg;
     if (!values.branchId) next.branchId = "Select a branch.";
-    if (values.leavingDate && values.joiningDate && values.leavingDate < values.joiningDate) {
-      next.leavingDate = "Leaving date cannot be before the joining date.";
-    }
-    if (values.dateOfBirth && values.joiningDate && values.dateOfBirth > values.joiningDate) {
+    const leavingMsg = dateRangeError(values.joiningDate, values.leavingDate, "Leaving date");
+    if (leavingMsg) next.leavingDate = leavingMsg;
+    const dobMsg = dateOfBirthError(values.dateOfBirth);
+    if (dobMsg) next.dateOfBirth = dobMsg;
+    else if (values.dateOfBirth && values.joiningDate && values.dateOfBirth > values.joiningDate) {
       next.dateOfBirth = "Date of birth cannot be after the joining date.";
     }
-    if (loginOn && password.length < 6) {
-      next.password = "Password must be at least 6 characters.";
+    if (loginOn) {
+      const pwMsg = passwordError(password);
+      if (pwMsg) next.password = pwMsg;
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -143,7 +160,7 @@ export default function EmployeeForm({
                   <input
                     className="emp-input"
                     type="password"
-                    placeholder="Password (min 6 characters)"
+                    placeholder="Password (min 8 characters, upper, lower, number, symbol)"
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => {

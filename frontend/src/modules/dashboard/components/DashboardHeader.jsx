@@ -7,7 +7,7 @@ const DashboardHeader = ({
   subtitle,
   userName = "Rajesh Kumar",
   userRole = "Branch Manager",
-  branchName = "Chennai Branch",
+  branchName = "Branch",
   alertCount = 5,
 }) => {
   return (

@@ -1,3 +1,4 @@
+import { round2 } from "../../../../shared/utils/validation";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation, useParams } from "react-router-dom";
 import {
@@ -590,19 +591,21 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
     formData.unitPrice !== "" && formData.unitPrice !== null && Number.isFinite(Number(formData.unitPrice))
       ? Number(formData.unitPrice)
       : getProductDefaultPrice(formData.productType, formData.size, masterDefaults.productTypes);
-  const productCost = Math.round(currentQuantity * currentUnitPrice * 100) / 100;
+  const productCost = round2(currentQuantity * Math.max(0, currentUnitPrice));
 
   // Row totals are always quantity x price, never a cached value
-  const finishingRowTotal = (s) => Math.round(Number(s.quantity || 0) * Number(s.unitPrice || 0) * 100) / 100;
-  const finishingTotal = Math.round(formData.finishingServices.reduce((sum, s) => sum + finishingRowTotal(s), 0) * 100) / 100;
+  // Text, negative or infinite values count as 0, so a total can never be NaN or negative
+  const amountOf = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0);
+  const finishingRowTotal = (s) => round2(amountOf(s.quantity) * amountOf(s.unitPrice));
+  const finishingTotal = round2(formData.finishingServices.reduce((sum, s) => sum + finishingRowTotal(s), 0));
 
   // Product, Printing and Packing each have their own cost; the rest are the optional finishing services
-  const printingCost = Math.round(formData.finishingServices.filter((s) => s.id === "default-print").reduce((a, s) => a + finishingRowTotal(s), 0) * 100) / 100;
-  const packingCost = Math.round(formData.finishingServices.filter((s) => s.id === "default-packing").reduce((a, s) => a + finishingRowTotal(s), 0) * 100) / 100;
+  const printingCost = round2(formData.finishingServices.filter((s) => s.id === "default-print").reduce((a, s) => a + finishingRowTotal(s), 0));
+  const packingCost = round2(formData.finishingServices.filter((s) => s.id === "default-packing").reduce((a, s) => a + finishingRowTotal(s), 0));
   const otherFinishingServices = formData.finishingServices.filter((s) => !s.isDefault);
-  const otherFinishingTotal = Math.round((finishingTotal - printingCost - packingCost) * 100) / 100;
+  const otherFinishingTotal = round2((finishingTotal - printingCost - packingCost));
 
-  const grandTotal = Math.round((productCost + finishingTotal) * 100) / 100;
+  const grandTotal = round2((productCost + finishingTotal));
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
