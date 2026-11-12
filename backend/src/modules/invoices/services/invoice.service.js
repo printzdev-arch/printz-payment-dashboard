@@ -1,3 +1,4 @@
+const { roundMoney } = require("../../../utils/validation/roundMoney");
 const mongoose = require("mongoose");
 const invoiceRepository = require("../models/Invoice");
 const JobOrder = require("../../job-orders/models/JobOrder");
@@ -31,7 +32,7 @@ const normalizeMode = (mode) => {
   const m = String(mode || "CASH").toUpperCase();
   return PAYMENT_MODES.includes(m) ? m : "CASH";
 };
-const round2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+const round2 = require("../../../utils/validation/roundMoney").roundMoney;
 
 // The GST rate (percent) of an invoice: one rate for everything on it
 const resolveGstRate = (requested, fallback = 0) => {
@@ -161,8 +162,8 @@ class InvoiceService {
         : Number(job.grandTotal || job.estimatedPrice || job.subtotal || 0);
       const finalBal = existing && existing.balanceDue != null
         ? Number(existing.balanceDue)
-        : Math.max(0, Math.round((effectiveGrandTotal - resolvedAdv) * 100) / 100);
-      const finalAdv = resolvedAdv > 0 ? resolvedAdv : Math.max(0, Math.round((effectiveGrandTotal - finalBal) * 100) / 100);
+        : Math.max(0, roundMoney((effectiveGrandTotal - resolvedAdv)));
+      const finalAdv = resolvedAdv > 0 ? resolvedAdv : Math.max(0, roundMoney((effectiveGrandTotal - finalBal)));
 
       return {
         _id: job._id,
@@ -288,7 +289,7 @@ class InvoiceService {
         0
       );
       const baseAmt = Math.max(0, tot - finishingSum);
-      const baseRate = q > 0 ? Math.round((baseAmt / q) * 100) / 100 : baseAmt;
+      const baseRate = q > 0 ? roundMoney((baseAmt / q)) : baseAmt;
       const baseItem = {
         itemName: `${job.title || "Print Job Order"} - Base Printing`,
         description: specDesc,

@@ -39,59 +39,23 @@ const AdminTablesGrid = ({
   const isAll = !selectedBranch || String(selectedBranch).toUpperCase() === "ALL";
 
   // 1. Table 1: Branch Performance Summary (Matching Reference Mockup)
-  const defaultBranchPerformance = [
-    { id: "1", branch: "Chennai", manager: "Rajesh Kumar", totalJobs: 286, completed: 210, revenue: 1245230, pendingAmount: 215450, status: "Active" },
-    { id: "2", branch: "Coimbatore", manager: "Priya S", totalJobs: 248, completed: 190, revenue: 1032450, pendingAmount: 185230, status: "Active" },
-    { id: "3", branch: "Madurai", manager: "Karthik R", totalJobs: 210, completed: 160, revenue: 845120, pendingAmount: 145600, status: "Active" },
-    { id: "4", branch: "Trichy", manager: "Meena K", totalJobs: 184, completed: 140, revenue: 721800, pendingAmount: 125000, status: "Active" },
-    { id: "5", branch: "Salem", manager: "Dinesh P", totalJobs: 156, completed: 120, revenue: 618900, pendingAmount: 105450, status: "Active" },
-  ];
+  const defaultBranchPerformance = []; // no sample rows: only real data is shown
 
   // 2. Table 2: Top Branches by Revenue
-  const defaultTopBranches = [
-    { rank: 1, branch: "Chennai", revenue: 1245230, growth: "+18%", jobs: 286, status: "Active" },
-    { rank: 2, branch: "Coimbatore", revenue: 1032450, growth: "+15%", jobs: 248, status: "Active" },
-    { rank: 3, branch: "Madurai", revenue: 845120, growth: "+12%", jobs: 210, status: "Active" },
-    { rank: 4, branch: "Trichy", revenue: 721800, growth: "+10%", jobs: 184, status: "Active" },
-    { rank: 5, branch: "Salem", revenue: 618900, growth: "+8%", jobs: 156, status: "Active" },
-  ];
+  const defaultTopBranches = []; // no sample rows: only real data is shown
 
   // 3. Table 3: Recent Job Orders
-  const defaultRecentJobs = [
-    { id: "1", jobId: "JO-00125", customerName: "ABC Traders", branch: "Chennai", status: "In Production", deliveryDate: "28 Oct 2026", amount: 12500 },
-    { id: "2", jobId: "JO-00124", customerName: "Sri Ganesh Stores", branch: "Coimbatore", status: "Design", deliveryDate: "27 Oct 2026", amount: 8400 },
-    { id: "3", jobId: "JO-00123", customerName: "United Textiles", branch: "Madurai", status: "QC", deliveryDate: "25 Oct 2026", amount: 15000 },
-    { id: "4", jobId: "JO-00122", customerName: "Karthik Prints", branch: "Trichy", status: "Pending Approval", deliveryDate: "30 Oct 2026", amount: 9800 },
-    { id: "5", jobId: "JO-00121", customerName: "Priya Fashions", branch: "Salem", status: "Completed", deliveryDate: "22 Oct 2026", amount: 11200 },
-  ];
+  const defaultRecentJobs = []; // no sample rows: only real data is shown
 
   // 4. Table 4: Low Stock Items
-  const defaultLowStock = [
-    { id: "1", materialName: "Premium Paper A3", branch: "Chennai", available: 20, minStock: 100, status: "Low Stock" },
-    { id: "2", materialName: "DTF Film", branch: "Coimbatore", available: 15, minStock: 50, status: "Low Stock" },
-    { id: "3", materialName: "Ink Black", branch: "Madurai", available: 5, minStock: 40, status: "Low Stock" },
-    { id: "4", materialName: "Sublimation Paper", branch: "Trichy", available: 10, minStock: 50, status: "Low Stock" },
-    { id: "5", materialName: "PVC Sheet", branch: "Salem", available: 8, minStock: 30, status: "Low Stock" },
-  ];
+  const defaultLowStock = []; // no sample rows: only real data is shown
 
   // 5. Important Alerts & Notifications
-  const defaultAlerts = [
-    { id: "1", message: isAll ? "6 jobs are delayed" : `2 jobs delayed at ${selectedBranchName}`, time: "Action required", type: "danger" },
-    { id: "2", message: isAll ? "3 materials are out of stock" : "1 material out of stock", time: "4 hours ago", type: "danger" },
-    { id: "3", message: isAll ? "12 payments are pending approval" : "4 payments pending approval", time: "5 hours ago", type: "warning" },
-    { id: "4", message: "4 design approvals pending", time: "6 hours ago", type: "info" },
-    { id: "5", message: isAll ? "2 branches are low on stock" : "Stock level is running low", time: "1 day ago", type: "info" },
-  ];
+  const defaultAlerts = []; // no sample rows: only real data is shown
 
   const branchList = React.useMemo(() => {
     if (isAll) return branchPerformance.length > 0 ? branchPerformance : defaultBranchPerformance;
-    return [
-      { id: selectedBranch, branch: selectedBranchName || "Selected Branch", manager: "Assigned Manager", totalJobs: 186, completed: 142, revenue: 1245230, pendingAmount: 224780, status: "Active" },
-      { id: "2", branch: "Chennai", manager: "Rajesh Kumar", totalJobs: 286, completed: 210, revenue: 1245230, pendingAmount: 215450, status: "Active" },
-      { id: "3", branch: "Coimbatore", manager: "Priya S", totalJobs: 248, completed: 190, revenue: 1032450, pendingAmount: 185230, status: "Active" },
-      { id: "4", branch: "Madurai", manager: "Karthik R", totalJobs: 210, completed: 160, revenue: 845120, pendingAmount: 145600, status: "Active" },
-      { id: "5", branch: "Salem", manager: "Dinesh P", totalJobs: 156, completed: 120, revenue: 618900, pendingAmount: 105450, status: "Active" },
-    ];
+    return branchPerformance.filter((b) => String(b.id) === String(selectedBranch));
   }, [branchPerformance, isAll, selectedBranch, selectedBranchName]);
 
   const topList = topBranches.length > 0 ? topBranches : defaultTopBranches;
@@ -214,7 +178,7 @@ const AdminTablesGrid = ({
                     <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
                       <span className="printz-kpi-trend-up" style={{ fontSize: "11px" }}>
                         <TrendingUp size={11} strokeWidth={2.8} />
-                        {row.growth}
+                        {row.growth ?? "-"}
                       </span>
                     </td>
                     <td style={{ textAlign: "center", fontWeight: 600 }}>{row.jobs}</td>
@@ -276,7 +240,7 @@ const AdminTablesGrid = ({
                       <td style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
                         {job.customerName}
                       </td>
-                      <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{job.branch || "Chennai"}</td>
+                      <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{job.branch || "-"}</td>
                       <td style={{ whiteSpace: "nowrap" }}>
                         <span className={badge.cls}>{badge.text}</span>
                       </td>
@@ -284,7 +248,7 @@ const AdminTablesGrid = ({
                         {job.deliveryDate}
                       </td>
                       <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
-                        {formatINR(job.amount || 11200)}
+                        {formatINR(job.amount || 0)}
                       </td>
                       <td style={{ textAlign: "center" }}>
                         <button
@@ -332,12 +296,12 @@ const AdminTablesGrid = ({
                     <td style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
                       {item.materialName}
                     </td>
-                    <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{item.branch || "Chennai"}</td>
+                    <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{item.branch || "-"}</td>
                     <td style={{ textAlign: "center", fontWeight: 700, color: "#e11d48" }}>
-                      {item.available ?? item.availableQty ?? 10}
+                      {item.available ?? item.availableQty ?? 0}
                     </td>
                     <td style={{ textAlign: "center", color: "#475569" }}>
-                      {item.minStock ?? 50}
+                      {item.minStock ?? 0}
                     </td>
                     <td style={{ textAlign: "center" }}>
                       <span className="printz-badge badge-low">Low Stock</span>

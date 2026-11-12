@@ -359,6 +359,12 @@ jobOrderSchema.index({ updatedAt: -1 });
 // Default list order is newest first within a branch, and customer screens look up a customer's jobs
 jobOrderSchema.index({ branchId: 1, createdAt: -1 });
 jobOrderSchema.index({ customerId: 1, createdAt: -1 });
+// List, dashboard and design-queue reads: all-branch newest-first, due-date widgets, design queue ordering
+jobOrderSchema.index({ createdAt: -1 });
+jobOrderSchema.index({ branchId: 1, dueDate: 1 });
+jobOrderSchema.index({ branchId: 1, updatedAt: -1 });
+jobOrderSchema.index({ branchId: 1, orderDate: -1 });
+jobOrderSchema.index({ designerId: 1, updatedAt: -1 });
 jobOrderSchema.index({ idempotencyKey: 1 }, { sparse: true });
 
 /**

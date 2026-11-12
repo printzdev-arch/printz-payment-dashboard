@@ -1561,11 +1561,12 @@ export const InvoiceEditorSection = ({
                   cursor: isSettlingBalance ? "not-allowed" : "pointer"
                 }}
               >
-                <option value={0}>0% - No Tax / Exempt</option>
-                <option value={6}>6% - SST (6%)</option>
-                <option value={8}>8% - SST Standard (8%)</option>
-                <option value={10}>10% - Sales Tax (10%)</option>
-                {![0, 6, 8, 10].includes(Number(gstRate)) && (
+                <option value={0}>0% - No GST / Exempt</option>
+                <option value={5}>5% - GST (5%)</option>
+                <option value={12}>12% - GST (12%)</option>
+                <option value={18}>18% - GST (18%)</option>
+                <option value={28}>28% - GST (28%)</option>
+                {![0, 5, 12, 18, 28].includes(Number(gstRate)) && (
                   <option value={Number(gstRate)}>{gstRate}% - Applied Tax</option>
                 )}
               </select>
@@ -1573,7 +1574,7 @@ export const InvoiceEditorSection = ({
                 {isSettlingBalance
                   ? `🔒 Tax rate locked to ${gstRate}% (matches initial advance payment)`
                   : gstRate > 0
-                  ? `SST / Tax: ${gstRate}% applied across all items`
+                  ? `GST: ${gstRate}% applied across all items`
                   : "No tax charged on this invoice"}
               </div> */}
             </div>
@@ -1971,10 +1972,10 @@ export const InvoiceEditorSection = ({
                   borderColor: "#cbd5e1"
                 }}
               >
-                <option value="UPI">DuitNow QR / E-Wallet (TnG, GrabPay)</option>
-                <option value="CASH">Cash Counter</option>
-                <option value="CARD">Credit / Debit Card (POS Machine)</option>
-                <option value="BANK_TRANSFER">Online Banking / Bank Transfer (FPX)</option>
+                <option value="UPI">UPI / QR Code</option>
+                <option value="CASH">Cash</option>
+                <option value="CARD">Credit / Debit Card</option>
+                <option value="BANK_TRANSFER">Net Banking / Bank Transfer</option>
               </select>
              
             </div>
@@ -1987,7 +1988,7 @@ export const InvoiceEditorSection = ({
               <input
                 type="text"
                 className="jf-input"
-                placeholder="e.g. DuitNow Ref / Card Slip # / Receipt #"
+                placeholder="e.g. UPI Ref / Card Slip # / Receipt #"
                 value={paymentRef}
                 onChange={(e) => setPaymentRef(e.target.value)}
                 disabled={isFinalized}
@@ -2228,7 +2229,7 @@ export const InvoiceEditorSection = ({
             })()}
             {Number(gstRate || 0) > 0 && (
               <div className="invoice-calc-row">
-                <span>SST / Tax ({Number(gstRate)}%):</span>
+                <span>GST ({Number(gstRate)}%):</span>
                 <span>₹ {Number((calcResult.cgstTotal || 0) + (calcResult.sgstTotal || 0)).toFixed(2)}</span>
               </div>
             )}

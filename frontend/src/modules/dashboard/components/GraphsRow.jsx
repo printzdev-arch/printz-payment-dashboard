@@ -60,7 +60,7 @@ const GraphsRow = ({
   // Graph 1: Line Chart (Adaptive by DataType & Branch)
   // ----------------------------------------------------
   const lineChartData = useMemo(() => {
-    const defaultLabels = ["Oct 1", "Oct 5", "Oct 10", "Oct 15", "Oct 20", "Oct 25", "Oct 31"];
+    const defaultLabels = []; // no sample labels: only real data is drawn
 
     if (dt === "stocks") {
       return {
@@ -68,7 +68,7 @@ const GraphsRow = ({
         datasets: [
           {
             label: "Stock Valuation (₹)",
-            data: [1650000, 1680000, 1720000, 1750000, 1810000, 1830000, 1845200],
+            data: [],
             borderColor: "#0d6245",
             backgroundColor: "rgba(13, 98, 69, 0.08)",
             fill: true,
@@ -79,7 +79,7 @@ const GraphsRow = ({
           },
           {
             label: "Consumed Stock (₹)",
-            data: [210000, 240000, 260000, 290000, 310000, 340000, 380000],
+            data: [],
             borderColor: "#f59e0b",
             backgroundColor: "rgba(245, 158, 11, 0.04)",
             fill: true,
@@ -94,11 +94,11 @@ const GraphsRow = ({
 
     if (dt === "employees") {
       return {
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"],
+        labels: [],
         datasets: [
           {
             label: "Present Staff",
-            data: isAll ? [26, 27, 28, 27, 26, 28, 26] : [14, 15, 14, 15, 14, 15, 14],
+            data: [],
             borderColor: "#10b981",
             backgroundColor: "rgba(16, 185, 129, 0.08)",
             fill: true,
@@ -109,7 +109,7 @@ const GraphsRow = ({
           },
           {
             label: "On Leave",
-            data: isAll ? [2, 1, 0, 1, 2, 0, 2] : [1, 0, 0, 1, 1, 0, 1],
+            data: [],
             borderColor: "#f59e0b",
             backgroundColor: "rgba(245, 158, 11, 0.04)",
             fill: true,
@@ -128,7 +128,7 @@ const GraphsRow = ({
         datasets: [
           {
             label: "Completed Designs",
-            data: isAll ? [14, 18, 22, 19, 25, 23, 28] : [4, 6, 8, 7, 9, 8, 10],
+            data: [],
             borderColor: "#8b5cf6",
             backgroundColor: "rgba(139, 92, 246, 0.08)",
             fill: true,
@@ -139,7 +139,7 @@ const GraphsRow = ({
           },
           {
             label: "New Requests",
-            data: isAll ? [16, 20, 24, 21, 28, 26, 32] : [5, 7, 9, 8, 11, 9, 12],
+            data: [],
             borderColor: "#06b6d4",
             backgroundColor: "rgba(6, 182, 212, 0.04)",
             fill: true,
@@ -158,7 +158,7 @@ const GraphsRow = ({
         datasets: [
           {
             label: "Printed Orders",
-            data: isAll ? [25, 30, 28, 35, 40, 38, 45] : [10, 12, 11, 14, 16, 15, 18],
+            data: [],
             borderColor: "#10b981",
             backgroundColor: "rgba(16, 185, 129, 0.08)",
             fill: true,
@@ -171,16 +171,13 @@ const GraphsRow = ({
       };
     }
 
-    // Default: REVENUE / OVERVIEW
-    const revData = isAll
-      ? [220000, 240000, 310000, 290000, 480000, 450000, 620000]
-      : [65000, 72000, 94000, 88000, 142000, 138000, 185000];
-    const colData = isAll
-      ? [180000, 210000, 260000, 240000, 410000, 390000, 540000]
-      : [52000, 61000, 79000, 74000, 121000, 118000, 162000];
+    // Default: REVENUE / OVERVIEW (real daily figures from the server)
+    const trend = charts.revenueTrend || {};
+    const revData = trend.revenue || [];
+    const colData = trend.collected || [];
 
     return {
-      labels: defaultLabels,
+      labels: trend.labels || [],
       datasets: [
         {
           label: "Revenue",
@@ -206,7 +203,7 @@ const GraphsRow = ({
         },
       ],
     };
-  }, [dt, isAll]);
+  }, [dt, isAll, charts]);
 
   const lineOptions = useMemo(
     () => ({
@@ -251,44 +248,28 @@ const GraphsRow = ({
   // Graph: Doughnut Chart (Job Order Status)
   // ----------------------------------------------------
   const doughnutConfig = useMemo(() => {
+    const js = charts.jobOrderStatus || {};
+    const statusItems = [
+      { label: "Completed", count: js.completed || 0, pct: js.completedPercentage || 0, color: "#0d6245" },
+      { label: "In Production", count: js.inProgress || 0, pct: js.inProgressPercentage || 0, color: "#2dd4bf" },
+      { label: "Pending", count: js.pending || 0, pct: js.pendingPercentage || 0, color: "#f59e0b" },
+      { label: "On Hold", count: js.onHold || 0, pct: js.onHoldPercentage || 0, color: "#ef4444" },
+    ];
     if (isAdmin && dt === "overview") {
-      if (isAll) {
-        return {
-          title: "Job Order Status",
-          subtitle: "(All Branches)",
-          totalText: "1,248",
-          totalLabel: "Total Jobs",
-          items: [
-            { label: "Completed", count: "942", pct: 75, color: "#0d6245" },
-            { label: "In Production", count: "110", pct: 9, color: "#2dd4bf" },
-            { label: "Design", count: "68", pct: 5, color: "#8b5cf6" },
-            { label: "QC", count: "45", pct: 4, color: "#f59e0b" },
-            { label: "Pending Approval", count: "52", pct: 4, color: "#f97316" },
-            { label: "On Hold", count: "31", pct: 3, color: "#ef4444" },
-          ],
-        };
-      }
-
-      // Specific Branch Doughnut
       return {
         title: "Job Order Status",
-        subtitle: `(${branchName || "Selected Branch"})`,
-        totalText: "186",
+        subtitle: isAll ? "(All Branches)" : `(${branchName || "Selected Branch"})`,
+        totalText: String(js.total || 0),
         totalLabel: "Total Jobs",
-        items: [
-          { label: "Completed", count: "142", pct: 76, color: "#0d6245" },
-          { label: "In Production", count: "24", pct: 13, color: "#2dd4bf" },
-          { label: "Pending Approval", count: "12", pct: 6, color: "#f59e0b" },
-          { label: "On Hold", count: "8", pct: 5, color: "#ef4444" },
-        ],
+        items: statusItems,
       };
     }
 
     if (dt === "stocks") {
-      const available = charts.stockAvailability?.available ?? (isAll ? 620 : 180);
-      const reserved = charts.stockAvailability?.reserved ?? (isAll ? 280 : 75);
-      const lowStock = charts.stockAvailability?.lowStock ?? (isAll ? 90 : 25);
-      const outOfStock = charts.stockAvailability?.outOfStock ?? (isAll ? 35 : 10);
+      const available = charts.stockAvailability?.available ?? 0;
+      const reserved = charts.stockAvailability?.reserved ?? 0;
+      const lowStock = charts.stockAvailability?.lowStock ?? 0;
+      const outOfStock = charts.stockAvailability?.outOfStock ?? 0;
       const total = available + reserved + lowStock + outOfStock;
 
       return {
@@ -297,10 +278,10 @@ const GraphsRow = ({
         totalText: total,
         totalLabel: "Total Units",
         items: [
-          { label: "Available", count: available, pct: Math.round((available / total) * 100), color: "#10b981" },
-          { label: "Reserved", count: reserved, pct: Math.round((reserved / total) * 100), color: "#0ea5e9" },
-          { label: "Low Stock", count: lowStock, pct: Math.round((lowStock / total) * 100), color: "#f59e0b" },
-          { label: "Out of Stock", count: outOfStock, pct: Math.round((outOfStock / total) * 100), color: "#f43f5e" },
+          { label: "Available", count: available, pct: (total > 0 ? Math.round((available / total) * 100) : 0), color: "#10b981" },
+          { label: "Reserved", count: reserved, pct: (total > 0 ? Math.round((reserved / total) * 100) : 0), color: "#0ea5e9" },
+          { label: "Low Stock", count: lowStock, pct: (total > 0 ? Math.round((lowStock / total) * 100) : 0), color: "#f59e0b" },
+          { label: "Out of Stock", count: outOfStock, pct: (total > 0 ? Math.round((outOfStock / total) * 100) : 0), color: "#f43f5e" },
         ],
       };
     }
@@ -309,14 +290,9 @@ const GraphsRow = ({
     return {
       title: "Job Order Status",
       subtitle: isAll ? "(Company Ratio)" : `(${branchName || "Branch"})`,
-      totalText: isAll ? "1,248" : "186",
+      totalText: String(js.total || 0),
       totalLabel: "Total Jobs",
-      items: [
-        { label: "Completed", count: isAll ? 942 : 142, pct: 76, color: "#10b981" },
-        { label: "In Production", count: isAll ? 110 : 24, pct: 13, color: "#0ea5e9" },
-        { label: "Pending", count: isAll ? 52 : 12, pct: 6, color: "#f59e0b" },
-        { label: "On Hold", count: isAll ? 31 : 8, pct: 5, color: "#f43f5e" },
-      ],
+      items: statusItems,
     };
   }, [charts, dt, isAdmin, isAll, branchName]);
 
@@ -352,47 +328,19 @@ const GraphsRow = ({
   // ----------------------------------------------------
   const barChartData = useMemo(() => {
     if (isBranchWise) {
+      const br = charts.branchRevenue || {};
       return {
-        labels: ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem", "Others"],
+        labels: br.labels || [],
         datasets: [
-          {
-            label: "Revenue",
-            data: [1550000, 1150000, 1100000, 1050000, 950000, 750000],
-            backgroundColor: "#0d6245",
-            borderRadius: 4,
-            barThickness: 14,
-          },
-          {
-            label: "Collected",
-            data: [1245230, 950000, 880000, 820000, 750000, 600000],
-            backgroundColor: "#2dd4bf",
-            borderRadius: 4,
-            barThickness: 14,
-          },
+          { label: "Revenue", data: br.revenue || [], backgroundColor: "#0d6245", borderRadius: 4, barThickness: 14 },
+          { label: "Collected", data: br.collected || [], backgroundColor: "#2dd4bf", borderRadius: 4, barThickness: 14 },
         ],
       };
     }
 
     if (isSingleBranchOverview) {
-      return {
-        labels: ["Flex & Vinyl", "Offset Prints", "Digital Prints", "Signage", "Sublimation", "Accessories"],
-        datasets: [
-          {
-            label: "Revenue",
-            data: [380000, 290000, 240000, 180000, 110000, 45230],
-            backgroundColor: "#0d6245",
-            borderRadius: 4,
-            barThickness: 14,
-          },
-          {
-            label: "Collected",
-            data: [320000, 240000, 210000, 140000, 85000, 25450],
-            backgroundColor: "#2dd4bf",
-            borderRadius: 4,
-            barThickness: 14,
-          },
-        ],
-      };
+      // Category sales are not tracked yet, so nothing is drawn (no sample bars)
+      return { labels: [], datasets: [] };
     }
 
     if (dt === "stocks") {
@@ -403,10 +351,10 @@ const GraphsRow = ({
           {
             label: "Stock Units",
             data: [
-              stock.available ?? (isAll ? 620 : 180),
-              stock.reserved ?? (isAll ? 280 : 75),
-              stock.lowStock ?? (isAll ? 90 : 25),
-              stock.outOfStock ?? (isAll ? 35 : 10),
+              stock.available ?? 0,
+              stock.reserved ?? 0,
+              stock.lowStock ?? 0,
+              stock.outOfStock ?? 0,
             ],
             backgroundColor: ["#10b981", "#0ea5e9", "#f59e0b", "#f43f5e"],
             borderRadius: 6,
@@ -422,7 +370,7 @@ const GraphsRow = ({
       datasets: [
         {
           label: "Stock Units",
-          data: isAll ? [620, 280, 90, 35] : [180, 75, 25, 10],
+          data: [],
           backgroundColor: ["#10b981", "#0ea5e9", "#f59e0b", "#f43f5e"],
           borderRadius: 6,
           barThickness: 34,

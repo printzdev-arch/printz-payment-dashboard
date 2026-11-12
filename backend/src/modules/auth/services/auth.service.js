@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const User = require("../models/User");
 const Employee = require("../../employees/models/Employee");
 const ApiError = require("../../../utils/errors/ApiError");
+const { isStrongPassword, PASSWORD_MESSAGE } = require("../../../utils/validation/fieldRules");
 const { jwtTokenService, tokenBlacklistService, bcryptPasswordService, emailService } = require("../../../utils/integrations");
 
 class AuthService {
@@ -295,8 +296,8 @@ class AuthService {
   }
 
   async resetPasswordWithToken({ token, email, newPassword }) {
-    if (!newPassword || newPassword.length < 6) {
-      throw ApiError.badRequest("New password must be at least 6 characters long");
+    if (!isStrongPassword(newPassword)) {
+      throw ApiError.badRequest(PASSWORD_MESSAGE);
     }
 
     const query = {

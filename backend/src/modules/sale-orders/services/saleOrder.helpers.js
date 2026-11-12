@@ -16,7 +16,7 @@ const invalidStatus = (order, allowed) =>
     `Order ${order.orderNo} is ${order.status}. This action needs status ${allowed.join(" / ")}.`
   );
 
-const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
+const round2 = (n) => require("../../../utils/validation/roundMoney").roundMoney(n || 0);
 
 const idStr = (v) => String(v?._id || v || "");
 
@@ -36,7 +36,11 @@ const periodIST = () => todayIST().slice(2, 4) + todayIST().slice(5, 7); // YYMM
 
 const dayToDate = (yyyyMmDd) => new Date(`${yyyyMmDd}T00:00:00.000Z`);
 
-const isDateString = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+const isDateString = (s) =>
+  typeof s === "string" &&
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  !Number.isNaN(Date.parse(s)) &&
+  new Date(`${s}T00:00:00.000Z`).toISOString().slice(0, 10) === s; // the day must really exist
 
 /** Normalise an Indian mobile number to 10 digits, or return "" when it is not valid. */
 const normalizeMobile = (value) => {

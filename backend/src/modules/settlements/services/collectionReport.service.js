@@ -1,3 +1,4 @@
+const { roundMoney } = require("../../../utils/validation/roundMoney");
 const Invoice = require("../../invoices/models/Invoice");
 const Payment = require("../../invoices/models/Payment");
 const InvoiceReminder = require("../../invoices/models/InvoiceReminder");
@@ -165,7 +166,7 @@ class CollectionReportService {
     ["CASH", "CARD", "UPI", "BANK"].forEach((m) => {
       const found = modeStats.find((s) => s._id === m);
       byPaymentMode[m] = {
-        totalAmount: found ? Math.round(found.totalAmount * 100) / 100 : 0,
+        totalAmount: found ? roundMoney(found.totalAmount) : 0,
         count: found ? found.count : 0,
       };
     });

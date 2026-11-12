@@ -51,6 +51,8 @@ const inventoryMovementSchema = new mongoose.Schema(
 );
 
 inventoryMovementSchema.index({ type: 1, action: 1, movementDate: -1 });
+// Movement list is ordered by movement date then creation time
+inventoryMovementSchema.index({ movementDate: -1, createdAt: -1 });
 
 
 inventoryMovementSchema.statics.findAll = async function (filters = {}) {

@@ -2,9 +2,11 @@
  * SaleReceiptHelper
  * Monetary calculation and print/export rendering utilities for POS.
  */
+const { escapeHtml: esc } = require("../../../utils/validation/escapeHtml");
+
 class SaleReceiptHelper {
   static round2(val) {
-    return Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+    return require("../../../utils/validation/roundMoney").roundMoney(val);
   }
 
   static calculateLineItem({ quantity, unitPrice, discount = 0, taxRate = 0 }) {
@@ -61,11 +63,11 @@ class SaleReceiptHelper {
         (it, idx) => `
         <tr>
           <td>${idx + 1}</td>
-          <td>${it.productName}</td>
-          <td style="text-align: right;">${it.quantity}</td>
+          <td>${esc(it.productName)}</td>
+          <td style="text-align: right;">${esc(it.quantity)}</td>
           <td style="text-align: right;">₹${Number(it.unitPrice).toFixed(2)}</td>
           <td style="text-align: right;">₹${Number(it.discount || 0).toFixed(2)}</td>
-          <td style="text-align: right;">${it.taxRate}%</td>
+          <td style="text-align: right;">${esc(it.taxRate)}%</td>
           <td style="text-align: right;">₹${Number(it.taxAmount || 0).toFixed(2)}</td>
           <td style="text-align: right; font-weight: bold;">₹${Number(it.lineTotal).toFixed(2)}</td>
         </tr>`
@@ -76,7 +78,7 @@ class SaleReceiptHelper {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${receipt.receiptNo}</title>
+  <title>${esc(receipt.receiptNo)}</title>
   <style>
     body { font-family: ${isThermal ? "'Courier New', Courier, monospace" : "'Helvetica Neue', Arial, sans-serif"}; padding: 20px; color: #222; }
     .header { text-align: center; border-bottom: 2px dashed #444; padding-bottom: 10px; margin-bottom: 15px; }
@@ -95,15 +97,15 @@ class SaleReceiptHelper {
   <div class="header">
     <div class="title">PRINTZ DIGITAL PRINTING</div>
     <div>${title}</div>
-    <div>Receipt No: <strong>${receipt.receiptNo}</strong></div>
+    <div>Receipt No: <strong>${esc(receipt.receiptNo)}</strong></div>
     <div>Date: ${new Date(receipt.saleDate).toLocaleString()}</div>
-    <div>Status: <strong>${receipt.status}</strong> | Payment: <strong>${receipt.paymentStatus} (${receipt.paymentMode || "N/A"})</strong></div>
+    <div>Status: <strong>${esc(receipt.status)}</strong> | Payment: <strong>${esc(receipt.paymentStatus)} (${esc(receipt.paymentMode || "N/A")})</strong></div>
   </div>
 
   <div class="info">
-    <div><strong>Customer:</strong> ${receipt.customerSnapshot?.name || "Counter Customer"}</div>
-    ${receipt.customerSnapshot?.mobile ? `<div><strong>Mobile:</strong> ${receipt.customerSnapshot.mobile}</div>` : ""}
-    ${receipt.customerSnapshot?.gstin ? `<div><strong>GSTIN:</strong> ${receipt.customerSnapshot.gstin}</div>` : ""}
+    <div><strong>Customer:</strong> ${esc(receipt.customerSnapshot?.name || "Counter Customer")}</div>
+    ${receipt.customerSnapshot?.mobile ? `<div><strong>Mobile:</strong> ${esc(receipt.customerSnapshot.mobile)}</div>` : ""}
+    ${receipt.customerSnapshot?.gstin ? `<div><strong>GSTIN:</strong> ${esc(receipt.customerSnapshot.gstin)}</div>` : ""}
   </div>
 
   <table>

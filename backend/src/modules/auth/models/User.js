@@ -151,6 +151,12 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// User list is newest-first and filtered by role / branch; role checks count users holding a role
+userSchema.index({ createdAt: -1 });
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ roleIds: 1 });
+userSchema.index({ branchId: 1 });
+
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next();

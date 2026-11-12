@@ -1060,7 +1060,7 @@ const AdminDailyReadingsRevenue = () => {
             !isNaN(finalReading)
           ) {
             const copies = Math.max(0, Number(finalReading) - Number(starting));
-            const total = copies * (Number(sizeData.price) || 0);
+            const total = Math.round((copies * Math.max(0, Number(sizeData.price) || 0) + Number.EPSILON) * 100) / 100;
             return sum + total;
           }
           return sum;

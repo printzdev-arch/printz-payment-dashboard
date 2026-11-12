@@ -509,7 +509,7 @@ const PrinterReadingsSection = ({
           const finalReadingNum = Number(finalReading) || 0;
           const copies = Math.max(0, finalReadingNum - startingNum);
           updated[printerId][size].noOfCopies = copies;
-          updated[printerId][size].total = copies * effectivePrice;
+          updated[printerId][size].total = Math.round((copies * Math.max(0, Number(effectivePrice) || 0) + Number.EPSILON) * 100) / 100;
         } else {
           updated[printerId][size].noOfCopies = 0;
           updated[printerId][size].total = 0;

@@ -83,6 +83,10 @@ const paymentToBeCollectedSchema = new mongoose.Schema(
 );
 
 paymentToBeCollectedSchema.index({ branchId: 1, date: 1 });
+// Lists are ordered by dateAt; the Previous Balances screen reads only records with an amount still due
+paymentToBeCollectedSchema.index({ dateAt: -1 });
+paymentToBeCollectedSchema.index({ branchId: 1, dateAt: -1 });
+paymentToBeCollectedSchema.index({ paymentToBeCollected: 1 });
 
 const PaymentToBeCollected = mongoose.model(
   "PaymentToBeCollected",

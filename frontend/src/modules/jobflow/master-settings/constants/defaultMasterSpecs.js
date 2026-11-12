@@ -161,7 +161,7 @@ export const DEFAULT_MASTER_CATEGORIES = [
     items: [
       { name: "Cash", order: 1, isDefault: true, isActive: true },
       { name: "Credit / Debit Card", order: 2, isActive: true },
-      { name: "DuitNow QR Pay", order: 3, isActive: true },
+      { name: "UPI / QR Pay", order: 3, isActive: true },
       { name: "Online Bank Transfer", order: 4, isActive: true },
       { name: "Cheque", order: 5, isActive: true },
     ],

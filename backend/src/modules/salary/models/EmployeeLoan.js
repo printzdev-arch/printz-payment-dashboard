@@ -37,4 +37,7 @@ const EmployeeLoanSchema = new mongoose.Schema({
 });
 
 EmployeeLoanSchema.index({ employeeId: 1, status: 1 });
+// Loan list is newest-first, optionally within a branch and status
+EmployeeLoanSchema.index({ createdAt: -1, _id: -1 });
+EmployeeLoanSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 module.exports = mongoose.models.EmployeeLoan || mongoose.model("EmployeeLoan", EmployeeLoanSchema);

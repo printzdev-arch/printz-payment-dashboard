@@ -248,6 +248,9 @@ const estimateSchema = new mongoose.Schema(
 estimateSchema.index({ branchId: 1, status: 1 });
 estimateSchema.index({ customerId: 1, createdAt: -1 });
 estimateSchema.index({ jobOrderId: 1, versionNo: -1 });
+// Estimate list is newest-first, optionally within a branch
+estimateSchema.index({ createdAt: -1 });
+estimateSchema.index({ branchId: 1, createdAt: -1 });
 
 const Estimate =
   mongoose.models.Estimate || mongoose.model("Estimate", estimateSchema, "estimates");

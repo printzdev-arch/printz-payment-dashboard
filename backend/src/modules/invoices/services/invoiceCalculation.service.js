@@ -3,7 +3,13 @@ class InvoiceCalculationService {
    * Safe financial rounding to 2 decimal places using epsilon correction.
    */
   static round2(val) {
-    return Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+    return require("../../../utils/validation/roundMoney").roundMoney(val);
+  }
+
+  /** A real finite number, or 0 for text, null, NaN and Infinity. */
+  static finite(val) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : 0;
   }
 
   /**
@@ -59,20 +65,20 @@ class InvoiceCalculationService {
   }) {
     // One GST rate applies to every item and charge of the invoice. (Without it, each line's own rate is used.)
     const commonRate =
-      gstRate === null || gstRate === undefined || gstRate === "" ? null : Math.max(0, Number(gstRate) || 0);
+      gstRate === null || gstRate === undefined || gstRate === "" ? null : Math.max(0, this.finite(gstRate));
     const interState = this.isInterState(customerSnapshot, branchSnapshot);
 
     // 1. Items (a line's own discount is still honoured) and additional charges
     const lines = items.map((it) => {
-      const qty = Math.max(0, Number(it.quantity) || 0);
-      const unitPrice = Math.max(0, Number(it.unitPrice) || 0);
+      const qty = Math.max(0, this.finite(it.quantity));
+      const unitPrice = Math.max(0, this.finite(it.unitPrice));
       const baseAmount = this.round2(qty * unitPrice);
       let lineDiscount = 0;
       if (it.discountType === "PERCENTAGE") {
-        const pct = Math.min(100, Math.max(0, Number(it.discountValue) || 0));
+        const pct = Math.min(100, Math.max(0, this.finite(it.discountValue)));
         lineDiscount = this.round2(baseAmount * (pct / 100));
       } else {
-        lineDiscount = Math.min(baseAmount, Math.max(0, Number(it.discountValue || it.discountAmount) || 0));
+        lineDiscount = Math.min(baseAmount, Math.max(0, this.finite(it.discountValue || it.discountAmount)));
       }
       return {
         item: it,
@@ -80,14 +86,14 @@ class InvoiceCalculationService {
         unitPrice,
         baseAmount,
         lineDiscount,
-        taxRate: commonRate !== null ? commonRate : Math.max(0, Number(it.taxRate) || 0),
+        taxRate: commonRate !== null ? commonRate : Math.min(100, Math.max(0, this.finite(it.taxRate))),
       };
     });
 
     const charges = (additionalCharges || []).map((ch) => ({
       ch,
-      amount: this.round2(Math.max(0, Number(ch.amount) || 0)),
-      taxRate: commonRate !== null ? commonRate : Math.max(0, Number(ch.taxRate) || 0),
+      amount: this.round2(Math.max(0, this.finite(ch.amount))),
+      taxRate: commonRate !== null ? commonRate : Math.min(100, Math.max(0, this.finite(ch.taxRate))),
     }));
 
     // 2. Invoice-level discount on everything that is billed (items after their own discount, plus charges)
@@ -96,7 +102,7 @@ class InvoiceCalculationService {
     const discountBase = this.round2([...itemBases, ...chargeBases].reduce((sum, v) => sum + v, 0));
 
     let invoiceDiscount = 0;
-    const dValue = Math.max(0, Number(discountValue) || 0);
+    const dValue = Math.max(0, this.finite(discountValue));
     if (dValue > 0) {
       invoiceDiscount =
         String(discountType || "").toUpperCase() === "PERCENTAGE"
@@ -175,13 +181,13 @@ class InvoiceCalculationService {
     const taxTotal = this.round2(cgstTotal + sgstTotal + igstTotal);
     const grandTotal = this.round2(taxableAmount + taxTotal);
 
-    const advanceApplied = this.round2(Math.min(grandTotal, Math.max(0, Number(advanceReceived) || 0)));
-    const confirmedPaid = this.round2(Math.max(0, Number(paidAmount) || 0));
+    const advanceApplied = this.round2(Math.min(grandTotal, Math.max(0, this.finite(advanceReceived))));
+    const confirmedPaid = this.round2(Math.max(0, this.finite(paidAmount)));
     const balanceDue = this.round2(Math.max(0, grandTotal - advanceApplied - confirmedPaid));
 
     // Informational only: goods billed against the estimate, before discount, GST and charges.
     // GST, discount and delivery are added on the invoice, so they never need an approval.
-    const estimateSnapshot = this.round2(Number(estimateAmount) || 0);
+    const estimateSnapshot = this.round2(this.finite(estimateAmount));
     const varianceAmount = this.round2(subtotal - estimateSnapshot);
     const variancePercentage = estimateSnapshot > 0
       ? this.round2((varianceAmount / estimateSnapshot) * 100)

@@ -1,3 +1,4 @@
+const { roundMoney } = require("../../../utils/validation/roundMoney");
 const jobOrderRepository = require("../models/JobOrder");
 const jobItemRepository = require("../models/JobItem");
 const jobApprovalRepository = require("../models/JobApproval");
@@ -17,24 +18,34 @@ class JobEstimateService {
     let subtotal = 0;
     let tax = 0;
 
+    // Number.EPSILON keeps values such as 1.005 from rounding down to 1.00
+    const round2 = require("../../../utils/validation/roundMoney").roundMoney;
+    // Anything that is not a real, finite, non-negative number counts as 0 (never NaN or Infinity)
+    const num = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
     const amounts = items.map((it) => {
-      const qty = Number(it.quantity) || 0;
-      const rate = Number(it.unitRate || it.unitPrice) || 0;
-      const itemAmount = Math.round(qty * rate * 100) / 100;
+      const qty = num(it.quantity ?? it.qty);
+      const rate = num(it.unitRate || it.unitPrice || it.rate);
+      const itemAmount = round2(qty * rate);
       subtotal += itemAmount;
-      const taxRate = Number(it.taxRate) || 0;
+      const taxRate = Math.min(100, num(it.taxRate));
       tax += (itemAmount * taxRate) / 100;
       return itemAmount;
     });
+    subtotal = round2(subtotal);
 
-    const disc = Number(discount) || 0;
+    const rawDiscount = Number(discount);
+    const disc = Number.isFinite(rawDiscount) ? round2(rawDiscount) : 0;
     if (disc < 0 || disc > subtotal) {
       throw ErrorHelper.badRequest("Invalid discount: Discount cannot be negative or exceed subtotal.");
     }
 
     const factor = subtotal === 0 ? 1 : (subtotal - disc) / subtotal;
-    const taxAmount = Math.round(tax * factor * 100) / 100;
-    const grandTotal = Math.round((subtotal - disc + taxAmount) * 100) / 100;
+    const taxAmount = round2(tax * factor);
+    const grandTotal = round2(subtotal - disc + taxAmount);
 
     return { amounts, subtotal, discount: disc, taxAmount, grandTotal };
   }
@@ -77,7 +88,7 @@ class JobEstimateService {
           it.unitPrice = Number(l.unitRate);
         }
         if (l.taxRate !== undefined) it.taxRate = Number(l.taxRate);
-        it.amount = Math.round(it.quantity * it.unitRate * 100) / 100;
+        it.amount = roundMoney(it.quantity * it.unitRate);
         it.totalPrice = it.amount;
         await it.save();
       }

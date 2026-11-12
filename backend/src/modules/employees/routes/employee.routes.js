@@ -6,6 +6,7 @@ const { requirePermission } = require("../../../middleware/security/permission.m
 const PERMISSIONS = require("../../../utils/constants/permissions");
 const ApiError = require("../../../utils/errors/ApiError");
 const { employeeShiftRoutes } = require("../../employee-shift/routes");
+const { createEmployeeValidator, updateEmployeeValidator, resetPasswordValidator } = require("./employee.validator");
 
 router.use(authenticate);
 
@@ -70,6 +71,7 @@ router.post(
   requirePermission(PERMISSIONS.ADMIN.EMPLOYEE_CREATE, {
     branchField: "branchId",
   }),
+  createEmployeeValidator,
   employeeController.createEmployee
 );
 
@@ -80,6 +82,7 @@ router.patch(
   requirePermission(PERMISSIONS.ADMIN.EMPLOYEE_UPDATE, {
     branchField: "branchId",
   }),
+  updateEmployeeValidator,
   employeeController.updateEmployee
 );
 
@@ -90,6 +93,7 @@ router.post(
   requirePermission(PERMISSIONS.ADMIN.EMPLOYEE_UPDATE, {
     branchField: "branchId",
   }),
+  resetPasswordValidator,
   employeeController.resetLoginPassword
 );
 

@@ -30,4 +30,7 @@ const SalaryAdjustmentSchema = new mongoose.Schema({
 
 
 SalaryAdjustmentSchema.index({ employeeId: 1, payrollYear: 1, payrollMonth: 1, status: 1 });
+// Adjustment list is newest-first, optionally for a branch and payroll month
+SalaryAdjustmentSchema.index({ createdAt: -1, _id: -1 });
+SalaryAdjustmentSchema.index({ branchId: 1, payrollYear: 1, payrollMonth: 1, status: 1 });
 module.exports = mongoose.models.SalaryAdjustment || mongoose.model("SalaryAdjustment", SalaryAdjustmentSchema);

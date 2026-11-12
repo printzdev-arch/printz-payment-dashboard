@@ -248,5 +248,8 @@ DailyAttendanceSchema.index(
 DailyAttendanceSchema.index({ branchId: 1, attendanceDate: 1 });
 DailyAttendanceSchema.index({ attendanceDate: 1, status: 1 });
 DailyAttendanceSchema.index({ branchId: 1, status: 1, attendanceDate: 1 });
+// Attendance list is ordered by date then creation time, so the sort is read straight from the index
+DailyAttendanceSchema.index({ attendanceDate: -1, createdAt: -1 });
+DailyAttendanceSchema.index({ branchId: 1, attendanceDate: -1, createdAt: -1 });
 
 module.exports = mongoose.models.DailyAttendance || mongoose.model("DailyAttendance", DailyAttendanceSchema);

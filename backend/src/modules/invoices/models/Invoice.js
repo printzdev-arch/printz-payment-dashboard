@@ -315,27 +315,26 @@ const invoiceSchema = new mongoose.Schema(
   }
 );
 
+// Several fields exist under two names (paidAmount / amountPaid, ...). They are kept equal: the one that was just
+// changed wins. Copying the non-zero one over a zero would bring back an amount that was deliberately set to 0
+// (for example after a payment is voided, the invoice kept showing the voided amount as paid).
+const mirrorPair = (doc, a, b) => {
+  const aChanged = doc.isModified(a);
+  const bChanged = doc.isModified(b);
+  if (aChanged && !bChanged) doc[b] = doc[a];
+  else if (bChanged && !aChanged) doc[a] = doc[b];
+  else if (!aChanged && !bChanged) {
+    // Older records: fill an empty twin from the other field
+    if (doc[a] !== undefined && (doc[b] === undefined || doc[b] === 0)) doc[b] = doc[a];
+    else if (doc[b] !== undefined && (doc[a] === undefined || doc[a] === 0)) doc[a] = doc[b];
+  }
+};
+
 invoiceSchema.pre("save", function (next) {
-  if (this.advanceApplied !== undefined && (this.advancePaid === undefined || this.advancePaid === 0)) {
-    this.advancePaid = this.advanceApplied;
-  } else if (this.advancePaid !== undefined && (this.advanceApplied === undefined || this.advanceApplied === 0)) {
-    this.advanceApplied = this.advancePaid;
-  }
-  if (this.paidAmount !== undefined && (this.amountPaid === undefined || this.amountPaid === 0)) {
-    this.amountPaid = this.paidAmount;
-  } else if (this.amountPaid !== undefined && (this.paidAmount === undefined || this.paidAmount === 0)) {
-    this.paidAmount = this.amountPaid;
-  }
-  if (this.totalDiscount !== undefined && (this.discountTotal === undefined || this.discountTotal === 0)) {
-    this.discountTotal = this.totalDiscount;
-  } else if (this.discountTotal !== undefined && (this.totalDiscount === undefined || this.totalDiscount === 0)) {
-    this.totalDiscount = this.discountTotal;
-  }
-  if (this.totalTax !== undefined && (this.taxTotal === undefined || this.taxTotal === 0)) {
-    this.taxTotal = this.totalTax;
-  } else if (this.taxTotal !== undefined && (this.totalTax === undefined || this.totalTax === 0)) {
-    this.totalTax = this.taxTotal;
-  }
+  mirrorPair(this, "advanceApplied", "advancePaid");
+  mirrorPair(this, "paidAmount", "amountPaid");
+  mirrorPair(this, "totalDiscount", "discountTotal");
+  mirrorPair(this, "totalTax", "taxTotal");
   next();
 });
 
@@ -346,15 +345,26 @@ invoiceSchema.pre("validate", function (next) {
   next();
 });
 
+// Held for a few seconds while a payment is being recorded, so two payments cannot both pass the balance check
+invoiceSchema.add({ paymentLock: { type: Date, default: null, select: false } });
+
 // Indexes
 invoiceSchema.index(
   { invoiceNumber: 1 },
-  { unique: true, sparse: true, partialFilterExpression: { invoiceNumber: { $type: "string" } } }
+  // The partial filter already skips invoices without a number; MongoDB rejects it combined with `sparse`
+  { unique: true, partialFilterExpression: { invoiceNumber: { $type: "string" } } }
 );
 invoiceSchema.index({ branchId: 1, status: 1 });
 invoiceSchema.index({ jobOrderId: 1, status: 1 });
 invoiceSchema.index({ customerId: 1, status: 1 });
 invoiceSchema.index({ invoiceDate: -1 });
+// Invoice list is newest-first (per branch or all branches); outstanding and dashboard reads go by due date
+invoiceSchema.index({ createdAt: -1 });
+invoiceSchema.index({ branchId: 1, createdAt: -1 });
+invoiceSchema.index({ jobOrderId: 1, createdAt: -1 });
+invoiceSchema.index({ branchId: 1, status: 1, dueDate: 1 });
+invoiceSchema.index({ status: 1, dueDate: 1 });
+invoiceSchema.index({ branchId: 1, paymentStatus: 1, dueDate: 1 });
 
 const Invoice = mongoose.models.Invoice || mongoose.model("Invoice", invoiceSchema);
 

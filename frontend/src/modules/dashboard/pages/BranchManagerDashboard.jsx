@@ -92,7 +92,7 @@ const BranchManagerDashboard = () => {
     data?.selectedBranch?.name ||
     storedUser?.branchName ||
     localStorage.getItem("userBranchName") ||
-    "Chennai Branch";
+    "Branch";
 
   // Load Dashboard Data from backend
   const loadDashboardData = useCallback(async () => {

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const fieldRules = require("../../../utils/validation/fieldRules");
 const SaleReceipt = require("../models/SaleReceipt");
 const SaleReceiptItem = require("../models/SaleReceiptItem");
 const { resolvePrintService, isPrintServiceId } = require("../constants/printServices");
@@ -344,7 +345,29 @@ class SaleReceiptService {
         : new Map();
 
     const calculatedLines = [];
-    for (const line of items) {
+    for (const [lineIndex, line] of items.entries()) {
+      // Every number on a cart line must be a real, finite value in range: no text, NaN, Infinity or negatives
+      const lineLabel = `Item ${lineIndex + 1}`;
+      if (!line || typeof line !== "object") {
+        throw ErrorHelper.badRequest(`${lineLabel}: line is not valid`);
+      }
+      fieldRules.assertQuantity(line.quantity, `${lineLabel}: quantity`);
+      if (line.unitPrice !== undefined && line.unitPrice !== null) {
+        fieldRules.assertAmount(line.unitPrice, `${lineLabel}: unit price`);
+      }
+      if (line.taxRate !== undefined && line.taxRate !== null) {
+        fieldRules.assertPercentage(line.taxRate, `${lineLabel}: tax rate`);
+      }
+      if (line.discount !== undefined && line.discount !== null && line.discount !== "") {
+        fieldRules.assertAmount(line.discount, `${lineLabel}: discount`);
+      }
+      if (line.wastageQuantity !== undefined && line.wastageQuantity !== null && line.wastageQuantity !== "") {
+        const wastage = fieldRules.toFiniteNumber(line.wastageQuantity);
+        if (wastage === null || wastage < 0) {
+          throw ErrorHelper.badRequest(`${lineLabel}: wastage quantity must be a number that is 0 or more`);
+        }
+      }
+
       // Print services (Color / B&W) are not inventory products: priced server-side, no stock movement
       if (line && line.printService) {
         const svc = resolvePrintService(line.printService);
@@ -352,6 +375,9 @@ class SaleReceiptService {
           throw ErrorHelper.badRequest("Valid print type, sides, paper type and positive quantity are required for print lines");
         }
         const taxRate = line.taxRate !== undefined && line.taxRate !== null ? Number(line.taxRate) : 0;
+        if (Number(line.discount || 0) > SaleReceiptHelper.round2(Number(line.quantity) * svc.unitPrice) + 0.001) {
+          throw ErrorHelper.badRequest(`${lineLabel}: discount cannot be more than the line amount`);
+        }
         const calculated = SaleReceiptHelper.calculateLineItem({
           quantity: Number(line.quantity),
           unitPrice: svc.unitPrice,
@@ -422,6 +448,9 @@ class SaleReceiptService {
           ? Number(line.taxRate)
           : Number(product.taxRate || 0);
       const discount = Number(line.discount || 0);
+      if (discount > SaleReceiptHelper.round2(Number(line.quantity) * unitPrice) + 0.001) {
+        throw ErrorHelper.badRequest(`${lineLabel}: discount cannot be more than the line amount`);
+      }
 
       const calculated = SaleReceiptHelper.calculateLineItem({
         quantity: Number(line.quantity),
@@ -920,9 +949,33 @@ class SaleReceiptService {
       throw ErrorHelper.badRequest("At least one item is required for checkout");
     }
 
+    // A customer typed at the counter (not picked from the list) must have a proper 10-digit mobile number
+    if (!customerId && resolvedCustomerSnapshot.mobile && !fieldRules.isMobile(resolvedCustomerSnapshot.mobile)) {
+      throw ErrorHelper.badRequest("Customer mobile number must be exactly 10 digits (numbers only)");
+    }
+    if (!customerId && resolvedCustomerSnapshot.name && !fieldRules.isSafeText(resolvedCustomerSnapshot.name)) {
+      throw ErrorHelper.badRequest("Customer name may not contain < or >");
+    }
+    if (resolvedCustomerSnapshot.email && !fieldRules.isEmail(resolvedCustomerSnapshot.email)) {
+      throw ErrorHelper.badRequest("Customer email is not a valid email address");
+    }
+
     const calculation = await this.calculate({ items }, authContext);
 
-    const paid = amountPaid !== undefined ? Number(amountPaid) : calculation.grandTotal;
+    let paid = calculation.grandTotal;
+    if (amountPaid !== undefined && amountPaid !== null) {
+      paid = fieldRules.toFiniteNumber(amountPaid);
+      if (paid === null || paid < 0) {
+        throw ErrorHelper.badRequest("Amount paid must be a number that is 0 or more");
+      }
+      paid = SaleReceiptHelper.round2(paid);
+      // The screen totals the bill once while the server rounds tax line by line, so the two can differ by a
+      // paisa per line. A payment that close to the total is a full payment; more than the total is change.
+      const roundingTolerance = Math.min(1, 0.01 * calculation.items.length + 0.001);
+      if (paid > calculation.grandTotal || Math.abs(paid - calculation.grandTotal) <= roundingTolerance) {
+        paid = calculation.grandTotal;
+      }
+    }
     let paymentStatus = "UNPAID";
     if (paymentMode === "CREDIT") {
       if (!customerId) {
@@ -960,7 +1013,7 @@ class SaleReceiptService {
         paymentReference,
         status: "COMPLETED",
         amountPaid: paid,
-        balanceDue: Math.max(0, calculation.grandTotal - paid),
+        balanceDue: Math.max(0, SaleReceiptHelper.round2(calculation.grandTotal - paid)),
         managerApproval: data.managerApproval || { isApproved: false },
         remarks,
         createdBy: performedBy,
@@ -1236,9 +1289,9 @@ class SaleReceiptService {
     }
 
     const { amount, paymentMode = "CASH", paymentReference = null } = data || {};
-    const payAmt = Number(amount);
-    if (isNaN(payAmt) || payAmt <= 0) {
-      throw ErrorHelper.badRequest("Valid positive payment amount is required");
+    const payAmt = fieldRules.toFiniteNumber(amount);
+    if (payAmt === null || payAmt <= 0 || !fieldRules.isAmount(payAmt)) {
+      throw ErrorHelper.badRequest("Valid positive payment amount is required (at most 2 decimal places)");
     }
 
     const receipt = await this.receiptRepo.findById(id);
@@ -1265,12 +1318,27 @@ class SaleReceiptService {
       newPaymentStatus = "PAID";
     }
 
-    const updated = await this.receiptRepo.update(receipt._id, {
-      amountPaid: newAmountPaid,
-      paymentStatus: newPaymentStatus,
-      paymentMode: paymentMode || receipt.paymentMode,
-      paymentReference: paymentReference || receipt.paymentReference,
-    });
+    // The update only goes through if nobody else has recorded a payment since this one was checked. Two payments sent
+    // at the same moment used to both pass the balance check and together collect more than the receipt was worth.
+    const unchangedSincePaid = currentPaid === 0
+      ? { $or: [{ amountPaid: 0 }, { amountPaid: null }, { amountPaid: { $exists: false } }] }
+      : { amountPaid: currentPaid };
+    const updated = await SaleReceipt.findOneAndUpdate(
+      { _id: receipt._id, status: { $ne: "VOID" }, ...unchangedSincePaid },
+      {
+        $set: {
+          amountPaid: newAmountPaid,
+          balanceDue: Math.max(0, SaleReceiptHelper.round2(grandTotal - newAmountPaid)),
+          paymentStatus: newPaymentStatus,
+          paymentMode: paymentMode || receipt.paymentMode,
+          paymentReference: paymentReference || receipt.paymentReference,
+        },
+      },
+      { new: true }
+    ).exec();
+    if (!updated) {
+      throw ErrorHelper.conflict("Another payment was just recorded on this receipt. Refresh and check the balance before paying again.");
+    }
 
     const items = await this.itemRepo.findByReceiptId(receipt._id);
 

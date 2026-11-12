@@ -52,7 +52,7 @@ ChartJS.register(
 
 // Date range options matching mockup
 const DATE_RANGE_OPTIONS = [
-  { id: "mtd", label: "This Month (Oct 1 - Oct 31, 2024)" },
+  { id: "mtd", label: (() => { const now = new Date(); const short = (d) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }); return `This Month (${short(new Date(now.getFullYear(), now.getMonth(), 1))} - ${short(new Date(now.getFullYear(), now.getMonth() + 1, 0))}, ${now.getFullYear()})`; })() },
   { id: "today", label: "Today" },
   { id: "last7days", label: "Last 7 Days" },
   { id: "lastmonth", label: "Last Month" },
@@ -76,127 +76,13 @@ const PRIORITY_FILTER_OPTIONS = [
   { id: "Low", label: "Low" },
 ];
 
-const DEFAULT_ASSIGNED_JOBS = [
-  {
-    id: "1",
-    jobId: "JO-00125",
-    customerName: "ABC Traders",
-    designRequirement: "Product Label Design",
-    assignedDate: "01 Oct 2024",
-    deadline: "05 Oct 2024",
-    priority: "High",
-    status: "In Progress",
-    revisionCount: 0,
-    remarks: "Premium metallic finish label for glass bottle packaging.",
-  },
-  {
-    id: "2",
-    jobId: "JO-00124",
-    customerName: "Sri Ganesh Stores",
-    designRequirement: "Banner Design",
-    assignedDate: "02 Oct 2024",
-    deadline: "06 Oct 2024",
-    priority: "Medium",
-    status: "Submitted",
-    revisionCount: 1,
-    remarks: "Festive sale promotional flex banner 10ft x 4ft.",
-  },
-  {
-    id: "3",
-    jobId: "JO-00123",
-    customerName: "United Textiles",
-    designRequirement: "Catalogue Design",
-    assignedDate: "03 Oct 2024",
-    deadline: "07 Oct 2024",
-    priority: "High",
-    status: "Revision",
-    revisionCount: 2,
-    remarks: "Update model images on page 4 & fix typography.",
-  },
-  {
-    id: "4",
-    jobId: "JO-00122",
-    customerName: "Karthik Prints",
-    designRequirement: "Packaging Design",
-    assignedDate: "05 Oct 2024",
-    deadline: "10 Oct 2024",
-    priority: "Medium",
-    status: "Approved",
-    revisionCount: 0,
-    remarks: "Corrugated master carton dieline approved by client.",
-  },
-  {
-    id: "5",
-    jobId: "JO-00121",
-    customerName: "Priya Fashions",
-    designRequirement: "Flex Design",
-    assignedDate: "06 Oct 2024",
-    deadline: "12 Oct 2024",
-    priority: "Low",
-    status: "Rejected",
-    revisionCount: 1,
-    remarks: "Logo resolution insufficient. Re-upload requested.",
-  },
-  {
-    id: "6",
-    jobId: "JO-00120",
-    customerName: "Mega Mart",
-    designRequirement: "Acrylic Signboard",
-    assignedDate: "07 Oct 2024",
-    deadline: "14 Oct 2024",
-    priority: "Medium",
-    status: "Approved",
-    revisionCount: 0,
-    remarks: "LED backlight cutout acrylic design approved.",
-  },
-  {
-    id: "7",
-    jobId: "JO-00119",
-    customerName: "Smart Traders",
-    designRequirement: "Visiting Cards",
-    assignedDate: "08 Oct 2024",
-    deadline: "12 Oct 2024",
-    priority: "High",
-    status: "Rejected",
-    revisionCount: 2,
-    remarks: "Color calibration required to match pantone 286C.",
-  },
-  {
-    id: "8",
-    jobId: "JO-00118",
-    customerName: "Kavin Prints",
-    designRequirement: "Brochure Tri-fold",
-    assignedDate: "09 Oct 2024",
-    deadline: "10 Oct 2024",
-    priority: "Low",
-    status: "Approved",
-    revisionCount: 0,
-    remarks: "Ready for offset print production.",
-  },
-];
+const DEFAULT_ASSIGNED_JOBS = []; // no sample rows: only real data is shown
 
-const DEFAULT_UPCOMING_DEADLINES = [
-  { id: "ud-1", jobId: "JO-00126", customerName: "RK Enterprises", deadline: "21 Oct 2024", priority: "High", status: "In Progress" },
-  { id: "ud-2", jobId: "JO-00127", customerName: "Green Mart", deadline: "22 Oct 2024", priority: "High", status: "Submitted" },
-  { id: "ud-3", jobId: "JO-00128", customerName: "Star Graphics", deadline: "23 Oct 2024", priority: "Medium", status: "Revision" },
-  { id: "ud-4", jobId: "JO-00129", customerName: "Royal Foods", deadline: "24 Oct 2024", priority: "Medium", status: "In Progress" },
-  { id: "ud-5", jobId: "JO-00130", customerName: "City Prints", deadline: "25 Oct 2024", priority: "Low", status: "Pending" },
-];
+const DEFAULT_UPCOMING_DEADLINES = []; // no sample rows: only real data is shown
 
-const DEFAULT_RECENT_SUBMISSIONS = [
-  { id: "rs-1", jobId: "JO-00124", customerName: "Sri Ganesh Stores", submittedDate: "15 Oct 2024", status: "Submitted", remarks: "Waiting for approval" },
-  { id: "rs-2", jobId: "JO-00120", customerName: "Mega Mart", submittedDate: "14 Oct 2024", status: "Approved", remarks: "Approved by manager" },
-  { id: "rs-3", jobId: "JO-00119", customerName: "Smart Traders", submittedDate: "12 Oct 2024", status: "Rejected", remarks: "Color changes required" },
-  { id: "rs-4", jobId: "JO-00118", customerName: "Kavin Prints", submittedDate: "10 Oct 2024", status: "Approved", remarks: "Approved" },
-];
+const DEFAULT_RECENT_SUBMISSIONS = []; // no sample rows: only real data is shown
 
-const DEFAULT_ALERTS = [
-  { id: "al-1", message: "3 designs are overdue", timeAgo: "2 hours ago", severity: "danger" },
-  { id: "al-2", message: "2 designs require revision", timeAgo: "4 hours ago", severity: "danger" },
-  { id: "al-3", message: "New design assigned (JO-00131)", timeAgo: "6 hours ago", severity: "info" },
-  { id: "al-4", message: "Design submitted by manager for review", timeAgo: "1 day ago", severity: "info" },
-  { id: "al-5", message: "5 pending designs due this week", timeAgo: "1 day ago", severity: "info" },
-];
+const DEFAULT_ALERTS = []; // no sample rows: only real data is shown
 
 const DesignerDashboard = () => {
   // Filter states
@@ -321,8 +207,8 @@ const DesignerDashboard = () => {
   }, [allAssignedJobs, appliedFilters, searchQuery]);
 
   // Paginated jobs for Table 1
-  const totalEntries = 28; // Display total matching reference UI
-  const totalPages = Math.ceil(Math.max(filteredJobs.length, totalEntries) / itemsPerPage);
+  const totalEntries = filteredJobs.length; // the real number of matching jobs
+  const totalPages = Math.max(1, Math.ceil(totalEntries / itemsPerPage));
   const paginatedJobs = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredJobs.slice(start, start + itemsPerPage);
@@ -348,17 +234,14 @@ const DesignerDashboard = () => {
   // Graph 1: Design Progress Trend (Line Chart)
   // ==========================================
   const trendLineData = useMemo(() => {
-    const labels = ["Oct 1", "Oct 5", "Oct 10", "Oct 15", "Oct 20", "Oct 25", "Oct 31"];
-    let assigned = [6, 8, 11, 14, 15, 18, 22];
-    let completed = [3, 4, 8, 9, 8, 12, 17];
-
-    if (trendGranularity === "weekly") {
-      assigned = [14, 18, 22, 28];
-      completed = [9, 14, 18, 25];
-    }
+    // Real figures from the server; when it has none the chart stays empty (no sample points)
+    const trend = data?.charts?.progressTrend || {};
+    const labels = trend.labels || [];
+    const assigned = trend.assigned || [];
+    const completed = trend.completed || [];
 
     return {
-      labels: trendGranularity === "weekly" ? ["Week 1", "Week 2", "Week 3", "Week 4"] : labels,
+      labels,
       datasets: [
         {
           label: "Assigned",
@@ -390,7 +273,7 @@ const DesignerDashboard = () => {
         },
       ],
     };
-  }, [trendGranularity]);
+  }, [data, trendGranularity]);
 
   const trendLineOptions = {
     responsive: true,
@@ -426,7 +309,6 @@ const DesignerDashboard = () => {
       },
       y: {
         min: 0,
-        max: 25,
         ticks: {
           stepSize: 5,
           font: { size: 11, family: "Inter, sans-serif" },
@@ -441,12 +323,13 @@ const DesignerDashboard = () => {
   // Graph 2: Design Status Distribution (Doughnut)
   // ==========================================
   const statusDoughnutData = useMemo(() => {
+    const statusItems = data?.charts?.statusDistribution?.items || [];
     return {
-      labels: ["Approved", "In Progress", "Submitted", "Revision", "Rejected"],
+      labels: statusItems.map((i) => i.label),
       datasets: [
         {
-          data: [16, 12, 18, 6, 4],
-          backgroundColor: ["#10b981", "#0ea5e9", "#f59e0b", "#f97316", "#ef4444"],
+          data: statusItems.map((i) => i.count),
+          backgroundColor: statusItems.map((i) => i.color),
           borderWidth: 2,
           borderColor: "#ffffff",
           hoverOffset: 4,
@@ -454,7 +337,7 @@ const DesignerDashboard = () => {
         },
       ],
     };
-  }, []);
+  }, [data]);
 
   const statusDoughnutOptions = {
     responsive: true,
@@ -476,18 +359,19 @@ const DesignerDashboard = () => {
   // Graph 3: Designs by Priority (Bar Chart)
   // ==========================================
   const priorityBarData = useMemo(() => {
+    const priorities = data?.charts?.priorityDistribution || [];
     return {
-      labels: ["High", "Medium", "Low"],
+      labels: priorities.map((i) => i.priority),
       datasets: [
         {
-          data: [8, 12, 8],
-          backgroundColor: ["#ef4444", "#f59e0b", "#10b981"],
+          data: priorities.map((i) => i.count),
+          backgroundColor: priorities.map((i) => i.color),
           borderRadius: 4,
           barPercentage: 0.5,
         },
       ],
     };
-  }, []);
+  }, [data]);
 
   const priorityBarOptions = {
     responsive: true,
@@ -507,7 +391,6 @@ const DesignerDashboard = () => {
       },
       y: {
         min: 0,
-        max: 12,
         ticks: {
           stepSize: 2,
           font: { size: 11, family: "Inter, sans-serif" },
@@ -522,12 +405,13 @@ const DesignerDashboard = () => {
   // Graph 4: Monthly Design Performance (Bar Chart)
   // ==========================================
   const performanceBarData = useMemo(() => {
+    const perf = data?.charts?.monthlyPerformance || {};
     return {
-      labels: ["Jun", "Jul", "Aug", "Sep", "Oct"],
+      labels: perf.months || [],
       datasets: [
         {
           label: "Approved",
-          data: [12, 13, 14, 13, 16],
+          data: perf.approved || [],
           backgroundColor: "#10b981",
           borderRadius: 4,
           barPercentage: 0.6,
@@ -535,7 +419,7 @@ const DesignerDashboard = () => {
         },
         {
           label: "Rejected",
-          data: [5, 4, 5, 4, 3],
+          data: perf.rejected || [],
           backgroundColor: "#ef4444",
           borderRadius: 4,
           barPercentage: 0.6,
@@ -543,7 +427,7 @@ const DesignerDashboard = () => {
         },
       ],
     };
-  }, []);
+  }, [data]);
 
   const performanceBarOptions = {
     responsive: true,
@@ -573,7 +457,6 @@ const DesignerDashboard = () => {
       },
       y: {
         min: 0,
-        max: 20,
         ticks: {
           stepSize: 5,
           font: { size: 11, family: "Inter, sans-serif" },
@@ -714,12 +597,11 @@ const DesignerDashboard = () => {
               <FileText size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">28</div>
+              <div className="printz-kpi-number">{data?.kpis?.totalAssignedDesigns?.value ?? 0}</div>
               <div className="printz-kpi-label">Total Assigned Designs</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-up">↑ +12% vs last month</span>
           </div>
         </div>
 
@@ -730,12 +612,11 @@ const DesignerDashboard = () => {
               <Clock size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">12</div>
+              <div className="printz-kpi-number">{data?.kpis?.inProgressDesigns?.value ?? 0}</div>
               <div className="printz-kpi-label">In Progress</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-up">↑ +20% vs last month</span>
           </div>
         </div>
 
@@ -746,12 +627,11 @@ const DesignerDashboard = () => {
               <Send size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">18</div>
+              <div className="printz-kpi-number">{data?.kpis?.submittedDesigns?.value ?? 0}</div>
               <div className="printz-kpi-label">Submitted</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-up">↑ +15% vs last month</span>
           </div>
         </div>
 
@@ -762,12 +642,11 @@ const DesignerDashboard = () => {
               <CheckCircle2 size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">16</div>
+              <div className="printz-kpi-number">{data?.kpis?.approvedDesigns?.value ?? 0}</div>
               <div className="printz-kpi-label">Approved</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-up">↑ +18% vs last month</span>
           </div>
         </div>
 
@@ -778,12 +657,11 @@ const DesignerDashboard = () => {
               <XCircle size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">4</div>
+              <div className="printz-kpi-number">{data?.kpis?.rejectedDesigns?.value ?? 0}</div>
               <div className="printz-kpi-label">Rejected</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-down">↓ -8% vs last month</span>
           </div>
         </div>
 
@@ -794,12 +672,11 @@ const DesignerDashboard = () => {
               <RotateCw size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">6</div>
+              <div className="printz-kpi-number">{data?.kpis?.revisionRequested?.value ?? 0}</div>
               <div className="printz-kpi-label">Revision Requested</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-up">↑ +25% vs last month</span>
           </div>
         </div>
 
@@ -810,12 +687,11 @@ const DesignerDashboard = () => {
               <AlertTriangle size={20} />
             </div>
             <div className="printz-kpi-values">
-              <div className="printz-kpi-number">5</div>
+              <div className="printz-kpi-number">{data?.kpis?.overdueDesigns?.value ?? 0}</div>
               <div className="printz-kpi-label">Overdue Designs</div>
             </div>
           </div>
           <div className="printz-kpi-bottom">
-            <span className="printz-kpi-trend-down">↓ -10% vs last month</span>
           </div>
         </div>
       </div>
@@ -855,7 +731,7 @@ const DesignerDashboard = () => {
             <div className="printz-doughnut-canvas-wrap">
               <Doughnut data={statusDoughnutData} options={statusDoughnutOptions} />
               <div className="printz-doughnut-center">
-                <div className="printz-doughnut-center-count">28</div>
+                <div className="printz-doughnut-center-count">{data?.charts?.statusDistribution?.total ?? 0}</div>
                 <div className="printz-doughnut-center-text">Total Designs</div>
               </div>
             </div>
@@ -866,8 +742,8 @@ const DesignerDashboard = () => {
                   Approved
                 </span>
                 <span>
-                  <strong className="printz-legend-val">16</strong>{" "}
-                  <span className="printz-legend-pct">(57%)</span>
+                  <strong className="printz-legend-val">{((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Approved") || {}).count ?? 0}</strong>{" "}
+                  <span className="printz-legend-pct">({((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Approved") || {}).percentage ?? 0}%)</span>
                 </span>
               </div>
               <div className="printz-legend-item">
@@ -876,8 +752,8 @@ const DesignerDashboard = () => {
                   In Progress
                 </span>
                 <span>
-                  <strong className="printz-legend-val">12</strong>{" "}
-                  <span className="printz-legend-pct">(14%)</span>
+                  <strong className="printz-legend-val">{((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "In Progress") || {}).count ?? 0}</strong>{" "}
+                  <span className="printz-legend-pct">({((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "In Progress") || {}).percentage ?? 0}%)</span>
                 </span>
               </div>
               <div className="printz-legend-item">
@@ -886,8 +762,8 @@ const DesignerDashboard = () => {
                   Submitted
                 </span>
                 <span>
-                  <strong className="printz-legend-val">18</strong>{" "}
-                  <span className="printz-legend-pct">(11%)</span>
+                  <strong className="printz-legend-val">{((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Submitted") || {}).count ?? 0}</strong>{" "}
+                  <span className="printz-legend-pct">({((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Submitted") || {}).percentage ?? 0}%)</span>
                 </span>
               </div>
               <div className="printz-legend-item">
@@ -896,8 +772,8 @@ const DesignerDashboard = () => {
                   Revision
                 </span>
                 <span>
-                  <strong className="printz-legend-val">6</strong>{" "}
-                  <span className="printz-legend-pct">(7%)</span>
+                  <strong className="printz-legend-val">{((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Revision") || {}).count ?? 0}</strong>{" "}
+                  <span className="printz-legend-pct">({((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Revision") || {}).percentage ?? 0}%)</span>
                 </span>
               </div>
               <div className="printz-legend-item">
@@ -906,8 +782,8 @@ const DesignerDashboard = () => {
                   Rejected
                 </span>
                 <span>
-                  <strong className="printz-legend-val">4</strong>{" "}
-                  <span className="printz-legend-pct">(7%)</span>
+                  <strong className="printz-legend-val">{((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Rejected") || {}).count ?? 0}</strong>{" "}
+                  <span className="printz-legend-pct">({((data?.charts?.statusDistribution?.items || []).find((x) => x.label === "Rejected") || {}).percentage ?? 0}%)</span>
                 </span>
               </div>
             </div>
@@ -1034,7 +910,7 @@ const DesignerDashboard = () => {
               >
                 <ChevronLeft size={14} />
               </button>
-              {[1, 2, 3, 4, 5].map((pageNum) => (
+              {Array.from({ length: Math.max(1, Math.ceil((totalEntries || 0) / (itemsPerPage || 1))) }, (_, i) => i + 1).map((pageNum) => (
                 <button
                   key={pageNum}
                   type="button"
@@ -1270,7 +1146,7 @@ const DesignerDashboard = () => {
                     Assigned Date
                   </label>
                   <p className="font-medium text-slate-700 mt-0.5">
-                    {selectedJob.assignedDate || "01 Oct 2024"}
+                    {selectedJob.assignedDate || "-"}
                   </p>
                 </div>
                 <div>
@@ -1278,7 +1154,7 @@ const DesignerDashboard = () => {
                     Deadline
                   </label>
                   <p className="font-medium text-rose-600 mt-0.5">
-                    {selectedJob.deadline || "05 Oct 2024"}
+                    {selectedJob.deadline || "-"}
                   </p>
                 </div>
               </div>

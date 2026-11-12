@@ -6,6 +6,7 @@ const SequenceHelper = require("../../number-sequences/services/SequenceHelper")
 const EncryptionService = require("../../../utils/integrations/EncryptionService");
 const ScopeHelper = require("../../../utils/helpers/scopeHelper");
 const ApiError = require("../../../utils/errors/ApiError");
+const { isStrongPassword, PASSWORD_MESSAGE } = require("../../../utils/validation/fieldRules");
 const { calculateAge } = require("../../../utils/helpers/age.util");
 const attendanceEmployeeSyncHelper = require("../../attendance/services/attendanceEmployeeSync.helper");
 const Role = require("../../auth/models/Role");
@@ -715,7 +716,7 @@ class EmployeeService {
     const employee = await this.getEmployeeById(id, authContext);
 
     const newPassword = String(password || "");
-    if (newPassword.length < 6) throw ApiError.badRequest("Password must be at least 6 characters.");
+    if (!isStrongPassword(newPassword)) throw ApiError.badRequest(PASSWORD_MESSAGE);
 
     const user = await User.findOne({
       employeeId: { $in: [employee._id, String(employee._id)] },

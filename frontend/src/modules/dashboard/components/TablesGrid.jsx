@@ -49,42 +49,15 @@ const TablesGrid = ({
   onViewJobOrder,
 }) => {
   // Default data matching reference mockup if backend is still populating
-  const defaultRecentJobs = [
-    { id: "1", jobId: "JO-00125", customerName: "ABC Traders", designStatus: "Approved", productionStatus: "In Production", deliveryDate: "15 Oct 2026", priority: "High" },
-    { id: "2", jobId: "JO-00124", customerName: "Sri Ganesh Stores", designStatus: "In Progress", productionStatus: "Pending", deliveryDate: "18 Oct 2026", priority: "Medium" },
-    { id: "3", jobId: "JO-00123", customerName: "United Textiles", designStatus: "Revision Required", productionStatus: "Pending", deliveryDate: "20 Oct 2026", priority: "High" },
-    { id: "4", jobId: "JO-00122", customerName: "Karthik Prints", designStatus: "Approved", productionStatus: "QC Pending", deliveryDate: "22 Oct 2026", priority: "Medium" },
-    { id: "5", jobId: "JO-00121", customerName: "Priya Fashions", designStatus: "Pending", productionStatus: "Pending", deliveryDate: "25 Oct 2026", priority: "Low" },
-  ];
+  const defaultRecentJobs = []; // no sample rows: only real data is shown
 
-  const defaultLowStock = [
-    { id: "1", materialName: "Cotton Fabric (White)", availableQty: 50, minStock: 200, requiredQty: 150, status: "Low Stock" },
-    { id: "2", materialName: "DTF Film (A3)", availableQty: 20, minStock: 100, requiredQty: 80, status: "Low Stock" },
-    { id: "3", materialName: "Ink (Black)", availableQty: 5, minStock: 50, requiredQty: 45, status: "Low Stock" },
-    { id: "4", materialName: "Sublimation Paper", availableQty: 10, minStock: 100, requiredQty: 90, status: "Low Stock" },
-    { id: "5", materialName: "Heat Transfer Vinyl", availableQty: 0, minStock: 50, requiredQty: 50, status: "Out of Stock" },
-  ];
+  const defaultLowStock = []; // no sample rows: only real data is shown
 
-  const defaultPendingPayments = [
-    { id: "1", invoiceNo: "INV-00156", customerName: "ABC Traders", amount: 120000, pending: 40000, dueDate: "10 Oct 2026", status: "Overdue" },
-    { id: "2", invoiceNo: "INV-00152", customerName: "Karthik Prints", amount: 85000, pending: 25000, dueDate: "18 Oct 2026", status: "Pending" },
-    { id: "3", invoiceNo: "INV-00148", customerName: "Sri Ganesh Stores", amount: 60000, pending: 20000, dueDate: "25 Oct 2026", status: "Pending" },
-  ];
+  const defaultPendingPayments = []; // no sample rows: only real data is shown
 
-  const defaultUpcomingDeliveries = [
-    { id: "1", jobId: "JO-00120", customerName: "Priya Fashions", deliveryDate: "12 Oct 2026", status: "On Time" },
-    { id: "2", jobId: "JO-00118", customerName: "ABC Traders", deliveryDate: "15 Oct 2026", status: "On Time" },
-    { id: "3", jobId: "JO-00115", customerName: "United Textiles", deliveryDate: "18 Oct 2026", status: "Delayed" },
-    { id: "4", jobId: "JO-00112", customerName: "RK Enterprises", deliveryDate: "20 Oct 2026", status: "On Time" },
-  ];
+  const defaultUpcomingDeliveries = []; // no sample rows: only real data is shown
 
-  const defaultAlerts = [
-    { id: "1", message: "5 Job orders delayed", type: "danger" },
-    { id: "2", message: "3 materials are out of stock", type: "danger" },
-    { id: "3", message: "8 materials below minimum stock level", type: "warning" },
-    { id: "4", message: "2 design approvals pending", type: "info" },
-    { id: "5", message: "4 payments overdue", type: "info" },
-  ];
+  const defaultAlerts = []; // no sample rows: only real data is shown
 
   const jobsList = recentJobOrders.length > 0 ? recentJobOrders : defaultRecentJobs;
   const stockList = lowStockItems.length > 0 ? lowStockItems : defaultLowStock;

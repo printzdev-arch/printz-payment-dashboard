@@ -12,6 +12,8 @@ try {
   // No logo file: the invoice is still rendered, without the logo
 }
 
+const { escapeHtml: esc } = require("../../../utils/validation/escapeHtml");
+
 class InvoicePdfService {
   static renderPrintHtml(invoice) {
     const doc = invoice.toObject ? invoice.toObject() : invoice;
@@ -26,14 +28,14 @@ class InvoicePdfService {
       <tr>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${idx + 1}</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0;">
-          <strong>${it.itemName || "Item"}</strong>
-          ${it.description ? `<br><span style="font-size: 11px; color: #64748b;">${it.description}</span>` : ""}
+          <strong>${esc(it.itemName || "Item")}</strong>
+          ${it.description ? `<br><span style="font-size: 11px; color: #64748b;">${esc(it.description)}</span>` : ""}
         </td>
-        <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${it.quantity} ${it.unit || "PCS"}</td>
+        <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${esc(it.quantity)} ${esc(it.unit || "PCS")}</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${currencySymbol}${(it.unitPrice || 0).toFixed(2)}</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${currencySymbol}${(it.discountAmount || 0).toFixed(2)}</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${currencySymbol}${(it.taxableAmount || 0).toFixed(2)}</td>
-        <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${it.taxRate}%</td>
+        <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${esc(it.taxRate)}%</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${currencySymbol}${(it.taxAmount || 0).toFixed(2)}</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${currencySymbol}${(it.lineTotal || 0).toFixed(2)}</td>
       </tr>
@@ -41,7 +43,7 @@ class InvoicePdfService {
 
     const chargesRows = charges.length > 0 ? charges.map((ch) => `
       <tr>
-        <td colspan="7" style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${ch.description}:</td>
+        <td colspan="7" style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${esc(ch.description)}:</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">${currencySymbol}${(ch.taxAmount || 0).toFixed(2)}</td>
         <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${currencySymbol}${((ch.amount || 0) + (ch.taxAmount || 0)).toFixed(2)}</td>
       </tr>
@@ -54,7 +56,7 @@ class InvoicePdfService {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Invoice ${doc.invoiceNumber || "DRAFT"}</title>
+  <title>Invoice ${esc(doc.invoiceNumber || "DRAFT")}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; margin: 0; padding: 24px; background: #fff; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3b82f6; padding-bottom: 16px; margin-bottom: 24px; }
@@ -80,19 +82,19 @@ class InvoicePdfService {
       ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />` : ""}
       <div class="company-title">PRINTZ PAYMENT DASHBOARD</div>
       <div style="font-size: 13px; color: #475569; margin-top: 4px;">
-        <strong>${branch.name || "Main Branch"}</strong> (${branch.code || "HQ"})<br>
-        ${branch.address || "Printing & Digital Graphics Center"}<br>
-        ${branch.gstin ? `GSTIN: ${branch.gstin}<br>` : ""}
+        <strong>${esc(branch.name || "Main Branch")}</strong> (${esc(branch.code || "HQ")})<br>
+        ${esc(branch.address || "Printing & Digital Graphics Center")}<br>
+        ${branch.gstin ? `GSTIN: ${esc(branch.gstin)}<br>` : ""}
       </div>
     </div>
     <div style="text-align: right;">
       <div class="invoice-title">TAX INVOICE</div>
       <div style="font-size: 14px; font-weight: 600; margin-top: 4px;">
-        Invoice #: ${doc.invoiceNumber || "DRAFT"}
+        Invoice #: ${esc(doc.invoiceNumber || "DRAFT")}
       </div>
       <div style="margin-top: 6px;">
         <span class="badge ${doc.status === 'FINALIZED' || doc.status === 'PAID' ? 'badge-finalized' : (doc.status === 'DRAFT' ? 'badge-draft' : 'badge-pending')}">
-          ${doc.status}
+          ${esc(doc.status)}
         </span>
       </div>
     </div>
@@ -101,18 +103,18 @@ class InvoicePdfService {
   <div class="grid">
     <div class="col">
       <div style="font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase;">BILL TO:</div>
-      <div style="font-size: 15px; font-weight: bold; margin-top: 4px;">${cust.name || "Walk-in Customer"}</div>
-      ${cust.company ? `<div style="font-size: 13px; color: #334155;">${cust.company}</div>` : ""}
-      ${cust.address ? `<div style="font-size: 13px; color: #475569; margin-top: 2px;">${cust.address}</div>` : ""}
-      ${cust.mobile ? `<div style="font-size: 13px; color: #475569;">Mobile: ${cust.mobile}</div>` : ""}
-      ${cust.gstin ? `<div style="font-size: 13px; font-weight: 600; color: #1e3a8a;">GSTIN: ${cust.gstin}</div>` : ""}
+      <div style="font-size: 15px; font-weight: bold; margin-top: 4px;">${esc(cust.name || "Walk-in Customer")}</div>
+      ${cust.company ? `<div style="font-size: 13px; color: #334155;">${esc(cust.company)}</div>` : ""}
+      ${cust.address ? `<div style="font-size: 13px; color: #475569; margin-top: 2px;">${esc(cust.address)}</div>` : ""}
+      ${cust.mobile ? `<div style="font-size: 13px; color: #475569;">Mobile: ${esc(cust.mobile)}</div>` : ""}
+      ${cust.gstin ? `<div style="font-size: 13px; font-weight: 600; color: #1e3a8a;">GSTIN: ${esc(cust.gstin)}</div>` : ""}
     </div>
     <div class="col" style="text-align: right;">
       <div style="font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase;">INVOICE DETAILS:</div>
       <table style="margin-left: auto; font-size: 13px; margin-top: 4px; text-align: right;">
         <tr><td style="color: #64748b; padding-right: 12px;">Invoice Date:</td><td><strong>${dateFormatted}</strong></td></tr>
         <tr><td style="color: #64748b; padding-right: 12px;">Due Date:</td><td>${dueDateFormatted}</td></tr>
-        <tr><td style="color: #64748b; padding-right: 12px;">Job Order #:</td><td><strong>${doc.jobNo || "-"}</strong></td></tr>
+        <tr><td style="color: #64748b; padding-right: 12px;">Job Order #:</td><td><strong>${esc(doc.jobNo || "-")}</strong></td></tr>
         ${doc.deliveryOrderId ? `<tr><td style="color: #64748b; padding-right: 12px;">Delivery Ref:</td><td>DO-${String(doc.deliveryOrderId).slice(-6)}</td></tr>` : ""}
       </table>
     </div>
@@ -146,7 +148,7 @@ class InvoicePdfService {
         <li>Payment is due within the stipulated credit terms.</li>
         <li>Interest @ 18% p.a. will be levied on overdue payments.</li>
       </ol>
-      ${doc.remarks ? `<div style="margin-top: 10px;"><strong>Remarks:</strong> ${doc.remarks}</div>` : ""}
+      ${doc.remarks ? `<div style="margin-top: 10px;"><strong>Remarks:</strong> ${esc(doc.remarks)}</div>` : ""}
     </div>
 
     <div>

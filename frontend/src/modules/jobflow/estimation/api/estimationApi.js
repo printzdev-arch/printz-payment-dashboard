@@ -102,9 +102,10 @@ export const estimationApi = {
       const res = await api.post("/estimates/calculate", data);
       return res.data;
     } catch {
-      const qty = Number(data.quantity) || 1;
-      const rate = Number(data.unitRate) || 0.5;
-      const subtotal = qty * rate;
+      // Only real numbers are used: a missing or invalid value counts as 0 (no invented rate)
+      const qty = Number.isFinite(Number(data.quantity)) && Number(data.quantity) > 0 ? Number(data.quantity) : 0;
+      const rate = Number.isFinite(Number(data.unitRate)) && Number(data.unitRate) > 0 ? Number(data.unitRate) : 0;
+      const subtotal = Math.round((qty * rate + Number.EPSILON) * 100) / 100;
       return {
         success: true,
         data: {

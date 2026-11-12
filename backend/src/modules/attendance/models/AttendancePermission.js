@@ -158,6 +158,9 @@ AttendancePermissionSchema.index({ employeeId: 1, year: 1, month: 1, status: 1 }
 AttendancePermissionSchema.index({ employeeId: 1, permissionDate: 1, status: 1 });
 AttendancePermissionSchema.index({ branchId: 1, permissionDate: 1 });
 AttendancePermissionSchema.index({ branchId: 1, status: 1, permissionDate: 1 });
+// Permission list is ordered by date then creation time
+AttendancePermissionSchema.index({ permissionDate: -1, createdAt: -1 });
+AttendancePermissionSchema.index({ branchId: 1, permissionDate: -1, createdAt: -1 });
 
 module.exports =
   mongoose.models.AttendancePermission ||

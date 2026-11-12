@@ -53,6 +53,8 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+// A user's unread notifications for one kind of record (e.g. sale orders), newest first
+notificationSchema.index({ userId: 1, entityType: 1, isRead: 1, createdAt: -1 });
 
 const Notification = mongoose.model(
   "Notification",

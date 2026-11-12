@@ -1,3 +1,4 @@
+const { roundMoney } = require("../../../utils/validation/roundMoney");
 const jobOrderRepository = require("../models/JobOrder");
 const jobItemRepository = require("../models/JobItem");
 const jobWorkflowEventRepository = require("../models/JobWorkflowEvent");
@@ -115,7 +116,13 @@ class JobOrderService {
 
     const datePrefix = getDatePrefix();
     const countJobs = await jobOrderRepository.countDocuments();
-    const jobNo = `JOB-${datePrefix}-${String(countJobs + 1).padStart(4, "0")}`;
+    // The count is only a starting point: after a job is deleted it points at a number that is already used
+    let jobSeq = countJobs + 1;
+    let jobNo = `JOB-${datePrefix}-${String(jobSeq).padStart(4, "0")}`;
+    for (let i = 0; i < 1000 && (await jobOrderRepository.exists({ jobNo })); i += 1) {
+      jobSeq += 1;
+      jobNo = `JOB-${datePrefix}-${String(jobSeq).padStart(4, "0")}`;
+    }
 
     let customerId = null;
     let customerSnapshot = {
@@ -197,14 +204,21 @@ class JobOrderService {
     const finishingInItems = items.some(
       (it) => it.itemType === "FINISHING" || String(it.itemName || "").toLowerCase().startsWith("finishing")
     );
-    const extraFinishing = finishingInItems ? 0 : Math.round(finishingTotal * 100) / 100;
-    const computedSubtotal = Math.round((totals.subtotal + extraFinishing) * 100) / 100;
-    const computedGrandTotal = Math.round((totals.grandTotal + extraFinishing) * 100) / 100;
+    const extraFinishing = finishingInItems ? 0 : roundMoney(finishingTotal);
+    const computedSubtotal = roundMoney((totals.subtotal + extraFinishing));
+    const computedGrandTotal = roundMoney((totals.grandTotal + extraFinishing));
     // The server total is authoritative; client totals are used only when no priced items were sent
     const finalGrandTotal =
       computedGrandTotal > 0
         ? computedGrandTotal
         : Math.max(Number(dto.grandTotal || 0), Number(dto.totalAmount || 0), Number(dto.estimatedPrice || 0));
+
+    // An advance is never negative and never more than the order total
+    const rawAdvance = Number(dto.advancePaid);
+    const advancePaid = Number.isFinite(rawAdvance) && rawAdvance > 0 ? roundMoney(rawAdvance) : 0;
+    if (finalGrandTotal > 0 && advancePaid > finalGrandTotal) {
+      throw ErrorHelper.badRequest(`Advance (${advancePaid}) cannot be more than the order total (${finalGrandTotal}).`);
+    }
 
     const job = await jobOrderRepository.create({
       jobNo,
@@ -238,9 +252,9 @@ class JobOrderService {
       finishingServices: Array.isArray(dto.finishingServices) ? dto.finishingServices : [],
       additionalServices: Array.isArray(dto.additionalServices) ? dto.additionalServices : [],
       attachments: Array.isArray(dto.attachments) ? dto.attachments : [],
-      advancePaid: Number(dto.advancePaid) || 0,
-      paidAmount: Number(dto.advancePaid) || 0,
-      balanceDue: Math.max(0, finalGrandTotal - (Number(dto.advancePaid) || 0)),
+      advancePaid,
+      paidAmount: advancePaid,
+      balanceDue: Math.max(0, roundMoney(finalGrandTotal - advancePaid)),
       status: dto.status === "SUBMITTED" ? "ACTIVE" : (dto.status || "DRAFT"),
       currentStage: "ENQUIRY",
       stage: "ENQUIRY",
@@ -463,8 +477,8 @@ class JobOrderService {
             (sum, f) => sum + Number(f.total || Number(f.unitPrice || 0) * Number(f.quantity || set.quantity || job.quantity || 1)),
             0
           );
-      const subtotal = Math.round((totals.subtotal + extraFinishing) * 100) / 100;
-      const grandTotal = Math.round((totals.grandTotal + extraFinishing) * 100) / 100;
+      const subtotal = roundMoney((totals.subtotal + extraFinishing));
+      const grandTotal = roundMoney((totals.grandTotal + extraFinishing));
 
       const itemDocs = this.buildItemDocs(job._id, items, totals);
       await jobItemRepository.deleteMany({ jobOrderId: job._id });

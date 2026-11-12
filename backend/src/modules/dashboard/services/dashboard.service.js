@@ -198,7 +198,8 @@ function makeKpi(key, label, value, trend = null, unit = undefined) {
     key,
     label,
     value: typeof value === "number" ? Math.round(value * 100) / 100 : value,
-    trend: trend || "+12% vs last month",
+    // Only a real comparison is shown; there is no made-up default trend
+    trend: trend || null,
     unit: unit || (String(key).toLowerCase().includes("revenue") || String(key).toLowerCase().includes("amount") || String(key).toLowerCase().includes("sales") || String(key).toLowerCase().includes("value") ? "INR" : undefined),
   };
 }
@@ -314,7 +315,7 @@ class DashboardService {
       }
     }
 
-    const selectedBranchName = branchDoc ? branchDoc.name : "Chennai Branch";
+    const selectedBranchName = branchDoc ? branchDoc.name : "All Branches";
 
     const branchMatch = bIdObj ? { branchId: { $in: [bIdObj, String(branchId)] } } : {};
     const invBranchMatch = bIdObj ? { branchId: { $in: [bIdObj, String(branchId)] } } : {};
@@ -346,7 +347,7 @@ class DashboardService {
     ] = await Promise.all([
       // 1. Total Revenue in Period
       db.collection("saleReceipts").aggregate([
-        { $match: { ...branchMatch, saleDate: { $gte: period.start, $lte: period.end } } },
+        { $match: { ...branchMatch, status: { $nin: ["VOID", "DRAFT", "CANCELLED"] }, saleDate: { $gte: period.start, $lte: period.end } } },
         { $group: { _id: null, total: { $sum: "$grandTotal" } } },
       ]).toArray(),
 
@@ -358,7 +359,7 @@ class DashboardService {
             isDeleted: { $ne: true },
           },
         },
-        { $group: { _id: null, totalCollected: { $sum: { $ifNull: ["$paidAmount", { $ifNull: ["$amountPaid", { $ifNull: ["$advancePaid", 0] }] }] } } } },
+        { $group: { _id: null, totalCollected: { $sum: { $add: [{ $ifNull: ["$paidAmount", { $ifNull: ["$amountPaid", 0] }] }, { $ifNull: ["$advanceApplied", { $ifNull: ["$advancePaid", 0] }] }] } } } },
       ]).toArray(),
 
       // 3. Pending Amount
@@ -421,7 +422,7 @@ class DashboardService {
       // 11. Stock Reserved (estimated from in-progress jobs or transfer dispatch)
       db.collection("inventoryBalances").aggregate([
         { $match: invBranchMatch },
-        { $group: { _id: null, total: { $sum: { $ifNull: ["$reservedQuantity", 280] } } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ["$reservedQuantity", 0] } } } },
       ]).toArray(),
 
       // 12. Low stock items count
@@ -457,12 +458,12 @@ class DashboardService {
 
       // 14. Daily Revenue Trend (for Graph 1)
       db.collection("saleReceipts").aggregate([
-        { $match: { ...branchMatch, saleDate: { $gte: period.start, $lte: period.end } } },
+        { $match: { ...branchMatch, status: { $nin: ["VOID", "DRAFT", "CANCELLED"] }, saleDate: { $gte: period.start, $lte: period.end } } },
         {
           $group: {
             _id: { $dateToString: { format: "%b %d", date: "$saleDate", timezone: "+05:30" } },
             revenue: { $sum: "$grandTotal" },
-            collected: { $sum: { $multiply: ["$grandTotal", 0.85] } },
+            collected: { $sum: { $ifNull: ["$amountPaid", 0] } },
           },
         },
         { $sort: { _id: 1 } },
@@ -522,116 +523,169 @@ class DashboardService {
       ]).toArray(),
     ]);
 
-    const totalRev = revenuePeriodAgg[0]?.total || 1245230;
-    const amountCollected = invoicesCollectedAgg[0]?.totalCollected || 1020450;
-    const pendingAmount = pendingInvoicesAgg[0]?.totalDue || 224780;
-    const totalJobs = totalJobOrdersCount || 186;
-    const completedJobs = completedJobsCount || 142;
-    const inProgressJobs = inProgressJobsCount || 24;
-    const pendingJobs = pendingJobsCount || 12;
-    const onHoldJobs = onHoldJobsCount || 8;
-    const totalEmployees = totalEmployeesCount || 28;
+    // Real figures only: a real 0 is shown as 0 (it used to be replaced by sample numbers)
+    const totalRev = revenuePeriodAgg[0]?.total ?? 0;
+    // Collected = money actually received in the period (invoice advances and later payments, plus counter sales paid).
+    // Pending = what is still owed (open invoices plus counter sales left on credit). Revenue, collected and pending
+    // now describe the same business, so a counter sale paid in full no longer shows as revenue with nothing collected.
+    const saleOk = { status: { $nin: ["VOID", "DRAFT", "CANCELLED"] } };
+    const [paymentsInPeriodAgg, receiptsPaidAgg, receiptsDueAgg] = await Promise.all([
+      db.collection("payments").aggregate([
+        { $match: { ...branchMatch, status: { $in: ["COMPLETED", "PAID", "SUCCESS"] }, isDeleted: { $ne: true }, paymentDate: { $gte: period.start, $lte: period.end } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]).toArray(),
+      db.collection("saleReceipts").aggregate([
+        { $match: { ...branchMatch, ...saleOk, saleDate: { $gte: period.start, $lte: period.end } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ["$amountPaid", 0] } } } },
+      ]).toArray(),
+      db.collection("saleReceipts").aggregate([
+        { $match: { ...branchMatch, ...saleOk, balanceDue: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: "$balanceDue" } } },
+      ]).toArray(),
+    ]);
+    const amountCollected = Math.round(((paymentsInPeriodAgg[0]?.total ?? 0) + (receiptsPaidAgg[0]?.total ?? 0)) * 100) / 100;
+    const pendingAmount = Math.round(((pendingInvoicesAgg[0]?.totalDue ?? 0) + (receiptsDueAgg[0]?.total ?? 0)) * 100) / 100;
+    const totalJobs = totalJobOrdersCount ?? 0;
+    const completedJobs = completedJobsCount ?? 0;
+    const inProgressJobs = inProgressJobsCount ?? 0;
+    const pendingJobs = pendingJobsCount ?? 0;
+    const onHoldJobs = onHoldJobsCount ?? 0;
+    const totalEmployees = totalEmployeesCount ?? 0;
 
-    const availableStock = stockAvailableAgg[0]?.total || 620;
-    const reservedStock = stockReservedAgg[0]?.total || 280;
-    const lowStockCount = lowStockItemsCount[0]?.total || 90;
-    const outOfStockCount = outOfStockItemsCount || 35;
+    const availableStock = stockAvailableAgg[0]?.total ?? 0;
+    const reservedStock = stockReservedAgg[0]?.total ?? 0;
+    const lowStockCount = lowStockItemsCount[0]?.total ?? 0;
+    const outOfStockCount = outOfStockItemsCount ?? 0;
 
-    // Default trend points matching UI if records are sparse in date filter
-    const dailyTrend = dailyRevenueTrendRaw.length >= 4
-      ? dailyRevenueTrendRaw.map((d) => ({
-        date: d._id,
-        revenue: Math.round(d.revenue),
-        collected: Math.round(d.collected || d.revenue * 0.8),
-      }))
-      : [
-        { date: "Oct 1", revenue: 420000, collected: 360000 },
-        { date: "Oct 5", revenue: 410000, collected: 340000 },
-        { date: "Oct 10", revenue: 530000, collected: 460000 },
-        { date: "Oct 15", revenue: 480000, collected: 410000 },
-        { date: "Oct 20", revenue: 610000, collected: 530000 },
-        { date: "Oct 25", revenue: 600000, collected: 520000 },
-        { date: "Oct 31", revenue: 780000, collected: 690000 },
-      ];
+    // Real days only (no sample points); collected is the amount actually received on those sales
+    const dailyTrend = dailyRevenueTrendRaw.map((d) => ({
+      date: d._id,
+      revenue: Math.round((Number(d.revenue) || 0) * 100) / 100,
+      collected: Math.round((Number(d.collected) || 0) * 100) / 100,
+    }));
 
-    // Format Table 1: Recent Job Orders
-    const recentJobOrders = recentJobOrdersRaw.length > 0
-      ? recentJobOrdersRaw.map((job) => ({
-        id: job._id,
-        jobId: job.jobNo || job.orderNumber || "JO-00125",
-        customerName: job.customerName || "Customer",
-        designStatus: job.stage?.includes("APPROVED") || job.status === "COMPLETED" ? "Approved" : (job.stage?.includes("REVISION") ? "Revision Required" : (job.stage?.includes("DESIGN") ? "In Progress" : "Pending")),
-        productionStatus: job.stage?.includes("PRODUCTION") || job.status === "IN_PRODUCTION" ? "In Production" : (job.stage?.includes("QC") ? "QC Pending" : "Pending"),
-        deliveryDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "25 Oct 2026",
-        priority: job.priority === "URGENT" || job.priority === "HIGH" ? "High" : (job.priority === "LOW" ? "Low" : "Medium"),
-      }))
-      : [
-        { id: "1", jobId: "JO-00125", customerName: "ABC Traders", designStatus: "Approved", productionStatus: "In Production", deliveryDate: "15 Oct 2026", priority: "High" },
-        { id: "2", jobId: "JO-00124", customerName: "Sri Ganesh Stores", designStatus: "In Progress", productionStatus: "Pending", deliveryDate: "18 Oct 2026", priority: "Medium" },
-        { id: "3", jobId: "JO-00123", customerName: "United Textiles", designStatus: "Revision Required", productionStatus: "Pending", deliveryDate: "20 Oct 2026", priority: "High" },
-        { id: "4", jobId: "JO-00122", customerName: "Karthik Prints", designStatus: "Approved", productionStatus: "QC Pending", deliveryDate: "22 Oct 2026", priority: "Medium" },
-        { id: "5", jobId: "JO-00121", customerName: "Priya Fashions", designStatus: "Pending", productionStatus: "Pending", deliveryDate: "25 Oct 2026", priority: "Low" },
-      ];
+    const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-");
+    const money2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
 
-    // Format Table 2: Low Stock Items
-    const lowStockItems = lowStockItemsRaw.length > 0
-      ? lowStockItemsRaw.map((b) => ({
+    // Table 1: Recent Job Orders
+    const recentJobOrders = recentJobOrdersRaw.map((job) => ({
+      id: job._id,
+      jobId: job.jobNo || job.orderNumber || "-",
+      customerName: job.customerName || job.customerSnapshot?.name || "-",
+      designStatus: job.stage?.includes("APPROVED") || job.status === "COMPLETED" ? "Approved" : (job.stage?.includes("REVISION") ? "Revision Required" : (job.stage?.includes("DESIGN") ? "In Progress" : "Pending")),
+      productionStatus: job.stage?.includes("PRODUCTION") || job.status === "IN_PRODUCTION" ? "In Production" : (job.stage?.includes("QC") ? "QC Pending" : "Pending"),
+      deliveryDate: fmtDate(job.dueDate),
+      priority: job.priority === "URGENT" || job.priority === "HIGH" ? "High" : (job.priority === "LOW" ? "Low" : "Medium"),
+    }));
+
+    // Table 2: Low Stock Items (the minimum is the item's own reorder level)
+    const lowStockItems = lowStockItemsRaw.map((b) => {
+      const minStock = Number(b.item?.reorderLevel ?? 0) || 0;
+      const qty = Number(b.quantity) || 0;
+      return {
         id: b._id,
-        materialName: b.item?.name || "Print Material",
-        availableQty: b.quantity || 0,
-        minStock: b.item?.reorderLevel || 100,
-        requiredQty: Math.max(0, (b.item?.reorderLevel || 100) - (b.quantity || 0)),
-        status: (b.quantity || 0) <= 0 ? "Out of Stock" : "Low Stock",
-      }))
-      : [
-        { id: "1", materialName: "Cotton Fabric (White)", availableQty: 50, minStock: 200, requiredQty: 150, status: "Low Stock" },
-        { id: "2", materialName: "DTF Film (A3)", availableQty: 20, minStock: 100, requiredQty: 80, status: "Low Stock" },
-        { id: "3", materialName: "Ink (Black)", availableQty: 5, minStock: 50, requiredQty: 45, status: "Low Stock" },
-        { id: "4", materialName: "Sublimation Paper", availableQty: 10, minStock: 100, requiredQty: 90, status: "Low Stock" },
-        { id: "5", materialName: "Heat Transfer Vinyl", availableQty: 0, minStock: 50, requiredQty: 50, status: "Out of Stock" },
-      ];
+        materialName: b.item?.name || "-",
+        availableQty: qty,
+        minStock,
+        requiredQty: Math.max(0, minStock - qty),
+        status: qty <= 0 ? "Out of Stock" : "Low Stock",
+      };
+    });
 
-    // Format Table 3: Pending Payments
-    const pendingPayments = pendingInvoicesRaw.length > 0
-      ? pendingInvoicesRaw.map((inv) => ({
-        id: inv._id,
-        invoiceNo: inv.invoiceNumber || "INV-00156",
-        customerName: inv.customerSnapshot?.name || inv.customerName || "Customer",
-        amount: Math.round(inv.grandTotal || 120000),
-        pending: Math.round(inv.balanceDue || 40000),
-        dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "10 Oct 2026",
-        status: inv.dueDate && new Date(inv.dueDate) < new Date() ? "Overdue" : "Pending",
-      }))
-      : [
-        { id: "1", invoiceNo: "INV-00156", customerName: "ABC Traders", amount: 120000, pending: 40000, dueDate: "10 Oct 2026", status: "Overdue" },
-        { id: "2", invoiceNo: "INV-00152", customerName: "Karthik Prints", amount: 85000, pending: 25000, dueDate: "18 Oct 2026", status: "Pending" },
-        { id: "3", invoiceNo: "INV-00148", customerName: "Sri Ganesh Stores", amount: 60000, pending: 20000, dueDate: "25 Oct 2026", status: "Pending" },
-      ];
+    // Table 3: Pending Payments
+    const pendingPayments = pendingInvoicesRaw.map((inv) => ({
+      id: inv._id,
+      invoiceNo: inv.invoiceNumber || "-",
+      customerName: inv.customerSnapshot?.name || inv.customerName || "-",
+      amount: money2(inv.grandTotal),
+      pending: money2(inv.balanceDue),
+      dueDate: fmtDate(inv.dueDate),
+      status: inv.dueDate && new Date(inv.dueDate) < new Date() ? "Overdue" : "Pending",
+    }));
 
-    // Format Table 4: Upcoming Deliveries
-    const upcomingDeliveries = upcomingDeliveriesRaw.length > 0
-      ? upcomingDeliveriesRaw.map((job) => ({
-        id: job._id,
-        jobId: job.jobNo || job.orderNumber || "JO-00120",
-        customerName: job.customerName || "Customer",
-        deliveryDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "12 Oct 2026",
-        status: job.dueDate && new Date(job.dueDate) < new Date() ? "Delayed" : "On Time",
-      }))
-      : [
-        { id: "1", jobId: "JO-00120", customerName: "Priya Fashions", deliveryDate: "12 Oct 2026", status: "On Time" },
-        { id: "2", jobId: "JO-00118", customerName: "ABC Traders", deliveryDate: "15 Oct 2026", status: "On Time" },
-        { id: "3", jobId: "JO-00115", customerName: "United Textiles", deliveryDate: "18 Oct 2026", status: "Delayed" },
-        { id: "4", jobId: "JO-00112", customerName: "RK Enterprises", deliveryDate: "20 Oct 2026", status: "On Time" },
-      ];
+    // Table 4: Upcoming Deliveries
+    const upcomingDeliveries = upcomingDeliveriesRaw.map((job) => ({
+      id: job._id,
+      jobId: job.jobNo || job.orderNumber || "-",
+      customerName: job.customerName || job.customerSnapshot?.name || "-",
+      deliveryDate: fmtDate(job.dueDate),
+      status: job.dueDate && new Date(job.dueDate) < new Date() ? "Delayed" : "On Time",
+    }));
 
-    // Alerts & Notifications
+    // Alerts come from the real counts above (nothing is shown when the count is 0)
+    const overduePayments = pendingPayments.filter((r) => r.status === "Overdue").length;
     const alerts = [
-      { id: "a1", type: "delayed_jobs", count: 5, message: "5 Job orders delayed", severity: "danger" },
-      { id: "a2", type: "out_of_stock", count: 3, message: "3 materials are out of stock", severity: "danger" },
-      { id: "a3", type: "low_stock", count: 8, message: "8 materials below minimum stock level", severity: "warning" },
-      { id: "a4", type: "design_approval", count: 2, message: "2 design approvals pending", severity: "info" },
-      { id: "a5", type: "payments_overdue", count: 4, message: "4 payments overdue", severity: "info" },
-    ];
+      { id: "a2", type: "out_of_stock", count: outOfStockCount, message: `${outOfStockCount} materials are out of stock`, severity: "danger" },
+      { id: "a3", type: "low_stock", count: lowStockCount, message: `${lowStockCount} materials below minimum stock level`, severity: "warning" },
+      { id: "a5", type: "payments_overdue", count: overduePayments, message: `${overduePayments} payments overdue`, severity: "info" },
+    ].filter((a) => a.count > 0);
+
+    // ---- Branch figures for the company view (all real: nothing is estimated) ----
+    const branchDocs = await db.collection("branches").find({}).project({ name: 1, code: 1, isActive: 1, branchType: 1 }).toArray();
+    const retailBranches = branchDocs.filter((b) => String(b.branchType || "").toLowerCase() !== "manufacturing");
+    const dateRange = { $gte: period.start, $lte: period.end };
+    const byBranch = async (collection, pipeline) => {
+      const rows = await db.collection(collection).aggregate(pipeline).toArray();
+      return new Map(rows.map((r) => [String(r._id), r]));
+    };
+    const [receiptsByBranch, jobsByBranch, dueByBranch, staffRows] = await Promise.all([
+      byBranch("saleReceipts", [
+        { $match: { status: { $nin: ["VOID", "DRAFT", "CANCELLED"] }, saleDate: dateRange } },
+        { $group: { _id: { $toString: "$branchId" }, revenue: { $sum: "$grandTotal" }, collected: { $sum: { $ifNull: ["$amountPaid", 0] } } } },
+      ]),
+      byBranch("jobOrders", [
+        { $match: { createdAt: dateRange } },
+        {
+          $group: {
+            _id: { $toString: "$branchId" },
+            total: { $sum: 1 },
+            completed: { $sum: { $cond: [{ $or: [{ $in: ["$status", ["COMPLETED", "DELIVERED", "CLOSED"]] }, { $in: ["$stage", ["COMPLETED", "DELIVERED", "CLOSED"]] }] }, 1, 0] } },
+          },
+        },
+      ]),
+      byBranch("invoices", [
+        { $match: { isDeleted: { $ne: true }, balanceDue: { $gt: 0 } } },
+        { $group: { _id: { $toString: "$branchId" }, pending: { $sum: "$balanceDue" } } },
+      ]),
+      db.collection("users").find({ isActive: { $ne: false } }).project({ name: 1, role: 1, branchId: 1 }).toArray(),
+    ]);
+    const roundTwo = (v) => Math.round((Number(v) || 0) * 100) / 100;
+    const managerByBranch = new Map();
+    let managerCount = 0;
+    let designerCount = 0;
+    for (const u of staffRows) {
+      const role = String(u.role || "").toLowerCase();
+      if (role.includes("manager")) {
+        managerCount += 1;
+        const key = String(u.branchId || "");
+        if (key && !managerByBranch.has(key)) managerByBranch.set(key, u.name || "-");
+      }
+      if (role.includes("designer")) designerCount += 1;
+    }
+    const branchPerformance = retailBranches.map((b) => {
+      const id = String(b._id);
+      const rc = receiptsByBranch.get(id) || {};
+      const jb = jobsByBranch.get(id) || {};
+      const due = dueByBranch.get(id) || {};
+      return {
+        id,
+        branch: b.name || b.code || "-",
+        manager: managerByBranch.get(id) || "-",
+        totalJobs: jb.total || 0,
+        completed: jb.completed || 0,
+        revenue: roundTwo(rc.revenue),
+        collected: roundTwo(rc.collected),
+        pendingAmount: roundTwo(due.pending),
+        status: b.isActive === false ? "Inactive" : "Active",
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+    const topBranches = branchPerformance.slice(0, 5).map((b, i) => ({ rank: i + 1, branch: b.branch, revenue: b.revenue, growth: null, jobs: b.totalJobs, status: b.status }));
+    const activeBranches = retailBranches.filter((b) => b.isActive !== false).length;
+    const branchRevenue = {
+      labels: branchPerformance.map((b) => b.branch),
+      revenue: branchPerformance.map((b) => b.revenue),
+      collected: branchPerformance.map((b) => b.collected),
+    };
 
     const result = {
       dashboardType: "ADMIN",
@@ -648,12 +702,15 @@ class DashboardService {
       },
       // Important 6 KPI Cards matching reference UI
       kpis: {
-        totalRevenue: makeKpi("totalRevenue", "Total Revenue", totalRev, "+12% vs last month", "INR"),
-        amountCollected: makeKpi("amountCollected", "Amount Collected", amountCollected, "+8% vs last month", "INR"),
-        pendingAmount: makeKpi("pendingAmount", "Pending Amount", pendingAmount, "+5% vs last month", "INR"),
-        totalJobOrders: makeKpi("totalJobOrders", "Total Job Orders", totalJobs, "+15% vs last month"),
-        completedJobs: makeKpi("completedJobs", "Completed Jobs", completedJobs, "+18% vs last month"),
-        totalEmployees: makeKpi("totalEmployees", "Total Employees", totalEmployees, "• 0% vs last month"),
+        totalBranches: { ...makeKpi("totalBranches", "Total Branches", retailBranches.length), subtitle: `${activeBranches} Active • ${retailBranches.length - activeBranches} Inactive` },
+        totalManagers: makeKpi("totalManagers", "Branch Managers", managerCount),
+        totalDesigners: makeKpi("totalDesigners", "Total Designers", designerCount),
+        totalRevenue: makeKpi("totalRevenue", "Total Revenue", totalRev, null, "INR"),
+        amountCollected: makeKpi("amountCollected", "Amount Collected", amountCollected, null, "INR"),
+        pendingAmount: makeKpi("pendingAmount", "Pending Amount", pendingAmount, null, "INR"),
+        totalJobOrders: makeKpi("totalJobOrders", "Total Job Orders", totalJobs),
+        completedJobs: makeKpi("completedJobs", "Completed Jobs", completedJobs),
+        totalEmployees: makeKpi("totalEmployees", "Total Employees", totalEmployees),
       },
       // 3 Main Graphs matching reference UI
       charts: {
@@ -665,14 +722,15 @@ class DashboardService {
         jobOrderStatus: {
           total: totalJobs,
           completed: completedJobs,
-          completedPercentage: Math.round((completedJobs / Math.max(1, totalJobs)) * 100),
+          completedPercentage: totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0,
           inProgress: inProgressJobs,
-          inProgressPercentage: Math.round((inProgressJobs / Math.max(1, totalJobs)) * 100),
+          inProgressPercentage: totalJobs > 0 ? Math.round((inProgressJobs / totalJobs) * 100) : 0,
           pending: pendingJobs,
-          pendingPercentage: Math.round((pendingJobs / Math.max(1, totalJobs)) * 100),
+          pendingPercentage: totalJobs > 0 ? Math.round((pendingJobs / totalJobs) * 100) : 0,
           onHold: onHoldJobs,
-          onHoldPercentage: Math.round((onHoldJobs / Math.max(1, totalJobs)) * 100),
+          onHoldPercentage: totalJobs > 0 ? Math.round((onHoldJobs / totalJobs) * 100) : 0,
         },
+        branchRevenue,
         stockAvailability: {
           available: availableStock,
           reserved: reservedStock,
@@ -681,6 +739,8 @@ class DashboardService {
         },
       },
       // Tables & Alerts matching reference UI
+      branchPerformance,
+      topBranches,
       recentJobOrders,
       lowStockItems,
       pendingPayments,
@@ -809,33 +869,68 @@ class DashboardService {
       ]).toArray(),
     ]);
 
-    const avgRating = ratingsAgg[0]?.avgRating ? Math.round(ratingsAgg[0].avgRating * 10) / 10 : 4.9;
+    const avgRating = ratingsAgg[0]?.avgRating ? Math.round(ratingsAgg[0].avgRating * 10) / 10 : null;
+    const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-");
+    const now = new Date();
+    const priorityLabel = (p) => (p === "URGENT" || p === "HIGH" ? "High" : p === "LOW" ? "Low" : "Medium");
+    const statusLabel = (job) => {
+      const stage = String(job.stage || job.currentStage || "").toUpperCase();
+      if (stage.includes("REVISION")) return "Revision";
+      if (stage.includes("SAMPLE_APPROVAL")) return "Submitted";
+      if (stage.includes("APPROVED") || stage === "COMPLETED") return "Approved";
+      return "In Progress";
+    };
 
+    // The designer's real open assignments (a missing field shows "-", nothing is invented)
     const workQueue = activeAssignments.map((a) => {
       const job = a.job || {};
-      const priority = job.priority || "NORMAL";
+      const status = statusLabel(job);
       return {
         id: a._id,
         jobOrderId: a.jobOrderId,
-        jobNo: job.jobNo || job.orderNumber || "JO-00124",
-        title: job.title || "Print Design Order",
-        customerName: job.customerName || "Customer",
-        priority,
-        stage: job.stage || "DESIGN_IN_PROGRESS",
-        sampleStatus: job.sampleStatus || "PENDING",
-        dueDate: job.dueDate ? new Date(job.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
-        assignedAt: a.assignedAt ? new Date(a.assignedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
-        remainingSlaMinutes: 75,
+        jobNo: job.jobNo || job.orderNumber || "-",
+        jobId: job.jobNo || job.orderNumber || "-",
+        title: job.title || "-",
+        designRequirement: job.title || "-",
+        customerName: job.customerName || job.customerSnapshot?.name || "-",
+        priority: priorityLabel(job.priority),
+        stage: job.stage || job.currentStage || "-",
+        status,
+        sampleStatus: job.sampleStatus || "-",
+        dueDate: fmtDate(job.dueDate),
+        deadline: fmtDate(job.dueDate),
+        dueAt: job.dueDate || null,
+        assignedAt: fmtDate(a.assignedAt),
+        assignedDate: fmtDate(a.assignedAt),
+        revisionCount: Number(job.revisionCount) || 0,
       };
     });
+    const overdueDesigns = workQueue.filter((w) => w.dueAt && new Date(w.dueAt) < now && w.status !== "Approved").length;
+    const revisionDesigns = workQueue.filter((w) => w.status === "Revision").length;
+    const upcomingDeadlines = workQueue
+      .filter((w) => w.dueAt)
+      .sort((x, y) => new Date(x.dueAt) - new Date(y.dueAt))
+      .slice(0, 5)
+      .map((w) => ({ id: "ud-" + w.id, jobId: w.jobId, customerName: w.customerName, deadline: w.deadline, priority: w.priority, status: w.status }));
+
+    const statusItems = [
+      { label: "Approved", count: approvedDesignsCount || 0, color: "#10b981" },
+      { label: "In Progress", count: inProgressCount || 0, color: "#0ea5e9" },
+      { label: "Submitted", count: pendingApprovalCount || 0, color: "#f59e0b" },
+      { label: "Revision", count: revisionDesigns, color: "#f97316" },
+      { label: "Rejected", count: rejectedDesignsCount || 0, color: "#ef4444" },
+    ];
+    const statusTotal = statusItems.reduce((sum, i) => sum + i.count, 0);
+    const priorityCount = (label) => workQueue.filter((w) => w.priority === label).length;
 
     const result = {
       dashboardType: "DESIGNER",
       designer: {
         id: user._id || user.id,
-        name: user.name || "Priya",
+        name: user.name || "-",
         role: "Graphic Designer",
         email: user.email,
+        averageRating: avgRating,
       },
       period: {
         dateType: period.dateType,
@@ -843,130 +938,41 @@ class DashboardService {
         startDate: period.fromStr,
         endDate: period.toStr,
       },
-      // 7 KPI Cards matching Designer Dashboard mockup
       kpis: {
-        totalAssignedDesigns: makeKpi("totalAssignedDesigns", "Total Assigned Designs", totalAssignedCount || 28, "+12% vs last month"),
-        inProgressDesigns: makeKpi("inProgressDesigns", "In Progress", inProgressCount || 12, "+20% vs last month"),
-        submittedDesigns: makeKpi("submittedDesigns", "Submitted", pendingApprovalCount || 18, "+15% vs last month"),
-        approvedDesigns: makeKpi("approvedDesigns", "Approved", approvedDesignsCount || 16, "+18% vs last month"),
-        rejectedDesigns: makeKpi("rejectedDesigns", "Rejected", rejectedDesignsCount || 4, "-8% vs last month"),
-        revisionRequested: makeKpi("revisionRequested", "Revision Requested", 6, "+25% vs last month"),
-        overdueDesigns: makeKpi("overdueDesigns", "Overdue Designs", 5, "-10% vs last month"),
+        totalAssignedDesigns: makeKpi("totalAssignedDesigns", "Total Assigned Designs", totalAssignedCount || 0),
+        inProgressDesigns: makeKpi("inProgressDesigns", "In Progress", inProgressCount || 0),
+        submittedDesigns: makeKpi("submittedDesigns", "Submitted", pendingApprovalCount || 0),
+        approvedDesigns: makeKpi("approvedDesigns", "Approved", approvedDesignsCount || 0),
+        rejectedDesigns: makeKpi("rejectedDesigns", "Rejected", rejectedDesignsCount || 0),
+        revisionRequested: makeKpi("revisionRequested", "Revision Requested", revisionDesigns),
+        overdueDesigns: makeKpi("overdueDesigns", "Overdue Designs", overdueDesigns),
       },
-      // Charts matching Designer Dashboard mockup
+      // Charts use real counts only; a chart without data is left empty instead of showing sample bars
       charts: {
-        progressTrend: {
-          labels: ["Oct 1", "Oct 5", "Oct 10", "Oct 15", "Oct 20", "Oct 25", "Oct 31"],
-          assigned: [6, 8, 11, 14, 15, 18, 22],
-          completed: [3, 4, 8, 9, 8, 12, 17],
-        },
+        progressTrend: { labels: [], assigned: [], completed: [] },
         statusDistribution: {
-          total: 28,
-          items: [
-            { label: "Approved", count: 16, percentage: 57, color: "#10b981" },
-            { label: "In Progress", count: 12, percentage: 14, color: "#0ea5e9" },
-            { label: "Submitted", count: 18, percentage: 11, color: "#f59e0b" },
-            { label: "Revision", count: 6, percentage: 7, color: "#a855f7" },
-            { label: "Rejected", count: 4, percentage: 7, color: "#ef4444" },
-          ],
+          total: statusTotal,
+          items: statusItems.map((i) => ({ ...i, percentage: statusTotal > 0 ? Math.round((i.count / statusTotal) * 100) : 0 })),
         },
         priorityDistribution: [
-          { priority: "High", count: 8, color: "#ef4444" },
-          { priority: "Medium", count: 12, color: "#f59e0b" },
-          { priority: "Low", count: 8, color: "#10b981" },
+          { priority: "High", count: priorityCount("High"), color: "#ef4444" },
+          { priority: "Medium", count: priorityCount("Medium"), color: "#f59e0b" },
+          { priority: "Low", count: priorityCount("Low"), color: "#10b981" },
         ],
-        monthlyPerformance: {
-          months: ["Jun", "Jul", "Aug", "Sep", "Oct"],
-          approved: [12, 13, 14, 13, 16],
-          rejected: [5, 4, 5, 4, 3],
-        },
+        monthlyPerformance: { months: [], approved: [], rejected: [] },
       },
-      // Table 1: My Design Jobs (Assigned Design Jobs)
-      assignedJobs: workQueue.length > 0 ? workQueue : [
-        {
-          id: "1",
-          jobId: "JO-00125",
-          customerName: "ABC Traders",
-          designRequirement: "Product Label Design",
-          assignedDate: "01 Oct 2024",
-          deadline: "05 Oct 2024",
-          priority: "High",
-          status: "In Progress",
-          revisionCount: 0,
-        },
-        {
-          id: "2",
-          jobId: "JO-00124",
-          customerName: "Sri Ganesh Stores",
-          designRequirement: "Banner Design",
-          assignedDate: "02 Oct 2024",
-          deadline: "06 Oct 2024",
-          priority: "Medium",
-          status: "Submitted",
-          revisionCount: 1,
-        },
-        {
-          id: "3",
-          jobId: "JO-00123",
-          customerName: "United Textiles",
-          designRequirement: "Catalogue Design",
-          assignedDate: "03 Oct 2024",
-          deadline: "07 Oct 2024",
-          priority: "High",
-          status: "Revision",
-          revisionCount: 2,
-        },
-        {
-          id: "4",
-          jobId: "JO-00122",
-          customerName: "Karthik Prints",
-          designRequirement: "Packaging Design",
-          assignedDate: "05 Oct 2024",
-          deadline: "10 Oct 2024",
-          priority: "Medium",
-          status: "Approved",
-          revisionCount: 0,
-        },
-        {
-          id: "5",
-          jobId: "JO-00121",
-          customerName: "Priya Fashions",
-          designRequirement: "Flex Design",
-          assignedDate: "06 Oct 2024",
-          deadline: "12 Oct 2024",
-          priority: "Low",
-          status: "Rejected",
-          revisionCount: 1,
-        },
-      ],
-      // Table 2: Upcoming Deadlines
-      upcomingDeadlines: [
-        { id: "ud-1", jobId: "JO-00126", customerName: "RK Enterprises", deadline: "21 Oct 2024", priority: "High", status: "In Progress" },
-        { id: "ud-2", jobId: "JO-00127", customerName: "Green Mart", deadline: "22 Oct 2024", priority: "High", status: "Submitted" },
-        { id: "ud-3", jobId: "JO-00128", customerName: "Star Graphics", deadline: "23 Oct 2024", priority: "Medium", status: "Revision" },
-        { id: "ud-4", jobId: "JO-00129", customerName: "Royal Foods", deadline: "24 Oct 2024", priority: "Medium", status: "In Progress" },
-        { id: "ud-5", jobId: "JO-00130", customerName: "City Prints", deadline: "25 Oct 2024", priority: "Low", status: "Pending" },
-      ],
-      // Table 3: Recent Submissions
-      recentSubmissions: [
-        { id: "rs-1", jobId: "JO-00124", customerName: "Sri Ganesh Stores", submittedDate: "15 Oct 2024", status: "Submitted", remarks: "Waiting for approval" },
-        { id: "rs-2", jobId: "JO-00120", customerName: "Mega Mart", submittedDate: "14 Oct 2024", status: "Approved", remarks: "Approved by manager" },
-        { id: "rs-3", jobId: "JO-00119", customerName: "Smart Traders", submittedDate: "12 Oct 2024", status: "Rejected", remarks: "Color changes required" },
-        { id: "rs-4", jobId: "JO-00118", customerName: "Kavin Prints", submittedDate: "10 Oct 2024", status: "Approved", remarks: "Approved" },
-      ],
-      // Alerts & Notifications
+      assignedJobs: workQueue,
+      upcomingDeadlines,
+      recentSubmissions: [],
       alerts: [
-        { id: "al-1", message: "3 designs are overdue", timeAgo: "2 hours ago", severity: "danger" },
-        { id: "al-2", message: "2 designs require revision", timeAgo: "4 hours ago", severity: "danger" },
-        { id: "al-3", message: "New design assigned (JO-00131)", timeAgo: "6 hours ago", severity: "info" },
-        { id: "al-4", message: "Design submitted by manager for review", timeAgo: "1 day ago", severity: "info" },
-        { id: "al-5", message: "5 pending designs due this week", timeAgo: "1 day ago", severity: "info" },
-      ],
+        { id: "al-1", message: `${overdueDesigns} designs are overdue`, severity: "danger", count: overdueDesigns },
+        { id: "al-2", message: `${revisionDesigns} designs require revision`, severity: "danger", count: revisionDesigns },
+      ].filter((a) => a.count > 0),
       pagination: {
         page,
         limit,
-        totalRecords: 28,
-        totalPages: 6,
+        totalRecords: totalAssignedCount || 0,
+        totalPages: Math.max(1, Math.ceil((totalAssignedCount || 0) / limit)),
       },
     };
 

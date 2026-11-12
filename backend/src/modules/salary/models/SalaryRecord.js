@@ -133,5 +133,8 @@ SalaryRecordSchema.virtual("isMidMonthPreview").get(function () {
 
 SalaryRecordSchema.index({ employeeId: 1, payrollYear: 1, payrollMonth: 1 }, { unique: true });
 SalaryRecordSchema.index({ salaryRunId: 1, branchId: 1 });
+// Records of a run are read in creation order; payslip history is read by branch and month
+SalaryRecordSchema.index({ salaryRunId: 1, createdAt: 1 });
+SalaryRecordSchema.index({ branchId: 1, payrollYear: -1, payrollMonth: -1 });
 
 module.exports = mongoose.models.SalaryRecord || mongoose.model("SalaryRecord", SalaryRecordSchema);

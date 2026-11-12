@@ -89,6 +89,9 @@ const inventoryTransactionSchema = new mongoose.Schema(
 inventoryTransactionSchema.index({ transactionNo: 1 }, { unique: true });
 inventoryTransactionSchema.index({ itemId: 1, branchId: 1, transactionDate: -1 });
 inventoryTransactionSchema.index({ referenceType: 1, referenceId: 1 });
+// Stock ledger of a branch, newest first
+inventoryTransactionSchema.index({ branchId: 1, transactionDate: -1 });
+inventoryTransactionSchema.index({ branchId: 1, createdAt: -1 });
 
 
 // === INJECTED REPOSITORY STATICS ===

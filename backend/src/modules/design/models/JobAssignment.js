@@ -75,6 +75,12 @@ const jobAssignmentSchema = new mongoose.Schema(
 
 jobAssignmentSchema.index({ jobOrderId: 1, assignmentType: 1, currentAssignment: 1 });
 jobAssignmentSchema.index({ employeeId: 1, status: 1, currentAssignment: 1 });
+// Round-robin lookup, recent / rejected assignment lists and the designer dashboard
+jobAssignmentSchema.index({ assignmentType: 1, assignmentMethod: 1, createdAt: -1 });
+jobAssignmentSchema.index({ assignmentType: 1, status: 1, createdAt: -1 });
+jobAssignmentSchema.index({ assignmentType: 1, assignedAt: -1, createdAt: -1 });
+jobAssignmentSchema.index({ employeeId: 1, status: 1, assignedAt: -1 });
+jobAssignmentSchema.index({ jobOrderId: 1, createdAt: -1 });
 jobAssignmentSchema.index(
   { jobOrderId: 1, assignmentType: 1 },
   { unique: true, partialFilterExpression: { currentAssignment: true } }

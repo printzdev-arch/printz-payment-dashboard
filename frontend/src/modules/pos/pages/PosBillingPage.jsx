@@ -1,3 +1,5 @@
+import { calculatePosBill, splitBillDiscount } from "../utils/posMath";
+import { onlyMobile, onlyBusinessName, businessNameError, gstinError } from "../../../shared/utils/validation";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ShoppingCart,
@@ -407,21 +409,11 @@ export const PosBillingPage = () => {
   };
 
   // Calculations with GST Selection
-  const { subtotal, taxAmount, grandTotal } = useMemo(() => {
-    let sub = 0;
-    cart.forEach((it) => {
-      sub += it.quantity * it.unitPrice;
-    });
-    const disc = Number(discountAmount) || 0;
-    const taxable = Math.max(0, sub - disc);
-    const tax = (taxable * Number(gstRate || 0)) / 100;
-    const total = Math.max(0, taxable + tax);
-    return {
-      subtotal: Math.round(sub * 100) / 100,
-      taxAmount: Math.round(tax * 100) / 100,
-      grandTotal: Math.round(total * 100) / 100,
-    };
-  }, [cart, discountAmount, gstRate]);
+  // Calculated line by line, the same way the server does, so this total is the total that gets saved
+  const { subtotal, taxAmount, grandTotal } = useMemo(
+    () => calculatePosBill(cart, discountAmount, gstRate),
+    [cart, discountAmount, gstRate]
+  );
 
   // Discount validation (Threshold e.g. > ₹500 or > 15% subtotal requires manager approval)
   const isHighDiscount = useMemo(() => {
@@ -437,7 +429,7 @@ export const PosBillingPage = () => {
       toast.warning("Customer Name and Mobile number are required");
       return;
     }
-    if (newCustMobile.replace(/D/g, "").length !== 10) {
+    if (newCustMobile.replace(/\D/g, "").length !== 10) {
       toast.warning("Please enter a valid 10-digit mobile number");
       return;
     }
@@ -566,6 +558,16 @@ export const PosBillingPage = () => {
         toast.error("Please enter a valid 10-digit mobile number");
         return;
       }
+      const nameMsg = businessNameError(customerName, { label: "Customer name" });
+      if (nameMsg) {
+        toast.error(nameMsg);
+        return;
+      }
+      const gstinMsg = gstinError(customerGstin);
+      if (gstinMsg) {
+        toast.error(gstinMsg);
+        return;
+      }
     }
 
     // Existing customer check
@@ -623,14 +625,7 @@ export const PosBillingPage = () => {
 
     // The server only applies discounts per line, so the bill discount is split across the lines
     // in proportion to their amounts (the last line takes the rounding remainder).
-    const billDiscount = Math.min(Number(discountAmount) || 0, subtotal);
-    let discountLeft = Math.round(billDiscount * 100) / 100;
-    const lineDiscounts = cart.map((it, i) => {
-      if (i === cart.length - 1) return discountLeft;
-      const share = subtotal > 0 ? Math.round(((it.quantity * it.unitPrice) / subtotal) * billDiscount * 100) / 100 : 0;
-      discountLeft = Math.round((discountLeft - share) * 100) / 100;
-      return share;
-    });
+    const lineDiscounts = splitBillDiscount(cart, discountAmount);
 
     setCheckingOut(true);
     try {
@@ -1009,7 +1004,7 @@ export const PosBillingPage = () => {
                           }}
                           placeholder="Customer Name *"
                           value={customerName}
-                          onChange={(e) => setCustomerName(e.target.value)}
+                          onChange={(e) => setCustomerName(onlyBusinessName(e.target.value))}
                           required
                         />
                       </div>
@@ -1026,7 +1021,7 @@ export const PosBillingPage = () => {
                           value={customerMobile}
                           inputMode="numeric"
                           maxLength={10}
-                          onChange={(e) => setCustomerMobile(e.target.value.replace(/D/g, "").slice(0, 10))}
+                          onChange={(e) => setCustomerMobile(onlyMobile(e.target.value))}
                           required
                         />
                       </div>
@@ -1865,7 +1860,7 @@ export const PosBillingPage = () => {
                     value={newCustMobile}
                     inputMode="numeric"
                     maxLength={10}
-                    onChange={(e) => setNewCustMobile(e.target.value.replace(/D/g, "").slice(0, 10))}
+                    onChange={(e) => setNewCustMobile(onlyMobile(e.target.value))}
                     required
                   />
                 </div>
