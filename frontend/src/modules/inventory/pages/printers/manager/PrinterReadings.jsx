@@ -1793,7 +1793,8 @@ const PrinterReadings = () => {
                         {savedSteps[1] ? "Readings Recorded" : "Pending Entry"}
                       </div>
                     </div>
-                    <button
+                    {!isFinalSubmitted && (
+<button
                       type="button"
                       onClick={() => setActiveStep(1)}
                       style={{
@@ -1808,6 +1809,7 @@ const PrinterReadings = () => {
                     >
                       Edit
                     </button>
+)}
                   </div>
 
                   <div
@@ -1829,7 +1831,8 @@ const PrinterReadings = () => {
                         {savedSteps[2] ? "Jumbo Saved" : "Pending Entry"}
                       </div>
                     </div>
-                    <button
+                    {!isFinalSubmitted && (
+<button
                       type="button"
                       onClick={() => setActiveStep(2)}
                       style={{
@@ -1844,6 +1847,7 @@ const PrinterReadings = () => {
                     >
                       Edit
                     </button>
+)}
                   </div>
 
                   <div
@@ -1865,7 +1869,8 @@ const PrinterReadings = () => {
                         {savedSteps[3] ? "Totals Recorded" : "Pending Entry"}
                       </div>
                     </div>
-                    <button
+                    {!isFinalSubmitted && (
+<button
                       type="button"
                       onClick={() => setActiveStep(3)}
                       style={{
@@ -1880,6 +1885,7 @@ const PrinterReadings = () => {
                     >
                       Edit
                     </button>
+)}
                   </div>
 
                   <div
@@ -1901,7 +1907,8 @@ const PrinterReadings = () => {
                         {savedSteps[4] ? "Stocks Reconciled" : "Pending Entry"}
                       </div>
                     </div>
-                    <button
+                    {!isFinalSubmitted && (
+<button
                       type="button"
                       onClick={() => setActiveStep(4)}
                       style={{
@@ -1916,6 +1923,7 @@ const PrinterReadings = () => {
                     >
                       Edit
                     </button>
+)}
                   </div>
                 </div>
 

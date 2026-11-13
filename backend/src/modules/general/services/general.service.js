@@ -43,7 +43,29 @@ class GeneralService {
     if (!dto.branchName || !dto.date) {
       throw ApiError.badRequest("branchName and date are required");
     }
-    return this.finRepo.finalize(dto.branchName, dto.date, dto);
+    const existing = await this.finRepo.findByBranchAndDate(dto.branchName, dto.date);
+    const payload = { ...dto };
+    if (existing?.scanCheck) {
+      // Already finalized: keep the original finalize time and scan snapshot
+      payload.finalizedAt = existing.finalizedAt || existing.updatedAt;
+      payload.scanCheck = existing.scanCheck;
+    } else {
+      const finalizedAt = new Date();
+      payload.finalizedAt = finalizedAt;
+      try {
+        // Freeze the POS Color/B&W scan check at finalize time; the next sheet counts from here
+        const scanCheckService = require("../../printers/services/scanCheck.service");
+        payload.scanCheck = await scanCheckService.compute({
+          branchName: dto.branchName,
+          date: dto.date,
+          endAt: finalizedAt,
+          finalized: true,
+        });
+      } catch (err) {
+        console.error("Scan check snapshot failed:", err.message);
+      }
+    }
+    return this.finRepo.finalize(dto.branchName, dto.date, payload);
   }
 
   // Inventory Movements

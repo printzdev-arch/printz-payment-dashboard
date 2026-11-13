@@ -42,7 +42,17 @@ const deleteReading = asyncHandler(async (req, res) => {
   return ResponseHelper.success(res, null, "Printer reading deleted successfully");
 });
 
+const getScanCheck = asyncHandler(async (req, res) => {
+  const scanCheckService = require("../services/scanCheck.service");
+  const result = await scanCheckService.getScanCheck({
+    branchName: req.query.branchName || req.query.branch || req.query.branchId,
+    date: req.query.date,
+  });
+  return ResponseHelper.success(res, result, "Scan check retrieved successfully");
+});
+
 module.exports = {
+  getScanCheck,
   getAllReadings,
   getReadingById,
   saveReading,

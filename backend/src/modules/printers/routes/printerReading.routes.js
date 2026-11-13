@@ -8,6 +8,7 @@ const { authorizePermission } = require("../../../middleware/security/permission
 router.use(authenticate);
 
 router.get("/", authorizePermission("printerReadings", "read"), printerReadingController.getAllReadings);
+router.get("/scan-check", authorizePermission("printerReadings", "read"), printerReadingController.getScanCheck);
 router.get("/:id", authorizePermission("printerReadings", "read"), printerReadingController.getReadingById);
 router.post("/", authorizePermission("printerReadings", "create"), printerReadingController.saveReading);
 router.put("/:id", authorizePermission("printerReadings", "update"), printerReadingController.updateReading);

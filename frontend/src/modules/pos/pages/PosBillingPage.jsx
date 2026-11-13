@@ -46,8 +46,8 @@ import "../styles/pos.css";
 // Print services sold at the counter. Prices are re-checked on the server (backend/src/modules/pos/constants/printServices.js).
 // Rate is per printed page; double-sided is charged for two pages per sheet.
 const PRINT_SERVICES = [
-  { key: "COLOR", label: "Color Print", code: "SVC-COLOR", icon: Palette },
-  { key: "BW", label: "Black / White", code: "SVC-BW", icon: FileText },
+  { key: "COLOR", label: "Color Scan", code: "SVC-COLOR", icon: Palette },
+  { key: "BW", label: "B/W Scan", code: "SVC-BW", icon: FileText },
 ];
 const PRINT_SIDES = [
   { key: "SINGLE", label: "Single", multiplier: 1 },

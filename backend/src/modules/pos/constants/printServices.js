@@ -4,8 +4,8 @@
  * Rate is per printed page. Double-sided prints are charged for two pages per sheet.
  */
 const PRINT_TYPES = {
-  COLOR: "Color Print",
-  BW: "Black / White",
+  COLOR: "Color Scan",
+  BW: "B/W Scan",
 };
 
 const PAPER_RATES = {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import jsPDF from "jspdf";
-import { getBranches, getJumboXeroxConfigurations, getJumboXeroxReadings, getPrinterReadings, getPrinters, getStockReadings, getTotalAmounts, getUsers } from "../../../api";
+import { getBranches, getJumboXeroxConfigurations, getJumboXeroxReadings, getPrinterReadings, getPrinters, getScanCheck, getStockReadings, getTotalAmounts, getUsers } from "../../../api";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -38,6 +38,7 @@ const AdminDailyReadingsRevenue = () => {
   const [printerReadings, setPrinterReadings] = useState({});
   const [previousDateMap, setPreviousDateMap] = useState({});
   const [hasExistingPrinterData, setHasExistingPrinterData] = useState(false);
+  const [scanCheck, setScanCheck] = useState(null);
 
   const [jumboXeroxConfig, setJumboXeroxConfig] = useState([]);
   const [jumboRows, setJumboRows] = useState([]);
@@ -327,6 +328,26 @@ const AdminDailyReadingsRevenue = () => {
     fetchUserData();
   }, []);
 
+  // POS Color Scan / B/W Scan pages vs sheet meter copies (saved snapshot once finalized)
+  useEffect(() => {
+    if (!date || !branchName) {
+      setScanCheck(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const dateString = typeof date === "string" ? date : new Date(date).toISOString().slice(0, 10);
+    getScanCheck({ branchName, date: dateString })
+      .then((res) => {
+        if (!cancelled) setScanCheck(res?.data?.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setScanCheck(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [date, branchName, hasExistingPrinterData]);
+
   useEffect(() => {
     if (!branchName) return;
 
@@ -412,8 +433,9 @@ const AdminDailyReadingsRevenue = () => {
           printersRes.data?.data ||
           (Array.isArray(printersRes.data) ? printersRes.data : []);
 
+        // Same printers the manager sees in Printer Readings (small printers); large format is in its own step
         const activePrinters = allBranchPrinters.filter(
-          (p) => p.isActive === true
+          (p) => ["SFP", "MFP"].includes(p.printerType) && p.isActive === true
         );
 
         // Fetch printer readings
@@ -1499,6 +1521,44 @@ const AdminDailyReadingsRevenue = () => {
               </div>
 
               <div style={{ padding: "16px" }}>
+                {scanCheck && (
+                  <div className="revenue-table-wrapper" style={{ marginBottom: "16px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "13px", color: "#0f172a", padding: "8px 12px" }}>
+                      Scan Check — POS vs Meter ({scanCheck.source === "snapshot" ? "saved at finalize" : "live, not finalized"})
+                    </div>
+                    <table className="revenue-modern-table">
+                      <thead>
+                        <tr>
+                          <th>Scan Type</th>
+                          <th className="center">POS Pages Sold</th>
+                          <th className="center">Sheet Meter Copies</th>
+                          <th className="center">Difference (Pages)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          ["Color Scan", scanCheck.color],
+                          ["B/W Scan", scanCheck.bw],
+                        ].map(([label, row]) => {
+                          const diff = Number(row?.difference || 0);
+                          return (
+                            <tr key={label}>
+                              <td style={{ fontWeight: 700 }}>{label}</td>
+                              <td className="center">{Number(row?.pos || 0).toLocaleString()}</td>
+                              <td className="center">{Number(row?.meter || 0).toLocaleString()}</td>
+                              <td
+                                className="center"
+                                style={{ fontWeight: 800, color: diff === 0 ? "#047857" : "#b45309" }}
+                              >
+                                {diff === 0 ? "Matched" : `${diff > 0 ? "+" : "-"}${Math.abs(diff).toLocaleString()}`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
                 {printers.map((printer) => {
                   const printerTotal = (printer.prices || []).reduce((sum, priceObj) => {
                     const sizeData = printerReadings[printer.printerId]?.[priceObj.size];

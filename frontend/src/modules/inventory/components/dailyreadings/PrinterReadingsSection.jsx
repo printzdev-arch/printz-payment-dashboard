@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { createPrinterReading, searchPrinterReadings, searchPrinters } from "../../api";
+import { createPrinterReading, getScanCheck, searchPrinterReadings, searchPrinters } from "../../api";
 import {
   Printer,
   CheckCircle2,
@@ -39,6 +39,88 @@ const PrinterReadingsSection = ({
   const [printerDocId, setPrinterDocId] = useState(null);
   const [isFinalStateChecking, setIsFinalStateChecking] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+
+  // POS Color Scan / B/W Scan pages vs the meter copies of the matching sheet rows
+  const [scanCheck, setScanCheck] = useState(null);
+
+  useEffect(() => {
+    if (!branchName || !date) return undefined;
+    let cancelled = false;
+    getScanCheck({ branchName, date })
+      .then((res) => {
+        if (!cancelled) setScanCheck(res?.data?.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setScanCheck(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [branchName, date, isFinalSubmitted, hasExistingPrinterData]);
+
+  const getScanKey = (rowName) => {
+    const name = String(rowName || "").trim();
+    if (/^colou?r\s*scan$/i.test(name)) return "color";
+    if (/^b\s*\/?\s*w\s*scan$/i.test(name)) return "bw";
+    return null;
+  };
+
+  // Meter copies (final - start) of the scan rows, added across every printer in the sheet
+  const getMeterTotals = () => {
+    const totals = { color: 0, bw: 0, colorEntered: false, bwEntered: false };
+    Object.values(printerReadings || {}).forEach((rows) => {
+      Object.entries(rows || {}).forEach(([rowName, data]) => {
+        const key = getScanKey(rowName);
+        if (!key || !data) return;
+        const start = data.STARTING;
+        const final = data["FINAL READING"];
+        if (start !== "" && final !== "" && !isNaN(start) && !isNaN(final)) {
+          totals[key] += Math.max(0, Number(final) - Number(start));
+          totals[`${key}Entered`] = true;
+        }
+      });
+    });
+    return totals;
+  };
+
+  const renderScanIndicator = (rowName, startReading) => {
+    const key = getScanKey(rowName);
+    if (!key || !scanCheck) return null;
+    const pos = Number(scanCheck[key]?.pos || 0);
+    // With a single printer on this row, the POS pages give the final reading to expect
+    const rowCount = Object.values(printerReadings || {}).filter((rows) =>
+      Object.keys(rows || {}).some((name) => getScanKey(name) === key)
+    ).length;
+    const hasStart = startReading !== "" && startReading !== undefined && startReading !== null && !isNaN(startReading);
+    const expectedFinal = rowCount === 1 && hasStart ? Number(startReading) + pos : null;
+    const meterTotals = getMeterTotals();
+    const entered = meterTotals[`${key}Entered`];
+    const diff = meterTotals[key] - pos;
+    const matched = entered && diff === 0;
+    return (
+      <div
+        title={`POS pages sold since the last finalized sheet: ${pos.toLocaleString()} (whole branch)`}
+        style={{
+          marginTop: "4px",
+          padding: "2px 8px",
+          borderRadius: "8px",
+          background: matched ? "#ecfdf5" : entered ? "#fffbeb" : "#f1f5f9",
+          color: matched ? "#047857" : entered ? "#b45309" : "#475569",
+          fontSize: "11px",
+          fontWeight: 700,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {entered
+          ? matched
+            ? "Matched"
+            : `${diff > 0 ? "+" : "-"}${Math.abs(diff).toLocaleString()} pages`
+          : expectedFinal !== null
+            ? `Expected: ${expectedFinal.toLocaleString()}`
+            : `POS: ${pos.toLocaleString()} pages`}
+      </div>
+    );
+  };
 
   // Notify parent component when loading state changes
   useEffect(() => {
@@ -853,6 +935,7 @@ const PrinterReadingsSection = ({
                                   placeholder="0"
                                 />
                               )}
+                              {renderScanIndicator(priceObj.size, sizeData.STARTING)}
                             </td>
                             <td className="center">
                               <div className="printer-cell-pill-grey">
