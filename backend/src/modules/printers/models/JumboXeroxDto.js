@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 /**
  * Jumbo Xerox Data Transfer Objects
  */
@@ -112,7 +113,7 @@ class SaveJumboXeroxReadingDto {
     this.branchName = (branchName || branch || "").trim();
     this.branch = this.branchName;
     this.date = date || getTodayDateString();
-    this.machineName = (machineName || name || "").trim();
+    this.machineName = asText(machineName || name || "").trim();
     this.name = this.machineName;
     this.startReading = Number(startReading) || 0;
     this.endReading = Number(endReading) || 0;

@@ -1,10 +1,8 @@
+const { asText } = require("../../../utils/helpers/text");
 const MasterCategory = require("../models/MasterCategory");
 const MasterDefault = require("../models/MasterDefault");
 const ErrorHelper = require("../../../utils/errors/ApiError");
-const {
-  INITIAL_MASTER_CATEGORIES,
-  INITIAL_MASTER_ITEMS,
-} = require("./masterSeeds");
+const { MASTER_CATEGORY_DEFINITIONS } = require("./masterCategoryDefinitions");
 
 const generateCode = (name) => {
   return String(name || "")
@@ -16,90 +14,14 @@ const generateCode = (name) => {
 
 class MasterSettingService {
   /**
-   * Ensure both MongoDB collections ("masterCategories" and "masterDefaults") are seeded
-   * If collections are empty, seeds the factory defaults into MongoDB.
+   * Make sure the list of setting categories (product types, paper types, ...) exists, so items can be added to
+   * them. No items are created: every value in these lists is entered by an admin and stored in the database.
    */
   static async ensureDefaultsSeeded() {
-    // 1. Seed Categories in MongoDB collection "masterCategories"
-    const catCount = await MasterCategory.countDocuments();
-    if (catCount === 0) {
-      await MasterCategory.insertMany(INITIAL_MASTER_CATEGORIES);
-    } else {
-      // Check if any missing category needs to be inserted
-      const existingKeys = await MasterCategory.distinct("category");
-      const missingCats = INITIAL_MASTER_CATEGORIES.filter(
-        (c) => !existingKeys.includes(c.category)
-      );
-      if (missingCats.length > 0) {
-        await MasterCategory.insertMany(missingCats);
-      }
-    }
-
-    // 2. Seed Default Items in MongoDB collection "masterDefaults"
-    const categoriesInDb = await MasterCategory.find().lean();
-    const catMap = {};
-    categoriesInDb.forEach((c) => {
-      catMap[c.category] = c;
-    });
-
-    const existingCategoriesInDefaults = await MasterDefault.distinct("category");
-    const missingItems = INITIAL_MASTER_ITEMS.filter(
-      (it) => !existingCategoriesInDefaults.includes(it.category)
-    );
-
-    if (missingItems.length > 0) {
-      const docs = missingItems.map((it) => {
-        const cat = catMap[it.category] || {};
-        return {
-          category: it.category,
-          categoryLabel: cat.displayName || it.category,
-          categoryGroup: cat.categoryGroup || "general",
-          name: it.name,
-          code: it.code || generateCode(it.name),
-          description: "",
-          config: it.config || "",
-          defaultPrice: it.defaultPrice || 0,
-          unit: it.unit || "pcs",
-          isDefault: Boolean(it.isDefault),
-          isActive: true,
-          order: it.order || 1,
-        };
-      });
-
-      await MasterDefault.insertMany(docs);
-    }
-
-    // Databases seeded before these roles existed never get them from the block above (it only fills empty
-    // categories), so top up any employee role that is still missing, by code.
-    // Only the two newest roles are topped up, so a role an admin removed on purpose is not brought back.
-    const NEW_EMPLOYEE_ROLE_CODES = ["STORE_INCHARGE", "ACCOUNTING_STAFF"];
-    const employeeRoleSeeds = INITIAL_MASTER_ITEMS.filter(
-      (it) => it.category === "employeeRoles" && NEW_EMPLOYEE_ROLE_CODES.includes(it.code)
-    );
-    if (employeeRoleSeeds.length > 0) {
-      const have = new Set(
-        (await MasterDefault.find({ category: "employeeRoles" }).select("code").lean()).map((d) => d.code)
-      );
-      const missingRoles = employeeRoleSeeds.filter((it) => !have.has(it.code || generateCode(it.name)));
-      if (missingRoles.length > 0) {
-        const cat = catMap.employeeRoles || {};
-        await MasterDefault.insertMany(
-          missingRoles.map((it) => ({
-            category: it.category,
-            categoryLabel: cat.displayName || it.category,
-            categoryGroup: cat.categoryGroup || "general",
-            name: it.name,
-            code: it.code || generateCode(it.name),
-            description: "",
-            config: it.config || "",
-            defaultPrice: 0,
-            unit: "pcs",
-            isDefault: false,
-            isActive: true,
-            order: it.order || 1,
-          }))
-        );
-      }
+    const existingKeys = new Set(await MasterCategory.distinct("category"));
+    const missing = MASTER_CATEGORY_DEFINITIONS.filter((c) => !existingKeys.has(c.category));
+    if (missing.length > 0) {
+      await MasterCategory.insertMany(missing);
     }
   }
 
@@ -161,7 +83,7 @@ class MasterSettingService {
    */
   static async addItem(category, itemData, user = null) {
     await this.ensureDefaultsSeeded();
-    const name = (itemData.name || "").trim();
+    const name = asText(itemData.name || "").trim();
     if (!name) {
       throw ErrorHelper.badRequest("Option name is required.");
     }
@@ -287,49 +209,14 @@ class MasterSettingService {
   }
 
   /**
-   * Reset a category to defaults in MongoDB
+   * There are no factory defaults any more, so there is nothing to reset to.
    */
-  static async resetCategory(category) {
-    const cat = await MasterCategory.findOne({ category }).lean();
-    if (!cat) {
-      throw ErrorHelper.notFound(`Category '${category}' not found in MongoDB.`);
-    }
-
-    // Delete existing documents in masterDefaults collection for this category
-    await MasterDefault.deleteMany({ category });
-
-    // Filter factory items
-    const factoryItems = INITIAL_MASTER_ITEMS.filter((it) => it.category === category);
-    const docs = factoryItems.map((it, idx) => ({
-      category: cat.category,
-      categoryLabel: cat.displayName,
-      categoryGroup: cat.categoryGroup,
-      name: it.name,
-      code: it.code || generateCode(it.name),
-      description: "",
-      config: it.config || "",
-      defaultPrice: it.defaultPrice || 0,
-      unit: it.unit || "pcs",
-      isDefault: Boolean(it.isDefault),
-      isActive: true,
-      order: it.order || idx + 1,
-    }));
-
-    if (docs.length > 0) {
-      await MasterDefault.insertMany(docs);
-    }
-
-    return await this.getCategory(category);
+  static async resetCategory() {
+    throw ErrorHelper.badRequest("There are no factory defaults. Edit or delete the items directly.");
   }
 
-  /**
-   * Reset all settings in MongoDB collections to factory defaults
-   */
   static async resetAll() {
-    await MasterCategory.deleteMany({});
-    await MasterDefault.deleteMany({});
-    await this.ensureDefaultsSeeded();
-    return await this.getAllSettings();
+    throw ErrorHelper.badRequest("There are no factory defaults. Edit or delete the items directly.");
   }
 }
 

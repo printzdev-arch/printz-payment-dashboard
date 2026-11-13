@@ -276,7 +276,7 @@ class SaleReceiptService {
     }
 
     const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-      .map((b) => (b._id ? b._id.toString() : b.toString()))
+      .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
       .filter(Boolean);
 
     if (scopes.includes("BRANCH")) {
@@ -319,7 +319,7 @@ class SaleReceiptService {
     if (scopes.includes("ALL")) return true;
 
     const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-      .map((b) => (b._id ? b._id.toString() : b.toString()))
+      .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
       .filter(Boolean);
 
     const target = targetBranchId ? targetBranchId.toString() : "";

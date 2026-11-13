@@ -36,7 +36,7 @@ class AttendancePermissionService {
 
   _extractAuthorizedBranchIds(authContext = {}) {
     return (authContext.authorizedBranchIds || [])
-      .map((b) => (b._id ? b._id.toString() : b.toString()))
+      .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
       .filter(Boolean);
   }
 

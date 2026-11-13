@@ -19,29 +19,11 @@ const ErrorHelper = require("../../../utils/errors/ApiError");
  * every allocation filters the pool by the job's branch (see designerUsers). Manufacturing-unit designers are a
  * separate pool and live in the manufacturing module (sale-orders / mfg).
  */
-const BRANCH_DESIGNERS = [
-  { name: "Ali Hassan", email: "ali.hassan@printz.com", employeeCode: "EMP-001" },
-  { name: "Siti Rahman", email: "siti.rahman@printz.com", employeeCode: "EMP-002" },
-  { name: "Kumar Anil", email: "kumar.anil@printz.com", employeeCode: "EMP-003" },
-  { name: "John Lee", email: "john.lee@printz.com", employeeCode: "EMP-004" },
-  { name: "Nur Aisyah", email: "nur.aisyah@printz.com", employeeCode: "EMP-005" },
-  { name: "Guna", email: "guna@gmail.com", employeeCode: "EMP-006" },
-];
-const BRANCH_DESIGNER_EMAILS = BRANCH_DESIGNERS.map((d) => d.email.toLowerCase());
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** The six seeded designers keep their fixed rotation order; designers added later follow, oldest first. */
-const orderDesigners = (users) => {
-  const rank = (u) => {
-    const i = BRANCH_DESIGNER_EMAILS.indexOf(String(u.email || "").toLowerCase());
-    return i === -1 ? BRANCH_DESIGNER_EMAILS.length : i;
-  };
-  return [...users].sort((a, b) => {
-    const d = rank(a) - rank(b);
-    if (d !== 0) return d;
-    return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-  });
-};
+/** Designers rotate in the order they were added to the database (oldest first). */
+const orderDesigners = (users) =>
+  [...users].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
 const DEFAULT_MAX_LOAD = 5;
 const MAX_LOAD_LIMIT = 50;
 
@@ -99,36 +81,6 @@ class DesignAllocationService {
     const result = localChain.then(run, run);
     localChain = result.catch(() => {});
     return result;
-  }
-
-  /**
-   * Make sure the six branch designers have a login. Safe to run any number of times: it only creates
-   * the ones that are missing. Called when the server starts, never while reading the pool.
-   */
-  static async ensureBranchDesigners() {
-    const password = process.env.DESIGNER_DEFAULT_PASSWORD || "Password@123";
-    const created = [];
-    for (const d of BRANCH_DESIGNERS) {
-      const email = d.email.toLowerCase();
-      const existing = await User.findOne({ email }).select("_id").lean();
-      if (existing) continue;
-      try {
-        const user = await User.create({
-          name: d.name,
-          email,
-          username: email.split("@")[0],
-          password,
-          role: "designer",
-          employeeCode: d.employeeCode,
-          isActive: true,
-          maxLoad: DEFAULT_MAX_LOAD,
-        });
-        created.push(user.email);
-      } catch (err) {
-        if (!/duplicate key|E11000/i.test(err.message || "")) throw err;
-      }
-    }
-    return created;
   }
 
   /** A branch given as an id, an object with an _id, or a branch name: the branch id as text, or null. */
@@ -783,7 +735,6 @@ class DesignAllocationService {
   }
 }
 
-DesignAllocationService.BRANCH_DESIGNERS = BRANCH_DESIGNERS;
 DesignAllocationService.DESIGN_STAGES = DESIGN_STAGES;
 
 module.exports = DesignAllocationService;

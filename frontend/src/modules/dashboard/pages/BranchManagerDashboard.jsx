@@ -81,7 +81,7 @@ const BranchManagerDashboard = () => {
   const userName =
     storedUser?.name ||
     localStorage.getItem("userName") ||
-    "Rajesh Kumar";
+    "";
 
   const userRole =
     storedUser?.role ||

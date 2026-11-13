@@ -25,8 +25,8 @@ module.exports = {
     },
   },
   services: {
-    get masterSeeds() {
-      return require("./services/masterSeeds");
+    get masterCategoryDefinitions() {
+      return require("./services/masterCategoryDefinitions");
     },
     get masterSetting() {
       return require("./services/masterSetting.service");

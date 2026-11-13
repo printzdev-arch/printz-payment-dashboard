@@ -81,7 +81,7 @@ class EstimateService {
 
     // Calculate totals from items & lines if provided
     let calculatedSubtotal = 0;
-    const formattedItems = (payload.items || []).map((it, idx) => {
+    const formattedItems = (Array.isArray(payload.items) ? payload.items : []).map((it, idx) => {
       let itemSubtotal = 0;
       const lines = Array.isArray(it.lines) ? it.lines : [];
 

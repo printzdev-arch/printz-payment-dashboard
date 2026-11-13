@@ -4,7 +4,7 @@ const { asyncHandler, ResponseHelper } = require("../../../utils");
 const getAuthContext = (req) => {
   const user = req.user || {};
   const userBranchIds = (user.branchIds || [])
-    .map((b) => (b._id ? b._id.toString() : b.toString()))
+    .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
     .filter(Boolean);
 
   if (user.branchId) {
@@ -17,7 +17,7 @@ const getAuthContext = (req) => {
     req.authz?.isSuperAdmin ||
     roleNorm === "super_admin" ||
     roleNorm === "internal_admin" ||
-    (user.permissions && user.permissions.includes("*")) ||
+    (Array.isArray(user.permissions) && user.permissions.includes("*")) ||
     (roleNorm === "admin" && userBranchIds.length === 0)
   );
 

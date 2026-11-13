@@ -230,13 +230,17 @@ class DashboardService {
       });
     }
 
+    // Permissions are stored either as a list or as an object ({ "dashboard.manager.view": "BRANCH" }); both work
+    const hasPerm = (code) =>
+      Array.isArray(user.permissions) ? user.permissions.includes(code) : Boolean(user.permissions && user.permissions[code]);
+
     const hasBranchAccess =
       isSuperAdmin ||
       role === "ADMIN" ||
       role === "SUPER_ADMIN" ||
       role === "BRANCH_MANAGER" ||
       role === "MANAGER" ||
-      ((user.permissions || []).includes("dashboard.manager.view") && scopes.includes("BRANCH"));
+      (hasPerm("dashboard.manager.view") && scopes.includes("BRANCH"));
 
     if (hasBranchAccess && role !== "DESIGNER" && role !== "USER") {
       available.push({
@@ -252,7 +256,7 @@ class DashboardService {
       role === "ADMIN" ||
       role === "SUPER_ADMIN" ||
       role === "DESIGNER" ||
-      (user.permissions || []).includes("dashboard.designer.view");
+      hasPerm("dashboard.designer.view");
 
     if (isDesigner) {
       available.push({

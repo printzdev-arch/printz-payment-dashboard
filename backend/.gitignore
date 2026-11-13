@@ -80,9 +80,11 @@ pids/
 *.pid.lock
 
 # ===================================================
-# Database Dumps, SQLite & Local Storage
+# Database Dumps, Script Backups & Local Storage
 # ===================================================
 dump/
+backups/
+backup/
 *.dump
 *.dump.json
 *.bson
@@ -118,6 +120,9 @@ out/
 # ===================================================
 uploads/*
 !uploads/.gitkeep
+!uploads/*/
+uploads/**/*
+!uploads/**/.gitkeep
 temp_uploads/
 tmp/
 temp/
@@ -126,6 +131,16 @@ temp/
 .npm/
 .parcel-cache/
 .turbo/
+
+# ===================================================
+# Compressed Archives
+# ===================================================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
 
 # ===================================================
 # IDE, Editor & Tool Specific Files

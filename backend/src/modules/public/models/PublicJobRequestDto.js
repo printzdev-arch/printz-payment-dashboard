@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 /**
  * Public Customer QR Job Request DTO
  */
@@ -13,39 +14,39 @@ class PublicJobRequestDto {
         : "";
 
     // ── Customer Details ──
-    this.customerName = (data.customerName || data.name || "").trim();
-    this.customerPhone = (data.customerPhone || data.mobile || data.phone || "").trim();
-    this.customerEmail = (data.customerEmail || data.email || "").trim().toLowerCase() || null;
-    this.customerCompany = (data.customerCompany || data.company || "").trim() || "";
-    this.customerAddress = (data.customerAddress || data.address || "").trim() || "";
-    this.customerGstin = (data.customerGstin || data.gstin || "").trim().toUpperCase() || null;
+    this.customerName = asText(data.customerName || data.name || "").trim();
+    this.customerPhone = asText(data.customerPhone || data.mobile || data.phone || "").trim();
+    this.customerEmail = asText(data.customerEmail || data.email || "").trim().toLowerCase() || null;
+    this.customerCompany = asText(data.customerCompany || data.company || "").trim() || "";
+    this.customerAddress = asText(data.customerAddress || data.address || "").trim() || "";
+    this.customerGstin = asText(data.customerGstin || data.gstin || "").trim().toUpperCase() || null;
     this.branchId = data.branchId || null;
-    this.customerType = (data.customerType || "QR").trim().toUpperCase();
-    this.customerSource = (data.customerSource || (data.company || data.customerCompany ? "COMPANY" : "INDIVIDUAL")).trim().toUpperCase();
+    this.customerType = asText(data.customerType || "QR").trim().toUpperCase();
+    this.customerSource = asText(data.customerSource || (data.company || data.customerCompany ? "COMPANY" : "INDIVIDUAL")).trim().toUpperCase();
     this.onlyCustomerRegistration = Boolean(data.onlyCustomerRegistration || !data.productService);
     this.productService = data.productService || "";
 
     // ── Job Details ──
-    this.title = (data.title || data.jobName || data.jobType || "Print Job Request").trim();
-    this.jobType = (data.jobType || "PRINT_JOB").trim().toUpperCase();
+    this.title = asText(data.title || data.jobName || data.jobType || "Print Job Request").trim();
+    this.jobType = asText(data.jobType || "PRINT_JOB").trim().toUpperCase();
     this.quantity = Math.max(1, Number(data.quantity) || 1);
     this.dueDate = data.dueDate ? new Date(data.dueDate) : null;
-    this.customerRequirements = (data.customerRequirements || data.requirements || data.description || "").trim();
-    this.remarks = (data.remarks || data.additionalInstructions || data.notes || "").trim();
+    this.customerRequirements = asText(data.customerRequirements || data.requirements || data.description || "").trim();
+    this.remarks = asText(data.remarks || data.additionalInstructions || data.notes || "").trim();
 
     // ── Item Specifications ──
-    this.paperSize = (data.paperSize || data.dimensions || data.size || "").trim();
-    this.paperType = (data.paperType || data.material || "").trim();
-    this.printingType = (data.printingType || data.specification || "").trim();
-    this.colorMode = (data.colorMode || "CMYK").trim().toUpperCase();
-    this.sides = (data.sides || "SINGLE").trim().toUpperCase();
+    this.paperSize = asText(data.paperSize || data.dimensions || data.size || "").trim();
+    this.paperType = asText(data.paperType || data.material || "").trim();
+    this.printingType = asText(data.printingType || data.specification || "").trim();
+    this.colorMode = asText(data.colorMode || "CMYK").trim().toUpperCase();
+    this.sides = asText(data.sides || "SINGLE").trim().toUpperCase();
 
     // ── Finishing Options ──
     this.finishing = Array.isArray(data.finishing)
       ? data.finishing.map((f, i) => {
           if (typeof f === "string") return { code: f.trim().toUpperCase(), name: f.trim(), sequence: i + 1 };
           return {
-            code: (f.code || f.process || "FINISHING").trim().toUpperCase(),
+            code: asText(f.code || f.process || "FINISHING").trim().toUpperCase(),
             name: f.name || f.option || "",
             notes: f.notes || "",
             sequence: f.sequence || i + 1,

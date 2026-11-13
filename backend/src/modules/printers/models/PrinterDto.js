@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 const mongoose = require("mongoose");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
@@ -28,7 +29,7 @@ class CreatePrinterDto {
   } = {}) {
     this.branchId = branchId ? (typeof branchId === "string" ? branchId.trim() : branchId) : null;
     this.printerId = printerId ? String(printerId).trim() : "";
-    this.printerName = (printerName || name || "").trim();
+    this.printerName = asText(printerName || name || "").trim();
     this.name = this.printerName;
     this.printerType = printerType ? String(printerType).trim() : "";
     this.brand = brand ? String(brand).trim() : "";

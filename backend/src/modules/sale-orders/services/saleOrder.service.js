@@ -239,20 +239,6 @@ async function ensureManufacturingUnit() {
     });
   }
 
-  if (!mfgUnit) {
-    try {
-      mfgUnit = await Branch.create({
-        name: "Central Manufacturing Unit",
-        code: "MFG-01",
-        address: "Central Manufacturing Facility",
-        branchType: "manufacturing",
-      });
-      console.log("[SaleOrder] Auto-created Central Manufacturing Unit (MFG-01)");
-    } catch (e) {
-      mfgUnit = (await Branch.findOne({ branchType: /^manufacturing$/i })) || (await Branch.findOne({}));
-    }
-  }
-
   if (mfgUnit) {
     await Branch.updateMany(
       {

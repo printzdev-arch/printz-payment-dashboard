@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const User = require("../models/User");
@@ -77,20 +78,6 @@ class AuthService {
     let isMatch = false;
     if (user.password) {
       isMatch = await bcryptPasswordService.comparePassword(password, user.password);
-    }
-    const isBranchDesigner = [
-      "ali.hassan@printz.com",
-      "siti.rahman@printz.com",
-      "kumar.anil@printz.com",
-      "john.lee@printz.com",
-      "nur.aisyah@printz.com",
-      "guna@gmail.com",
-    ].includes((user.email || "").toLowerCase());
-
-    if (!isMatch && (user.role === "designer" || isBranchDesigner || (user.email && user.email.includes("@printz.com")))) {
-      if (password === "designer123" || password === "123456") {
-        isMatch = true;
-      }
     }
     if (!isMatch) {
       const now = new Date();
@@ -266,7 +253,7 @@ class AuthService {
     }
 
     if (!user && email) {
-      user = await User.findOne({ email: email.toLowerCase().trim() });
+      user = await User.findOne({ email: asText(email).toLowerCase().trim() });
     }
 
     if (!user) {
@@ -301,7 +288,7 @@ class AuthService {
     }
 
     const query = {
-      email: email.toLowerCase().trim(),
+      email: asText(email).toLowerCase().trim(),
     };
 
     if (token) {

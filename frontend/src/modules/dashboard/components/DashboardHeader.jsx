@@ -5,7 +5,7 @@ import "../styles/dashboard.css";
 const DashboardHeader = ({
   title = "Branch Manager Dashboard",
   subtitle,
-  userName = "Rajesh Kumar",
+  userName = "",
   userRole = "Branch Manager",
   branchName = "Branch",
   alertCount = 5,
