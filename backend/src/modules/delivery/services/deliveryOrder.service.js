@@ -617,7 +617,7 @@ class DeliveryOrderService {
 
         // Check assigned employee's branch access
         const empBranchStr = emp.branchId?._id ? emp.branchId._id.toString() : (emp.branchId ? emp.branchId.toString() : "");
-        const empBranchIds = (emp.branchIds || []).map((b) => (b && b._id ? b._id.toString() : b.toString()));
+        const empBranchIds = (emp.branchIds || []).filter(Boolean).map((b) => (b && b._id ? b._id.toString() : b.toString()));
         const orderBranchStr = order.branchId?.toString();
 
         if (empBranchStr && empBranchStr !== orderBranchStr && !empBranchIds.includes(orderBranchStr)) {

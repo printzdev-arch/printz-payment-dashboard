@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 const MasterCategory = require("../models/MasterCategory");
 const MasterDefault = require("../models/MasterDefault");
 const ErrorHelper = require("../../../utils/errors/ApiError");
@@ -161,7 +162,7 @@ class MasterSettingService {
    */
   static async addItem(category, itemData, user = null) {
     await this.ensureDefaultsSeeded();
-    const name = (itemData.name || "").trim();
+    const name = asText(itemData.name || "").trim();
     if (!name) {
       throw ErrorHelper.badRequest("Option name is required.");
     }

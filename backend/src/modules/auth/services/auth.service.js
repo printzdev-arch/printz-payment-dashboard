@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const User = require("../models/User");
@@ -266,7 +267,7 @@ class AuthService {
     }
 
     if (!user && email) {
-      user = await User.findOne({ email: email.toLowerCase().trim() });
+      user = await User.findOne({ email: asText(email).toLowerCase().trim() });
     }
 
     if (!user) {
@@ -301,7 +302,7 @@ class AuthService {
     }
 
     const query = {
-      email: email.toLowerCase().trim(),
+      email: asText(email).toLowerCase().trim(),
     };
 
     if (token) {

@@ -43,7 +43,7 @@ class ApprovalService {
     }
 
     const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-      .map((b) => (b._id ? b._id.toString() : b.toString()))
+      .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
       .filter(Boolean);
 
     if (scopes.includes("BRANCH")) {
@@ -73,7 +73,7 @@ class ApprovalService {
 
     if (scopes.includes("BRANCH")) {
       const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-        .map((b) => (b._id ? b._id.toString() : b.toString()))
+        .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
         .filter(Boolean);
 
       const approvalBranch = approval.branchId?._id
@@ -103,7 +103,7 @@ class ApprovalService {
     // Scope check
     if (!authContext.isSuperAdmin && !(authContext.scopes || []).includes("ALL")) {
       const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-        .map((b) => (b._id ? b._id.toString() : b.toString()))
+        .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
         .filter(Boolean);
 
       if ((authContext.scopes || []).includes("BRANCH")) {

@@ -31,7 +31,7 @@ class InventoryTransactionService {
     }
 
     const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-      .map((b) => (b._id ? b._id.toString() : b.toString()))
+      .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
       .filter(Boolean);
 
     if (scopes.includes("BRANCH")) {
@@ -83,7 +83,7 @@ class InventoryTransactionService {
     // Branch scoping check
     if (!authContext.isSuperAdmin && !(authContext.scopes || []).includes("ALL")) {
       const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-        .map((b) => (b._id ? b._id.toString() : b.toString()))
+        .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
         .filter(Boolean);
 
       const txnBranch = txn.branchId?._id ? txn.branchId._id.toString() : txn.branchId?.toString();

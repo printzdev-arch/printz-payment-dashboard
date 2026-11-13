@@ -1,3 +1,4 @@
+const { asText } = require("../../../utils/helpers/text");
 const mongoose = require("mongoose");
 const ErrorHelper = require("../../../utils/errors/ApiError");
 
@@ -38,7 +39,7 @@ class SaveStockItemDto {
     if (legacyFirestoreId) this.legacyFirestoreId = legacyFirestoreId;
     this.branchId = branchId ? (typeof branchId === "string" ? branchId.trim() : branchId) : null;
     this.stockId = stockId ? String(stockId).trim() : "";
-    this.itemName = (itemName || name || "").trim();
+    this.itemName = asText(itemName || name || "").trim();
     this.name = this.itemName;
     this.category = category ? String(category).trim() : "General";
     this.description = description ? String(description).trim() : "";

@@ -17,7 +17,7 @@ function extractAuthContext(req) {
   return {
     user: req.user,
     scopes: req.authz?.scopes || [],
-    authorizedBranchIds: authorizedBranchIds.map((b) => (b && b._id ? b._id.toString() : b.toString())),
+    authorizedBranchIds: authorizedBranchIds.filter(Boolean).map((b) => (b && b._id ? b._id.toString() : b.toString())),
     isSuperAdmin: Boolean(
       req.authz?.isSuperAdmin ||
       req.user?.role === "admin" ||

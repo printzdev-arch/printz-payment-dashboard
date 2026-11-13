@@ -27,7 +27,7 @@ class PurchaseReceiptService {
     }
 
     const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-      .map((b) => (b._id ? b._id.toString() : b.toString()))
+      .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
       .filter(Boolean);
 
     if (scopes.includes("BRANCH")) {
@@ -74,7 +74,7 @@ class PurchaseReceiptService {
     // Branch scoping
     if (!authContext.isSuperAdmin && !(authContext.scopes || []).includes("ALL")) {
       const authorizedBranches = (authContext.authorizedBranchIds || authContext.authorizedBranches || [])
-        .map((b) => (b._id ? b._id.toString() : b.toString()))
+        .filter(Boolean).map((b) => (b._id ? b._id.toString() : b.toString()))
         .filter(Boolean);
 
       const recBranch = receipt.branchId?._id ? receipt.branchId._id.toString() : receipt.branchId?.toString();
