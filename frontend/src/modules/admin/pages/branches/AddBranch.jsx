@@ -9,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import "../../../../shared/styles/printzTheme.css";
 import "../../styles/addmanager.css";
+import { onlyMobile, mobileError } from "../../../../shared/utils/validation";
 
 import {
   Building2,
@@ -251,6 +252,11 @@ const AddBranch = () => {
 
   const handleAddBranch = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    const phoneProblem = mobileError(branchPhone, { label: "Phone number", required: false });
+    if (phoneProblem) {
+      showError("Invalid Phone Number", phoneProblem);
+      return;
+    }
     if (!branchName.trim() || !branchCode.trim() || !branchAddress.trim()) {
       showError(
         "Missing Information",
@@ -325,6 +331,12 @@ const AddBranch = () => {
         "Missing Information",
         "Please fill out all fields before updating"
       );
+      return;
+    }
+
+    const phoneProblem = mobileError(branchPhone, { label: "Phone number", required: false });
+    if (phoneProblem) {
+      showError("Invalid Phone Number", phoneProblem);
       return;
     }
 
@@ -807,10 +819,13 @@ const AddBranch = () => {
                       </span>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        autoComplete="off"
                         className="printz-input-clean"
                         placeholder="e.g. 9876543210"
                         value={branchPhone}
-                        onChange={(e) => setBranchPhone(e.target.value)}
+                        onChange={(e) => setBranchPhone(onlyMobile(e.target.value))}
                         disabled={loading}
                         style={{
                           border: "none",
@@ -822,6 +837,11 @@ const AddBranch = () => {
                         }}
                       />
                     </div>
+                    {branchPhone && branchPhone.length < 10 && (
+                      <div style={{ color: "#dc2626", fontSize: "12px", marginTop: "4px" }}>
+                        Phone number must be exactly 10 digits ({branchPhone.length}/10)
+                      </div>
+                    )}
                   </div>
 
                   <div className="printz-form-field">
