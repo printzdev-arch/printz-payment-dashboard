@@ -21,6 +21,10 @@ out/
 .vite/
 *.tsbuildinfo
 
+# Vite temporary files
+vite.config.js.timestamp-*.mjs
+vite.config.ts.timestamp-*.mjs
+
 # ===================================================
 # Local & Environment Variables
 # ===================================================
@@ -65,8 +69,14 @@ cypress/screenshots/
 *.lcov
 
 # ===================================================
-# Caches & Temporary Files
+# Uploads, Caches & Temporary Files
 # ===================================================
+uploads/*
+!uploads/.gitkeep
+!uploads/*/
+uploads/**/*
+!uploads/**/.gitkeep
+temp_uploads/
 .eslintcache
 .stylelintcache
 .cache/
@@ -74,6 +84,18 @@ cypress/screenshots/
 .turbo/
 tmp/
 temp/
+
+# ===================================================
+# Compressed Archives & Backups
+# ===================================================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+backups/
+backup/
 
 # ===================================================
 # Editor & IDE Directories

@@ -1,55 +1,202 @@
-# Dependencies
+# ===================================================
+# Dependencies & Package Managers
+# ===================================================
 node_modules/
-*/node_modules/
+**/node_modules/
+jspm_packages/
+.pnp
+.pnp.js
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
-# Nested duplicate folders & local working directories
+# ===================================================
+# Nested Duplicate Folders & Local Working Folders
+# ===================================================
 backend/backend/
 New folder/
+New\ folder/
 
-
-# Environment variables & secrets
+# ===================================================
+# Environment Variables & Secrets
+# ===================================================
+*.local
 .env
 .env.*
-!.env.example
-!.env.template
 *.env
+**/.env
+**/.env.*
+**/*.env
 
-# Build outputs
-build/
-dist/
-*/dist/
-*/build/
+# Preserve template & example files
+!.env.example
+!**/.env.example
+!.env.template
+!**/.env.template
+!.env.sample
+!**/.env.sample
+!.env.defaults
+!**/.env.defaults
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# IDE & Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Operating System files
-.DS_Store
-Thumbs.db
-ehthumbs.db
-[Dd]esktop.ini
-
-# Testing & Coverage
-coverage/
-.nyc_output/
-
-# Credentials
+# ===================================================
+# Keys, Certificates & Sensitive Credentials
+# ===================================================
 *.pem
 *.key
 *.crt
 *.cert
+*.pfx
+*.p12
+*.p8
+*.keystore
+*.jks
+id_rsa*
 serviceAccountKey*.json
 *-service-account.json
 credentials.json
+secrets.json
+
+# ===================================================
+# Build & Distribution Outputs
+# ===================================================
+build/
+dist/
+dist-ssr/
+out/
+.next/
+.vite/
+**/.vite/
+*/dist/
+*/build/
+**/*.tsbuildinfo
+
+# Vite temporary files
+vite.config.js.timestamp-*.mjs
+vite.config.ts.timestamp-*.mjs
+**/vite.config.js.timestamp-*.mjs
+**/vite.config.ts.timestamp-*.mjs
+
+# ===================================================
+# File Uploads & Local User Assets
+# ===================================================
+uploads/*
+!uploads/.gitkeep
+!uploads/*/
+uploads/**/*
+!uploads/**/.gitkeep
+**/uploads/*
+!**/uploads/.gitkeep
+!**/uploads/*/
+**/uploads/**/*
+!**/uploads/**/.gitkeep
+
+temp_uploads/
+**/temp_uploads/
+tmp/
+temp/
+.cache/
+**/.cache/
+.eslintcache
+.stylelintcache
+.npm/
+.parcel-cache/
+.turbo/
+
+# ===================================================
+# Database Dumps, Script Backups & Local Storage
+# ===================================================
+dump/
+**/dump/
+backups/
+**/backups/
+backup/
+**/backup/
+*.dump
+*.dump.json
+*.bson
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.rdb
+_export_summary.json
+
+# ===================================================
+# Logs & Process Diagnostics
+# ===================================================
+logs/
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ===================================================
+# Testing & Coverage
+# ===================================================
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+test-results/
+test-reports/
+playwright-report/
+blob-report/
+cypress/videos/
+cypress/screenshots/
+*.lcov
+
+# ===================================================
+# Compressed Archives
+# ===================================================
 *.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ===================================================
+# IDE, Editor & Tool Specific Files
+# ===================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+**/.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# ===================================================
+# Operating System Files
+# ===================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+Network Trash Folder/
+Temporary Items/
