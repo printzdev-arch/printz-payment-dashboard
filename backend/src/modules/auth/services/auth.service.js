@@ -79,20 +79,6 @@ class AuthService {
     if (user.password) {
       isMatch = await bcryptPasswordService.comparePassword(password, user.password);
     }
-    const isBranchDesigner = [
-      "ali.hassan@printz.com",
-      "siti.rahman@printz.com",
-      "kumar.anil@printz.com",
-      "john.lee@printz.com",
-      "nur.aisyah@printz.com",
-      "guna@gmail.com",
-    ].includes((user.email || "").toLowerCase());
-
-    if (!isMatch && (user.role === "designer" || isBranchDesigner || (user.email && user.email.includes("@printz.com")))) {
-      if (password === "designer123" || password === "123456") {
-        isMatch = true;
-      }
-    }
     if (!isMatch) {
       const now = new Date();
       const windowMs = 15 * 60 * 1000;

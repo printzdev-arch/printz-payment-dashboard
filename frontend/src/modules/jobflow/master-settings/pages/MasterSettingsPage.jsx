@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import masterSettingsApi from "../api/masterSettingsApi";
-import { DEFAULT_MASTER_CATEGORIES } from "../constants/defaultMasterSpecs";
 import { toast } from "react-toastify";
 import Pagination from "../../../../shared/ui/Pagination";
 
@@ -83,7 +82,7 @@ const CATEGORY_GROUPS = [
 ];
 
 export const MasterSettingsPage = () => {
-  const [categories, setCategories] = useState(DEFAULT_MASTER_CATEGORIES);
+  const [categories, setCategories] = useState([]);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState("productTypes");
   const [categorySearch, setCategorySearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -356,51 +355,6 @@ export const MasterSettingsPage = () => {
     }
   };
 
-  // Reset Category
-  const handleResetCategory = async () => {
-    if (
-      !window.confirm(
-        `Reset '${activeCategory.displayName}' to standard default options? Any custom additions to this category will be replaced.`
-      )
-    ) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await masterSettingsApi.resetCategory(selectedCategoryKey);
-      toast.success(`Category '${activeCategory.displayName}' reset to defaults`);
-      await loadSettings();
-    } catch (err) {
-      console.error("Reset category error:", err);
-      toast.error("Failed to reset category");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset All
-  const handleResetAll = async () => {
-    if (
-      !window.confirm(
-        "WARNING: This will reset ALL 12 specification categories across the entire project to default values. Are you sure?"
-      )
-    ) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await masterSettingsApi.resetAll();
-      toast.success("All master specifications reset to defaults");
-      await loadSettings();
-    } catch (err) {
-      console.error("Reset all settings error:", err);
-      toast.error("Failed to reset settings");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const ActiveIcon = CATEGORY_ICONS[selectedCategoryKey] || Sliders;
 
@@ -660,40 +614,7 @@ export const MasterSettingsPage = () => {
             })}
           </div>
 
-          {/* Reset All Footer Button */}
-          <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "0.75rem", marginTop: "0.5rem" }}>
-            <button
-              type="button"
-              onClick={handleResetAll}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                width: "100%",
-                padding: "6px",
-                fontSize: "0.75rem",
-                color: "#475569",
-                background: "transparent",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#dc2626";
-                e.currentTarget.style.background = "#fee2e2";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#94a3b8";
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <RotateCcw size={12} />
-              <span>Reset All to System Defaults</span>
-            </button>
-          </div>
-        </div>
+                </div>
 
         {/* ========================================================================= */}
         {/* RIGHT COLUMN: Active Category Workspace                                   */}
@@ -760,15 +681,6 @@ export const MasterSettingsPage = () => {
 
               {/* Action Buttons */}
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={handleResetCategory}
-                  title="Reset this category to default list"
-                >
-                  <RotateCcw size={13} />
-                  <span>Reset Category</span>
-                </button>
                 <button
                   type="button"
                   className="jf-btn jf-btn-primary jf-btn-sm"

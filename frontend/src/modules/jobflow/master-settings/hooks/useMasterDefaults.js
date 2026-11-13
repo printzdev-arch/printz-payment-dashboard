@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import masterSettingsApi from "../api/masterSettingsApi";
-import { DEFAULT_MASTER_CATEGORIES } from "../constants/defaultMasterSpecs";
 
 const STORAGE_KEY = "printz_master_settings_cache";
 
@@ -29,10 +28,8 @@ const getInitialState = () => {
       }
     }
   } catch {}
-  return {
-    rawCategories: DEFAULT_MASTER_CATEGORIES,
-    map: transformSettingsMap(DEFAULT_MASTER_CATEGORIES),
-  };
+  // Nothing is built in: the lists are loaded from the database
+  return { rawCategories: [], map: {} };
 };
 
 export const useMasterDefaults = () => {
@@ -55,7 +52,7 @@ export const useMasterDefaults = () => {
         } catch {}
       }
     } catch {
-      // Offline fallback: keep cached / seed values
+      // Offline: keep the last values loaded from the database
     } finally {
       setLoading(false);
     }
