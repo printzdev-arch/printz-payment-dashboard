@@ -186,7 +186,6 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
             <div className="thermal-receipt-modal" id="printable-thermal-receipt">
             <div className="thermal-receipt-header">
               <img src={logo} alt="PrintZ" style={{ height: "42px", width: "auto", display: "block", margin: "0 auto 0.35rem" }} />
-              <div className="thermal-brand">PRINTZ DIGITAL STUDIO</div>
               <div className="thermal-sub">Digital Printing & Commercial Reprographics</div>
               <div className="thermal-sub">Banaswadi Main Road, Bangalore</div>
               <div className="thermal-sub">GSTIN: 29AABCP1234F1Z8</div>
@@ -316,7 +315,6 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
             <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #059669", paddingBottom: "1rem" }}>
               <div>
                 <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", marginBottom: "0.4rem" }} />
-                <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#059669", margin: 0 }}>PRINTZ STUDIO</h1>
                 <div style={{ fontSize: "0.85rem", color: "#475569" }}>Digital Printing & Commercial Reprographics</div>
                 <div style={{ fontSize: "0.8rem", color: "#475569" }}>Banaswadi Main Road, Bangalore - 560043</div>
                 <div style={{ fontSize: "0.8rem", fontWeight: 700, marginTop: "0.2rem" }}>GSTIN: 29AABCP1234F1Z8</div>
