@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getBranches, createBranch, updateBranch, deleteBranch } from "../../api";
+import { clearBranchesCache } from "../../../../shared/services/branchStore";
 import Popup from "../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../shared/hooks/usePopup";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
@@ -384,6 +385,7 @@ const AddBranch = () => {
       setLoading(true);
       const branchId = branchToDelete.id || branchToDelete._id || branchToDelete.docId;
       await deleteBranch(branchId);
+      clearBranchesCache(); // other screens must not keep showing the deleted branch
       setBranches((prev) =>
         prev.filter(
           (branch) => branch.id !== branchId && branch._id !== branchId && branch.docId !== branchId
@@ -394,7 +396,7 @@ const AddBranch = () => {
       setBranchToDelete(null);
       showSuccess(
         "Branch Deleted Successfully",
-        `Branch "${deletedName}" has been deleted successfully`
+        `Branch "${deletedName}" and all its data are now hidden everywhere. The records stay stored in the database.`
       );
     } catch (error) {
       console.error("Error deleting branch: ", error);
@@ -987,7 +989,8 @@ const AddBranch = () => {
               }}
             >
               Are you sure you want to delete{" "}
-              <strong>{branchToDelete?.name}</strong>? This action cannot be undone.
+              <strong>{branchToDelete?.name}</strong>? The branch and all its data (customers, employees, orders, invoices,
+              payments, attendance, stock and every other module) will disappear from the screens. Nothing is erased from the database.
             </p>
             <div
               style={{

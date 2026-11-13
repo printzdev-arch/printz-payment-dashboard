@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Branch = require("../models/Branch");
 const ApiError = require("../../../utils/errors/ApiError");
+const { softDeleteBranch } = require("../../../utils/softDelete/branchCascade");
 
 class BranchService {
   /**
@@ -146,16 +147,16 @@ class BranchService {
     return Branch.findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: true });
   }
 
-  async deleteBranch(id) {
+  /**
+   * Admin only (the route enforces it). The branch and all its records are soft-deleted: they get isDeleted = true,
+   * stay in the database, and disappear from every screen and API (see utils/softDelete).
+   */
+  async deleteBranch(id, actor = {}) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       throw ApiError.badRequest("Invalid branch ID format.");
     }
-
-    const branch = await Branch.findByIdAndDelete(id);
-    if (!branch) {
-      throw ApiError.notFound("Branch not found.");
-    }
-    return { _id: id, message: "Branch deleted successfully" };
+    const result = await softDeleteBranch(id, actor);
+    return { _id: id, message: "Branch deleted successfully", ...result };
   }
 }
 

@@ -25,8 +25,8 @@ const updateBranch = asyncHandler(async (req, res) => {
 });
 
 const deleteBranch = asyncHandler(async (req, res) => {
-  await branchService.deleteBranch(req.params.id);
-  return ResponseHelper.success(res, null, "Branch deleted successfully");
+  const result = await branchService.deleteBranch(req.params.id, { id: req.user && (req.user._id || req.user.id) });
+  return ResponseHelper.success(res, result, "Branch deleted successfully. Its data is hidden but kept in the database.");
 });
 
 module.exports = {
