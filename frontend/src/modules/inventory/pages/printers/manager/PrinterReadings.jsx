@@ -720,14 +720,6 @@ const PrinterReadings = () => {
 
     pdf.setFontSize(14);
     pdf.setTextColor(0, 0, 0);
-    pdf.text("Printz Shop", pageWidth - 35, yPos + 6, { align: "center" });
-    pdf.setFontSize(8);
-    pdf.text(
-      "One Stop Shop For All Your Printing Needs",
-      pageWidth - 35,
-      yPos + 12,
-      { align: "center" }
-    );
 
     pdf.setFontSize(10);
     pdf.text("DATE", pageWidth - 48, yPos + 19);
