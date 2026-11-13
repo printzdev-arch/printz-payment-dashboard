@@ -6,6 +6,7 @@ const SaleOrder = require("../../sale-orders/models/SaleOrder");
 const SaleOrderPayment = require("../../sale-orders/models/SaleOrderPayment");
 const Branch = require("../../branches/models/Branch");
 const EmailService = require("../../../utils/integrations/EmailService");
+const { logoBuffer } = require("../../../utils/helpers/brandLogo");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DEFAULT_ADMIN_EMAIL = "nithya.baskaran0005@gmail.com";
@@ -162,7 +163,12 @@ function buildPdf({ branch, manager, range, data }) {
     };
 
     // Header
-    doc.font("Helvetica-Bold").fontSize(18).fillColor(GREEN).text("Printz - Day End Report", left, 40);
+    if (logoBuffer) {
+      doc.image(logoBuffer, left, 30, { height: 46 });
+      doc.font("Helvetica-Bold").fontSize(16).fillColor(GREEN).text("Day End Report", left, 84);
+    } else {
+      doc.font("Helvetica-Bold").fontSize(18).fillColor(GREEN).text("Printz - Day End Report", left, 40);
+    }
     doc.font("Helvetica").fontSize(10).fillColor(GREY);
     doc.text(`Branch: ${branch?.name || "-"}${branch?.code ? ` (${branch.code})` : ""}`);
     doc.text(`Business date: ${range.dateLabel}`);

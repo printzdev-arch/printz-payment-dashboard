@@ -2,6 +2,7 @@
  * Print Quotation Utility for Guna Printz
  * Generates an official, printable quotation document in a clean popup window.
  */
+import logo from "../../../../shared/assets/logo.png";
 export const printQuotation = (estimate) => {
   if (!estimate) return;
 
@@ -411,7 +412,7 @@ export const printQuotation = (estimate) => {
         <!-- Header -->
         <div class="header">
           <div>
-            <div class="brand-title">PrintZ</div>
+            <img src="${new URL(logo, window.location.origin).href}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:4px;" />
             <div class="brand-tagline">Professional Printing & Design Partner</div>
             <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
               Branch: <strong>${branch}</strong>

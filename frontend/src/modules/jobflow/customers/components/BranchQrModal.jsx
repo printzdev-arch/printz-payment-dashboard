@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import logo from "../../../../shared/assets/logo.png";
 import { QRCodeSVG } from "qrcode.react";
 import {
   X,
@@ -138,7 +139,7 @@ export const BranchQrModal = ({ isOpen, onClose }) => {
         </head>
         <body>
           <div class="stand-card">
-            <h1 class="brand-name">PrintZ</h1>
+            <img src="${new URL(logo, window.location.origin).href}" alt="PrintZ" style="height:80px;width:auto;display:block;margin:0 auto 6px;" />
             <div class="tagline">Your Print Partner</div>
             <div class="branch-pill">📍 ${userBranch} (${branchCode})</div>
             <div class="qr-wrapper">
@@ -282,11 +283,8 @@ export const BranchQrModal = ({ isOpen, onClose }) => {
               boxShadow: "0 10px 15px -3px rgba(6, 78, 59, 0.08)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "0.25rem" }}>
-              <Sparkles size={20} color="#059669" />
-              <span style={{ fontSize: "1.35rem", fontWeight: 800, color: "#064e3b", letterSpacing: "-0.5px" }}>
-                PrintZ
-              </span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "0.25rem" }}>
+              <img src={logo} alt="PrintZ" style={{ height: 56, width: "auto" }} />
             </div>
             <div style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
               Your Print Partner
