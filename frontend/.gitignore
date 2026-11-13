@@ -21,7 +21,7 @@ out/
 .vite/
 *.tsbuildinfo
 
-# Vite temporary files
+# Vite temporary config dumps
 vite.config.js.timestamp-*.mjs
 vite.config.ts.timestamp-*.mjs
 
@@ -37,7 +37,7 @@ vite.config.ts.timestamp-*.mjs
 .env.production.local
 .env.staging.local
 
-# Preserve example and template configs
+# Preserve template and example configs
 !.env.example
 !.env.template
 !.env.sample
@@ -56,7 +56,7 @@ lerna-debug.log*
 .pnpm-debug.log*
 
 # ===================================================
-# Testing, Coverage & Playwright / Cypress
+# Testing & Coverage
 # ===================================================
 coverage/
 .nyc_output/
@@ -71,17 +71,13 @@ cypress/screenshots/
 # ===================================================
 # Uploads, Caches & Temporary Files
 # ===================================================
+# Ignore all uploaded files but preserve folder via .gitkeep
 uploads/*
 !uploads/.gitkeep
-!uploads/*/
-uploads/**/*
-!uploads/**/.gitkeep
 temp_uploads/
 .eslintcache
 .stylelintcache
 .cache/
-.parcel-cache/
-.turbo/
 tmp/
 temp/
 
@@ -129,3 +125,8 @@ ehthumbs.db
 ehthumbs_vista.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
+
+# ===================================================
+# Always Preserve .gitkeep Files
+# ===================================================
+!.gitkeep

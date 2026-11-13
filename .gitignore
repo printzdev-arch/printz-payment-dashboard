@@ -15,7 +15,7 @@ jspm_packages/
 !.yarn/versions
 
 # ===================================================
-# Nested Duplicate Folders & Local Working Folders
+# Local Working & Duplicate Folders
 # ===================================================
 backend/backend/
 New folder/
@@ -32,7 +32,7 @@ New\ folder/
 **/.env.*
 **/*.env
 
-# Preserve template & example files
+# Preserve template and example configs across workspaces
 !.env.example
 !**/.env.example
 !.env.template
@@ -67,32 +67,26 @@ build/
 dist/
 dist-ssr/
 out/
-.next/
 .vite/
 **/.vite/
 */dist/
 */build/
 **/*.tsbuildinfo
 
-# Vite temporary files
+# Vite temporary config dumps
 vite.config.js.timestamp-*.mjs
 vite.config.ts.timestamp-*.mjs
 **/vite.config.js.timestamp-*.mjs
 **/vite.config.ts.timestamp-*.mjs
 
 # ===================================================
-# File Uploads & Local User Assets
+# File Uploads & User Media Assets
 # ===================================================
+# Ignore uploaded files across root, backend, and frontend
 uploads/*
 !uploads/.gitkeep
-!uploads/*/
-uploads/**/*
-!uploads/**/.gitkeep
 **/uploads/*
 !**/uploads/.gitkeep
-!**/uploads/*/
-**/uploads/**/*
-!**/uploads/**/.gitkeep
 
 temp_uploads/
 **/temp_uploads/
@@ -103,8 +97,6 @@ temp/
 .eslintcache
 .stylelintcache
 .npm/
-.parcel-cache/
-.turbo/
 
 # ===================================================
 # Database Dumps, Script Backups & Local Storage
@@ -200,3 +192,9 @@ ehthumbs_vista.db
 $RECYCLE.BIN/
 Network Trash Folder/
 Temporary Items/
+
+# ===================================================
+# Always Preserve .gitkeep Files
+# ===================================================
+!.gitkeep
+!**/.gitkeep

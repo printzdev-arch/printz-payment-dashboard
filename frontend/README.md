@@ -38,7 +38,7 @@ Modern, responsive Single Page Application (SPA) for the **PrintZ Multi-Branch P
 5. **Manufacturing Unit (`src/modules/mfg-unit` / `src/modules/jobflow`)**:
    - Dedicated portal for Central Manufacturing Unit managers and production designers.
 6. **Branch & Inventory (`src/modules/inventory` & `src/modules/admin`)**:
-   - Branch setup, printer meter readings, Jumbo Xerox logs, and stock movement tracking.
+   - Branch setup (with soft delete and 10-digit phone validation), printer meter readings, Jumbo Xerox logs, and stock movement tracking.
 7. **HR & Payroll (`src/modules/hr`)**:
    - **Employees**: Master directory, designation, and branch assignment.
    - **Daily Attendance**: Branch-scoped check-in/out, live KPI badges, and status marking.
@@ -68,7 +68,7 @@ frontend/
 │   │   ├── pos/               # POS billing interface
 │   │   └── sale-order/        # Sale orders creation, tracking, and detail views
 │   ├── shared/                # Shared utilities, Axios API client, UI components, hooks, styles
-│   └── main.jsx / index.js    # React DOM root entry point
+│   └── index.js               # React DOM root entry point
 ├── uploads/                   # Local uploads directory (.gitkeep preserved)
 ├── build/                     # Vite production build output (ignored in git)
 ├── .env.example               # Frontend environment template

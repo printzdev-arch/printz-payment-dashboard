@@ -31,7 +31,7 @@ backend/
 │   ├── middleware/            # Security (auth, roles, permissions), request validation, upload & error handlers
 │   ├── modules/               # Domain-driven feature modules
 │   │   ├── auth/              # User credentials, JWT tokens, RBAC roles & permissions, page catalog
-│   │   ├── branches/          # Retail branches, manufacturing units, and branch assignments
+│   │   ├── branches/          # Retail branches, manufacturing units, soft deletion & branch assignments
 │   │   ├── customers/         # Customer master records and branch QR requests
 │   │   ├── job-orders/        # Job order lifecycle (quotation, design, production, delivery, billing)
 │   │   ├── estimates/         # Customer estimates, multi-tier approvals, and discounts
