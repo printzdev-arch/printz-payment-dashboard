@@ -2051,3 +2051,13 @@ input:checked + .slider:before {
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* Printed report: the full list of the period instead of the paged on-screen table */
+.attendance-print-only { display: none; }
+@media print {
+  .attendance-print-only { display: block; }
+  .attendance-page-container .attendance-table-card { display: none !important; }
+  .attendance-print-only .attendance-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .attendance-print-only .attendance-table th,
+  .attendance-print-only .attendance-table td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
+}

@@ -1017,8 +1017,9 @@
    ========================================================================== */
 @media print {
   /* Print only the receipt: hide the whole app, keep the modal portal */
-  body > *:not(.pos-print-portal) { display: none !important; }
-  html, body { height: auto !important; overflow: visible !important; background: #ffffff !important; }
+  /* Only while a receipt is open: on every other page the whole app must stay printable */
+  body:has(> .pos-print-portal) > *:not(.pos-print-portal) { display: none !important; }
+  body:has(> .pos-print-portal), html:has(> body > .pos-print-portal) { height: auto !important; overflow: visible !important; background: #ffffff !important; }
   .pos-print-portal .jf-modal-overlay {
     position: static !important;
     display: block !important;

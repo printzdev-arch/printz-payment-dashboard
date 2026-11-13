@@ -1307,3 +1307,25 @@ body .sidebar-backdrop {
     animation: none !important;
   }
 }
+
+/* ---------- Printing a page (Print Report buttons) ---------- */
+@media print {
+  .sidebar,
+  .printz-topbar,
+  .sidebar-left-hover-indicator,
+  .Toastify,
+  .attendance-filter-bar,
+  .no-print { display: none !important; }
+
+  html, body, #root,
+  .layout, .admin-layout, .main-content-wrap, .content-body {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  .attendance-table-card, .attendance-table { box-shadow: none !important; }
+  .attendance-table thead { display: table-header-group; }
+  .attendance-table tr { break-inside: avoid; }
+}

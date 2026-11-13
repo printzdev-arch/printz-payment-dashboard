@@ -295,6 +295,42 @@ export default function AttendanceReportsPage() {
           itemName="records"
         />
       </div>
+
+      {/* Printed copy: every record of the period (the on-screen table shows one page at a time) */}
+      <div className="attendance-print-only">
+        <h2 style={{ margin: "0 0 4px", fontSize: "18px" }}>Attendance Report</h2>
+        <div style={{ margin: "0 0 12px", fontSize: "12px", color: "#475569" }}>
+          {String(selectedMonth).padStart(2, "0")}/{selectedYear} · {records.length} records
+        </div>
+        <table className="attendance-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Employee</th>
+              <th>Date</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Worked Hours</th>
+              <th>Late / Early</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((r, idx) => (
+              <tr key={r._id || idx}>
+                <td>{idx + 1}</td>
+                <td>{r.employeeId?.name || "Employee"} {r.employeeId?.employeeCode ? "(" + r.employeeId.employeeCode + ")" : ""}</td>
+                <td>{r.attendanceDate}</td>
+                <td>{r.checkIn || "-"}</td>
+                <td>{r.checkOut || "-"}</td>
+                <td>{r.workingHoursPerDay || 0}h</td>
+                <td>{r.lateArrival ? "Late: " + (r.lateMinutes || 0) + "m" : r.earlyCheckout ? "Early: " + (r.earlyCheckoutMinutes || 0) + "m" : "-"}</td>
+                <td>{r.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
