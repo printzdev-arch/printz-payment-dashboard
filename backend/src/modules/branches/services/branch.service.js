@@ -160,4 +160,19 @@ class BranchService {
   }
 }
 
-module.exports = new BranchService();
+const branchService = new BranchService();
+
+// A changed branch must not be served from the short-lived lookup cache (utils/helpers/branchLookup.js)
+const { clearBranchLookupCache } = require("../../../utils/helpers/branchLookup");
+for (const name of ["createBranch", "updateBranch", "deleteBranch"]) {
+  const original = branchService[name].bind(branchService);
+  branchService[name] = async (...args) => {
+    try {
+      return await original(...args);
+    } finally {
+      clearBranchLookupCache();
+    }
+  };
+}
+
+module.exports = branchService;

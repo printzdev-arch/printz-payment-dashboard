@@ -2,22 +2,12 @@ const mongoose = require("mongoose");
 const PrinterReading = require("../models/PrinterReading");
 const Branch = require("../../branches/models/Branch");
 const ApiError = require("../../../utils/errors/ApiError");
+const { resolveBranch } = require("../../../utils/helpers/branchLookup");
 const { runPaged } = require("../../../utils/helpers/pagination");
 
 class PrinterReadingService {
   async _resolveBranch(identifier) {
-    if (!identifier) return null;
-    const trimmed = String(identifier).trim();
-    if (mongoose.Types.ObjectId.isValid(trimmed)) {
-      const branch = await Branch.findById(trimmed).lean();
-      if (branch) return branch;
-    }
-    return Branch.findOne({
-      $or: [
-        { name: new RegExp(`^${trimmed}$`, "i") },
-        { code: new RegExp(`^${trimmed}$`, "i") },
-      ],
-    }).lean();
+    return resolveBranch(identifier);
   }
 
   async getAllReadings(filters = {}) {

@@ -191,7 +191,7 @@ const PrinterReadings = () => {
   useEffect(() => {
     const fetchApprovedDates = async () => {
       try {
-        const res = await getPastDateRequests();
+        const res = await getPastDateRequests({ params: { status: "Approved" } }) // only the approved ones are used here;
         const allRequests = res.data?.data || [];
         const approvedDocs = allRequests.filter(
           (req) =>

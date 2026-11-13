@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { resolveBranch } = require("../../../utils/helpers/branchLookup");
 
 const stockItemSchema = new mongoose.Schema(
   {
@@ -130,19 +131,7 @@ stockItemSchema.index({ branchName: 1, itemName: 1 });
 
 
 stockItemSchema.statics._resolveBranch = async function (identifier) {
-  if (!identifier) return null;
-  const Branch = mongoose.model("Branch");
-  const trimmed = String(identifier).trim();
-  if (mongoose.Types.ObjectId.isValid(trimmed)) {
-    const branch = await Branch.findById(trimmed).lean();
-    if (branch) return branch;
-  }
-  return Branch.findOne({
-    $or: [
-      { name: new RegExp('^' + trimmed + '$', "i") },
-      { code: new RegExp('^' + trimmed + '$', "i") },
-    ],
-  }).lean();
+  return resolveBranch(identifier);
 };
 
 stockItemSchema.statics.findAll = async function (filters = {}) {

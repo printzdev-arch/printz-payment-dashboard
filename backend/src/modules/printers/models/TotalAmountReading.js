@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { resolveBranch } = require("../../../utils/helpers/branchLookup");
 const { runPaged } = require("../../../utils/helpers/pagination");
 
 const totalAmountReadingSchema = new mongoose.Schema(
@@ -131,19 +132,7 @@ totalAmountReadingSchema.index({ branchName: 1, date: 1 });
 
 
 totalAmountReadingSchema.statics._resolveBranch = async function (identifier) {
-  if (!identifier) return null;
-  const Branch = mongoose.model("Branch");
-  const trimmed = String(identifier).trim();
-  if (mongoose.Types.ObjectId.isValid(trimmed)) {
-    const branch = await Branch.findById(trimmed).lean();
-    if (branch) return branch;
-  }
-  return Branch.findOne({
-    $or: [
-      { name: new RegExp('^' + trimmed + '$', "i") },
-      { code: new RegExp('^' + trimmed + '$', "i") },
-    ],
-  }).lean();
+  return resolveBranch(identifier);
 };
 
 totalAmountReadingSchema.statics.findAll = async function (filters = {}) {
