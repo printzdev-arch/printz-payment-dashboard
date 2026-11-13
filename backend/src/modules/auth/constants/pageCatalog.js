@@ -29,10 +29,7 @@ const PAGE_GROUPS = [
   {
     group: "Sale Orders",
     items: [
-      parent("sale-orders", "Sale Orders", [
-        page("sale-orders-all", "All Orders", ["/sale-orders"], ["saleOrder", "customer"]),
-        page("sale-orders-new", "New Order", ["/sale-orders/new"], ["saleOrder", "customer"]),
-      ]),
+      page("sale-orders", "Sale Orders", ["/sale-orders"], ["saleOrder", "customer"]),
     ],
   },
   {
@@ -163,8 +160,7 @@ PAGE_GROUPS.forEach((g) =>
 // manager version and an admin version).
 const LINKS = {
   dashboard: { to: "/manager-dashboard", adminTo: "/admin-dashboard" },
-  "sale-orders-all": { to: "/sale-orders" },
-  "sale-orders-new": { to: "/sale-orders/new" },
+  "sale-orders": { to: "/sale-orders" },
   pos: { to: "/pos" },
   invoices: { to: "/jobflow/invoice" },
   settlement: { to: "/jobflow/settlement" },
@@ -229,14 +225,21 @@ PAGE_ITEMS.forEach((i) => {
   i.adminOnly = ADMIN_ONLY.has(i.key);
 });
 
+// Map retired sub-page keys so existing roles/users in MongoDB keep access seamlessly
+const LEGACY_KEY_MAP = {
+  "sale-orders-all": "sale-orders",
+  "sale-orders-new": "sale-orders",
+};
+
 const PAGE_KEYS = new Set(PAGE_ITEMS.map((i) => i.key));
-const VALID_KEYS = new Set([...PAGE_KEYS, ...Object.keys(PARENTS)]);
+const VALID_KEYS = new Set([...PAGE_KEYS, ...Object.keys(PARENTS), ...Object.keys(LEGACY_KEY_MAP)]);
 
 /** Turn parent keys into their children, so a list holds pages only. */
 const expandKeys = (keys) => {
   const out = [];
   (Array.isArray(keys) ? keys : []).forEach((k) => {
-    const key = String(k).trim();
+    const rawKey = String(k).trim();
+    const key = LEGACY_KEY_MAP[rawKey] || rawKey;
     if (PARENTS[key]) out.push(...PARENTS[key]);
     else if (PAGE_KEYS.has(key)) out.push(key);
   });
