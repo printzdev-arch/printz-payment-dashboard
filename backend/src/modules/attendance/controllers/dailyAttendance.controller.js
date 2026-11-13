@@ -18,7 +18,7 @@ const getAuthContext = (req) => {
     req.authz?.isSuperAdmin ||
     roleNorm === "super_admin" ||
     roleNorm === "internal_admin" ||
-    (user.permissions && user.permissions.includes("*")) ||
+    (Array.isArray(user.permissions) && user.permissions.includes("*")) ||
     (roleNorm === "admin" && userBranchIds.length === 0)
   );
 

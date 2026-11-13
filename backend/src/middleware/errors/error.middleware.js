@@ -81,6 +81,11 @@ const errorHandler = (err, req, res, next) => {
     }
   }
 
+  // An unexpected server error used to leave no trace in the terminal; log it with the request so it can be found
+  if (statusCode >= 500) {
+    console.error(`[500] ${req.method} ${req.originalUrl} -> ${err && err.stack ? err.stack : message}`);
+  }
+
   // Construct standard clean error payload
   const responsePayload = {
     success: false,
