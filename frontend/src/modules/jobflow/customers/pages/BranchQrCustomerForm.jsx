@@ -4,7 +4,6 @@ import {
   CheckCircle,
   Clock,
   ShieldCheck,
-  Sparkles,
   UserCheck,
   AlertCircle,
   AlertOctagon,
@@ -20,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import jobFlowApi from "../api/customersApi";
 import { toast } from "react-toastify";
 import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
+import logo from "../../../../shared/assets/logo.png";
 
 const getManagerBranchInfo = () => {
   try {
@@ -349,11 +349,19 @@ export const BranchQrCustomerForm = () => {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-              <Sparkles size={28} style={{ color: "#34d399" }} />
-              <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>PrintZ</h1>
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "14px",
+                padding: "0.85rem 1rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 8px 20px -8px rgba(0, 0, 0, 0.45)",
+              }}
+            >
+              <img src={logo} alt="PrintZ Shop" style={{ width: "100%", maxWidth: "190px", height: "auto", display: "block" }} />
             </div>
-            <p style={{ color: "#a7f3d0", fontSize: "0.875rem", marginTop: 0 }}>Your Print Partner</p>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
