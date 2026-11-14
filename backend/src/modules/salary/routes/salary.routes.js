@@ -13,9 +13,11 @@ const {
   listEntriesQueryValidator,
   listRecordsQueryValidator,
   componentValidator,
+  componentIdParamValidator,
   structureValidator,
   adjustmentValidator,
   adjustmentIdParamValidator,
+  structureIdParamValidator,
   listStructuresQueryValidator,
   listAdjustmentsQueryValidator,
   listLoansQueryValidator,
@@ -44,8 +46,11 @@ router.get("/entries", requirePermission(PERMISSIONS.HR.SALARY_VIEW, { branchFie
 // Salary components and employee salary structures
 router.get("/components", requirePermission(PERMISSIONS.HR.SALARY_VIEW, { branchField: "branchId" }), controller.listComponents);
 router.post("/components", requirePermission(PERMISSIONS.HR.SALARY_CONFIGURE, { branchField: "branchId" }), requireAdmin, componentValidator, controller.createComponent);
+router.put("/components/:id", requirePermission(PERMISSIONS.HR.SALARY_CONFIGURE, { branchField: "branchId" }), requireAdmin, componentIdParamValidator, componentValidator, controller.updateComponent);
+router.delete("/components/:id", requirePermission(PERMISSIONS.HR.SALARY_CONFIGURE, { branchField: "branchId" }), requireAdmin, componentIdParamValidator, controller.deleteComponent);
 router.get("/structures", requirePermission(PERMISSIONS.HR.SALARY_VIEW, { branchField: "branchId" }), listStructuresQueryValidator, controller.listStructures);
 router.post("/structures", requirePermission(PERMISSIONS.HR.SALARY_CONFIGURE, { branchField: "branchId" }), requireAdmin, structureValidator, controller.createStructure);
+router.delete("/structures/:id", requirePermission(PERMISSIONS.HR.SALARY_CONFIGURE, { branchField: "branchId" }), requireAdmin, structureIdParamValidator, controller.deleteStructure);
 
 // Salary adjustments
 router.get("/adjustments", requirePermission(PERMISSIONS.HR.SALARY_VIEW, { branchField: "branchId" }), listAdjustmentsQueryValidator, controller.listAdjustments);

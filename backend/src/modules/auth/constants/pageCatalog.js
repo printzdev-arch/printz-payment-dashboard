@@ -64,17 +64,13 @@ const PAGE_GROUPS = [
         ),
         page("production-queue", "Operation Queue", ["/production/queue", "/production/operation-queue"], ["production", "job"]),
         page("production-rework", "Rework & Reprint", ["/production/rework", "/production/reprints", "/production/completed"], ["production", "reprint", "job"]),
-        page("production-operators", "Operators", ["/production/operators", "/production/machines"], ["production"]),
         page("production-reports", "Production Reports", ["/production/reports"], ["production", "report"]),
       ]),
       parent("quality-control", "Quality Control", [
         page("qc-queue", "QC Inspection Queue", ["/jobflow/qc", "/quality-control", "/v3/quality-control", "/production/qc"], ["qc", "production", "job"]),
         page("qc-history", "QC History & Reports", ["/jobflow/qc", "/quality-control", "/v3/quality-control", "/production/qc"], ["qc", "production", "job"]),
       ]),
-      parent("delivery", "Delivery", [
-        page("delivery-dispatch", "Dispatch Delivery", ["/jobflow/delivery", "/delivery"], ["delivery", "job"]),
-        page("delivery-pickup", "Self Pickup", ["/jobflow/delivery", "/delivery"], ["delivery", "job"]),
-      ]),
+      page("delivery", "Delivery", ["/jobflow/delivery", "/delivery"], ["delivery", "job"]),
       page("master-settings", "Master Defaults", ["/jobflow/master-settings", "/master-settings"], ["admin.master"]),
     ],
   },
@@ -175,12 +171,10 @@ const LINKS = {
   "production-orders": { to: "/production/orders" },
   "production-queue": { to: "/production/queue" },
   "production-rework": { to: "/production/rework" },
-  "production-operators": { to: "/production/operators" },
   "production-reports": { to: "/production/reports" },
   "qc-queue": { to: "/jobflow/qc?tab=overview" },
   "qc-history": { to: "/jobflow/qc?tab=history" },
-  "delivery-dispatch": { to: "/jobflow/delivery?tab=DISPATCH" },
-  "delivery-pickup": { to: "/jobflow/delivery?tab=PICKUP" },
+  "delivery": { to: "/jobflow/delivery" },
   "master-settings": { to: "/jobflow/master-settings" },
   employees: { to: "/employees" },
   "attendance-setup": { to: "/attendance/setup" },
@@ -229,6 +223,9 @@ PAGE_ITEMS.forEach((i) => {
 const LEGACY_KEY_MAP = {
   "sale-orders-all": "sale-orders",
   "sale-orders-new": "sale-orders",
+  // Dispatch Delivery and Self Pickup became one Delivery page
+  "delivery-dispatch": "delivery",
+  "delivery-pickup": "delivery",
 };
 
 const PAGE_KEYS = new Set(PAGE_ITEMS.map((i) => i.key));

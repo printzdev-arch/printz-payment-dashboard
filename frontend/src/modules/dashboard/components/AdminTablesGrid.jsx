@@ -115,21 +115,21 @@ const AdminTablesGrid = ({
               <tbody>
                 {branchList.map((row) => (
                   <tr key={row.id || row.branch}>
-                    <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                    <td data-label="Branch" style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                       {row.branch}
                     </td>
-                    <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{row.manager}</td>
-                    <td style={{ textAlign: "center", fontWeight: 600 }}>{row.totalJobs}</td>
-                    <td style={{ textAlign: "center", fontWeight: 600, color: "#0d6245" }}>
+                    <td data-label="Manager" style={{ color: "#475569", whiteSpace: "nowrap" }}>{row.manager}</td>
+                    <td data-label="Total Jobs" style={{ textAlign: "center", fontWeight: 600 }}>{row.totalJobs}</td>
+                    <td data-label="Completed" style={{ textAlign: "center", fontWeight: 600, color: "#0d6245" }}>
                       {row.completed}
                     </td>
-                    <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                    <td data-label="Revenue" style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                       {formatINR(row.revenue)}
                     </td>
-                    <td style={{ fontWeight: 600, color: "#e11d48", whiteSpace: "nowrap" }}>
+                    <td data-label="Pending Amount" style={{ fontWeight: 600, color: "#e11d48", whiteSpace: "nowrap" }}>
                       {formatINR(row.pendingAmount)}
                     </td>
-                    <td style={{ textAlign: "center" }}>
+                    <td data-label="Status" style={{ textAlign: "center" }}>
                       <span className="printz-badge badge-approved">Active</span>
                     </td>
                   </tr>
@@ -166,23 +166,23 @@ const AdminTablesGrid = ({
               <tbody>
                 {topList.map((row) => (
                   <tr key={row.rank || row.branch}>
-                    <td style={{ textAlign: "center", fontWeight: 700, color: "#475569" }}>
+                    <td data-label="#" style={{ textAlign: "center", fontWeight: 700, color: "#475569" }}>
                       {row.rank}
                     </td>
-                    <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                    <td data-label="Branch" style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                       {row.branch}
                     </td>
-                    <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                    <td data-label="Revenue" style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                       {formatINR(row.revenue)}
                     </td>
-                    <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                    <td data-label="Growth" style={{ textAlign: "center", whiteSpace: "nowrap" }}>
                       <span className="printz-kpi-trend-up" style={{ fontSize: "11px" }}>
                         <TrendingUp size={11} strokeWidth={2.8} />
                         {row.growth ?? "-"}
                       </span>
                     </td>
-                    <td style={{ textAlign: "center", fontWeight: 600 }}>{row.jobs}</td>
-                    <td style={{ textAlign: "center" }}>
+                    <td data-label="Jobs" style={{ textAlign: "center", fontWeight: 600 }}>{row.jobs}</td>
+                    <td data-label="Status" style={{ textAlign: "center" }}>
                       <span className="printz-badge badge-approved">Active</span>
                     </td>
                   </tr>
@@ -234,23 +234,23 @@ const AdminTablesGrid = ({
                   const badge = getStatusBadge(job.status || job.designStatus);
                   return (
                     <tr key={job.id || job.jobId}>
-                      <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                      <td data-label="Job ID" style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                         {job.jobId}
                       </td>
-                      <td style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
+                      <td data-label="Customer Name" style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
                         {job.customerName}
                       </td>
-                      <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{job.branch || "-"}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>
+                      <td data-label="Branch" style={{ color: "#475569", whiteSpace: "nowrap" }}>{job.branch || "-"}</td>
+                      <td data-label="Status" style={{ whiteSpace: "nowrap" }}>
                         <span className={badge.cls}>{badge.text}</span>
                       </td>
-                      <td style={{ color: "#475569", whiteSpace: "nowrap", fontSize: "11.5px" }}>
+                      <td data-label="Delivery Date" style={{ color: "#475569", whiteSpace: "nowrap", fontSize: "11.5px" }}>
                         {job.deliveryDate}
                       </td>
-                      <td style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                      <td data-label="Amount" style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                         {formatINR(job.amount || 0)}
                       </td>
-                      <td style={{ textAlign: "center" }}>
+                      <td data-label="Action" style={{ textAlign: "center" }}>
                         <button
                           type="button"
                           onClick={() => onViewJobOrder && onViewJobOrder(job)}
@@ -293,17 +293,17 @@ const AdminTablesGrid = ({
               <tbody>
                 {stockList.slice(0, 5).map((item) => (
                   <tr key={item.id || item.materialName}>
-                    <td style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
+                    <td data-label="Material Name" style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
                       {item.materialName}
                     </td>
-                    <td style={{ color: "#475569", whiteSpace: "nowrap" }}>{item.branch || "-"}</td>
-                    <td style={{ textAlign: "center", fontWeight: 700, color: "#e11d48" }}>
+                    <td data-label="Branch" style={{ color: "#475569", whiteSpace: "nowrap" }}>{item.branch || "-"}</td>
+                    <td data-label="Available" style={{ textAlign: "center", fontWeight: 700, color: "#e11d48" }}>
                       {item.available ?? item.availableQty ?? 0}
                     </td>
-                    <td style={{ textAlign: "center", color: "#475569" }}>
+                    <td data-label="Min Stock" style={{ textAlign: "center", color: "#475569" }}>
                       {item.minStock ?? 0}
                     </td>
-                    <td style={{ textAlign: "center" }}>
+                    <td data-label="Status" style={{ textAlign: "center" }}>
                       <span className="printz-badge badge-low">Low Stock</span>
                     </td>
                   </tr>

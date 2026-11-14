@@ -1080,3 +1080,40 @@
 .pos-split-label, .pos-consumption-row { color: #1e293b; }
 .pos-consumption-row .branch-select-trigger { height: 30px; min-height: 30px; }
 @media (max-width: 640px) { .pos-consumption-row .branch-select-container { width: 100% !important; } }
+
+/* Receipts history: no title, just the filters above the table, like the other pages */
+.pos-history-table { border: none; box-shadow: none; background: transparent; margin-top: 0; overflow: visible; }
+.pos-history-table .printz-table-header-wrap { background: transparent; border-bottom: none; padding: 0 0 12px; justify-content: flex-start; }
+.pos-history-table .printz-table-title-area { display: none; }
+.pos-history-table .printz-table-controls-area { width: 100%; justify-content: flex-start; }
+.pos-history-table .printz-table-controls-area > div { flex-wrap: wrap; width: 100%; }
+.pos-history-table .printz-table-controls-area .jf-input { height: 42px; border-radius: 10px; background: #ffffff; border: 1px solid #dbe3ea; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.pos-history-table .printz-table-controls-area .branch-select-trigger { height: 42px; }
+.pos-history-table .printz-table-controls-area .jf-btn { height: 42px; border-radius: 10px; }
+.pos-history-table .printz-table-scroll { background: #ffffff; border: none; border-radius: 12px; overflow: hidden; }
+@media (max-width: 640px) {
+  .pos-history-table .printz-table-controls-area .jf-input,
+  .pos-history-table .printz-table-controls-area .branch-select-container { width: 100% !important; flex: 1 1 100%; }
+}
+
+/* Receipts history filters: wider search, refresh as an icon at the far end */
+.pos-history-table .printz-table-controls-area .jf-input { flex: 1 1 320px; max-width: 380px; min-width: 200px; width: auto; }
+.pos-history-table .printz-table-controls-area .jf-btn { width: 42px; padding: 0; margin-left: auto; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 42px; }
+@media (max-width: 640px) {
+  .pos-history-table .printz-table-controls-area .jf-input { max-width: none; flex: 1 1 100%; }
+  .pos-history-table .printz-table-controls-area .jf-btn { margin-left: 0; }
+}
+
+/* Receipt popup header: one neat row on desktop, tidy two rows on phones */
+@media (min-width: 521px) {
+  .pos-receipt-modal-header { flex-wrap: nowrap; padding: 0.75rem 1.1rem; }
+  .pos-receipt-modal-header > div:first-child { flex: 0 0 auto; white-space: nowrap; }
+  .pos-receipt-modal-header > div:last-child { flex: 0 0 auto; white-space: nowrap; }
+}
+@media (max-width: 520px) {
+  .pos-receipt-modal-header > div:first-child { width: 100%; }
+  .pos-receipt-modal-header > div:first-child > button { flex: 1 1 0; }
+  .pos-receipt-modal-header > div:last-child { width: 100%; }
+  .pos-receipt-modal-header > div:last-child > button:first-child { flex: 1 1 0; justify-content: center; }
+  .pos-receipt-modal-header > div:last-child > button:nth-child(2) { flex: 1 1 0; justify-content: center; }
+}

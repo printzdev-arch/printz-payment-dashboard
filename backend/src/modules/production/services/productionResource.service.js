@@ -626,84 +626,6 @@ class ProductionResourceService {
     };
   }
 
-  /** Add an operator. */
-  static async createOperator(data = {}, user = null) {
-    // When an employee is picked, name, phone and branch come from the employee record
-    let employee = null;
-    if (data.employeeId) {
-      employee = await resolveEmployee(data.employeeId);
-      const scoped = scopeBranch(null, user);
-      if (scoped && employee.branchId && idOf(employee.branchId) !== String(scoped)) {
-        throw ErrorHelper.badRequest("This employee belongs to another branch.");
-      }
-    }
-
-    const name = String((employee ? employee.name : data.name) || "").trim().replace(/\s+/g, " ");
-    if (name.length < 2) throw ErrorHelper.badRequest("Operator name is required (at least 2 characters).");
-    const phone = String((employee ? employee.mobile : data.phone) || "").trim();
-    if (phone && !/^[0-9+\-\s]{7,15}$/.test(phone)) throw ErrorHelper.badRequest("Enter a valid phone number.");
-    const branchId = employee ? idOf(employee.branchId) : scopeBranch(data.branchId, user);
-    if (!employee) {
-      const duplicate = await ProductionOperator.findOne({
-        name: new RegExp("^" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i"),
-        ...(isObjectId(branchId) ? { branchId } : {}),
-      }).lean();
-      if (duplicate) throw ErrorHelper.conflict("An operator with this name already exists.");
-    }
-    const doc = await ProductionOperator.create({
-      name,
-      phone,
-      employeeId: employee ? employee._id : null,
-      skill: String(data.skill || "").trim(),
-      notes: String(data.notes || "").trim(),
-      branchId: isObjectId(branchId) ? branchId : null,
-      isActive: data.isActive === undefined ? true : Boolean(data.isActive),
-    });
-    return normalizeOperator(doc.toObject());
-  }
-
-  /** Edit an operator's details or availability. */
-  static async updateOperator(id, data = {}, user = null) {
-    if (!isObjectId(id)) throw ErrorHelper.badRequest(`Invalid operator ID: ${id}`);
-    const doc = await ProductionOperator.findById(id);
-    if (!doc) throw ErrorHelper.notFound(`Operator not found with ID: ${id}`);
-    const branch = scopeBranch(null, user);
-    if (branch && doc.branchId && String(doc.branchId) !== String(branch)) {
-      throw ErrorHelper.notFound(`Operator not found with ID: ${id}`);
-    }
-
-    // Link (or re-link) to an employee; the employee then owns name, phone and branch
-    if (data.employeeId) {
-      const employee = await resolveEmployee(data.employeeId, doc._id);
-      const scoped = scopeBranch(null, user);
-      if (scoped && employee.branchId && idOf(employee.branchId) !== String(scoped)) {
-        throw ErrorHelper.badRequest("This employee belongs to another branch.");
-      }
-      doc.employeeId = employee._id;
-      doc.name = String(employee.name || "").trim().replace(/\s+/g, " ");
-      doc.phone = String(employee.mobile || "").trim();
-      const empBranch = idOf(employee.branchId);
-      if (isObjectId(empBranch)) doc.branchId = empBranch;
-    } else if (!doc.employeeId) {
-      // Name and phone are only editable here while the operator is not linked to an employee
-      if (data.name !== undefined) {
-        const name = String(data.name || "").trim().replace(/\s+/g, " ");
-        if (name.length < 2) throw ErrorHelper.badRequest("Operator name is required (at least 2 characters).");
-        doc.name = name;
-      }
-      if (data.phone !== undefined) {
-        const phone = String(data.phone || "").trim();
-        if (phone && !/^[0-9+\-\s]{7,15}$/.test(phone)) throw ErrorHelper.badRequest("Enter a valid phone number.");
-        doc.phone = phone;
-      }
-    }
-    if (data.skill !== undefined) doc.skill = String(data.skill || "").trim();
-    if (data.notes !== undefined) doc.notes = String(data.notes || "").trim();
-    if (data.isActive !== undefined) doc.isActive = Boolean(data.isActive);
-    await doc.save();
-    return normalizeOperator(doc.toObject());
-  }
-
   /**
    * Stock list for the material pickers. Reads the existing stock items; stock is never changed here.
    * query: search, branchId, limit
@@ -726,36 +648,6 @@ class ProductionResourceService {
         quantity: Number(s.qty ?? s.quantity ?? s.currentStock ?? 0) || 0,
       }));
     return { items, summary: { stocks: items.length }, range: null };
-  }
-
-  static async getOperatorById(id, query = {}, user = null) {
-    if (!isObjectId(id)) throw ErrorHelper.badRequest(`Invalid operator ID: ${id}`);
-    const { items, range } = await this.getOperators({ ...query, search: "", status: "ALL" }, user);
-    const operator = items.find((o) => o.id === String(id));
-    if (!operator) throw ErrorHelper.notFound(`Operator not found with ID: ${id}`);
-
-    const branch = scopeBranch(query.branchId, user);
-    const { ops } = await loadOperations(resolveRange(query), branch);
-    const mine = ops.filter((o) => idOf(o.assignedEmployeeId) === operator.id);
-    const orderInfo = await loadOrderInfo(mine);
-
-    const recent = [...mine]
-      .sort((a, b) => new Date(b.startAt || 0) - new Date(a.startAt || 0))
-      .slice(0, 25)
-      .map((o) => opSummary(o, orderInfo));
-
-    const machineList = await loadMachines(branch);
-    const idToName = Object.fromEntries(machineList.map((m) => [m.id, m.name]));
-    const machineCounts = {};
-    mine.forEach((o) => {
-      const name = o.machine || idToName[idOf(o.machineId)] || "";
-      if (name) machineCounts[name] = (machineCounts[name] || 0) + 1;
-    });
-    const machinesUsed = Object.entries(machineCounts)
-      .map(([name, count]) => ({ name, operations: count }))
-      .sort((a, b) => b.operations - a.operations);
-
-    return { operator, recentOperations: recent, machinesUsed, range };
   }
 }
 

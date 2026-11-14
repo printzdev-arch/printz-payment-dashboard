@@ -12,6 +12,7 @@ import {
 import jobFlowApi from "../api/designApi";
 import { toast } from "react-toastify";
 import PriorityBadge from "../../shared/components/PriorityBadge";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const AssignDesignerModal = ({
   isOpen,
@@ -379,7 +380,7 @@ export const AssignDesignerModal = ({
             <p
               style={{
                 fontSize: "0.8125rem",
-                color: "#475569",
+                color: "#1e293b",
                 margin: "0 0 0.85rem 0",
               }}
             >
@@ -487,7 +488,7 @@ export const AssignDesignerModal = ({
 
                     {!fetchingPool && (
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: "0.6875rem", color: "#475569" }}>
+                        <div style={{ fontSize: "0.6875rem", color: "#1e293b" }}>
                           Current Active Jobs
                         </div>
                         <div style={{ fontWeight: 700, fontSize: "0.875rem", color: "#0f172a" }}>
@@ -514,7 +515,7 @@ export const AssignDesignerModal = ({
                   >
                     Select Designer <span style={{ color: "#dc2626" }}>*</span>
                   </label>
-                  <select
+                  <StyledSelect
                     className="alloc-select"
                     value={selectedDesignerId}
                     onChange={(e) => {
@@ -532,7 +533,7 @@ export const AssignDesignerModal = ({
                         {d.name} ({d.currentLoad ?? d.openJobs ?? 0}/{d.maxLoad || 5})
                       </option>
                     ))}
-                  </select>
+                  </StyledSelect>
                 </div>
 
                 <div className="alloc-info-note">

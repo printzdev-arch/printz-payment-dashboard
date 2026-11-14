@@ -27,6 +27,7 @@ import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import InvoiceBillModal from "./InvoiceBillModal";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 import "../styles/invoice.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const InvoiceEditorSection = ({
   selectedJobOrderId,
@@ -1174,7 +1175,7 @@ export const InvoiceEditorSection = ({
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#64748b"
+                  color: "#1e293b"
                 }}
                 title="Clear"
               >
@@ -1220,7 +1221,7 @@ export const InvoiceEditorSection = ({
                     <div style={{ fontWeight: 700, fontSize: "0.875rem", color: "#0f172a" }}>
                       {res.title}
                     </div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                       {res.subtitle}
                     </div>
                   </div>
@@ -1255,16 +1256,16 @@ export const InvoiceEditorSection = ({
           gap: "1rem"
         }}>
           <div>
-            <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Customer Name</div>
+            <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Customer Name</div>
             <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
               {jobSnapshot?.customerSnapshot?.name || jobSnapshot?.customerName || "-"}
             </div>
-            <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+            <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
               {jobSnapshot?.customerSnapshot?.mobile || jobSnapshot?.customerPhone || "-"}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Linked Job Order</div>
+            <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Linked Job Order</div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
               <span style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.95rem" }}>
                 {jobSnapshot?.jobNo || "-"}
@@ -1273,23 +1274,23 @@ export const InvoiceEditorSection = ({
                 <JobTypeBadge jobType={jobSnapshot?.jobType || "Print & Design"} size="sm" />
               )}
             </div>
-            <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+            <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
               {jobSnapshot?.title || (jobSnapshot ? "Print Job Order" : "-")}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>
+            <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>
               {isFullPayment ? "Total Invoice Amount" : "Advance Paid (Recorded)"}
             </div>
             <div style={{ fontWeight: 700, color: isFullPayment ? "#6b21a8" : "#059669", fontSize: "1.1rem" }}>
               ₹ {Number(isFullPayment ? (calcResult.grandTotal || jobSnapshot?.grandTotal || 0) : (initialAdvancePreviouslyPaid || jobSnapshot?.advancePaid || 0)).toFixed(2)}
             </div>
-            <div style={{ fontSize: "0.75rem", color: "#475569" }}>
+            <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
               {isFullPayment ? "100% Full Payment Required (No Advance)" : "Auto-deducted from settlement balance"}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Invoice Due Date</div>
+            <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Invoice Due Date</div>
             <DateField
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -1325,12 +1326,12 @@ export const InvoiceEditorSection = ({
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", padding: "1.75rem", color: "#64748b" }}>
+                  <td colSpan={4} style={{ textAlign: "center", padding: "1.75rem", color: "#1e293b" }}>
                     {jobSnapshot ? (
                       <div>This job order has no billable items.</div>
                     ) : (
                       <div style={{ padding: "0.25rem 0" }}>
-                        <span style={{ fontWeight: 600, color: "#475569" }}>No job order selected</span>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>No job order selected</span>
                         <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "0.2rem" }}>
                           All fields are empty by default. Search a customer above or click <strong>Create Draft Invoice</strong> in the Pending Queue table below.
                         </div>
@@ -1467,7 +1468,7 @@ export const InvoiceEditorSection = ({
                   right: 12,
                   top: "50%",
                   transform: "translateY(-50%)",
-                  color: "#64748b",
+                  color: "#1e293b",
                   fontWeight: 700,
                   fontSize: "0.9rem"
                 }}>
@@ -1531,7 +1532,7 @@ export const InvoiceEditorSection = ({
                   left: 10,
                   top: "50%",
                   transform: "translateY(-50%)",
-                  color: "#64748b",
+                  color: "#1e293b",
                   fontWeight: 700,
                   fontSize: "0.95rem"
                 }}>₹</span>
@@ -1549,7 +1550,7 @@ export const InvoiceEditorSection = ({
                   {isSettlingBalance ? `🔒 Fixed: ${gstRate}%` : `Applied: ${gstRate}%`}
                 </span>
               </div>
-              <select
+              <StyledSelect
                 className="jf-select"
                 value={gstRate}
                 onChange={(e) => handleGstRateChange(e.target.value)}
@@ -1568,7 +1569,7 @@ export const InvoiceEditorSection = ({
                 {![0, 5, 12, 18, 28].includes(Number(gstRate)) && (
                   <option value={Number(gstRate)}>{gstRate}% - Applied Tax</option>
                 )}
-              </select>
+              </StyledSelect>
               {/* <div style={{ fontSize: "0.72rem", color: isSettlingBalance ? "#059669" : "#64748b", marginTop: "5px", fontWeight: isSettlingBalance ? 600 : 400 }}>
                 {isSettlingBalance
                   ? `🔒 Tax rate locked to ${gstRate}% (matches initial advance payment)`
@@ -1637,7 +1638,7 @@ export const InvoiceEditorSection = ({
                     Design approved by customer. Collect remaining balance of ₹ {balanceToCollect.toFixed(2)} to complete and close order. (Amount is editable below).
                   </div>
                 ) : (
-                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                     Collect customer advance to confirm commercial order before design allocation
                   </div>
                 )} */}
@@ -1960,7 +1961,7 @@ export const InvoiceEditorSection = ({
               <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
                 Payment Method
               </label>
-              <select
+              <StyledSelect
                 className="jf-select"
                 value={paymentMode}
                 onChange={(e) => setPaymentMode(e.target.value)}
@@ -1975,7 +1976,7 @@ export const InvoiceEditorSection = ({
                 <option value="CASH">Cash</option>
                 <option value="CARD">Credit / Debit Card</option>
                 <option value="BANK_TRANSFER">Net Banking / Bank Transfer</option>
-              </select>
+              </StyledSelect>
              
             </div>
 
@@ -2028,18 +2029,18 @@ export const InvoiceEditorSection = ({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#475569"
+                      color: "#1e293b"
                     }}>
                       <CheckCircle size={16} />
                     </div>
                     <div>
-                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                         Initial Advance Paid
                       </div>
                       
                     </div>
                   </div>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#475569" }}>
+                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#1e293b" }}>
                     ₹ {initialAdvancePreviouslyPaid.toFixed(2)}
                   </div>
                 </div>
@@ -2249,7 +2250,7 @@ export const InvoiceEditorSection = ({
               </>
             ) : isSettlingBalance ? (
               <>
-                <div className="invoice-calc-row" style={{ color: "#475569", fontWeight: 600 }}>
+                <div className="invoice-calc-row" style={{ color: "#1e293b", fontWeight: 600 }}>
                   <span>Less: Initial Advance Paid:</span>
                   <span>- ₹ {initialAdvancePreviouslyPaid.toFixed(2)}</span>
                 </div>
@@ -2264,7 +2265,7 @@ export const InvoiceEditorSection = ({
               </>
             ) : (invoiceStatus === "PAID" || (initialAdvancePreviouslyPaid > 0 && balanceToCollect <= 0)) ? (
               <>
-                <div className="invoice-calc-row" style={{ color: "#475569", fontWeight: 600 }}>
+                <div className="invoice-calc-row" style={{ color: "#1e293b", fontWeight: 600 }}>
                   <span>Initial Advance Paid:</span>
                   <span>- ₹ {initialAdvancePreviouslyPaid.toFixed(2)}</span>
                 </div>

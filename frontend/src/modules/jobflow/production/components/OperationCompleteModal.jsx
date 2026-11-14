@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, CheckCircle, Plus, Trash2, Box, AlertTriangle } from "lucide-react";
 import jobFlowApi from "../api/productionApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const OperationCompleteModal = ({
   isOpen,
@@ -261,7 +262,7 @@ export const OperationCompleteModal = ({
                 <div className="prod-mat-list">
                   {materials.map((mat, idx) => (
                     <div key={idx} className="prod-mat-row">
-                      <select
+                      <StyledSelect
                         className="jf-input jf-input-sm"
                         value={mat.itemId || ""}
                         onChange={(e) => {
@@ -281,8 +282,8 @@ export const OperationCompleteModal = ({
                         {stocks.map((s) => (
                           <option key={s.id} value={s.id}>{s.name} ({s.quantity}{s.unit ? ` ${s.unit}` : ""})</option>
                         ))}
-                      </select>
-                      <select
+                      </StyledSelect>
+                      <StyledSelect
                         className="jf-input jf-input-sm"
                         value={mat.type}
                         onChange={(e) => handleUpdateMaterial(idx, "type", e.target.value)}
@@ -290,7 +291,7 @@ export const OperationCompleteModal = ({
                         <option value="Direct Stock">Direct Stock</option>
                         <option value="Consumable">Consumable</option>
                         <option value="Wastage / Setup">Wastage / Setup</option>
-                      </select>
+                      </StyledSelect>
                       <input
                         type="number"
                         min="0"

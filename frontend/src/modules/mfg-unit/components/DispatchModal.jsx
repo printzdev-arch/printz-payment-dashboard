@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import StyledSelect from "../../../shared/ui/selects/StyledSelect";
 import Modal from "../../sale-order/components/common/Modal";
 import mfgApi from "../api/mfgApi";
 import { errorMessage } from "../../sale-order/utils/format";
@@ -77,9 +78,9 @@ export default function DispatchModal({ isOpen, order, onClose, onDone }) {
         </div>
         <div className="so-field">
           <label>How is it being sent? <span className="req">*</span></label>
-          <select className="so-select" value={mode} onChange={(e) => setMode(e.target.value)}>
+          <StyledSelect className="so-select" value={mode} onChange={(e) => setMode(e.target.value)}>
             {MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-          </select>
+          </StyledSelect>
         </div>
         {mode === "COURIER" && (
           <div className="so-field so-span-2">

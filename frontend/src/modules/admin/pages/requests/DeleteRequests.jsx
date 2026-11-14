@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Check, RefreshCw, Undo2, X } from "lucide-react";
 import { toast } from "react-toastify";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import { isAdminUser } from "../../../../shared/utils/deleteRequest";
 import {
   approveDeleteRequest,
@@ -110,17 +111,14 @@ export default function DeleteRequests() {
       <div className="emp-header">
         <div>
           <h1>Delete Requests</h1>
-          <p>
-            {admin
-              ? "Deletes that managers asked for. Approve to delete the record, or reject to keep it."
-              : "Your delete requests. A record is only deleted after an admin approves."}
-          </p>
         </div>
         {admin && pending > 0 && filters.status !== "PENDING" && <span className="emp-badge emp-badge-left">{pending} waiting</span>}
       </div>
 
       <div className="emp-card">
         <DataTable
+          className="dr-table"
+          mobileCards
           searchable={false}
           loading={loading}
           data={rows}
@@ -136,22 +134,22 @@ export default function DeleteRequests() {
             },
           }}
           filterComponent={
-            <div className="emp-filters" style={{ margin: 0 }}>
-              <select className="emp-select" value={filters.status} onChange={changeFilter("status")} aria-label="Status">
+            <div className="dr-filters">
+              <StyledSelect searchable={false} style={{ width: "170px" }} value={filters.status} onChange={changeFilter("status")}>
                 <option value="PENDING">Waiting</option>
                 <option value="APPROVED">Approved</option>
                 <option value="REJECTED">Rejected</option>
                 <option value="CANCELLED">Withdrawn</option>
                 <option value="">All statuses</option>
-              </select>
-              <select className="emp-select" value={filters.resourceType} onChange={changeFilter("resourceType")} aria-label="Record type">
+              </StyledSelect>
+              <StyledSelect searchable={false} style={{ width: "200px" }} value={filters.resourceType} onChange={changeFilter("resourceType")}>
                 <option value="">All record types</option>
                 {types.map((t) => (
                   <option key={t.key} value={t.key}>{t.label}</option>
                 ))}
-              </select>
-              <button type="button" className="emp-btn" onClick={load} disabled={loading}>
-                <RefreshCw size={14} /> Refresh
+              </StyledSelect>
+              <button type="button" className="dr-refresh" onClick={load} disabled={loading} title="Refresh" aria-label="Refresh">
+                <RefreshCw size={15} className={loading ? "spin" : ""} />
               </button>
             </div>
           }

@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function AddAdjustmentModal({
   isOpen,
@@ -159,7 +160,7 @@ export default function AddAdjustmentModal({
             <div className="salary-form-grid" style={{ marginBottom: "14px" }}>
               <div className="salary-form-group">
                 <label>Employee <span className="req">*</span></label>
-                <select
+                <StyledSelect
                   className="salary-form-select"
                   value={formData.employeeId}
                   onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
@@ -177,7 +178,7 @@ export default function AddAdjustmentModal({
                       {emp.employeeCode ? `[${emp.employeeCode}] ` : ""}{emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim()}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="salary-form-group">
@@ -195,7 +196,7 @@ export default function AddAdjustmentModal({
             <div className="salary-form-grid" style={{ marginBottom: "14px" }}>
               <div className="salary-form-group">
                 <label>Adjustment Type <span className="req">*</span></label>
-                <select
+                <StyledSelect
                   className="salary-form-select"
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -211,7 +212,7 @@ export default function AddAdjustmentModal({
                     <option value="EMPLOYEE_PURCHASE">Employee Purchase (-)</option>
                     <option value="OTHER_DEDUCTION">Other Deduction (-)</option>
                   </optgroup>
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="salary-form-group">
@@ -232,7 +233,7 @@ export default function AddAdjustmentModal({
             <div className="salary-form-grid" style={{ marginBottom: "14px" }}>
               <div className="salary-form-group">
                 <label>Payroll Month <span className="req">*</span></label>
-                <select
+                <StyledSelect
                   className="salary-form-select"
                   value={formData.month}
                   onChange={(e) => setFormData({ ...formData, month: Number(e.target.value) })}
@@ -243,7 +244,7 @@ export default function AddAdjustmentModal({
                   ].map((m, idx) => (
                     <option key={idx + 1} value={idx + 1}>{m}</option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="salary-form-group">

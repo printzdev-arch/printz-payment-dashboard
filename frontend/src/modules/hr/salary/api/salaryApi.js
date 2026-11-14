@@ -99,10 +99,25 @@ export const salaryApi = {
     return res.data;
   },
 
+  updateComponent: async (id, data) => {
+    const res = await api.put(`/salary/components/${id}`, data);
+    return res.data;
+  },
+
+  deleteComponent: async (id) => {
+    const res = await api.delete(`/salary/components/${id}`);
+    return res.data;
+  },
+
   listStructures: async (params = {}) => fetchAllPages("/salary/structures", params),
 
   createStructure: async (data) => {
     const res = await api.post("/salary/structures", data);
+    return res.data;
+  },
+
+  deleteStructure: async (id) => {
+    const res = await api.delete(`/salary/structures/${id}`);
     return res.data;
   },
 

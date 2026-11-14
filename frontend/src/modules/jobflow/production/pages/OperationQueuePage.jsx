@@ -39,6 +39,7 @@ import OperationPauseModal from "../components/OperationPauseModal";
 import "../styles/operation-queue.css";
 import "../styles/production-theme.css";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import SelectField from "../../../../shared/ui/selects/SelectField";
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants                                                                  */
@@ -184,22 +185,19 @@ function PageHeader({ title: heading, subtitle, children }) {
   );
 }
 
-// A select that reads "Label: Value" with a leading icon; the native <select> sits invisibly on top.
+// A dropdown that reads "Label: Value", drawn with the shared dropdown
 function FilterSelect({ label, value, options, onChange, format = (v) => v, allLabel = "All" }) {
   return (
-    <div className="oq-select-wrap">
-      <span className="oq-select-text">
-        {label}: {value === "ALL" ? allLabel : format(value)}
-      </span>
-      <ChevronDown size={16} className="oq-select-chevron" />
-      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="ALL">{allLabel}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {format(o)}
-          </option>
-        ))}
-      </select>
+    <div className="oq-select-wrap oq-select-wrap--shared">
+      <SelectField
+        searchable={false}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        options={[
+          { value: "ALL", label: `${label}: ${allLabel}` },
+          ...options.map((o) => ({ value: o, label: `${label}: ${format(o)}` })),
+        ]}
+      />
     </div>
   );
 }
@@ -255,8 +253,8 @@ function FilterBar({ filters, status, onStatusChange, operations, machines, oper
       />
 
       
-      <button type="button" className="oq-btn oq-btn--reset" onClick={onRefresh} disabled={refreshing}>
-        <RefreshCw size={14} /> {refreshing ? "Refreshing..." : "Refresh"}
+      <button type="button" className="oq-btn oq-btn--reset oq-refresh-icon" onClick={onRefresh} disabled={refreshing} title="Refresh" aria-label="Refresh">
+        <RefreshCw size={15} className={refreshing ? "spin" : ""} />
       </button>
     </section>
   );

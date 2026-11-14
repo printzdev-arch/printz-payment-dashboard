@@ -326,10 +326,6 @@ const PrinterList = () => {
         <div className="printer-filter-toolbar">
           <div className="printer-filter-left">
             <div className="printer-filter-field">
-              <label className="printer-filter-label">
-                <Building2 size={15} color="#059669" />
-                <span>Store / Branch</span>
-              </label>
               <BranchSelect
                 value={selectedBranch}
                 onChange={handleBranchChange}
@@ -368,19 +364,6 @@ const PrinterList = () => {
 
       {/* Main Table Card */}
       <div className="printer-section-card printer-table-card">
-        <div className="printer-services-header-row">
-          <div className="printer-services-header-left">
-            <div className="printer-services-tag-icon">
-              <Printer size={20} color="#059669" />
-            </div>
-            <div>
-              <h4 className="printer-services-title">
-                {selectedBranch ? `Printers in ${selectedBranch}` : "All Branch Hardware"}
-              </h4>
-            </div>
-          </div>
-        </div>
-
         <div style={{ display: "flex", flexDirection: "column" }}>
           {loading ? (
             <div className="printer-empty-state">

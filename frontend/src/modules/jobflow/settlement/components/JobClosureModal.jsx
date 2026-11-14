@@ -68,7 +68,7 @@ export const JobClosureModal = ({ isOpen, onClose, jobId, onClosed }) => {
                 <h2 className="jf-modal-title">Administrative Job Closure & Lock</h2>
                 <StatusBadge status={closureData?.closureStatus || "OPEN"} domain="closure" />
               </div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Job No: <strong>{closureData?.jobNo || "JOB-CURRENT"}</strong>
               </div>
             </div>
@@ -79,7 +79,7 @@ export const JobClosureModal = ({ isOpen, onClose, jobId, onClosed }) => {
         </div>
 
         <div className="jf-modal-body">
-          <p style={{ fontSize: "0.875rem", color: "#475569", marginTop: 0, marginBottom: "1rem" }}>
+          <p style={{ fontSize: "0.875rem", color: "#1e293b", marginTop: 0, marginBottom: "1rem" }}>
             Permanent job closure permanently locks this order from further financial or production modifications. All 3 prerequisites below must pass.
           </p>
 
@@ -105,7 +105,7 @@ export const JobClosureModal = ({ isOpen, onClose, jobId, onClosed }) => {
                   <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isDeliveryComplete ? "#166534" : "#991b1b" }}>
                     1. Physical Delivery Delivered
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#475569" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                     {isDeliveryComplete ? "Handover completed & POD verified" : "Delivery is still pending or out in transit"}
                   </div>
                 </div>
@@ -135,7 +135,7 @@ export const JobClosureModal = ({ isOpen, onClose, jobId, onClosed }) => {
                   <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isInvoicesSettled ? "#166534" : "#991b1b" }}>
                     2. Invoices Fully Settled (Balance = ₹0.00)
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#475569" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                     Total Invoiced: ₹{Number(closureData?.totalInvoiced || 0).toFixed(2)} • Balance: ₹{Number(closureData?.totalBalance || 0).toFixed(2)}
                   </div>
                 </div>
@@ -165,7 +165,7 @@ export const JobClosureModal = ({ isOpen, onClose, jobId, onClosed }) => {
                   <div style={{ fontWeight: 600, fontSize: "0.9rem", color: noPendingReprints ? "#166534" : "#991b1b" }}>
                     3. No Unresolved Rework / Reprints
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#475569" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                     Pending reprint requests: {pendingReprintCount}
                   </div>
                 </div>

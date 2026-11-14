@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import StyledSelect from "../../../shared/ui/selects/StyledSelect";
 import { Link } from "react-router-dom";
 import {
   FileText,
@@ -518,11 +519,7 @@ const DesignerDashboard = () => {
           <div className="printz-dash-inputs-row">
             {/* Date Range Filter */}
             <div className="printz-dash-field-group">
-              <label className="printz-dash-label">
-                <Calendar size={14} className="text-slate-500" />
-                Date Range
-              </label>
-              <select
+              <StyledSelect
                 className="printz-dash-select"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
@@ -532,13 +529,12 @@ const DesignerDashboard = () => {
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
 
             {/* Design Status Filter */}
             <div className="printz-dash-field-group">
-              <label className="printz-dash-label">Design Status</label>
-              <select
+              <StyledSelect
                 className="printz-dash-select"
                 value={designStatusFilter}
                 onChange={(e) => setDesignStatusFilter(e.target.value)}
@@ -548,13 +544,12 @@ const DesignerDashboard = () => {
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
 
             {/* Priority Filter */}
             <div className="printz-dash-field-group">
-              <label className="printz-dash-label">Priority</label>
-              <select
+              <StyledSelect
                 className="printz-dash-select"
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
@@ -564,7 +559,7 @@ const DesignerDashboard = () => {
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
           </div>
 
@@ -705,14 +700,14 @@ const DesignerDashboard = () => {
               <h3 className="printz-card-title">Design Progress Trend</h3>
               <span className="printz-card-subtitle">(Assigned vs Completed)</span>
             </div>
-            <select
+            <StyledSelect
               className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none cursor-pointer"
               value={trendGranularity}
               onChange={(e) => setTrendGranularity(e.target.value)}
             >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
-            </select>
+            </StyledSelect>
           </div>
           <div className="printz-chart-area">
             <Line data={trendLineData} options={trendLineOptions} />
@@ -797,14 +792,14 @@ const DesignerDashboard = () => {
               <h3 className="printz-card-title">Designs by Priority</h3>
               <span className="printz-card-subtitle">(Priority)</span>
             </div>
-            <select
+            <StyledSelect
               className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none cursor-pointer"
               value={priorityPeriod}
               onChange={(e) => setPriorityPeriod(e.target.value)}
             >
               <option value="month">This Month</option>
               <option value="last">Last Month</option>
-            </select>
+            </StyledSelect>
           </div>
           <div className="printz-chart-area">
             <Bar data={priorityBarData} options={priorityBarOptions} />
@@ -1040,14 +1035,14 @@ const DesignerDashboard = () => {
               <h3 className="printz-card-title">Design Performance</h3>
               <span className="printz-card-subtitle">(Monthly Performance)</span>
             </div>
-            <select
+            <StyledSelect
               className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none cursor-pointer"
               value={perfRange}
               onChange={(e) => setPerfRange(e.target.value)}
             >
               <option value="5m">Last 5 Months</option>
               <option value="1y">Last 1 Year</option>
-            </select>
+            </StyledSelect>
           </div>
           <div className="printz-chart-area">
             <Bar data={performanceBarData} options={performanceBarOptions} />

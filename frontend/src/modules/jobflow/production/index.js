@@ -6,7 +6,6 @@ export { default as OperationQueuePage } from "./pages/OperationQueuePage";
 export { default as ReprintBatchesPage } from "./pages/ReprintBatchesPage";
 export { default as ProductionReportsPage } from "./pages/ProductionReportsPage";
 export { default as ProductionPlanningPage } from "./pages/ProductionPlanningPage";
-export { default as OperatorsPage } from "./pages/OperatorsPage";
 
 // Modals
 export { default as OperationCompleteModal } from "./components/OperationCompleteModal";

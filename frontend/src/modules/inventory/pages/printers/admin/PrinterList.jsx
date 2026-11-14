@@ -719,9 +719,6 @@ const PrinterList = () => {
           <h1 style={{ margin: "0 0 4px 0", fontSize: "26px", fontWeight: 700, color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
             Printer <span className="highlight" style={{ color: "#059669" }}>List</span>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
-            View, configure hardware details, and manage service rate sheets.
-          </p>
         </div>
       </div>
 
@@ -730,10 +727,6 @@ const PrinterList = () => {
         <div className="printer-filter-toolbar">
           <div className="printer-filter-left">
             <div className="printer-filter-field">
-              <label className="printer-filter-label">
-                <Building2 size={15} color="#059669" />
-                <span>Store / Branch</span>
-              </label>
               <BranchSelect
                 value={selectedBranch}
                 onChange={(e) => {
@@ -775,20 +768,6 @@ const PrinterList = () => {
 
       {/* Section 2: Main Hardware Inventory Table Card */}
       <div className="printer-section-card printer-table-card">
-        <div className="printer-services-header-row">
-          <div className="printer-services-header-left">
-            <div className="printer-services-tag-icon">
-              <Printer size={20} color="#059669" />
-            </div>
-            <div>
-              <h4 className="printer-services-title">
-                {selectedBranch ? `Printers in ${selectedBranch}` : "Store Hardware Inventory"}
-              </h4>
-            </div>
-          </div>
-          
-        </div>
-
         <div style={{ display: "flex", flexDirection: "column" }}>
           {isLoading ? (
             <div className="printer-empty-state">

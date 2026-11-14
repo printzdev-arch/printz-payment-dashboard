@@ -152,7 +152,7 @@ export const QcHistoryTab = () => {
                     left: "10px",
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#475569",
+                    color: "#1e293b",
                   }}
                 />
                 <input
@@ -205,14 +205,14 @@ export const QcHistoryTab = () => {
                     <strong style={{ fontSize: "1.125rem", color: "#0f172a" }}>
                       {item.jobNo}
                     </strong>
-                    <span style={{ fontSize: "0.85rem", color: "#475569" }}>
+                    <span style={{ fontSize: "0.85rem", color: "#1e293b" }}>
                       — {item.customerName}
                     </span>
                     <span className="jf-badge jf-badge-success">
                       ✓ {item.status} ({item.finalAcceptedQty} pcs)
                     </span>
                   </div>
-                  <div style={{ fontSize: "0.8125rem", color: "#475569", marginTop: "2px" }}>
+                  <div style={{ fontSize: "0.8125rem", color: "#1e293b", marginTop: "2px" }}>
                     {item.product} • {item.timeline.length} Inspection Events
                   </div>
                 </div>
@@ -220,7 +220,7 @@ export const QcHistoryTab = () => {
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   <button
                     type="button"
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#475569" }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#1e293b" }}
                   >
                     {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                   </button>
@@ -269,7 +269,7 @@ export const QcHistoryTab = () => {
                               <strong style={{ color: "#0f172a", fontSize: "0.9375rem" }}>
                                 {event.title}
                               </strong>
-                              <span style={{ fontSize: "0.75rem", color: "#475569" }}>
+                              <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                                 • {event.time}
                               </span>
                               <span
@@ -290,7 +290,7 @@ export const QcHistoryTab = () => {
                               {event.details}
                             </div>
 
-                            <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "2px" }}>
+                            <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "2px" }}>
                               Action: <strong>{event.action}</strong> • Sign-off: <strong>{event.inspector || event.operator}</strong>
                             </div>
                           </div>
@@ -314,7 +314,7 @@ export const QcHistoryTab = () => {
           alignItems: "center",
           padding: "0.85rem 1.25rem",
           fontSize: "0.85rem",
-          color: "#64748b",
+          color: "#1e293b",
           flexWrap: "wrap",
           gap: "0.5rem",
         }}

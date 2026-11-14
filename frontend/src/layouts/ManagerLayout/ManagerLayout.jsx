@@ -149,7 +149,8 @@ const getManagerPageTitle = (pathname, search = "") => {
     const params = new URLSearchParams(search);
     const tab = (params.get("tab") || "").toUpperCase();
     if (tab === "PICKUP") return "Delivery - Self Pickup";
-    return "Delivery - Dispatch Delivery";
+    if (tab === "DISPATCH") return "Delivery - Dispatch Delivery";
+    return "Delivery";
   }
   if (pathname.includes("/invoice") || pathname.includes("/invoices") || pathname.includes("/jobflow/invoice")) {
     return "Commercial Tax Invoicing";
@@ -174,7 +175,6 @@ const getManagerPageTitle = (pathname, search = "") => {
     if (tab === "queue" || pathname.includes("/production/queue")) return "Operation Queue";
     if (tab === "rework" || pathname.includes("/production/rework")) return "Rework & Reprint";
     if (tab === "reprints" || pathname.includes("/production/reprints")) return "Rework & Reprint";
-    if (pathname.includes("/production/operators")) return "Operators";
     if (tab === "reports" || pathname.includes("/production/reports")) return "Production Reports";
     return "Production Orders";
   }
@@ -552,7 +552,6 @@ const ManagerLayout = ({ children }) => {
     if (location.pathname.includes("/production/queue")) return "queue";
     if (location.pathname.includes("/production/rework")) return "rework";
     if (location.pathname.includes("/production/reprints")) return "reprints";
-    if (location.pathname.includes("/production/operators")) return "operators";
     if (location.pathname.includes("/production/reports")) return "reports";
     return "orders";
   })();
@@ -1641,22 +1640,6 @@ const ManagerLayout = ({ children }) => {
                       </Link>
                     </li>
 
-                    {/* Operators */}
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/production/operators"
-                        className={`sidebar-dropdown-link ${currentProductionTab === "operators" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Users size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Operators</span>
-                        </div>
-                        {currentProductionTab === "operators" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-
                     {/* 4. Production Reports */}
                     <li className="sidebar-dropdown-item">
                       <Link
@@ -1769,94 +1752,15 @@ const ManagerLayout = ({ children }) => {
                 </MotionAccordion>
               </li>
 
-              {/* JobFlow - Delivery Management with Submenu */}
+              {/* JobFlow - Delivery (one page, with Self Pickup and Dispatch tabs) */}
               <li className="sidebar-nav-item">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleDeliveryClick}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleDeliveryClick();
-                    }
-                  }}
-                  className={`sidebar-link ${isDeliveryRoute ? "active-link" : ""}`}
-                  style={{
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    ...(isDeliveryRoute
-                      ? {
-                        backgroundColor: "rgba(22, 163, 74, 0.15)",
-                        borderLeft: "3px solid #16a34a",
-                        color: "#ffffff",
-                      }
-                      : {}),
-                  }}
-                >
+                <NavLink to="/jobflow/delivery" className={`sidebar-link ${isDeliveryRoute ? "active-link" : ""}`}>
                   <div className="sidebar-link-content">
-                    <Truck
-                      size={18}
-                      className="sidebar-link-icon"
-                      style={isDeliveryRoute ? { color: "#16a34a" } : {}}
-                    />
+                    <Truck size={18} className="sidebar-link-icon" />
                     <span>Delivery</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleDeliveryToggleClick}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      padding: "4px",
-                      cursor: "pointer",
-                      color: isDeliveryRoute ? "#16a34a" : "rgba(255, 255, 255, 0.7)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "transform 0.2s ease",
-                      transform: isDeliveryOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                    aria-label="Toggle Delivery submenu"
-                  >
-                    <ChevronDown size={15} className="sidebar-link-icon" />
-                  </button>
-                </div>
-
-                <MotionAccordion isOpen={isDeliveryOpen}>
-                  <ul className="sidebar-dropdown-list">
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/delivery?tab=DISPATCH"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "DISPATCH" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <Truck size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Dispatch Delivery</span>
-                        </div>
-                        {currentDeliveryTab === "DISPATCH" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                    <li className="sidebar-dropdown-item">
-                      <Link
-                        to="/jobflow/delivery?tab=PICKUP"
-                        className={`sidebar-dropdown-link ${currentDeliveryTab === "PICKUP" ? "active" : ""}`}
-                      >
-                        <div className="sidebar-dropdown-link-left">
-                          <CheckCircle size={13} className="sidebar-dropdown-icon" />
-                          <span className="sidebar-dropdown-text">Self Pickup</span>
-                        </div>
-                        {currentDeliveryTab === "PICKUP" && (
-                          <span className="sidebar-dropdown-active-dot" />
-                        )}
-                      </Link>
-                    </li>
-                  </ul>
-                </MotionAccordion>
+                  {isDeliveryRoute && <ChevronRight size={16} className="sidebar-active-arrow" />}
+                </NavLink>
               </li>
 
               {/* Delete Requests: managers ask, admins approve */}

@@ -42,7 +42,7 @@ export const RejectDesignModal = ({ isOpen, onClose, job, onConfirmReject }) => 
 
         <form onSubmit={handleSubmit}>
           <div className="jf-modal-body">
-            <p style={{ fontSize: "0.875rem", color: "#475569", marginTop: 0 }}>
+            <p style={{ fontSize: "0.875rem", color: "#1e293b", marginTop: 0 }}>
               Please provide a valid reason for rejecting this assignment for Job{" "}
               <strong>{job?.jobNo || job?.orderNumber || "Order"}</strong>. The job will return to the Design Queue and be reassigned to another designer.
             </p>

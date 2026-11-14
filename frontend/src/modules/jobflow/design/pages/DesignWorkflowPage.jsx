@@ -53,6 +53,7 @@ import jobFlowApi from "../api/designApi";
 import { useAuth } from "../../../../app/providers/AuthContext";
 import { toast } from "react-toastify";
 import "../styles/design.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 // Helper avatar color
 const getAvatarColor = (name = "") => {
@@ -1805,7 +1806,7 @@ export const DesignWorkflowPage = () => {
                   Max Load (Active Jobs per Designer)
                   <span
                     title="The maximum concurrent active jobs any designer can hold in Round Robin rotation"
-                    style={{ cursor: "pointer", color: "#475569" }}
+                    style={{ cursor: "pointer", color: "#1e293b" }}
                   >
                     <Info size={14} />
                   </span>
@@ -1835,11 +1836,11 @@ export const DesignWorkflowPage = () => {
             {/* Toolbar */}
             <div className="dq-table-toolbar">
               <div className="dq-table-toolbar-left">
-                <div className="dq-table-icon-square">
+                <div className="dq-table-icon-square" >
                   <Layers size={20} />
                 </div>
                 <div>
-                  <h3 className="dq-table-toolbar-title">Pending Job Orders for Designer Allocation</h3>
+                  <h3 className="dq-table-toolbar-title">Design Queue Orders</h3>
 
                 </div>
               </div>
@@ -1855,7 +1856,7 @@ export const DesignWorkflowPage = () => {
                   }}
                   style={{ height: 38, flex: "1 1 220px", minWidth: 160, maxWidth: 320 }}
                 />
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={designerFilter}
                   onChange={(e) => {
@@ -1870,8 +1871,8 @@ export const DesignWorkflowPage = () => {
                   {designers.map((d) => (
                     <option key={d._id || d.email} value={d.name}>{d.name}</option>
                   ))}
-                </select>
-                <select
+                </StyledSelect>
+                <StyledSelect
                   className="jf-select"
                   value={jobTypeFilter}
                   onChange={(e) => {
@@ -1884,7 +1885,7 @@ export const DesignWorkflowPage = () => {
                   <option value="all">All Job Types</option>
                   <option value="design_only">Design Only</option>
                   <option value="print_design">Print &amp; Design</option>
-                </select>
+                </StyledSelect>
               </div>
             </div>
 
@@ -1925,7 +1926,7 @@ export const DesignWorkflowPage = () => {
             </div>
 
             {/* Table */}
-            <DataTable
+            <DataTable mobileCards
               key={statusFilter}
               searchable={false}
               loading={loading && activeList.length === 0}
@@ -2030,7 +2031,7 @@ export const DesignWorkflowPage = () => {
                                 </span>
                               </div>
                             </td>
-                            <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                            <td style={{ color: "#1e293b", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                               {rej.rejectedAt
                                 ? new Date(rej.rejectedAt).toLocaleString("en-GB", {
                                     day: "2-digit",
@@ -2200,7 +2201,7 @@ export const DesignWorkflowPage = () => {
                                 <span>Proof v{sample.versionNo || 1}.0</span>
                               </button>
                             </td>
-                            <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                            <td style={{ color: "#1e293b", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                               {sample.submittedAt
                                 ? new Date(sample.submittedAt).toLocaleString("en-GB", {
                                     day: "2-digit",
@@ -2225,7 +2226,7 @@ export const DesignWorkflowPage = () => {
                                     />
                                     <span>Approved</span>
                                   </div>
-                                  <span style={{ fontSize: "0.75rem", color: "#475569", paddingLeft: "0.2rem" }}>
+                                  <span style={{ fontSize: "0.75rem", color: "#1e293b", paddingLeft: "0.2rem" }}>
                                     by {String(approvalInfo.label || "").replace(/^Approveds*(bys*)?/i, "") || (approvalInfo.type === "approved_manager" ? "Manager" : "Customer")}
                                   </span>
                                 </div>
@@ -2384,7 +2385,7 @@ export const DesignWorkflowPage = () => {
                                     <span style={{ fontWeight: 600, color: "#1e293b" }}>{job.designerName}</span>
                                   </div>
                                 ) : (
-                                  <span style={{ color: "#475569", fontSize: "0.8125rem" }}>- Unassigned</span>
+                                  <span style={{ color: "#1e293b", fontSize: "0.8125rem" }}>- Unassigned</span>
                                 )}
                               </td>
 
@@ -2427,7 +2428,7 @@ export const DesignWorkflowPage = () => {
                               </td>
 
                               {/* 7. Rejection Date */}
-                              <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                              <td style={{ color: "#1e293b", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                                 {rejDate
                                   ? new Date(rejDate).toLocaleString("en-GB", {
                                       day: "2-digit",
@@ -2604,7 +2605,7 @@ export const DesignWorkflowPage = () => {
                                   <span style={{ fontWeight: 500 }}>{job.designerName}</span>
                                 </div>
                               ) : (
-                                <span style={{ color: "#475569", fontSize: "0.8125rem" }}>- Unassigned</span>
+                                <span style={{ color: "#1e293b", fontSize: "0.8125rem" }}>- Unassigned</span>
                               )}
                             </td>
                             <td>
@@ -2743,7 +2744,7 @@ export const DesignWorkflowPage = () => {
               </div>
             )}
 
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={allDesigners}
               pageSize={designerPageSize}
@@ -2764,7 +2765,7 @@ export const DesignWorkflowPage = () => {
 
                     return (
                       <tr key={desId || index}>
-                        <td style={{ color: "#475569" }}>{index + 1}</td>
+                        <td style={{ color: "#1e293b" }}>{index + 1}</td>
                         <td>
                           <div className="dq-designer-chip">
                             <span
@@ -2776,7 +2777,7 @@ export const DesignWorkflowPage = () => {
                             <span style={{ fontWeight: 600 }}>{des.name}</span>
                           </div>
                         </td>
-                        <td style={{ color: "#475569", fontSize: "0.8125rem" }}>
+                        <td style={{ color: "#1e293b", fontSize: "0.8125rem" }}>
                           {des.email || des.employeeCode || "-"}
                         </td>
                         <td style={{ textAlign: "center", fontWeight: 700 }}>
@@ -2950,10 +2951,10 @@ export const DesignWorkflowPage = () => {
             {/* Profile Switcher Dropdown (Only for Supervisors/Managers) */}
             {!isDesignerUser && (
               <div className="dq-profile-switcher-wrapper">
-                <label htmlFor="designer-profile-select" style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#475569" }}>
+                <label htmlFor="designer-profile-select" style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#1e293b" }}>
                   Switch Profile:
                 </label>
-                <select
+                <StyledSelect
                   id="designer-profile-select"
                   className="dq-profile-select-control"
                   value={selectedDesignerProfile}
@@ -2971,7 +2972,7 @@ export const DesignWorkflowPage = () => {
                       </option>
                     );
                   })}
-                </select>
+                </StyledSelect>
               </div>
             )}
           </div>
@@ -3037,7 +3038,7 @@ export const DesignWorkflowPage = () => {
                       <UserCheck size={12} /> Active Rotation
                     </span>
                   </div>
-                  <div style={{ fontSize: "0.8125rem", color: "#475569", marginTop: "0.15rem" }}>
+                  <div style={{ fontSize: "0.8125rem", color: "#1e293b", marginTop: "0.15rem" }}>
                     {activeSelectedDesigner.email || "Prepress Designer"} • Capacity: {activeSelectedDesigner.maxLoad || 5} concurrent jobs
                   </div>
                 </div>
@@ -3223,7 +3224,7 @@ export const DesignWorkflowPage = () => {
                                 <span style={{ fontWeight: 600 }}>{j.designerName}</span>
                               </div>
                             ) : (
-                              <span style={{ color: "#475569", fontStyle: "italic", fontSize: "0.8125rem" }}>
+                              <span style={{ color: "#1e293b", fontStyle: "italic", fontSize: "0.8125rem" }}>
                                 - Unassigned
                               </span>
                             )}
@@ -3395,7 +3396,7 @@ export const DesignWorkflowPage = () => {
                           </td>
 
                           {/* 6. Rejection Date */}
-                          <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                          <td style={{ color: "#1e293b", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                             {rejDate
                               ? new Date(rejDate).toLocaleString("en-GB", {
                                   day: "2-digit",
@@ -3552,7 +3553,7 @@ export const DesignWorkflowPage = () => {
                               )}
                             </td>
                           )}
-                          <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                          <td style={{ color: "#1e293b", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                             {doneAt
                               ? new Date(doneAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })
                               : "—"}
@@ -3641,7 +3642,7 @@ export const DesignWorkflowPage = () => {
 <td><PriorityBadge priority={rej.jobOrder?.priority || rej.priority} /></td>
                           <td style={{ fontWeight: 600, color: "#1e293b" }}>{rej.customerName}</td>
                           <td style={{ color: "#334155" }}>{rej.jobItem}</td>
-                          <td style={{ color: "#475569", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                          <td style={{ color: "#1e293b", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                             {rej.rejectedAt
                               ? new Date(rej.rejectedAt).toLocaleString("en-GB", {
                                   day: "2-digit",
@@ -4132,7 +4133,7 @@ export const DesignWorkflowPage = () => {
                   style={{ display: "none" }}
                   onChange={handleSampleFileUpload}
                 />
-                <span style={{ fontSize: "0.78125rem", color: "#475569" }}>
+                <span style={{ fontSize: "0.78125rem", color: "#1e293b" }}>
                   Upload the edited design file (JPG, PNG or PDF)
                 </span>
               </div>
@@ -4246,7 +4247,7 @@ export const DesignWorkflowPage = () => {
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#475569",
+                        color: "#1e293b",
                         fontSize: "0.8125rem",
                         cursor: "pointer",
                       }}
@@ -4516,7 +4517,7 @@ export const DesignWorkflowPage = () => {
                         Proof v1.0
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: "0.8125rem", color: "#475569" }}>
+                    <p style={{ margin: 0, fontSize: "0.8125rem", color: "#1e293b" }}>
                       Uploaded high-resolution sample file ready for customer evaluation and manager sign-off.
                     </p>
                     <div>
@@ -4541,7 +4542,7 @@ export const DesignWorkflowPage = () => {
 
                 {/* Action Buttons */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#475569" }}>
+                  <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#1e293b" }}>
                     Proof approval (branch manager):
                   </div>
                   {isProofJobApproved ? (
@@ -4719,7 +4720,7 @@ export const DesignWorkflowPage = () => {
                   <p style={{ margin: "0 0 0.5rem 0", fontWeight: 700, fontSize: "1rem" }}>
                     {previewModalFile.name}
                   </p>
-                  <p style={{ color: "#475569", fontSize: "0.85rem", margin: 0 }}>
+                  <p style={{ color: "#1e293b", fontSize: "0.85rem", margin: 0 }}>
                     Size: {previewModalFile.size} • Customer Reference Document
                   </p>
                 </div>
@@ -4782,7 +4783,7 @@ export const DesignWorkflowPage = () => {
                   <h3 className="dq-modal-title" style={{ margin: 0, fontSize: "1.05rem" }}>
                     {decisionMode === "approve" ? "Accept & Approve Sample Design" : "Reject Sample / Request Revision"}
                   </h3>
-                  <div style={{ margin: "0.15rem 0 0 0", fontSize: "0.78125rem", color: "#475569", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ margin: "0.15rem 0 0 0", fontSize: "0.78125rem", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
                     <span>Job Order: <strong style={{ color: "#1e293b" }}>{selectedSampleForDecision.jobNo}</strong></span>
                     <JobTypeBadge jobType={selectedSampleForDecision.jobType || selectedSampleForDecision.jobOrder?.jobType} size="sm" />
                   </div>
@@ -4843,19 +4844,19 @@ export const DesignWorkflowPage = () => {
                 }}
               >
                 <div>
-                  <span style={{ color: "#475569", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Customer</span>
+                  <span style={{ color: "#1e293b", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Customer</span>
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>{selectedSampleForDecision.customerName}</span>
                 </div>
                 <div>
-                  <span style={{ color: "#475569", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Designer</span>
+                  <span style={{ color: "#1e293b", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Designer</span>
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>{selectedSampleForDecision.designerName}</span>
                 </div>
                 <div>
-                  <span style={{ color: "#475569", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Job Item</span>
+                  <span style={{ color: "#1e293b", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Job Item</span>
                   <span style={{ color: "#334155" }}>{selectedSampleForDecision.jobItem}</span>
                 </div>
                 <div>
-                  <span style={{ color: "#475569", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Sample Proof</span>
+                  <span style={{ color: "#1e293b", display: "block", fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 600 }}>Sample Proof</span>
                   <button
                     type="button"
                     onClick={() => setPreviewSampleProofUrl(selectedSampleForDecision.fileUrl)}
@@ -5042,7 +5043,7 @@ export const DesignWorkflowPage = () => {
                           style={{ width: "100%" }}
                           required
                         />
-                        <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "0.35rem" }}>
+                        <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "0.35rem" }}>
                           This will mark the sample as <strong>Revision Required</strong> and notify the designer.
                         </div>
                       </div>

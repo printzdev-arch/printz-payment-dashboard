@@ -256,7 +256,7 @@ export const BranchQrModal = ({ isOpen, onClose }) => {
             style={{
               background: "transparent",
               border: "none",
-              color: "#475569",
+              color: "#1e293b",
               cursor: "pointer",
               padding: "4px",
               borderRadius: "6px",
@@ -332,7 +332,7 @@ export const BranchQrModal = ({ isOpen, onClose }) => {
             <h4 style={{ margin: "0 0 0.35rem 0", fontSize: "1.05rem", fontWeight: 800, color: "#0f172a" }}>
               Scan to Register
             </h4>
-            <p style={{ margin: 0, fontSize: "0.75rem", color: "#475569", lineHeight: 1.4 }}>
+            <p style={{ margin: 0, fontSize: "0.75rem", color: "#1e293b", lineHeight: 1.4 }}>
               Open Camera or scanner app on your phone to register your print enquiry instantly.
             </p>
           </div>
@@ -355,7 +355,7 @@ export const BranchQrModal = ({ isOpen, onClose }) => {
             <div
               style={{
                 fontSize: "0.75rem",
-                color: "#475569",
+                color: "#1e293b",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",

@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function RecordRepaymentModal({
   isOpen,
@@ -116,7 +117,7 @@ export default function RecordRepaymentModal({
 
             <div className="salary-form-group" style={{ marginBottom: "14px" }}>
               <label>Select Loan <span className="req">*</span></label>
-              <select
+              <StyledSelect
                 className="salary-form-select"
                 value={formData.loanId}
                 onChange={(e) => {
@@ -135,7 +136,7 @@ export default function RecordRepaymentModal({
                     {l.loanNumber} - {l.employeeId?.name || "Employee"} (Outstanding: ₹{Number(l.outstandingBalance || 0).toLocaleString("en-IN")})
                   </option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
 
             <div className="salary-form-grid" style={{ marginBottom: "14px" }}>
@@ -155,7 +156,7 @@ export default function RecordRepaymentModal({
 
               <div className="salary-form-group">
                 <label>Payment Method <span className="req">*</span></label>
-                <select
+                <StyledSelect
                   className="salary-form-select"
                   value={formData.paymentMethod}
                   onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
@@ -163,7 +164,7 @@ export default function RecordRepaymentModal({
                   <option value="CASH">Cash</option>
                   <option value="BANK_TRANSFER">Bank Transfer / UPI</option>
                   <option value="OTHER">Other</option>
-                </select>
+                </StyledSelect>
               </div>
             </div>
 

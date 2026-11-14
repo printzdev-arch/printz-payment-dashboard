@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ClipboardCheck, FileDown, RefreshCw } from "lucide-react";
+import { ClipboardCheck, FileDown, RefreshCw, Search } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import EnhancedQCModal from "../components/EnhancedQCModal";
 import qcApi from "../api/qcApi";
 import "../styles/quality-control.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 /**
  * Quality Control
@@ -64,9 +65,9 @@ const RANGES = [
 
 const Stat = ({ label, value, sub }) => (
   <div className="jf-card" style={{ padding: "1rem 1.25rem", minWidth: 0 }}>
-    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
+    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
     <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", marginTop: "0.25rem" }}>{value}</div>
-    {sub ? <div style={{ fontSize: "0.8125rem", color: "#64748b" }}>{sub}</div> : null}
+    {sub ? <div style={{ fontSize: "0.8125rem", color: "#1e293b" }}>{sub}</div> : null}
   </div>
 );
 
@@ -82,10 +83,11 @@ const TabButton = ({ active, onClick, children }) => (
       display: "flex",
       alignItems: "center",
       gap: "0.5rem",
-      border: active ? "1px solid var(--jf-primary, #059669)" : "1px solid #cbd5e1",
-      background: active ? "var(--jf-primary, #059669)" : "#ffffff",
-      color: active ? "#ffffff" : "#334155",
-      boxShadow: active ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
+      height: "38px",
+      border: active ? "1px solid #0d6245" : "1px solid #dbe3ea",
+      background: active ? "#0d6245" : "#ffffff",
+      color: active ? "#ffffff" : "#0f172a",
+      boxShadow: active ? "0 2px 6px rgba(13,98,69,0.28)" : "0 1px 2px rgba(15,23,42,0.04)",
     }}
   >
     {children}
@@ -298,40 +300,75 @@ export const QualityControlPage = ({ embedded = false }) => {
     },
   ];
 
+  const [queueSearch, setQueueSearch] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const shownHistory = (() => {
+    const q = historySearch.trim().toLowerCase();
+    if (!q) return historyRows;
+    return historyRows.filter((c) => [c.jobOrderId?.jobNo, c.jobOrderId?.customerName].some((v) => String(v ?? "").toLowerCase().includes(q)));
+  })();
+  const shownPending = (() => {
+    const q = queueSearch.trim().toLowerCase();
+    if (!q) return pending;
+    return pending.filter((o) => ["jobNo", "customerName", "productName"].some((k) => String(o[k] ?? "").toLowerCase().includes(q)));
+  })();
+
   /* ---------- Page ---------- */
   const content = (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+      <div className="qc-toolbar" style={{ display: "flex", gap: "0.5rem", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="qc-left" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
           <TabButton active={tab === "queue"} onClick={() => setTab("queue")}>Inspection Queue ({pending.length})</TabButton>
           <TabButton active={tab === "history"} onClick={() => setTab("history")}>History &amp; Reports</TabButton>
+          {tab === "queue" && (
+            <div className="qc-search">
+              <Search size={16} />
+              <input type="text" placeholder="Search by job, customer or product..." value={queueSearch} onChange={(e) => setQueueSearch(e.target.value)} />
+            </div>
+          )}
+          {tab === "history" && historyView !== "REPORTS" && (
+            <div className="qc-search">
+              <Search size={16} />
+              <input type="text" placeholder="Search by job or customer..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} />
+            </div>
+          )}
+          {tab === "history" && (
+            <StyledSelect searchable={false} style={{ width: "170px" }} value={historyView} onChange={(e) => setHistoryView(e.target.value)}>
+              <option value="ALL">All ({inRange.length})</option>
+              <option value="PASSED">Passed ({passedChecks.length})</option>
+              <option value="ISSUES">Issues ({issueChecks.length})</option>
+              <option value="REPORTS">Reports</option>
+            </StyledSelect>
+          )}
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
           {tab === "history" && (
-            <select className="jf-input jf-input-sm" value={range} onChange={(e) => setRange(e.target.value)} style={{ width: "160px", height: "40px", fontWeight: 600 }}>
+            <StyledSelect className="jf-input jf-input-sm" value={range} onChange={(e) => setRange(e.target.value)} style={{ width: "160px", height: "40px", fontWeight: 600 }}>
               {RANGES.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
-            </select>
+            </StyledSelect>
           )}
-          <button type="button" className="jf-btn jf-btn-secondary" onClick={() => navigate("/production/rework")}>
-            Rework &amp; Reprint
+          <button type="button" className="jf-btn jf-btn-secondary qc-refresh" onClick={load} disabled={loading} title="Refresh" aria-label="Refresh">
+            <RefreshCw size={15} className={loading ? "spin" : ""} />
           </button>
-          <button type="button" className="jf-btn jf-btn-secondary" onClick={load} disabled={loading} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-            <RefreshCw size={14} /> {loading ? "Loading..." : "Refresh"}
-          </button>
+          {tab === "history" && (
+            <button type="button" className="jf-btn jf-btn-secondary qc-export" onClick={exportCsv}>
+              <FileDown size={15} /> Export CSV
+            </button>
+          )}
         </div>
       </div>
 
       {tab === "queue" && (
-        <DataTable renderWithValue
+        <DataTable mobileCards renderWithValue
+          className="qc-table"
           columns={queueColumns}
-          data={pending}
+          data={shownPending}
           loading={loading}
           sortable
           sortControls={false}
-          searchPlaceholder="Search by job, customer or product..."
-          searchKeys={["jobNo", "customerName", "productName"]}
+          searchable={false}
           rowKey="_id"
           emptyMessage="Nothing is waiting for inspection. Orders appear here when their last production step is completed."
         />
@@ -339,30 +376,18 @@ export const QualityControlPage = ({ embedded = false }) => {
 
       {tab === "history" && (
         <>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <TabButton active={historyView === "ALL"} onClick={() => setHistoryView("ALL")}>All ({inRange.length})</TabButton>
-              <TabButton active={historyView === "PASSED"} onClick={() => setHistoryView("PASSED")}>Passed ({passedChecks.length})</TabButton>
-              <TabButton active={historyView === "ISSUES"} onClick={() => setHistoryView("ISSUES")}>Issues ({issueChecks.length})</TabButton>
-              <TabButton active={historyView === "REPORTS"} onClick={() => setHistoryView("REPORTS")}>Reports</TabButton>
-            </div>
-            <button type="button" className="jf-btn jf-btn-secondary" onClick={exportCsv} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <FileDown size={15} /> Export CSV
-            </button>
-          </div>
-
           {historyView !== "REPORTS" ? (
-            <DataTable renderWithValue
+            <DataTable mobileCards renderWithValue
               key={`history-${historyView}`}
+              className="qc-table"
               columns={historyColumns}
-              data={historyRows}
+              data={shownHistory}
               loading={loading}
               sortable
               sortControls={false}
               defaultSortKey="checkedAt"
               defaultSortDir="desc"
-              searchPlaceholder="Search by job or customer..."
-              searchKeys={["jobOrderId.jobNo", "jobOrderId.customerName"]}
+              searchable={false}
               rowKey="_id"
               emptyMessage="No inspections in this period."
             />
@@ -382,9 +407,9 @@ export const QualityControlPage = ({ embedded = false }) => {
               <div className="jf-card" style={{ padding: "1.25rem" }}>
                 <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700 }}>Defects logged</h3>
                 {report.defectRows.length === 0 ? (
-                  <p style={{ margin: 0, color: "#64748b" }}>No defects were logged in this period.</p>
+                  <p style={{ margin: 0, color: "#1e293b" }}>No defects were logged in this period.</p>
                 ) : (
-                  <DataTable
+                  <DataTable mobileCards
                     searchable={false}
                     pagination={false}
                     data={report.defectRows}
@@ -407,9 +432,9 @@ export const QualityControlPage = ({ embedded = false }) => {
               <div className="jf-card" style={{ padding: "1.25rem" }}>
                 <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700 }}>By inspector</h3>
                 {report.inspectorRows.length === 0 ? (
-                  <p style={{ margin: 0, color: "#64748b" }}>No inspections in this period.</p>
+                  <p style={{ margin: 0, color: "#1e293b" }}>No inspections in this period.</p>
                 ) : (
-                  <DataTable
+                  <DataTable mobileCards
                     searchable={false}
                     pagination={false}
                     data={report.inspectorRows}

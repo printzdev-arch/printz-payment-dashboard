@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Pause } from "lucide-react";
 import jobFlowApi from "../api/productionApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 const PAUSE_REASONS = [
   "Machine maintenance / adjustment",
@@ -88,13 +89,13 @@ export const OperationPauseModal = ({
 
             <div className="jf-form-group">
               <label className="jf-label">Reason *</label>
-              <select className="jf-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <StyledSelect className="jf-input" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {PAUSE_REASONS.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
 
             <div className="jf-form-group">

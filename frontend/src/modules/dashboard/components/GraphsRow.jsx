@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import StyledSelect from "../../../shared/ui/selects/StyledSelect";
 import { Line, Doughnut, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -433,7 +434,7 @@ const GraphsRow = ({
               </span>
             </h3>
           </div>
-          <select
+          <StyledSelect compact
             defaultValue="daily"
             style={{
               fontSize: "11px",
@@ -448,7 +449,7 @@ const GraphsRow = ({
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
-          </select>
+          </StyledSelect>
         </div>
         <div className="printz-chart-area">
           <Line data={lineChartData} options={lineOptions} />
@@ -481,7 +482,7 @@ const GraphsRow = ({
               )}
             </h3>
           </div>
-          <select
+          <StyledSelect compact
             defaultValue="month"
             style={{
               fontSize: "11px",
@@ -496,7 +497,7 @@ const GraphsRow = ({
             <option value="month">This Month</option>
             <option value="lastmonth">Last Month</option>
             <option value="halfyear">Last 6 Months</option>
-          </select>
+          </StyledSelect>
         </div>
         <div className="printz-chart-area">
           <Bar data={barChartData} options={barOptions} />
@@ -514,7 +515,7 @@ const GraphsRow = ({
               </span>
             </h3>
           </div>
-          <select
+          <StyledSelect compact
             defaultValue="month"
             style={{
               fontSize: "11px",
@@ -528,7 +529,7 @@ const GraphsRow = ({
           >
             <option value="month">This Month</option>
             <option value="lastmonth">Last Month</option>
-          </select>
+          </StyledSelect>
         </div>
 
         <div className="printz-doughnut-container">

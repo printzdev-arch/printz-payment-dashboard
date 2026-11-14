@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, CheckCircle, ShieldCheck, KeyRound, PenTool, Camera, User, Phone, Image as ImageIcon, Trash2, CreditCard, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import deliveryApi from "../api/deliveryApi";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered }) => {
   const [activeStep, setActiveStep] = useState("otp"); // "otp" | "proof" | "deliver"
@@ -220,7 +221,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
             <CheckCircle size={22} style={{ color: "#059669" }} />
             <div>
               <h2 className="jf-modal-title">Handover & Proof of Delivery (POD)</h2>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Job No: <strong>{deliveryOrder.jobNo}</strong> • Customer: <strong>{deliveryOrder.customerName || "Customer"}</strong>
               </div>
             </div>
@@ -317,7 +318,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
                   Payment must be collected <strong>before handing over</strong> the order to the customer. Total to collect: <strong>₹{initialBalance.toFixed(2)}</strong>
                 </div>
                 <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginTop: "0.25rem" }}>
-                  <select
+                  <StyledSelect
                     className="jf-select"
                     style={{ maxWidth: "160px", fontWeight: 600 }}
                     value={paymentMode}
@@ -327,7 +328,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
                     <option value="UPI">UPI / QR Code</option>
                     <option value="CARD">Debit / Credit Card</option>
                     <option value="BANK">Bank Transfer</option>
-                  </select>
+                  </StyledSelect>
                   <input
                     type="text"
                     className="jf-input"
@@ -388,7 +389,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
 
             <div className="jf-form-group">
               <label className="jf-label jf-label-required">Relationship</label>
-              <select
+              <StyledSelect
                 className="jf-select"
                 value={recipientRelationship}
                 onChange={(e) => setRecipientRelationship(e.target.value)}
@@ -397,7 +398,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
                 <option value="FAMILY">Family Member</option>
                 <option value="OFFICE_STAFF">Office Staff / Colleague</option>
                 <option value="SECURITY">Security / Guard</option>
-              </select>
+              </StyledSelect>
             </div>
           </div>
 
@@ -432,7 +433,7 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
                   style={{ cursor: "crosshair", display: "block", width: "100%", height: "130px" }}
                 />
               </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "0.25rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "0.25rem", textAlign: "center" }}>
                 Draw recipient signature with mouse or touch
               </div>
             </div>
@@ -469,12 +470,12 @@ export const HandoverProofModal = ({ isOpen, onClose, deliveryOrder, onDelivered
                   cursor: "pointer",
                   background: "#f8fafc"
                 }}>
-                  <Camera size={24} style={{ color: "#475569", marginBottom: "0.25rem" }} />
-                  <span style={{ fontSize: "0.8rem", color: "#475569" }}>Click to capture / upload photo</span>
+                  <Camera size={24} style={{ color: "#1e293b", marginBottom: "0.25rem" }} />
+                  <span style={{ fontSize: "0.8rem", color: "#1e293b" }}>Click to capture / upload photo</span>
                   <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{ display: "none" }} />
                 </label>
               )}
-              <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "0.25rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "0.25rem", textAlign: "center" }}>
                 Parcel with recipient photo
               </div>
             </div>

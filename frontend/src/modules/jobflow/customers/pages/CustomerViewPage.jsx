@@ -125,7 +125,7 @@ export const CustomerViewPage = () => {
   if (loading && !customer) {
     return (
       <JobFlowLayout title="Loading Customer Profile...">
-        <div style={{ padding: "3rem", textAlign: "center", color: "#475569" }}>
+        <div style={{ padding: "3rem", textAlign: "center", color: "#1e293b" }}>
           Loading customer information...
         </div>
       </JobFlowLayout>
@@ -135,7 +135,7 @@ export const CustomerViewPage = () => {
   if (!customer) {
     return (
       <JobFlowLayout title="Customer Not Found">
-        <div style={{ padding: "3rem", textAlign: "center", color: "#475569" }}>
+        <div style={{ padding: "3rem", textAlign: "center", color: "#1e293b" }}>
           <h3>Customer profile could not be found.</h3>
           <button
             type="button"
@@ -290,37 +290,37 @@ export const CustomerViewPage = () => {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", fontSize: "0.84rem" }}>
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Customer Code</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Customer Code</span>
               <strong style={{ color: "var(--jf-primary-dark)" }}>{code}</strong>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Customer Type</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Customer Type</span>
               <strong>{customerTypeDisplay}</strong>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Customer Source</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Customer Source</span>
               <strong>{customerSourceDisplay}</strong>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Primary Phone</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Primary Phone</span>
               <strong>{customer.phone || customer.mobile || "N/A"}</strong>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Email Address</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Email Address</span>
               <strong>{customer.email || "N/A"}</strong>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>GSTIN / Tax Registration</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>GSTIN / Tax Registration</span>
               <strong>{customer.gstin || customer.taxNo || "N/A"}</strong>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Home Branch</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Home Branch</span>
               <strong>{customer.branchId?.name || customer.branchName || customer.defaultBranch || "Banaswadii"}</strong>
             </div>
           </div>
@@ -328,7 +328,7 @@ export const CustomerViewPage = () => {
           <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#f8fafc", borderRadius: "6px", border: "1px solid var(--jf-border)", display: "flex", gap: "0.75rem", alignItems: "flex-start", fontSize: "0.84rem" }}>
             <MapPin size={18} style={{ color: "var(--jf-primary)", marginTop: "2px", flexShrink: 0 }} />
             <div>
-              <span style={{ color: "#475569", fontSize: "0.75rem", display: "block" }}>Registered Delivery Address</span>
+              <span style={{ color: "#1e293b", fontSize: "0.75rem", display: "block" }}>Registered Delivery Address</span>
               <span>{formattedAddress}</span>
             </div>
           </div>
@@ -344,7 +344,7 @@ export const CustomerViewPage = () => {
             <h3 className="jf-card-title">
               <Briefcase size={18} style={{ color: "var(--jf-primary)" }} /> Job Orders Placed by {name} ({jobOrders.length})
             </h3>
-            {/* <span style={{ fontSize: "0.8125rem", color: "#475569" }}>
+            {/* <span style={{ fontSize: "0.8125rem", color: "#1e293b" }}>
               Showing all historical and active orders associated with customer ID: <strong>{code}</strong>
             </span> */}
           </div>
@@ -359,7 +359,7 @@ export const CustomerViewPage = () => {
         </div>
 
         {/* Common Reusable DataTable with Search, Sorting, Rows per Page & Pagination */}
-        <DataTable renderWithValue
+        <DataTable mobileCards renderWithValue
           columns={[
             {
               key: "jobNo",
@@ -379,7 +379,7 @@ export const CustomerViewPage = () => {
               render: (val, row) => (
                 <div>
                   <div style={{ fontWeight: 600 }}>{val || row.jobTitle}</div>
-                  <span style={{ fontSize: "0.75rem", color: "#475569" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                     {row.specs?.paperType || "Standard Print"}
                   </span>
                 </div>

@@ -1337,3 +1337,12 @@
   cursor: not-allowed;
 }
 
+
+/* Printer List: no box around the filter row, compact fields */
+body .printer-filter-card { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+body .printer-filter-card .printer-filter-toolbar { padding: 0; gap: 12px; }
+body .printer-filter-card .branch-select-container { width: 240px; }
+body .printer-filter-card .branch-select-trigger { height: 42px; }
+
+/* Printer table: no card box around it */
+body .printer-table-card { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }

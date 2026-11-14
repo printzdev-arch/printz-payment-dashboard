@@ -15,6 +15,7 @@ import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import { exportSalaryRecordsXlsx } from "../utils/salaryExcel";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function SalaryRecordsPage() {
   const [branches, setBranches] = useState([]);
@@ -194,7 +195,7 @@ export default function SalaryRecordsPage() {
 
       {/* ── Filters Row Card ──────────────────────────────────────────── */}
       <div className="salary-filters-card">
-        <select
+        <StyledSelect
           className="salary-filter-select"
           value={selectedMonth}
           onChange={(e) => {
@@ -209,9 +210,9 @@ export default function SalaryRecordsPage() {
           ].map((m, idx) => (
             <option key={idx + 1} value={idx + 1}>{m}</option>
           ))}
-        </select>
+        </StyledSelect>
 
-        <select
+        <StyledSelect
           className="salary-filter-select"
           value={selectedStatus}
           onChange={(e) => {
@@ -226,7 +227,7 @@ export default function SalaryRecordsPage() {
           <option value="PARTIALLY_PAID">Partially Paid</option>
           <option value="PAID">Paid</option>
           <option value="LOCKED">Locked</option>
-        </select>
+        </StyledSelect>
 
         <input
           type="number"
@@ -280,6 +281,7 @@ export default function SalaryRecordsPage() {
       )}
 
       <DataTable
+        mobileCards
         searchable={false}
         loading={loading}
         data={filteredRecords}

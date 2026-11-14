@@ -32,6 +32,7 @@ import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
 import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
+import StyledSelect from "../../../../../shared/ui/selects/StyledSelect";
 
 try {
   applyPlugin(jsPDF);
@@ -677,10 +678,6 @@ const StockList = () => {
               Management
             </span>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
-            View, search, edit pricing, and manage inventory items across all
-            branches.
-          </p>
         </div>
 
         {branchName && filteredAndSortedStocks.length > 0 && (
@@ -711,12 +708,6 @@ const StockList = () => {
       <div className="stock-filter-card">
         {/* Branch Selector */}
         <div className="stock-filter-group">
-          <label className="stock-filter-label">
-            <Building2 size={15} color="#059669" />
-            <span>
-              Branch Location <span className="req">*</span>
-            </span>
-          </label>
           <BranchSelect
             value={branchName}
             onChange={(e) => {
@@ -732,15 +723,11 @@ const StockList = () => {
 
         {/* Category Selector */}
         <div className="stock-filter-group">
-          <label className="stock-filter-label">
-            <Tag size={15} color="#059669" />
-            <span>Category Filter</span>
-          </label>
           <div className="stock-input-wrapper">
             <span className="stock-input-icon">
               <Tag size={16} />
             </span>
-            <select
+            <StyledSelect
               value={category}
               onChange={(e) => {
                 setCategory(e.target.value);
@@ -756,19 +743,12 @@ const StockList = () => {
                   {cat.name}
                 </option>
               ))}
-            </select>
-            <span className="stock-select-chevron">
-              <ChevronDown size={16} />
-            </span>
+            </StyledSelect>
           </div>
         </div>
 
         {/* Search Input */}
         <div className="stock-filter-group">
-          <label className="stock-filter-label">
-            <Search size={15} color="#059669" />
-            <span>Search Stock</span>
-          </label>
           <div className="stock-input-wrapper">
             <span className="stock-input-icon">
               <Search size={16} />
@@ -844,7 +824,7 @@ const StockList = () => {
 
           {/* Stock Table */}
           {/* Stock Table */}
-          <DataTable
+          <DataTable mobileCards
             key={`${branchName}-${filteredAndSortedStocks.length}`}
             searchable={false}
             data={filteredAndSortedStocks}
@@ -1359,7 +1339,7 @@ const StockList = () => {
                           autoFocus
                         />
                       ) : (
-                        <select
+                        <StyledSelect
                           value={(modalFormData.category || "").toUpperCase()}
                           onChange={(e) => {
                             if (e.target.value === "__NEW__") {
@@ -1392,7 +1372,7 @@ const StockList = () => {
                             </option>
                           ))}
                           <option value="__NEW__">+ Add Custom Category...</option>
-                        </select>
+                        </StyledSelect>
                       )}
                     </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getBranches, getTotalAmounts, getExpenses } from "../../api";
 import * as XLSX from "xlsx";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import Papa from "papaparse";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -797,7 +798,7 @@ const ExportData = () => {
   };
 
   return (
-    <div className="add-assets-page-container">
+    <div className="add-assets-page-container extra-feature-page">
       <Popup {...popup} />
 
       {/* Header Banner - Clean emerald design */}
@@ -940,7 +941,7 @@ const ExportData = () => {
               <label className="add-assets-label">Month *</label>
               <div className="add-assets-input-wrap">
                 <Calendar size={16} className="add-assets-input-icon" />
-                <select
+                <StyledSelect
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="add-assets-select"
@@ -951,7 +952,7 @@ const ExportData = () => {
                       {month}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
             </div>
 
@@ -960,7 +961,7 @@ const ExportData = () => {
               <label className="add-assets-label">Year *</label>
               <div className="add-assets-input-wrap">
                 <Calendar size={16} className="add-assets-input-icon" />
-                <select
+                <StyledSelect
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
                   className="add-assets-select"
@@ -971,7 +972,7 @@ const ExportData = () => {
                       {year}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
             </div>
           </div>
@@ -1072,7 +1073,7 @@ const ExportData = () => {
                 </div>
               </div>
 
-              <DataTable
+              <DataTable mobileCards
                 searchable={false}
                 pagination={false}
                 data={
@@ -1227,7 +1228,7 @@ const ExportData = () => {
                   </div>
                 </div>
 
-                <DataTable
+                <DataTable mobileCards
                   searchable={false}
                   pagination={false}
                   data={expenseData}

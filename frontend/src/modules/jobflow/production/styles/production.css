@@ -70,7 +70,7 @@
   white-space: nowrap;
 }
 
-.production-status-chip.planned     { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.production-status-chip.planned     { background: #f1f5f9; color: #1e293b; border: 1px solid #e2e8f0; }
 .production-status-chip.in-progress { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 .production-status-chip.completed   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .production-status-chip.reprint     { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -165,7 +165,7 @@ div[style*="overflow-x: auto"] > .jf-table {
 
 div[style*="overflow-x: auto"] > .jf-table th {
   background: #f8faf9;
-  color: #475569;
+  color: #1e293b;
   font-size: 0.76rem;
   font-weight: 600;
   white-space: nowrap;
@@ -696,12 +696,12 @@ div[style*="position: fixed"][style*="z-index"] > .jf-card {
 
 .prod-modal-icon-badge.gray {
   background: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
 }
 
 .prod-modal-subtitle {
   font-size: 0.8125rem;
-  color: #475569;
+  color: #1e293b;
   display: block;
   margin-top: 2px;
 }
@@ -740,7 +740,7 @@ div[style*="position: fixed"][style*="z-index"] > .jf-card {
 }
 
 .prod-modal-label {
-  color: #475569;
+  color: #1e293b;
   display: block;
   font-size: 0.775rem;
   font-weight: 500;
@@ -809,7 +809,7 @@ div[style*="position: fixed"][style*="z-index"] > .jf-card {
 
 .prod-field-hint {
   font-size: 0.75rem;
-  color: #475569;
+  color: #1e293b;
   margin-top: 2px;
   display: block;
 }
@@ -838,7 +838,7 @@ div[style*="position: fixed"][style*="z-index"] > .jf-card {
 
 .prod-mat-subtitle {
   font-size: 0.75rem;
-  color: #475569;
+  color: #1e293b;
 }
 
 .prod-mat-empty {
@@ -846,7 +846,7 @@ div[style*="position: fixed"][style*="z-index"] > .jf-card {
   text-align: center;
   background: #f8fafc;
   border-radius: 6px;
-  color: #475569;
+  color: #1e293b;
   font-size: 0.8125rem;
 }
 
@@ -906,4 +906,3 @@ div[style*="position: fixed"][style*="z-index"] > .jf-card {
   font-size: 0.8125rem;
   cursor: pointer;
 }
-

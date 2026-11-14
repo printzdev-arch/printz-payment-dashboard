@@ -254,11 +254,11 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, view
               Job & Customer Information
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", fontSize: "0.8125rem" }}>
-              <div><span style={{ color: "#475569" }}>Job No:</span> <strong>{jobNo}</strong></div>
-              <div><span style={{ color: "#475569" }}>Customer:</span> <strong>{customerName}</strong></div>
-              <div><span style={{ color: "#475569" }}>Phone:</span> {phone}</div>
-              <div><span style={{ color: "#475569" }}>Job Type:</span> {jobType}</div>
-              <div><span style={{ color: "#475569" }}>Branch:</span> {branch}</div>
+              <div><span style={{ color: "#1e293b" }}>Job No:</span> <strong>{jobNo}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Customer:</span> <strong>{customerName}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Phone:</span> {phone}</div>
+              <div><span style={{ color: "#1e293b" }}>Job Type:</span> {jobType}</div>
+              <div><span style={{ color: "#1e293b" }}>Branch:</span> {branch}</div>
             </div>
           </div>
 
@@ -276,15 +276,15 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, view
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "0.75rem", background: "#f8fafc", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--jf-border)", fontSize: "0.8125rem" }}>
-              <div><span style={{ color: "#475569" }}>Product:</span> <strong>{specs.productType || rawJob.productType || "Brochures"}</strong></div>
-              <div><span style={{ color: "#475569" }}>Paper:</span> <strong>{specs.paperType || "Art Card"} {specs.paperGsm || "260 gsm"}</strong></div>
-              <div><span style={{ color: "#475569" }}>Size:</span> <strong>{specs.size || "A4 (210 x 297 mm)"}</strong></div>
-              <div><span style={{ color: "#475569" }}>Color & Sides:</span> <strong>{specs.color || "Full Color"} ({specs.printingSide || "Double Sided"})</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Product:</span> <strong>{specs.productType || rawJob.productType || "Brochures"}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Paper:</span> <strong>{specs.paperType || "Art Card"} {specs.paperGsm || "260 gsm"}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Size:</span> <strong>{specs.size || "A4 (210 x 297 mm)"}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Color & Sides:</span> <strong>{specs.color || "Full Color"} ({specs.printingSide || "Double Sided"})</strong></div>
             </div>
 
             {finishingServicesList.length > 0 && (
               <div style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", fontSize: "0.8125rem" }}>
-                <span style={{ color: "#475569", fontWeight: 600 }}>Finishing Required:</span>
+                <span style={{ color: "#1e293b", fontWeight: 600 }}>Finishing Required:</span>
                 {finishingServicesList.map((svc, idx) => (
                   <span
                     key={svc.id || idx}
@@ -327,7 +327,7 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, view
                   <tr key={idx}>
                     <td>{idx + 1}</td>
                     <td><strong>{it.name}</strong></td>
-                    <td style={{ fontSize: "0.8125rem", color: "#475569" }}>{it.spec}</td>
+                    <td style={{ fontSize: "0.8125rem", color: "#1e293b" }}>{it.spec}</td>
                     <td>{it.qty}</td>
                     <td>{it.unit}</td>
                     <td>₹{Number(it.rate || 0).toFixed(2)}</td>
@@ -350,7 +350,7 @@ export const EstimateReviewModal = ({ isOpen, onClose, estimate, onApprove, view
                 boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", color: "#475569", marginBottom: "0.4rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", color: "#1e293b", marginBottom: "0.4rem" }}>
                 <span>Subtotal:</span>
                 <span style={{ fontWeight: 600 }}>₹{subtotal.toFixed(2)}</span>
               </div>

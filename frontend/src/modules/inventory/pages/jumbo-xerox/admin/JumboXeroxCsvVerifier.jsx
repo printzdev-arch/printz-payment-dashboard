@@ -325,7 +325,7 @@ const JumboXeroxCsvVerifier = () => {
   };
 
   return (
-    <div className="add-assets-page-container">
+    <div className="add-assets-page-container extra-feature-page">
       <Popup {...popup} />
 
       {/* Header Banner - Clean emerald design, no illustration */}

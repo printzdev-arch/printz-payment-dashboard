@@ -374,10 +374,7 @@ const SearchStockList = () => {
               Stock
             </span>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
-            View daily stock consumption, closing stock, and revenue metrics
-            across branches (Read Only).
-          </p>
+          
         </div>
 
         {date && branchName && hasData && (
@@ -408,12 +405,6 @@ const SearchStockList = () => {
       <div className="stock-filter-card">
         {/* Branch Selector */}
         <div className="stock-filter-group">
-          <label className="stock-filter-label" htmlFor="branch-select">
-            <Building2 size={15} color="#059669" />
-            <span>
-              Branch Location <span className="req">*</span>
-            </span>
-          </label>
           <BranchSelect
             id="branch-select"
             value={branchName}
@@ -427,12 +418,6 @@ const SearchStockList = () => {
 
         {/* Date Selector */}
         <div className="stock-filter-group">
-          <label className="stock-filter-label" htmlFor="stock-reading-date">
-            <Calendar size={15} color="#059669" />
-            <span>
-              Select Date <span className="req">*</span>
-            </span>
-          </label>
           <CalendarSelect
             id="stock-reading-date"
             value={date}
@@ -464,7 +449,7 @@ const SearchStockList = () => {
             </div>
 
             {/* Table */}
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={stocks}
               pageSize={stocksPerPage}

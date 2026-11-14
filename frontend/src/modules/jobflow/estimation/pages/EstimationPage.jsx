@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import {
   Printer,
   CheckCircle,
@@ -14,9 +15,11 @@ import estimationApi from "../api/estimationApi";
 import { printQuotation } from "../utils/printQuotation";
 import "../styles/estimation.css";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const EstimationPage = () => {
   const [statusFilter, setStatusFilter] = useState("all"); // "all", "pending", "approved"
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [estimates, setEstimates] = useState([]);
   const [selectedEstimate, setSelectedEstimate] = useState(null);
@@ -217,54 +220,41 @@ export const EstimationPage = () => {
   };
 
   const filteredEstimates = estimates.filter((est) => {
-    if (statusFilter === "pending") return est.status === "Pending";
-    if (statusFilter === "approved") return est.status === "Approved";
-    return true;
+    if (statusFilter === "pending" && est.status !== "Pending") return false;
+    if (statusFilter === "approved" && est.status !== "Approved") return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    const text = [...Object.values(est).filter((v) => typeof v === "string" || typeof v === "number"), est.customerSnapshot?.name]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return text.includes(q);
   });
 
   const pendingCount = estimates.filter((e) => e.status === "Pending").length;
   const approvedCount = estimates.filter((e) => e.status === "Approved").length;
 
   return (
-    <JobFlowLayout title="Estimation & Pricing">
+    <JobFlowLayout title="Estimation & Quotations">
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
-          <div>
-            <h3 className="jf-card-title" style={{ fontSize: "1.125rem", margin: 0 }}>
-              {statusFilter === "pending"
-                ? "Pending Estimates (Manager Approval Only)"
-                : statusFilter === "approved"
-                ? "Approved Estimates"
-                : "All Quotations & Cost Estimates"}
-            </h3>
-          </div>
-
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              type="button"
-              className={`jf-btn ${statusFilter === "all" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-              onClick={() => setStatusFilter("all")}
-            >
-              All ({estimates.length})
-            </button>
-            <button
-              type="button"
-              className={`jf-btn ${statusFilter === "pending" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-              onClick={() => setStatusFilter("pending")}
-            >
-              Pending ({pendingCount})
-            </button>
-            <button
-              type="button"
-              className={`jf-btn ${statusFilter === "approved" ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-              onClick={() => setStatusFilter("approved")}
-            >
-              Approved ({approvedCount})
-            </button>
-          </div>
+        <div className="est-row">
+        <div className="est-search">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search estimates by job, customer or estimate #..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <StyledSelect searchable={false} style={{ width: "190px" }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All ({estimates.length})</option>
+          <option value="pending">Pending ({pendingCount})</option>
+          <option value="approved">Approved ({approvedCount})</option>
+        </StyledSelect>
         </div>
 
-        <DataTable renderWithValue
+        <DataTable mobileCards renderWithValue
           columns={[
             {
               key: "jobNo",
@@ -305,7 +295,7 @@ export const EstimationPage = () => {
                 <div>
                   <div style={{ fontWeight: 600 }}>{val || row.customerSnapshot?.name || "Client"}</div>
                   {row.phone && row.phone !== "-" && (
-                    <span style={{ fontSize: "0.75rem", color: "#475569" }}>{row.phone}</span>
+                    <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.phone}</span>
                   )}
                 </div>
               ),
@@ -389,8 +379,7 @@ export const EstimationPage = () => {
           ]}
           data={filteredEstimates}
           loading={loading}
-          searchable={true}
-          searchPlaceholder="Search estimates by job, customer or estimate #..."
+          searchable={false}
           pageSize={10}
           pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage={

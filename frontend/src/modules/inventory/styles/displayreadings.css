@@ -641,3 +641,15 @@
   max-width: 400px;
   line-height: 1.45;
 }
+
+/* Printer Readings: no box around the filter row, compact fields */
+body .display-readings-filter-card { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+body .display-readings-filter-card .display-readings-filter-toolbar { padding: 0; }
+body .display-readings-filter-card .display-readings-filter-fields { gap: 12px; align-items: center; }
+body .display-readings-filter-card .display-readings-field-group { flex: 0 1 240px; min-width: 200px; }
+body .display-readings-filter-card .branch-select-trigger, body .display-readings-filter-card .calendar-select-trigger { height: 42px; }
+@media (max-width: 640px) { body .display-readings-filter-card .display-readings-field-group { flex: 1 1 100%; } }
+
+/* Branch and date side by side, lined up with the page title */
+body .display-readings-filter-card .display-readings-filter-toolbar { display: flex; flex-direction: row; }
+body .display-readings-filter-card .display-readings-filter-fields { display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; }

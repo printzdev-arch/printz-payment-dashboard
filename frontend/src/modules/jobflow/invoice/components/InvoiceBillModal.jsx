@@ -397,7 +397,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               Customer Signature / Verification
             </div>
             <div class="sig-box" style="font-weight: 700; color: #065f46;">
-              For Guna Printz (Authorized Signatory)
+              Authorized Signatory
             </div>
           </div>
         </div>
@@ -547,13 +547,10 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
             }}>
               <div>
                 <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", marginBottom: "6px" }} />
-                <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "#065f46", letterSpacing: "-0.02em" }}>
-                  GUNA PRINTZ
-                </div>
                 <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#047857", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: "2px" }}>
                   Digital Color Printing, Multi-Colour Offset & Designing
                 </div>
-                <div style={{ fontSize: "0.78rem", color: "#475569", marginTop: "4px", lineHeight: 1.4 }}>
+                <div style={{ fontSize: "0.78rem", color: "#1e293b", marginTop: "4px", lineHeight: 1.4 }}>
                   {branch.address}<br />
                   Phone: <strong>{branch.phone}</strong> | GSTIN: <strong>{branch.gstin}</strong>
                 </div>
@@ -595,7 +592,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               marginBottom: "1.25rem"
             }}>
               <div>
-                <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", marginBottom: "4px" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "#1e293b", marginBottom: "4px" }}>
                   Billed To (Customer):
                 </div>
                 <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#0f172a" }}>
@@ -606,11 +603,11 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                     {cust.company}
                   </div>
                 )}
-                <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "2px" }}>
+                <div style={{ fontSize: "0.8rem", color: "#1e293b", marginTop: "2px" }}>
                   Phone: <strong>{cust.mobile || "-"}</strong>
                 </div>
                 {cust.address && cust.address !== "-" && (
-                  <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                  <div style={{ fontSize: "0.78rem", color: "#1e293b" }}>
                     {cust.address}
                   </div>
                 )}
@@ -622,7 +619,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               </div>
 
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", marginBottom: "4px" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "#1e293b", marginBottom: "4px" }}>
                   Order & Payment Meta:
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "#334155", marginBottom: "2px" }}>
@@ -638,7 +635,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                   Payment Mode: <strong>{doc.paymentMode || "UPI"}</strong>
                 </div>
                 {doc.paymentReference && (
-                  <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                  <div style={{ fontSize: "0.78rem", color: "#1e293b" }}>
                     Ref #: <strong>{doc.paymentReference}</strong>
                   </div>
                 )}
@@ -660,7 +657,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "1.5rem", color: "#64748b" }}>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "1.5rem", color: "#1e293b" }}>
                       No line items recorded.
                     </td>
                   </tr>
@@ -672,11 +669,11 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                     const lineTotal = Number(it.lineTotal || (lineQty * linePrice));
                     return (
                       <tr key={idx} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                        <td style={{ padding: "8px 10px", textAlign: "center", color: "#64748b" }}>{idx + 1}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "center", color: "#1e293b" }}>{idx + 1}</td>
                         <td style={{ padding: "8px 10px" }}>
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>{it.itemName || "Print Item"}</div>
                           {it.description && (
-                            <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>{it.description}</div>
+                            <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "2px" }}>{it.description}</div>
                           )}
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 600 }}>{lineQty} {it.unit || "PCS"}</td>
@@ -689,7 +686,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                 )}
                 {charges.map((ch, idx) => (
                   <tr key={`ch-${idx}`} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td colSpan={5} style={{ padding: "7px 10px", textAlign: "right", color: "#475569" }}>
+                    <td colSpan={5} style={{ padding: "7px 10px", textAlign: "right", color: "#1e293b" }}>
                       {ch.description || "Additional Service"}:
                     </td>
                     <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700 }}>
@@ -702,7 +699,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
 
             {/* Calculation & Terms Summary */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "2rem" }}>
-              <div style={{ flex: 1, fontSize: "0.75rem", color: "#64748b" }}>
+              <div style={{ flex: 1, fontSize: "0.75rem", color: "#1e293b" }}>
                 <div style={{ fontWeight: 700, color: "#334155", textTransform: "uppercase", marginBottom: "4px" }}>
                   Terms & Conditions:
                 </div>
@@ -722,7 +719,7 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                 <table style={{ width: "100%", fontSize: "0.82rem", borderCollapse: "collapse" }}>
                   <tbody>
                     <tr>
-                      <td style={{ padding: "4px 6px", color: "#64748b" }}>Subtotal:</td>
+                      <td style={{ padding: "4px 6px", color: "#1e293b" }}>Subtotal:</td>
                       <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600 }}>₹ {subtotal.toFixed(2)}</td>
                     </tr>
                     {discountTotal > 0 && (
@@ -732,14 +729,14 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
                           <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600, color: "#15803d" }}>- ₹ {discountTotal.toFixed(2)}</td>
                         </tr>
                         <tr>
-                          <td style={{ padding: "4px 6px", color: "#475569" }}>Net Taxable Subtotal:</td>
+                          <td style={{ padding: "4px 6px", color: "#1e293b" }}>Net Taxable Subtotal:</td>
                           <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 600 }}>₹ {taxableAmount.toFixed(2)}</td>
                         </tr>
                       </>
                     )}
                     {(cgstTotal + sgstTotal) > 0 && (
                       <tr>
-                        <td style={{ padding: "4px 6px", color: "#64748b" }}>GST:</td>
+                        <td style={{ padding: "4px 6px", color: "#1e293b" }}>GST:</td>
                         <td style={{ padding: "4px 6px", textAlign: "right" }}>₹ {(cgstTotal + sgstTotal).toFixed(2)}</td>
                       </tr>
                     )}
@@ -846,11 +843,11 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
               paddingTop: "1rem",
               borderTop: "1px solid #e2e8f0"
             }}>
-              <div style={{ textAlign: "center", borderTop: "1px dashed #cbd5e1", paddingTop: "6px", fontSize: "0.75rem", color: "#64748b" }}>
+              <div style={{ textAlign: "center", borderTop: "1px dashed #cbd5e1", paddingTop: "6px", fontSize: "0.75rem", color: "#1e293b" }}>
                 Customer Signature / Verification
               </div>
               <div style={{ textAlign: "center", borderTop: "1px dashed #cbd5e1", paddingTop: "6px", fontSize: "0.75rem", fontWeight: 700, color: "#065f46" }}>
-                For Guna Printz (Authorized Signatory)
+                Authorized Signatory
               </div>
             </div>
           </div>

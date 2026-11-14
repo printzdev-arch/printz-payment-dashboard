@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import deliveryApi from "../api/deliveryApi";
 import settlementApi from "../../settlement/api/settlementApi";
@@ -93,10 +94,11 @@ const Tab = ({ active, onClick, children }) => (
       display: "flex",
       alignItems: "center",
       gap: "0.5rem",
-      border: active ? "1px solid var(--jf-primary, #059669)" : "1px solid #cbd5e1",
-      background: active ? "var(--jf-primary, #059669)" : "#ffffff",
-      color: active ? "#ffffff" : "#334155",
-      boxShadow: active ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
+      height: "38px",
+      border: active ? "1px solid #0d6245" : "1px solid #dbe3ea",
+      background: active ? "#0d6245" : "#ffffff",
+      color: active ? "#ffffff" : "#0f172a",
+      boxShadow: active ? "0 2px 6px rgba(13,98,69,0.28)" : "0 1px 2px rgba(15,23,42,0.04)",
     }}
   >
     {children}
@@ -290,7 +292,13 @@ export const DeliveryPage = ({ embedded = false }) => {
   }, [loading, preselectedJobId, rows, setSearchParams]);
 
   const tabRows = rows.filter((r) => r.type === tab);
-  const chipRows = tabRows.filter((r) => r.state === chip);
+  const [search, setSearch] = useState("");
+  const chipRows = tabRows.filter((r) => {
+    if (r.state !== chip) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return ["jobNo", "customerName", "customerPhone", "address", "staff"].some((k) => String(r[k] ?? "").toLowerCase().includes(q));
+  });
   const openCount = (t) => rows.filter((r) => r.type === t && !["DONE", "DELIVERED"].includes(r.state)).length;
   const chipCount = (key) => tabRows.filter((r) => r.state === key).length;
 
@@ -400,7 +408,7 @@ export const DeliveryPage = ({ embedded = false }) => {
         render: (val, row) => (
           <div>
             <div style={{ fontWeight: 600 }}>{val}</div>
-            {row.customerPhone ? <div style={{ fontSize: "0.75rem", color: "#475569" }}>{row.customerPhone}</div> : null}
+            {row.customerPhone ? <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.customerPhone}</div> : null}
           </div>
         ),
       },
@@ -415,7 +423,7 @@ export const DeliveryPage = ({ embedded = false }) => {
             val ? (
               <div>
                 <div style={{ fontWeight: 600 }}>{val}</div>
-                {row.vehicle ? <div style={{ fontSize: "0.75rem", color: "#475569" }}>{row.vehicle}</div> : null}
+                {row.vehicle ? <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.vehicle}</div> : null}
               </div>
             ) : (
               <span style={{ color: "#94a3b8" }}>Not assigned</span>
@@ -441,36 +449,37 @@ export const DeliveryPage = ({ embedded = false }) => {
 
   const content = (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+      <div className="dl-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+        <div className="dl-left" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           {Object.entries(TYPES).map(([key, t]) => (
             <Tab key={key} active={tab === key} onClick={() => changeTab(key)}>
               {t.label} <Count active={tab === key} n={openCount(key)} />
             </Tab>
           ))}
+          <div className="dl-search">
+            <Search size={16} />
+            <input type="text" placeholder="Search by job, customer, phone or address..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <StyledSelect searchable={false} style={{ width: "200px" }} value={chip} onChange={(e) => setChip(e.target.value)}>
+            {TYPES[tab].chips.map((c) => (
+              <option key={c.key} value={c.key}>{c.label} ({chipCount(c.key)})</option>
+            ))}
+          </StyledSelect>
         </div>
-        <button type="button" className="jf-btn jf-btn-secondary" onClick={load} disabled={loading} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-          <RefreshCw size={14} /> {loading ? "Loading..." : "Refresh"}
+        <button type="button" className="jf-btn jf-btn-secondary dl-refresh" onClick={load} disabled={loading} title="Refresh" aria-label="Refresh">
+          <RefreshCw size={15} className={loading ? "spin" : ""} />
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        {TYPES[tab].chips.map((c) => (
-          <Tab key={c.key} active={chip === c.key} onClick={() => setChip(c.key)}>
-            {c.label} <Count active={chip === c.key} n={chipCount(c.key)} />
-          </Tab>
-        ))}
-      </div>
-
-      <DataTable renderWithValue
+      <DataTable mobileCards renderWithValue
         key={`${tab}-${chip}`}
+        className="dl-table"
         columns={columns}
         data={chipRows}
         loading={loading}
         sortable
         sortControls={false}
-        searchPlaceholder="Search by job, customer, phone or address..."
-        searchKeys={["jobNo", "customerName", "customerPhone", "address", "staff"]}
+        searchable={false}
         rowKey="key"
         emptyMessage="Nothing here right now."
       />
@@ -482,7 +491,7 @@ export const DeliveryPage = ({ embedded = false }) => {
               <h2 className="jf-modal-title">Dispatch {dispatchTarget.jobNo}</h2>
             </div>
             <div className="jf-modal-body" style={{ display: "grid", gap: "0.75rem" }}>
-              <div style={{ fontSize: "0.875rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.875rem", color: "#1e293b" }}>
                 {dispatchTarget.customerName}
                 {dispatchTarget.address ? ` · ${dispatchTarget.address}` : ""}
                 <br />

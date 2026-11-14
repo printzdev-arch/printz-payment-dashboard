@@ -1466,8 +1466,7 @@ export const PosBillingPage = () => {
 
             <DataTable
               mobileCards
-              title="Sales Receipts Ledger & History"
-              icon={<Receipt size={20} style={{ color: "#059669" }} />}
+              className="pos-history-table"
               searchable={false}
               loading={loadingHistory}
               emptyMessage="No sale receipts found. Complete a counter sale to populate the ledger."
@@ -1485,7 +1484,7 @@ export const PosBillingPage = () => {
                   <input
                     type="text"
                     className="jf-input"
-                    style={{ width: "200px", fontSize: "0.82rem" }}
+                    style={{ fontSize: "0.82rem" }}
                     placeholder="Filter receipt, customer..."
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
@@ -1509,8 +1508,10 @@ export const PosBillingPage = () => {
                     className="jf-btn jf-btn-secondary jf-btn-sm"
                     onClick={loadHistory}
                     disabled={loadingHistory}
+                    title="Refresh"
+                    aria-label="Refresh"
                   >
-                    <RefreshCw size={14} className={loadingHistory ? "jf-spin" : ""} /> Refresh
+                    <RefreshCw size={15} className={loadingHistory ? "jf-spin" : ""} />
                   </button>
                 </div>
               }

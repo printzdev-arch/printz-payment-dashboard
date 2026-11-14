@@ -92,7 +92,7 @@
 }
 
 .stock-input-icon {
-  color: #475569;
+  color: #1e293b;
   display: flex;
   align-items: center;
   margin-right: 10px;
@@ -139,7 +139,7 @@
   position: absolute;
   right: 12px;
   pointer-events: none;
-  color: #475569;
+  color: #1e293b;
   display: flex;
   align-items: center;
 }
@@ -377,7 +377,7 @@
 
 .stock-pages-pill.standard {
   background: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
   border: 1px solid #e2e8f0;
 }
 
@@ -509,7 +509,7 @@
   padding: 0 12px;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  color: #475569;
+  color: #1e293b;
   border-radius: 6px;
   font-size: 12.5px;
   font-weight: 600;
@@ -611,7 +611,7 @@
 
 .stock-page-info {
   font-size: 13.5px;
-  color: #475569;
+  color: #1e293b;
   font-weight: 500;
 }
 
@@ -632,7 +632,7 @@
 
 .stock-per-page-label {
   font-size: 12.5px;
-  color: #475569;
+  color: #1e293b;
   font-weight: 600;
 }
 
@@ -707,7 +707,7 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
   background: transparent;
   border: 1px solid transparent;
   cursor: pointer;
@@ -729,7 +729,7 @@
 
 .stock-page-pill.dots {
   cursor: default;
-  color: #475569;
+  color: #1e293b;
   letter-spacing: 1px;
 }
 
@@ -756,7 +756,7 @@
 .stock-empty-desc {
   margin: 0;
   font-size: 13.5px;
-  color: #475569;
+  color: #1e293b;
   max-width: 460px;
   line-height: 1.5;
 }
@@ -906,7 +906,7 @@
 .stock-modal-subtitle {
   margin: 0;
   font-size: 12.5px;
-  color: #475569;
+  color: #1e293b;
   line-height: 1.4;
 }
 
@@ -916,7 +916,7 @@
   border-radius: 10px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
-  color: #475569;
+  color: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -994,7 +994,7 @@
 .stock-modal-card-label {
   font-size: 11.5px;
   font-weight: 700;
-  color: #475569;
+  color: #1e293b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   display: flex;
@@ -1221,7 +1221,7 @@
   padding: 0 16px;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  color: #475569;
+  color: #1e293b;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
@@ -1312,7 +1312,7 @@
 .stock-confirm-modal-text {
   margin: 0 0 24px 0;
   font-size: 13.5px;
-  color: #475569;
+  color: #1e293b;
   line-height: 1.5;
 }
 
@@ -1326,7 +1326,7 @@
   padding: 10px 20px;
   border: 1.5px solid #cbd5e1;
   background: #ffffff;
-  color: #475569;
+  color: #1e293b;
   border-radius: 8px;
   cursor: pointer;
   font-size: 13.5px;
@@ -1357,3 +1357,44 @@
 .stock-confirm-btn-delete:hover {
   background: #b91c1c;
 }
+
+/* ==========================================================================
+   Stock module: plain page titles, no boxes around filters or tables,
+   shared dropdowns, comfortable spacing
+   ========================================================================== */
+body .stock-page-container > .printz-header-banner-full,
+body .move-stock-page-container > .printz-header-banner-full,
+body .add-assets-page-container > .printz-header-banner-full,
+body .stock-item-list-container > .printz-header-banner-full,
+body .stock-readings-container > .printz-header-banner-full {
+  background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 4px !important; margin: 0 !important;
+}
+body .stock-page-container .printz-header-banner-full h1,
+body .move-stock-page-container .printz-header-banner-full h1,
+body .add-assets-page-container .printz-header-banner-full h1,
+body .stock-item-list-container .printz-header-banner-full h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+body .stock-filter-card { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+body .stock-page-container .printz-dt-card,
+body .move-stock-page-container .printz-dt-card,
+body .stock-item-list-container .printz-dt-card { border: none; box-shadow: none; }
+
+/* A shared dropdown inside the old icon-and-arrow wrappers: the dropdown draws its own icon and arrow */
+.stock-input-wrapper:has(.branch-select-container) .stock-input-icon,
+.add-stock-input-wrapper:has(.branch-select-container) .add-stock-input-icon { display: none; }
+.stock-input-wrapper:has(.branch-select-container) .branch-select-container,
+.add-stock-input-wrapper:has(.branch-select-container) .branch-select-container { width: 100%; }
+.stock-input-wrapper .branch-select-trigger, .add-stock-input-wrapper .branch-select-trigger { height: 42px; }
+@media (max-width: 640px) { body .stock-page-container .printz-header-banner-full h1, body .move-stock-page-container .printz-header-banner-full h1, body .add-assets-page-container .printz-header-banner-full h1 { font-size: 21px; } }
+
+/* Category filter: the dropdown draws its own box, so the old wrapper box is removed */
+.stock-input-wrapper:has(.branch-select-container) { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
+/* Filter fields: compact, side by side, instead of stretching across the page */
+body .stock-filter-card { display: flex !important; flex-wrap: wrap; align-items: flex-end; gap: 12px !important; }
+body .stock-filter-card .stock-filter-group { flex: 0 1 240px; min-width: 200px; }
+body .stock-filter-card .stock-filter-group:has(input[type="text"], input[type="search"]) { flex: 0 1 300px; }
+@media (max-width: 640px) { body .stock-filter-card .stock-filter-group, body .stock-filter-card .stock-filter-group:has(input) { flex: 1 1 100%; } }
+
+/* Title and fields start at the same left edge on the printer pages */
+body .display-readings-page-container > .printz-header-banner-full,
+body .printer-list-page-container > .printz-header-banner-full { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 4px !important; margin: 0 !important; }

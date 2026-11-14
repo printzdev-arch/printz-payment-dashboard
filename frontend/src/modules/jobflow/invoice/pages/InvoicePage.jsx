@@ -29,6 +29,7 @@ import InvoiceEditorSection from "../components/InvoiceEditorSection";
 import InvoiceBillModal from "../components/InvoiceBillModal";
 import CashierSettlementModal from "../../settlement/components/CashierSettlementModal";
 import "../styles/invoice.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const InvoicePage = () => {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export const InvoicePage = () => {
 
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all"); // all | to_invoice | balance_due | settled
+  const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState("list"); // "list" | "create"  (the Create Invoice tab)
 
   const [pendingEligibleJobs, setPendingEligibleJobs] = useState([]);
@@ -403,7 +405,13 @@ export const InvoicePage = () => {
     balance_due: allRows.filter((r) => rowGroup(r) === "balance_due").length,
     settled: allRows.filter((r) => rowGroup(r) === "settled").length,
   };
-  const visibleRows = statusFilter === "all" ? allRows : allRows.filter((r) => rowGroup(r) === statusFilter);
+  const byStatus = statusFilter === "all" ? allRows : allRows.filter((r) => rowGroup(r) === statusFilter);
+  const visibleRows = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return byStatus;
+    const keys = ["jobNo", "invoiceNumber", "customerName", "customerPhone", "title", "jobType"];
+    return byStatus.filter((r) => keys.some((k) => String(r[k] ?? "").toLowerCase().includes(q)));
+  })();
 
   // Table Columns Definitions
   const pendingColumns = [
@@ -433,7 +441,7 @@ export const InvoicePage = () => {
       render: (val, row) => (
         <div>
           <div style={{ fontWeight: 600, color: "#0f172a" }}>{val}</div>
-          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{row.customerPhone}</div>
+          <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.customerPhone}</div>
         </div>
       ),
     },
@@ -444,7 +452,7 @@ export const InvoicePage = () => {
       render: (val, row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{val}</div>
-          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{row.quantity ? `Qty: ${row.quantity} pcs` : "-"}</div>
+          <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.quantity ? `Qty: ${row.quantity} pcs` : "-"}</div>
         </div>
       ),
     },
@@ -492,7 +500,7 @@ export const InvoicePage = () => {
       label: "Balance",
       sortable: true,
       render: (val, row) => {
-        if (!row.hasInvoice && !row.isSettled) return <span style={{ color: "#475569" }}>-</span>;
+        if (!row.hasInvoice && !row.isSettled) return <span style={{ color: "#1e293b" }}>-</span>;
         const b = Number(val || 0);
         return (
           <span style={{ color: b > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>
@@ -631,59 +639,37 @@ export const InvoicePage = () => {
 
   return (
     <JobFlowLayout
-      title="Commercial Tax Invoicing"
+      title="Commercial Invoices"
       activeStep={6}
     >
       <div className="invoice-feature-container">
 
         {/* ── ONE LIST OF JOB ORDERS WITH STATUS FILTERS ── */}
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
-          {[
-            { key: "all", label: "All Jobs", Icon: FileText },
-            { key: "to_invoice", label: "To Invoice", Icon: Clock },
-            { key: "balance_due", label: "Balance Due", Icon: CreditCard },
-            { key: "settled", label: "Settled", Icon: CheckCircle },
-          ].map(({ key, label, Icon }) => {
-            const active = view === "list" && statusFilter === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                className="jf-btn"
-                onClick={() => {
-                  setStatusFilter(key);
-                  setView("list");
-                }}
-                style={{
-                  background: active ? "var(--jf-primary, #15803d)" : "#ffffff",
-                  color: active ? "#ffffff" : "#334155",
-                  borderColor: active ? "var(--jf-primary, #15803d)" : "#cbd5e1",
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.55rem 1rem",
-                  borderRadius: "8px",
-                  boxShadow: active ? "0 2px 4px rgba(21,128,61,0.2)" : "none",
-                }}
-              >
-                <Icon size={15} />
-                <span>{label}</span>
-                <span
-                  style={{
-                    background: active ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                    color: active ? "#ffffff" : "#0f172a",
-                    padding: "0.15rem 0.5rem",
-                    borderRadius: "9999px",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                  }}
-                >
-                  {groupCounts[key]}
-                </span>
-              </button>
-            );
-          })}
+        <div className="inv-toolbar">
+          <div className="inv-search">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Search by job no, invoice no, customer, material..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="inv-tabs">
+          <StyledSelect
+            searchable={false}
+            style={{ width: "200px" }}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setView("list");
+            }}
+          >
+            <option value="all">All Jobs ({groupCounts.all})</option>
+            <option value="to_invoice">To Invoice ({groupCounts.to_invoice})</option>
+            <option value="balance_due">Balance Due ({groupCounts.balance_due})</option>
+            <option value="settled">Settled ({groupCounts.settled})</option>
+          </StyledSelect>
 
           <button
             type="button"
@@ -694,9 +680,9 @@ export const InvoicePage = () => {
               setView("create");
             }}
             style={{
-              background: view === "create" ? "var(--jf-primary, #15803d)" : "#ffffff",
+              background: view === "create" ? "#0d6245" : "#ffffff",
               color: view === "create" ? "#ffffff" : "#334155",
-              borderColor: view === "create" ? "var(--jf-primary, #15803d)" : "#cbd5e1",
+              borderColor: view === "create" ? "#0d6245" : "#dbe3ea",
               fontWeight: 600,
               display: "flex",
               alignItems: "center",
@@ -708,6 +694,10 @@ export const InvoicePage = () => {
           >
             <Plus size={15} />
             <span>Create Invoice</span>
+          </button>
+          </div>
+          <button type="button" className="inv-refresh" onClick={loadInvoiceData} disabled={loading} title="Refresh" aria-label="Refresh">
+            <RefreshCw size={15} className={loading ? "spin" : ""} />
           </button>
         </div>
 
@@ -728,7 +718,7 @@ export const InvoicePage = () => {
             onClear={backToList}
           />
         ) : (
-        <DataTable renderWithValue
+        <DataTable mobileCards renderWithValue
           key={`jobs-table-${statusFilter}`}
           columns={pendingColumns}
           data={visibleRows}
@@ -737,9 +727,7 @@ export const InvoicePage = () => {
           sortControls={false}
           defaultSortKey="jobNo"
           defaultSortDir="desc"
-          searchable={true}
-          searchPlaceholder="Search by job no, invoice no, customer, material..."
-          searchKeys={["jobNo", "invoiceNumber", "customerName", "customerPhone", "title", "jobType"]}
+          searchable={false}
           pageSize={10}
           pageSizeOptions={[5, 10, 20, 25, 50, 100]}
           pagination={true}
@@ -751,19 +739,6 @@ export const InvoicePage = () => {
               : statusFilter === "settled"
               ? "No settled jobs yet."
               : "No job orders found."
-          }
-          filterComponent={
-            <button
-              type="button"
-              className="jf-btn jf-btn-secondary jf-btn-sm"
-              onClick={loadInvoiceData}
-              disabled={loading}
-              title="Refresh"
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <RefreshCw size={14} className={loading ? "spin" : ""} />
-              <span>Refresh</span>
-            </button>
           }
         />
         )}

@@ -4,6 +4,7 @@ import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function AddLoanModal({
   isOpen,
@@ -180,7 +181,7 @@ export default function AddLoanModal({
                 </div>
                 <div className="salary-form-group">
                   <label>Employee <span className="req">*</span></label>
-                  <select
+                  <StyledSelect
                     className="salary-form-select"
                     value={formData.employeeId}
                     onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
@@ -197,7 +198,7 @@ export default function AddLoanModal({
                         {emp.employeeCode ? `[${emp.employeeCode}] ` : ""}{emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim()}
                       </option>
                     ))}
-                  </select>
+                  </StyledSelect>
                 </div>
               </div>
               

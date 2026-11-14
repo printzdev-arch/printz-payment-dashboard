@@ -24,6 +24,7 @@ import SalaryMaintenanceBanner from "../components/SalaryMaintenanceBanner";
 import { flagIfMaintenance, useSalaryMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function LoansAdjustmentsPage() {
   const maintenance = useSalaryMaintenance();
@@ -547,7 +548,7 @@ export default function LoansAdjustmentsPage() {
         {activeTab === "loans" && (
           <>
 
-            <select
+            <StyledSelect
               className="salary-filter-select"
               value={selectedStatus}
               onChange={(e) => {
@@ -559,12 +560,12 @@ export default function LoansAdjustmentsPage() {
               <option value="ACTIVE">Active</option>
               <option value="CLOSED">Closed</option>
               <option value="ON_HOLD">On Hold</option>
-            </select>
+            </StyledSelect>
           </>
         )}
 
         {activeTab === "adjustments" && (
-          <select
+          <StyledSelect
             className="salary-filter-select"
             value={selectedStatus}
             onChange={(e) => {
@@ -576,7 +577,7 @@ export default function LoansAdjustmentsPage() {
             <option value="PENDING">Pending</option>
             <option value="APPLIED">Applied</option>
             <option value="CANCELLED">Cancelled</option>
-          </select>
+          </StyledSelect>
         )}
 
         <div className="salary-search-wrapper">
@@ -611,6 +612,7 @@ export default function LoansAdjustmentsPage() {
 
         {activeTab === "loans" && (
           <DataTable
+            mobileCards
             searchable={false}
             loading={loading}
             data={filteredLoans}
@@ -722,6 +724,7 @@ export default function LoansAdjustmentsPage() {
 
         {activeTab === "repayments" && (
           <DataTable
+            mobileCards
             searchable={false}
             loading={loading}
             data={filteredRepayments}
@@ -764,6 +767,7 @@ export default function LoansAdjustmentsPage() {
 
         {activeTab === "adjustments" && (
           <DataTable
+            mobileCards
             searchable={false}
             loading={loading}
             data={filteredAdjustments}
@@ -851,7 +855,7 @@ export default function LoansAdjustmentsPage() {
               <div className="salary-form-grid" style={{ marginBottom: "12px" }}>
                 <div className="salary-form-group">
                   <label>Month</label>
-                  <select
+                  <StyledSelect
                     className="salary-form-select"
                     value={skipDialog.month}
                     onChange={(e) => setSkipDialog({ ...skipDialog, month: Number(e.target.value) })}
@@ -859,7 +863,7 @@ export default function LoansAdjustmentsPage() {
                     {MONTH_NAMES.map((m, i) => (
                       <option key={m} value={i + 1}>{m}</option>
                     ))}
-                  </select>
+                  </StyledSelect>
                 </div>
                 <div className="salary-form-group">
                   <label>Year</label>

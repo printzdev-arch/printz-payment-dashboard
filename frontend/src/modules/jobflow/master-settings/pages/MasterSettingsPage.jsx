@@ -422,14 +422,14 @@ export const MasterSettingsPage = () => {
           {/* Header */}
           <div style={{ marginBottom: "0.85rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 Specifications Explorer
               </span>
               <span
                 style={{
                   fontSize: "0.7rem",
                   background: "#f1f5f9",
-                  color: "#475569",
+                  color: "#1e293b",
                   padding: "2px 7px",
                   borderRadius: "10px",
                   fontWeight: 600,
@@ -449,7 +449,7 @@ export const MasterSettingsPage = () => {
                 left: "9px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "#475569",
+                color: "#1e293b",
               }}
             />
             <input
@@ -482,7 +482,7 @@ export const MasterSettingsPage = () => {
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#475569",
+                  color: "#1e293b",
                   padding: "2px",
                 }}
               >
@@ -705,7 +705,7 @@ export const MasterSettingsPage = () => {
               }}
             >
               <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
-                <div style={{ fontSize: "0.7rem", color: "#475569", fontWeight: 600 }}>TOTAL OPTIONS</div>
+                <div style={{ fontSize: "0.7rem", color: "#1e293b", fontWeight: 600 }}>TOTAL OPTIONS</div>
                 <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>{activeStats.total}</div>
               </div>
               <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
@@ -713,8 +713,8 @@ export const MasterSettingsPage = () => {
                 <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#059669" }}>{activeStats.active}</div>
               </div>
               <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
-                <div style={{ fontSize: "0.7rem", color: "#475569", fontWeight: 600 }}>INACTIVE</div>
-                <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#475569" }}>{activeStats.inactive}</div>
+                <div style={{ fontSize: "0.7rem", color: "#1e293b", fontWeight: 600 }}>INACTIVE</div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b" }}>{activeStats.inactive}</div>
               </div>
               <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
                 <div style={{ fontSize: "0.7rem", color: "#d97706", fontWeight: 600 }}>DEFAULT OPTION</div>
@@ -765,7 +765,7 @@ export const MasterSettingsPage = () => {
                     left: "10px",
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#475569",
+                    color: "#1e293b",
                   }}
                 />
                 <input
@@ -788,7 +788,7 @@ export const MasterSettingsPage = () => {
                       background: "transparent",
                       border: "none",
                       cursor: "pointer",
-                      color: "#475569",
+                      color: "#1e293b",
                     }}
                   >
                     <X size={13} />
@@ -853,7 +853,7 @@ export const MasterSettingsPage = () => {
             </div>
 
             {/* Options Table (No Description Column) */}
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={filteredItems}
               pageSize={parsedRowsPerPage}
@@ -864,14 +864,14 @@ export const MasterSettingsPage = () => {
               emptyMessage={
                 <>
                   <AlertCircle size={28} style={{ margin: "0 auto 0.5rem auto", opacity: 0.5 }} />
-                  <div style={{ fontWeight: 600, color: "#475569" }}>No options found</div>
+                  <div style={{ fontWeight: 600, color: "#1e293b" }}>No options found</div>
                   <div style={{ fontSize: "0.75rem", marginTop: "2px" }}>
                     {searchQuery ? `No results matching "${searchQuery}"` : "Click 'Add Option' above to create one in this category."}
                   </div>
                 </>
               }
               columns={[
-                { key: "sno", label: "#", width: "45px", align: "center", render: (item, idx) => <span style={{ color: "#475569", fontWeight: 600 }}>{idx + 1}</span> },
+                { key: "sno", label: "#", width: "45px", align: "center", render: (item, idx) => <span style={{ color: "#1e293b", fontWeight: 600 }}>{idx + 1}</span> },
                 {
                   key: "name",
                   label: "Option Name",
@@ -913,7 +913,7 @@ export const MasterSettingsPage = () => {
                       style={{
                         fontSize: "0.75rem",
                         background: "#f1f5f9",
-                        color: "#475569",
+                        color: "#1e293b",
                         padding: "2px 6px",
                         borderRadius: "4px",
                         fontFamily: "'Poppins', sans-serif",
@@ -941,7 +941,7 @@ export const MasterSettingsPage = () => {
                         )}
                       </div>
                     ) : (
-                      <span style={{ color: "#475569", fontSize: "0.8rem" }}>—</span>
+                      <span style={{ color: "#1e293b", fontSize: "0.8rem" }}>—</span>
                     ),
                 },
                 {
@@ -1072,7 +1072,7 @@ export const MasterSettingsPage = () => {
                 <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
                   {editingItem ? "Edit Option" : "Add Option"}
                 </h3>
-                <span style={{ fontSize: "0.75rem", color: "#475569" }}>
+                <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                   Category: <strong>{activeCategory.displayName}</strong>
                 </span>
               </div>
@@ -1084,7 +1084,7 @@ export const MasterSettingsPage = () => {
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#475569",
+                  color: "#1e293b",
                   padding: "4px",
                 }}
               >
@@ -1134,7 +1134,7 @@ export const MasterSettingsPage = () => {
                     }
                   />
                   {selectedCategoryKey === "employeeRoles" && (
-                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                    <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                       Employee roles: use the Code field for the system role code (for example DESIGNER). Type NO_LOGIN here for a role that does not sign in; leave it empty when a login is required.
                     </span>
                   )}
@@ -1213,7 +1213,7 @@ export const MasterSettingsPage = () => {
                     <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#0f172a" }}>
                       Active Status
                     </span>
-                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#475569" }}>
+                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#1e293b" }}>
                       When active, this option appears in form dropdowns across the project.
                     </p>
                   </div>

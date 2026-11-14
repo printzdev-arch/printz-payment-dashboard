@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import deliveryApi from "../api/deliveryApi";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, readOnly = false }) => {
   const isReadOnly = Boolean(readOnly || job?.readOnly);
@@ -407,7 +408,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                   title="Set by the customer's delivery method on the job order"
                   style={{ height: "40px", fontWeight: 600 }}
                 />
-                <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: 4 }}>
+                <div style={{ fontSize: "0.72rem", color: "#1e293b", marginTop: 4 }}>
                   Chosen on the job order{job.deliveryMethod ? ` (${job.deliveryMethod})` : ""} - cannot be changed here.
                 </div>
               </div>
@@ -545,7 +546,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
 
               {/* Staff Select Box */}
               <div style={{ display: "grid", gridTemplateColumns: isReadOnly ? "1fr" : "1.1fr 1fr", gap: "0.6rem" }}>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={selectedEmployeeId}
                   onChange={(e) => handleEmployeeSelect(e.target.value)}
@@ -564,7 +565,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                     </option>
                   ))}
                   <option value="CUSTOM">-- Manual / External Staff --</option>
-                </select>
+                </StyledSelect>
 
                 {!isReadOnly && (
                   <div style={{ position: "relative" }}>
@@ -585,7 +586,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
               {/* 3 Inline Fields */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem" }}>
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "3px" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#1e293b", display: "block", marginBottom: "3px" }}>
                     Staff Name *
                   </label>
                   <input
@@ -601,7 +602,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "3px" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#1e293b", display: "block", marginBottom: "3px" }}>
                     Contact Phone
                   </label>
                   <input
@@ -616,7 +617,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "3px" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#1e293b", display: "block", marginBottom: "3px" }}>
                     Vehicle / Desk Info
                   </label>
                   <input
@@ -642,7 +643,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
             {/* Special Instructions & Items in Compact Row */}
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1rem" }}>
               <div className="jf-form-group">
-                <label className="jf-label" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#475569" }}>
+                <label className="jf-label" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b" }}>
                   Delivery Instructions
                 </label>
                 <input
@@ -667,7 +668,7 @@ export const CreateDeliveryOrderModal = ({ isOpen, onClose, job, onCreated, read
                   justifyContent: "center",
                 }}
               >
-                <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>
+                <div style={{ fontSize: "0.72rem", color: "#1e293b", fontWeight: 700, textTransform: "uppercase" }}>
                   Items Ready for Dispatch
                 </div>
                 <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#0f172a", marginTop: "2px" }}>

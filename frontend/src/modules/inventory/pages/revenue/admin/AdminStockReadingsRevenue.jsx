@@ -509,19 +509,13 @@ const AdminStockReadingsRevenue = () => {
       <Popup {...popup} />
 
       {/* Single Consolidated Section Card */}
-      <div className="revenue-card">
+      <div className="revenue-card revenue-card--plain">
         {/* Unified Card Header */}
         <div className="revenue-card-header printz-unified-card-header">
           <div className="revenue-card-header-left">
-            <div className="revenue-filter-icon">
-              <Boxes size={18} color="#059669" />
-            </div>
             <div>
               <h1 className="revenue-unified-title">
-                Stock Readings{" "}
-                <span className="highlight" style={{ color: "#059669" }}>
-                  Revenue
-                </span>
+                Stock Readings Revenue
                 {branchName && (
                   <span className="revenue-branch-subtitle-tag">
                     — {branchName}

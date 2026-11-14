@@ -20,6 +20,7 @@ import invoiceApi from "../api/invoiceApi";
 import StatusBadge from "../../shared/components/StatusBadge";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 import "../styles/invoice.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized }) => {
   const [loading, setLoading] = useState(false);
@@ -433,7 +434,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Job Order: <strong>{jobSnapshot?.jobNo || "JO-CURRENT"}</strong> • Customer: <strong>{jobSnapshot?.customerSnapshot?.name || jobSnapshot?.customerName || "Customer"}</strong>
               </div>
             </div>
@@ -456,26 +457,26 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
             gap: "1rem"
           }}>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Billed To</div>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Billed To</div>
               <div style={{ fontWeight: 700, color: "#0f172a" }}>{jobSnapshot?.customerSnapshot?.name || jobSnapshot?.customerName || "Customer"}</div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>{jobSnapshot?.customerSnapshot?.mobile || jobSnapshot?.customerPhone || "N/A"}</div>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>{jobSnapshot?.customerSnapshot?.mobile || jobSnapshot?.customerPhone || "N/A"}</div>
             </div>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Customer GSTIN</div>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Customer GSTIN</div>
               <div style={{ fontWeight: 600, color: "#0f172a", fontFamily: "'Poppins', sans-serif" }}>
                 {jobSnapshot?.customerSnapshot?.gstin || "Unregistered Consumer"}
               </div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>{jobSnapshot?.customerSnapshot?.address || "Counter Pickup"}</div>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>{jobSnapshot?.customerSnapshot?.address || "Counter Pickup"}</div>
             </div>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Advance Paid (Order Booking)</div>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Advance Paid (Order Booking)</div>
               <div style={{ fontWeight: 700, color: "#059669", fontSize: "1.1rem" }}>
                 ₹{(jobSnapshot?.advancePaid || calcResult.advanceApplied || 0).toFixed(2)}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "#475569" }}>Applied automatically to invoice balance</div>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>Applied automatically to invoice balance</div>
             </div>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Due Date</div>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Due Date</div>
               <DateField
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -558,7 +559,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                         />
                       </td>
                       <td>
-                        <select
+                        <StyledSelect
                           className="jf-select"
                           value={it.taxRate}
                           onChange={(e) => {
@@ -573,7 +574,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                           <option value={12}>12%</option>
                           <option value={18}>18%</option>
                           <option value={28}>28%</option>
-                        </select>
+                        </StyledSelect>
                       </td>
                       <td style={{ textAlign: "right", fontWeight: 600 }}>
                         ₹{lineTotal.toFixed(2)}
@@ -626,7 +627,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
               <tbody>
                 {additionalCharges.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", color: "#475569", fontSize: "0.8rem" }}>
+                    <td colSpan={5} style={{ textAlign: "center", color: "#1e293b", fontSize: "0.8rem" }}>
                       No extra charges added.
                     </td>
                   </tr>
@@ -661,7 +662,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                         />
                       </td>
                       <td>
-                        <select
+                        <StyledSelect
                           className="jf-select"
                           value={ac.taxRate}
                           onChange={(e) => {
@@ -675,7 +676,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                           <option value={5}>5%</option>
                           <option value={12}>12%</option>
                           <option value={18}>18%</option>
-                        </select>
+                        </StyledSelect>
                       </td>
                       <td style={{ textAlign: "right", fontWeight: 600 }}>
                         ₹{Number(ac.amount || 0).toFixed(2)}
@@ -766,7 +767,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                     disabled={isFinalized}
                     style={{ paddingLeft: "2rem" }}
                   />
-                  <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#64748b", fontWeight: 700 }}>
+                  <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#1e293b", fontWeight: 700 }}>
                     {advanceType === "PERCENTAGE" ? "%" : "₹"}
                   </span>
                 </div>
@@ -791,7 +792,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                 <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#1e293b", display: "block", marginBottom: "4px" }}>
                   Payment Method
                 </label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={paymentMode}
                   onChange={(e) => setPaymentMode(e.target.value)}
@@ -801,7 +802,7 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
                   <option value="CASH">Cash</option>
                   <option value="CARD">Debit / Credit Card</option>
                   <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
-                </select>
+                </StyledSelect>
               </div>
 
               <div>

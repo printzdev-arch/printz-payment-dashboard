@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 const EMPTY_FORM = {
   code: "",
@@ -17,7 +18,8 @@ const EMPTY_FORM = {
 
 const PREVIEW_BASIC = 15000;
 
-export default function CreateComponentModal({ isOpen, onClose, onSuccess, branchId = "", branchName = "" }) {
+export default function CreateComponentModal({ isOpen, onClose, onSuccess, branchId = "", branchName = "", editing = null }) {
+  const isEdit = Boolean(editing);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -25,9 +27,23 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
   useEffect(() => {
     if (isOpen) {
       setError("");
-      setFormData(EMPTY_FORM);
+      setFormData(
+        editing
+          ? {
+              code: editing.code || "",
+              name: editing.name || "",
+              componentType: editing.componentType || "EARNING",
+              calculationType: editing.calculationType || "FIXED",
+              defaultAmount: editing.defaultAmount ?? "",
+              percentageOf: editing.percentageOf || "BASIC",
+              isTaxable: Boolean(editing.isTaxable),
+              description: editing.description || "",
+              isActive: editing.isActive !== false,
+            }
+          : EMPTY_FORM
+      );
     }
-  }, [isOpen]);
+  }, [isOpen, editing]);
 
   if (!isOpen) return null;
 
@@ -38,7 +54,7 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
-    if (!branchId) {
+    if (!branchId && !isEdit) {
       setError("Select a branch on the Salary Setup page first. Components belong to one branch.");
       return;
     }
@@ -72,11 +88,12 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
       if (isPercentage) payload.percentageOf = formData.percentageOf;
       if (formData.description.trim()) payload.description = formData.description.trim();
 
-      await salaryApi.createComponent(payload);
+      if (isEdit) await salaryApi.updateComponent(editing._id, payload);
+      else await salaryApi.createComponent(payload);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      if (!flagIfMaintenance(err)) setError(err?.response?.data?.message || err?.message || "Failed to create component.");
+      if (!flagIfMaintenance(err)) setError(err?.response?.data?.message || err?.message || isEdit ? "Failed to update component." : "Failed to create component.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +104,7 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
       <div className="salary-modal-card" style={{ maxWidth: "560px" }}>
         <div className="salary-modal-header">
           <h3 className="salary-modal-title">
-            Add Salary Component{branchName ? ` — ${branchName}` : ""}
+            {isEdit ? "Edit Salary Component" : "Add Salary Component"}{branchName ? ` — ${branchName}` : ""}
           </h3>
           <button type="button" className="salary-modal-close-btn" onClick={onClose}>
             <X size={20} />
@@ -111,6 +128,8 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
                   className="salary-form-input"
                   style={{ textTransform: "uppercase" }}
                   value={formData.code}
+                  readOnly={isEdit}
+                  title={isEdit ? "The code cannot be changed" : undefined}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   required
                 />
@@ -132,19 +151,19 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
             <div className="salary-form-grid" style={{ marginBottom: "14px" }}>
               <div className="salary-form-group">
                 <label>Component Type <span className="req">*</span></label>
-                <select
+                <StyledSelect
                   className="salary-form-select"
                   value={formData.componentType}
                   onChange={(e) => setFormData({ ...formData, componentType: e.target.value })}
                 >
                   <option value="EARNING">Earning</option>
                   <option value="DEDUCTION">Deduction</option>
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="salary-form-group">
                 <label>Calculation Type <span className="req">*</span></label>
-                <select
+                <StyledSelect
                   className="salary-form-select"
                   value={formData.calculationType}
                   onChange={(e) => setFormData({ ...formData, calculationType: e.target.value })}
@@ -154,7 +173,7 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
                   <option value="PER_DAY">Per Day (rate × days worked + paid leave)</option>
                   <option value="PER_HOUR">Per Hour (rate × regular hours)</option>
                   <option value="MANUAL">Manual (entered per employee)</option>
-                </select>
+                </StyledSelect>
               </div>
             </div>
 
@@ -184,7 +203,7 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
               {isPercentage && (
                 <div className="salary-form-group">
                   <label>Percentage Of <span className="req">*</span></label>
-                  <select
+                  <StyledSelect
                     className="salary-form-select"
                     value={formData.percentageOf}
                     onChange={(e) => setFormData({ ...formData, percentageOf: e.target.value })}
@@ -192,7 +211,7 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
                     <option value="BASIC">Basic</option>
                     <option value="GROSS">Gross</option>
                     <option value="MONTHLY_SALARY">Monthly Salary</option>
-                  </select>
+                  </StyledSelect>
                 </div>
               )}
             </div>
@@ -250,7 +269,7 @@ export default function CreateComponentModal({ isOpen, onClose, onSuccess, branc
               Cancel
             </button>
             <button type="submit" className="btn-salary-primary" disabled={loading}>
-              {loading ? "Creating..." : "Create Component"}
+              {loading ? "Saving..." : isEdit ? "Save Changes" : "Create Component"}
             </button>
           </div>
         </form>

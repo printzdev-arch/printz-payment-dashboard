@@ -30,6 +30,7 @@ import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
 import { AddStockIllustration } from "../../../../../shared/assets/illustrations";
 import Pagination from "../../../../../shared/ui/Pagination";
+import StyledSelect from "../../../../../shared/ui/selects/StyledSelect";
 
 const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) {
@@ -846,6 +847,10 @@ const AddStock = () => {
       showError("Stock ID is required");
       return;
     }
+    if (!category) {
+      showError("Please select a category");
+      return;
+    }
 
     setLoading(true);
 
@@ -1406,7 +1411,7 @@ const AddStock = () => {
                   <span className="add-stock-input-icon">
                     <Layers size={16} />
                   </span>
-                  <select
+                  <StyledSelect
                     id="category"
                     value={category}
                     onChange={handleCategoryChange}
@@ -1420,10 +1425,7 @@ const AddStock = () => {
                         {c.name.toUpperCase()}
                       </option>
                     ))}
-                  </select>
-                  <span className="add-stock-select-chevron">
-                    <ChevronDown size={16} />
-                  </span>
+                  </StyledSelect>
                 </div>
               </div>
 
@@ -1670,18 +1672,8 @@ const AddStock = () => {
 
       {/* Bottom Card: Stock Items in selectedBranch */}
       {selectedBranch && (
-        <div className="add-stock-card">
+        <div className="add-stock-card add-stock-card--list">
           <div className="add-stock-card-header">
-            <div className="add-stock-card-title-wrap">
-              <h3 className="add-stock-card-title">
-                <TableProperties size={18} color="#059669" />
-                <span>Stock Items in {selectedBranch}</span>
-              </h3>
-              <span className="add-stock-count-badge">
-                {filteredStockItems.length} Items
-              </span>
-            </div>
-
             <div className="add-stock-search-wrap">
               <Search size={15} className="add-stock-search-icon" />
               <input
@@ -1692,6 +1684,9 @@ const AddStock = () => {
                 className="add-stock-search-input"
               />
             </div>
+            <span className="add-stock-count-badge">
+              {filteredStockItems.length} Items
+            </span>
           </div>
 
           {loadingStocks ? (

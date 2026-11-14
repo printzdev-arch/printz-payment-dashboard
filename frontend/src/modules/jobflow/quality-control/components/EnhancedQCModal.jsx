@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { X, CheckCircle2, AlertTriangle } from "lucide-react";
 import jobFlowApi from "../api/qcApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 const DEFECT_TYPES = [
   "Color shift / density",
@@ -123,7 +124,7 @@ export const EnhancedQCModal = ({ isOpen, onClose, productionOrder, onSuccess })
         <div className="jf-modal-header">
           <div>
             <h3 className="jf-modal-title">QC Inspection</h3>
-            <div style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: "2px" }}>
+            <div style={{ fontSize: "0.8125rem", color: "#1e293b", marginTop: "2px" }}>
               {[jobNo, productionOrder.customerName, productionOrder.productName].filter(Boolean).join(" · ")}
             </div>
           </div>
@@ -160,25 +161,25 @@ export const EnhancedQCModal = ({ isOpen, onClose, productionOrder, onSuccess })
                   </div>
                   <div className="jf-form-group">
                     <label className="jf-label jf-label-required">Defect type</label>
-                    <select className="jf-select" value={defectType} onChange={(e) => setDefectType(e.target.value)}>
+                    <StyledSelect className="jf-select" value={defectType} onChange={(e) => setDefectType(e.target.value)}>
                       <option value="">Select</option>
                       {DEFECT_TYPES.map((d) => (
                         <option key={d} value={d}>{d}</option>
                       ))}
-                    </select>
+                    </StyledSelect>
                   </div>
                 </div>
 
                 {action === "REWORK" && (
                   <div className="jf-form-group">
                     <label className="jf-label">Redo from step</label>
-                    <select className="jf-select" value={reworkStep} onChange={(e) => setReworkStep(e.target.value)}>
+                    <StyledSelect className="jf-select" value={reworkStep} onChange={(e) => setReworkStep(e.target.value)}>
                       {steps.map((op, i) => (
                         <option key={op.operationCode || i} value={op.operationCode || op.operationName}>
                           {op.operationName || op.operationCode}
                         </option>
                       ))}
-                    </select>
+                    </StyledSelect>
                   </div>
                 )}
 

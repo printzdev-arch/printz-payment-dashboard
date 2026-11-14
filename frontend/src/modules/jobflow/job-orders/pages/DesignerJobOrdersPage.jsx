@@ -26,6 +26,7 @@ import CreateJobOrderPage from "./CreateJobOrderPage";
 import jobFlowApi from "../api/jobOrdersApi";
 import "../styles/job-orders.css";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const DesignerJobOrdersPage = () => {
   const navigate = useNavigate();
@@ -204,7 +205,7 @@ export const DesignerJobOrdersPage = () => {
           />
         </div>
 
-        <select
+        <StyledSelect
           className="jf-select"
           style={{ width: "160px" }}
           value={stageFilter}
@@ -217,9 +218,9 @@ export const DesignerJobOrdersPage = () => {
           <option value="QC">Quality Control</option>
           <option value="DELIVERY">Delivery</option>
           <option value="COMPLETED">Completed</option>
-        </select>
+        </StyledSelect>
 
-        <select
+        <StyledSelect
           className="jf-select"
           style={{ width: "150px" }}
           value={statusFilter}
@@ -233,7 +234,7 @@ export const DesignerJobOrdersPage = () => {
           <option value="PRODUCTION">Production</option>
           <option value="READY">Ready</option>
           <option value="COMPLETED">Completed</option>
-        </select>
+        </StyledSelect>
 
         <button
           type="button"
@@ -249,7 +250,7 @@ export const DesignerJobOrdersPage = () => {
       </div>
 
       {/* Designer Jobs DataTable */}
-      <DataTable renderWithValue
+      <DataTable mobileCards renderWithValue
         columns={[
           {
             key: "jobNo",
@@ -275,7 +276,7 @@ export const DesignerJobOrdersPage = () => {
               <div>
                 <div style={{ fontWeight: 600 }}>{val || row.customerId?.name || "Client"}</div>
                 {(row.customerPhone || row.customerSnapshot?.mobile) && (
-                  <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>
                     {row.customerPhone || row.customerSnapshot?.mobile}
                   </span>
                 )}
@@ -289,7 +290,7 @@ export const DesignerJobOrdersPage = () => {
             render: (val, row) => (
               <div>
                 <div style={{ fontWeight: 600 }}>{val || row.jobTitle}</div>
-                <span style={{ fontSize: "0.75rem", color: "#475569" }}>{row.jobType || "Print Job"}</span>
+                <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.jobType || "Print Job"}</span>
               </div>
             ),
           },
@@ -478,25 +479,25 @@ export const DesignerJobOrdersPage = () => {
               >
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.875rem" }}>
                   <div>
-                    <span style={{ color: "#64748b" }}>Customer:</span>
+                    <span style={{ color: "#1e293b" }}>Customer:</span>
                     <div style={{ fontWeight: 600, color: "#0f172a" }}>
                       {approvalJob.customerName || approvalJob.customerSnapshot?.name || "Client"}
                     </div>
                   </div>
                   <div>
-                    <span style={{ color: "#64748b" }}>Quantity:</span>
+                    <span style={{ color: "#1e293b" }}>Quantity:</span>
                     <div style={{ fontWeight: 600, color: "#0f172a" }}>
                       {(approvalJob.quantity || 1).toLocaleString()} pcs
                     </div>
                   </div>
                   <div>
-                    <span style={{ color: "#64748b" }}>Subtotal:</span>
+                    <span style={{ color: "#1e293b" }}>Subtotal:</span>
                     <div style={{ fontWeight: 600, color: "#0f172a" }}>
                       ₹{Number(approvalJob.subtotal || approvalJob.grandTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
                   </div>
                   <div>
-                    <span style={{ color: "#64748b" }}>Grand Total:</span>
+                    <span style={{ color: "#1e293b" }}>Grand Total:</span>
                     <div style={{ fontWeight: 700, color: "#059669", fontSize: "1.05rem" }}>
                       ₹{Number(approvalJob.grandTotal || approvalJob.totalAmount || approvalJob.estimatedPrice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
@@ -619,7 +620,7 @@ export const DesignerJobOrdersPage = () => {
                 <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "#0f172a" }}>
                   Create Designer Job Order
                 </h3>
-                <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#1e293b" }}>
                   Register specifications, material details, and services directly on this page
                 </p>
               </div>
@@ -630,7 +631,7 @@ export const DesignerJobOrdersPage = () => {
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#64748b",
+                  color: "#1e293b",
                   padding: "4px",
                   borderRadius: "6px",
                   display: "flex",

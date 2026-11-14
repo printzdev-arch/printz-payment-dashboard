@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../../shared/ui/selects/StyledSelect";
 
 const INITIAL_FAILED_RECORDS = [
   {
@@ -100,7 +101,7 @@ export const FailedInspectionsTab = ({
             <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 750, color: "#0f172a" }}>
               Failed QC Inspections & Root Cause Log
             </h2>
-            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#475569" }}>
+            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#1e293b" }}>
               Catalog of defective batches, defect classification, shop vs customer fault attribution, and smart correction routing.
             </p>
           </div>
@@ -146,7 +147,7 @@ export const FailedInspectionsTab = ({
                 left: "10px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "#475569",
+                color: "#1e293b",
               }}
             />
             <input
@@ -159,7 +160,7 @@ export const FailedInspectionsTab = ({
             />
           </div>
 
-          <select
+          <StyledSelect
             className="jf-input jf-input-sm"
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
@@ -169,21 +170,21 @@ export const FailedInspectionsTab = ({
             <option value="CRITICAL">Critical (Reprint)</option>
             <option value="MAJOR">Major (Rework)</option>
             <option value="MINOR">Minor</option>
-          </select>
+          </StyledSelect>
         </div>
       </div>
 
       {/* List */}
       {/* Failed Inspections Data Table */}
       <div className="jf-card" style={{ padding: 0, overflow: "hidden" }}>
-        <DataTable
+        <DataTable mobileCards
           searchable={false}
           data={filtered}
           emptyMessage={
             <>
               <ShieldAlert size={36} style={{ strokeWidth: 1.2, marginBottom: "0.5rem" }} />
-              <div style={{ fontWeight: 600, color: "#475569" }}>No Defect Records Found</div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontWeight: 600, color: "#1e293b" }}>No Defect Records Found</div>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Clear of failed inspections matching the specified criteria.
               </div>
             </>
@@ -202,7 +203,7 @@ export const FailedInspectionsTab = ({
               render: (item) => (
                 <>
                   <strong style={{ color: "#1e293b", fontSize: "0.85rem", display: "block" }}>{item.customerName}</strong>
-                  <span style={{ fontSize: "0.75rem", color: "#475569" }}>{item.productType}</span>
+                  <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>{item.productType}</span>
                 </>
               ),
             },
@@ -217,7 +218,7 @@ export const FailedInspectionsTab = ({
                     <AlertTriangle size={14} color={isCritical ? "#dc2626" : "#d97706"} style={{ flexShrink: 0, marginTop: "2px" }} />
                     <div>
                       <span style={{ fontWeight: 600, color: isCritical ? "#b91c1c" : "#92400e", fontSize: "0.8125rem" }}>{item.defectType}</span>
-                      <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "2px" }}>{item.defectDetails}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "2px" }}>{item.defectDetails}</div>
                     </div>
                   </div>
                 );
@@ -283,7 +284,7 @@ export const FailedInspectionsTab = ({
               render: (item) => (
                 <>
                   <strong style={{ color: "#334155", fontSize: "0.8125rem" }}>{item.responsibleOp}</strong>
-                  <div style={{ fontSize: "0.72rem", color: "#475569" }}>By {item.inspector}</div>
+                  <div style={{ fontSize: "0.72rem", color: "#1e293b" }}>By {item.inspector}</div>
                 </>
               ),
             },

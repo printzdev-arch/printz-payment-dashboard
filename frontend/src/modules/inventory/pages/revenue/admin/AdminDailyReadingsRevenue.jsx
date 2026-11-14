@@ -1184,7 +1184,7 @@ const AdminDailyReadingsRevenue = () => {
       <div className="printz-header-banner-full">
         <div className="printz-header-title-area">
           <h1 style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-            <Building2 size={20} color="#059669" /> Daily Readings
+            Daily Readings
             {branchName ? ` — ${branchName}` : ""}
           </h1>
         </div>
@@ -1231,34 +1231,13 @@ const AdminDailyReadingsRevenue = () => {
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-start",
             alignItems: "center",
             flexWrap: "wrap",
             gap: "16px",
           }}
         >
-          {/* Left: Heading with Calendar Icon */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
-              className="revenue-filter-icon"
-              style={{ width: "42px", height: "42px", borderRadius: "10px" }}
-            >
-              <Calendar size={22} color="#059669" />
-            </div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "18px",
-                fontWeight: 700,
-                color: "#0f172a",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Select Reading Date
-            </h2>
-          </div>
-
-          {/* Right: Branch select + Date picker + Status Badges */}
+          {/* Branch select + Date picker + Status Badges */}
           <div
             style={{
               display: "flex",

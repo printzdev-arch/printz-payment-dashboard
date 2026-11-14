@@ -83,7 +83,7 @@ const StockItemList = () => {
   return (
     <div className="stock-item-list-container">
       <h2>Stock Price List</h2>
-      <DataTable
+      <DataTable mobileCards
         searchable={false}
         data={stocks}
         pageSize={20}

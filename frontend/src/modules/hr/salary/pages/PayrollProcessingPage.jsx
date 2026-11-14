@@ -33,6 +33,7 @@ import {
 } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function PayrollProcessingPage() {
   const maintenance = useSalaryMaintenance();
@@ -230,7 +231,7 @@ export default function PayrollProcessingPage() {
 
       {/* ── Filters Row Card ──────────────────────────────────────────── */}
       <div className="salary-filters-card">
-        <select
+        <StyledSelect
           className="salary-filter-select"
           value={selectedMonth}
           onChange={(e) => {
@@ -245,9 +246,9 @@ export default function PayrollProcessingPage() {
           ].map((m, idx) => (
             <option key={idx + 1} value={idx + 1}>{m}</option>
           ))}
-        </select>
+        </StyledSelect>
 
-        <select
+        <StyledSelect
           className="salary-filter-select"
           value={selectedStatus}
           onChange={(e) => {
@@ -262,7 +263,7 @@ export default function PayrollProcessingPage() {
           <option value="APPROVED">Approved</option>
           <option value="PAID">Paid</option>
           <option value="LOCKED">Locked</option>
-        </select>
+        </StyledSelect>
 
         <div className="salary-search-wrapper">
           <Search size={16} className="salary-search-icon" />
@@ -298,6 +299,7 @@ export default function PayrollProcessingPage() {
         )}
 
         <DataTable
+          mobileCards
           searchable={false}
           loading={loading}
           data={filteredRuns}

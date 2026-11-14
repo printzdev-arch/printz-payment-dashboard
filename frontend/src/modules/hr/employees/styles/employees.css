@@ -424,3 +424,20 @@
 .emp-page .emp-cell-sub, .emp-page .emp-hint, .emp-page .emp-detail-label { color: #334155; }
 .emp-page .emp-input::placeholder, .emp-page input::placeholder { color: #475569; }
 .emp-page .printz-dt-card tbody td .emp-cell-name { color: #0f172a; font-weight: 600; }
+
+/* No outline around the filters and the table */
+.emp-card:has(.printz-dt-card) { background: transparent; border: none; box-shadow: none; border-radius: 0; overflow: visible; padding: 0; }
+.emp-card:has(.printz-dt-card) > .emp-filters { border-bottom: none; padding-left: 0; padding-right: 0; }
+.emp-card .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }
+
+/* Delete Requests: filters on the left, refresh icon at the end, plain table */
+.dr-table.printz-dt-card { background: transparent; border: none; box-shadow: none; overflow: visible; margin-top: 0; }
+.dr-table .printz-table-header-wrap { background: transparent; border-bottom: none; padding: 0 0 12px; justify-content: flex-start; }
+.dr-table .printz-table-title-area { display: none; }
+.dr-table .printz-table-controls-area { width: 100%; }
+.dr-filters { display: flex; align-items: center; gap: 10px; width: 100%; }
+.dr-filters .branch-select-trigger { height: 38px; }
+.dr-refresh { margin-left: auto; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; color: #0f172a; cursor: pointer; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.dr-refresh:hover { background: #f1f5f9; }
+.dr-table .printz-table-scroll { background: #ffffff; border-radius: 12px; overflow: hidden; }
+@media (max-width: 640px) { .dr-filters { flex-wrap: wrap; } .dr-filters .branch-select-container { flex: 1 1 100%; width: 100%; } }

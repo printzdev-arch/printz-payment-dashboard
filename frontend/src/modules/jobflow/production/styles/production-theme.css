@@ -82,7 +82,7 @@
 .pr2-subtitle,
 .production-orders-page .po-header p {
   font-size: 0.85rem !important;
-  color: #64748b !important;
+  color: #1e293b !important;
   margin: 0 !important;
 }
 
@@ -178,7 +178,7 @@
   border-radius: 0 !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-  color: #64748b !important;
+  color: #1e293b !important;
   white-space: nowrap;
   transition: all 0.15s ease;
 }
@@ -308,7 +308,7 @@
 .production-orders-page .po-table thead th,
 .reprint-batches-page .data-table thead th {
   background: #f8fafc !important;
-  color: #475569 !important;
+  color: #1e293b !important;
   font-weight: 700 !important;
   font-size: 12px !important;
   text-transform: uppercase !important;
@@ -423,3 +423,36 @@
   border-color: var(--pt-green) !important;
   color: #ffffff !important;
 }
+
+/* Production filter rows sit on the page without a box around them */
+body .rb-filter-card, body .pr2-filters { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
+/* Rework & Reprint: tabs are dark green buttons (beats the older underline style) */
+body .rb-tabs { border-bottom: none !important; background: transparent !important; padding: 0 !important; gap: 8px !important; }
+body .rb-tabs .rb-tab { border: 1px solid #dbe3ea !important; border-bottom-width: 1px !important; border-radius: 10px !important; background: #ffffff !important; color: #0f172a !important; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important; height: 36px; padding: 0 16px !important; }
+body .rb-tabs .rb-tab:hover { background: #f1f5f9 !important; }
+body .rb-tabs .rb-tab.is-active, body .rb-tabs .rb-tab.is-active:hover, body .rb-tabs .rb-tab[aria-selected="true"] { background: #0d6245 !important; border-color: #0d6245 !important; color: #ffffff !important; box-shadow: 0 2px 6px rgba(13, 98, 69, 0.28) !important; }
+body .rb-tabs .rb-tab::after { display: none !important; }
+body .rb-tabs .rb-tab.is-active .rb-tab-count { background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; }
+.rb-top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.rb-top-row .rb-tabs { margin-bottom: 0 !important; }
+
+/* Rework & Reprint: tighter vertical spacing between the tabs, filters and table */
+body .reprint-batches-page { gap: 0.6rem !important; padding-top: 0.6rem !important; padding-bottom: 1.5rem !important; }
+body .reprint-batches-page .rb-top-row { margin-bottom: 0 !important; }
+body .reprint-batches-page .rb-filter-card { margin: 0 !important; padding: 0 !important; }
+body .reprint-batches-page .jf-card { margin-bottom: 0 !important; }
+body .reprint-batches-page .reprint-table-card, body .reprint-batches-page .printz-dt-card { margin-top: 0 !important; }
+
+/* Rework & Reprint: even 40px controls, comfortable spacing */
+body .reprint-batches-page { gap: 0.9rem !important; padding-top: 1rem !important; }
+body .reprint-batches-page .rb-top-row { align-items: center; }
+body .reprint-batches-page .rb-tabs { gap: 10px !important; }
+body .reprint-batches-page .rb-tabs .rb-tab { height: 40px !important; padding: 0 18px !important; font-size: 13.5px !important; gap: 8px; }
+body .reprint-batches-page .rb-refresh-icon { width: 40px; height: 40px; border-radius: 10px; }
+body .reprint-batches-page .rb-filter-row { gap: 12px; align-items: center; }
+body .reprint-batches-page .rb-search input, body .reprint-batches-page .rb-search .jf-input { height: 40px !important; border-radius: 10px !important; }
+body .reprint-batches-page .rb-filter-row .branch-select-trigger { height: 40px; }
+body .reprint-batches-page .rb-empty-icon { display: block; margin: 0 auto 8px; }
+body .reprint-batches-page [class*="rb-empty"], body .reprint-batches-page .printz-table-empty { text-align: center; }
+body .reprint-batches-page .rb-refresh-end { margin-left: auto; }

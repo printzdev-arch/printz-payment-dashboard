@@ -28,8 +28,8 @@ body {
   overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc !important;
-  background: #f8fafc !important;
+  background-color: #eef1f4 !important;
+  background: #eef1f4 !important;
 }
 
 code {

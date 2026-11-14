@@ -111,7 +111,7 @@ export default function MfgQueuePage() {
 
       <div className="so-card spaced">
         {error && <div className="so-error-bar">{error}</div>}
-        <DataTable
+        <DataTable mobileCards
           searchable={false}
           loading={loading}
           data={visible}

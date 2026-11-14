@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../../shared/ui/selects/StyledSelect";
 
 export const QcReportsTab = () => {
   const [timeRange, setTimeRange] = useState("THIS_MONTH");
@@ -42,7 +43,7 @@ export const QcReportsTab = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <select
+            <StyledSelect
               className="jf-input jf-input-sm"
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
@@ -51,7 +52,7 @@ export const QcReportsTab = () => {
               <option value="THIS_MONTH">This Month</option>
               <option value="LAST_30_DAYS">Last 30 Days</option>
               <option value="THIS_QUARTER">This Quarter</option>
-            </select>
+            </StyledSelect>
 
             <button
               type="button"
@@ -79,7 +80,7 @@ export const QcReportsTab = () => {
                 <span style={{ fontWeight: 600, color: "#1e293b" }}>
                   {idx + 1}. {def.type}
                 </span>
-                <span style={{ color: "#475569" }}>
+                <span style={{ color: "#1e293b" }}>
                   <strong>{def.count} incidents</strong> ({def.share}% of all defects)
                 </span>
               </div>
@@ -103,7 +104,7 @@ export const QcReportsTab = () => {
           Inspector Workload & First-Pass Yield by Staff
         </h3>
 
-        <DataTable
+        <DataTable mobileCards
           searchable={false}
           pagination={false}
           data={INSPECTOR_PERFORMANCE}
@@ -113,7 +114,7 @@ export const QcReportsTab = () => {
               label: "Inspector Name",
               render: (insp) => (
                 <span style={{ fontWeight: 600, color: "#0f172a" }}>
-                  <User size={13} style={{ display: "inline", marginRight: "6px", color: "#475569" }} />
+                  <User size={13} style={{ display: "inline", marginRight: "6px", color: "#1e293b" }} />
                   {insp.name}
                 </span>
               ),

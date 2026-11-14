@@ -68,7 +68,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <div>
               <h2 className="jf-modal-title">Assign Delivery Person</h2>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Job No: <strong>{deliveryOrder.jobNo}</strong>
               </div>
             </div>
@@ -91,7 +91,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
                   onChange={(e) => setDeliveryPersonName(e.target.value)}
                   required
                 />
-                <User size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
+                <User size={16} style={{ position: "absolute", right: 10, top: 12, color: "#1e293b" }} />
               </div>
             </div>
 
@@ -105,7 +105,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
                   value={deliveryPersonPhone}
                   onChange={(e) => setDeliveryPersonPhone(e.target.value)}
                 />
-                <Phone size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
+                <Phone size={16} style={{ position: "absolute", right: 10, top: 12, color: "#1e293b" }} />
               </div>
             </div>
 
@@ -119,7 +119,7 @@ export const AssignDeliveryModal = ({ isOpen, onClose, deliveryOrder, onAssigned
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value)}
                 />
-                <Truck size={16} style={{ position: "absolute", right: 10, top: 12, color: "#475569" }} />
+                <Truck size={16} style={{ position: "absolute", right: 10, top: 12, color: "#1e293b" }} />
               </div>
             </div>
           </div>

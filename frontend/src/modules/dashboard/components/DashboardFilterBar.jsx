@@ -1,4 +1,5 @@
 import React from "react";
+import StyledSelect from "../../../shared/ui/selects/StyledSelect";
 import { Calendar } from "lucide-react";
 import { DateField } from "../../../shared/ui/selects/CalendarSelect";
 import "../styles/dashboard.css";
@@ -61,16 +62,13 @@ const DashboardFilterBar = ({
         <div className="printz-dash-inputs-row">
           {/* 1. Branch Selection Field */}
           <div className="printz-dash-field-group">
-            <label className="printz-dash-label">
-              Branch {isBranchLocked && <span className="printz-dash-label-sub">(fixed for manager)</span>}
-            </label>
             {isBranchLocked ? (
               <div className="printz-dash-locked-branch">
                 <span className="printz-dash-status-dot" />
                 <span>{lockedBranchName || "Branch"}</span>
               </div>
             ) : (
-              <select
+              <StyledSelect
                 value={selectedBranch}
                 onChange={(e) => onChangeBranch && onChangeBranch(e.target.value)}
                 className="printz-dash-select"
@@ -81,16 +79,13 @@ const DashboardFilterBar = ({
                     {b.name} {b.code ? `(${b.code})` : ""}
                   </option>
                 ))}
-              </select>
+              </StyledSelect>
             )}
           </div>
 
           {/* 2. Data Type Selection Field */}
           <div className="printz-dash-field-group">
-            <label className="printz-dash-label">
-              Data Type
-            </label>
-            <select
+            <StyledSelect
               value={selectedDataType}
               onChange={(e) => onChangeDataType && onChangeDataType(e.target.value)}
               className="printz-dash-select"
@@ -100,17 +95,13 @@ const DashboardFilterBar = ({
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </StyledSelect>
           </div>
 
           {/* 3. Date Range Filter Field (hidden for views that show the current state) */}
           {!hideDateRange && (
           <div className="printz-dash-field-group">
-            <label className="printz-dash-label">
-              <Calendar size={13} style={{ display: "inline-block", verticalAlign: "middle" }} />
-              Date Range
-            </label>
-            <select
+            <StyledSelect
               value={selectedDateRange}
               onChange={(e) => onChangeDateRange && onChangeDateRange(e.target.value)}
               className="printz-dash-select"
@@ -120,7 +111,7 @@ const DashboardFilterBar = ({
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </StyledSelect>
           </div>
           )}
         </div>

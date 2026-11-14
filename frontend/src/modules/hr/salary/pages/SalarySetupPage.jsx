@@ -8,6 +8,8 @@ import {
   Search,
   Building2,
   CheckCircle,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import AssignSalaryStructureModal from "../components/AssignSalaryStructureModal";
@@ -16,9 +18,10 @@ import { useAuth } from "../../../../app/providers/AuthContext";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import SalaryMaintenanceBanner from "../components/SalaryMaintenanceBanner";
 import { useSalaryMaintenance } from "../utils/salaryGuards";
-import { ageAt, formatDob } from "../utils/salaryExcel";
+
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function SalarySetupPage() {
   const maintenance = useSalaryMaintenance();
@@ -41,7 +44,9 @@ export default function SalarySetupPage() {
   // Modals
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assignEmployeeId, setAssignEmployeeId] = useState("");
+  const [assignSalary, setAssignSalary] = useState("");
   const [isComponentModalOpen, setIsComponentModalOpen] = useState(false);
+  const [editingComponent, setEditingComponent] = useState(null);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -92,6 +97,32 @@ export default function SalarySetupPage() {
       setError(err?.response?.data?.message || err?.message || "Failed to load salary structures.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Deletes the structure for good; the server refuses when salary was already calculated with it
+  const handleDeleteStructure = async (s) => {
+    const emp = s.employeeId || {};
+    const who = emp.name || s.employeeName || "this employee";
+    if (!window.confirm(`Delete the salary structure of ${who} (₹ ${Number(s.monthlySalary || 0).toLocaleString("en-IN")}, from ${s.effectiveFrom ? new Date(s.effectiveFrom).toLocaleDateString("en-GB") : "-"})? This cannot be undone.`)) return;
+    try {
+      setError("");
+      await salaryApi.deleteStructure(s._id);
+      await loadStructures();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to delete the salary structure.");
+    }
+  };
+
+  // Deletes the component for good; the server refuses when it is already used in a structure or a salary record
+  const handleDeleteComponent = async (c) => {
+    if (!window.confirm(`Delete the salary component "${c.name}" (${c.code})? This cannot be undone.`)) return;
+    try {
+      setError("");
+      await salaryApi.deleteComponent(c._id);
+      await loadComponents();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to delete the salary component.");
     }
   };
 
@@ -228,6 +259,7 @@ export default function SalarySetupPage() {
               disabled={maintenance}
               onClick={() => {
                 setAssignEmployeeId("");
+                setAssignSalary("");
                 setIsAssignModalOpen(true);
               }}
             >
@@ -238,7 +270,10 @@ export default function SalarySetupPage() {
               type="button"
               className="btn-salary-primary"
               disabled={maintenance}
-              onClick={() => setIsComponentModalOpen(true)}
+              onClick={() => {
+                setEditingComponent(null);
+                setIsComponentModalOpen(true);
+              }}
             >
               <Plus size={16} /> Add Component
             </button>
@@ -276,7 +311,7 @@ export default function SalarySetupPage() {
       {/* ── Filters Row Card ──────────────────────────────────────────── */}
       <div className="salary-filters-card">
         {activeTab === "components" && (
-          <select
+          <StyledSelect
             className="salary-filter-select"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
@@ -284,10 +319,10 @@ export default function SalarySetupPage() {
             <option value="ALL">All Types</option>
             <option value="EARNING">Earning</option>
             <option value="DEDUCTION">Deduction</option>
-          </select>
+          </StyledSelect>
         )}
 
-        <select
+        <StyledSelect
           className="salary-filter-select"
           value={selectedStatus}
           onChange={(e) => {
@@ -299,7 +334,7 @@ export default function SalarySetupPage() {
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
           {activeTab === "structures" && <option value="NONE">Not assigned</option>}
-        </select>
+        </StyledSelect>
 
         <div className="salary-search-wrapper">
           <Search size={16} className="salary-search-icon" />
@@ -332,6 +367,7 @@ export default function SalarySetupPage() {
 
         {activeTab === "structures" ? (
           <DataTable
+            mobileCards
             searchable={false}
             loading={loading}
             data={filteredStructures}
@@ -354,8 +390,6 @@ export default function SalarySetupPage() {
                   return emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || s.employeeName || "Employee";
                 },
               },
-              { key: "dob", label: "DOB", render: (s) => formatDob((s.employeeId || {}).dateOfBirth) || "—" },
-              { key: "age", label: "Age", render: (s) => ageAt((s.employeeId || {}).dateOfBirth) ?? "—" },
               {
                 key: "monthlySalary",
                 label: "Monthly Salary",
@@ -400,15 +434,27 @@ export default function SalarySetupPage() {
                       <button
                         type="button"
                         className="salary-icon-btn primary"
-                        title={unassigned ? "Assign a salary structure" : "Assign a revised structure with a new effective date"}
+                        title={unassigned ? "Assign a salary structure" : "Edit: save a revised structure with a new effective date"}
                         disabled={maintenance || !canConfigure}
                         onClick={() => {
                           setAssignEmployeeId(String(emp._id || emp.id || s.employeeId || ""));
+                          setAssignSalary(unassigned ? "" : String(s.monthlySalary || ""));
                           setIsAssignModalOpen(true);
                         }}
                       >
-                        <Plus size={15} />
+                        <Pencil size={15} />
                       </button>
+                      {!unassigned && (
+                        <button
+                          type="button"
+                          className="salary-icon-btn danger"
+                          title="Delete this salary structure"
+                          disabled={maintenance || !canConfigure}
+                          onClick={() => handleDeleteStructure(s)}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   );
                 },
@@ -417,6 +463,7 @@ export default function SalarySetupPage() {
           />
         ) : (
           <DataTable
+            mobileCards
             searchable={false}
             pagination={false}
             loading={loading}
@@ -462,6 +509,37 @@ export default function SalarySetupPage() {
                   </span>
                 ),
               },
+              {
+                key: "actions",
+                label: "Actions",
+                align: "right",
+                className: "printz-cell-actions",
+                render: (c) => (
+                  <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
+                    <button
+                      type="button"
+                      className="salary-icon-btn primary"
+                      title="Edit component"
+                      disabled={maintenance || !canConfigure}
+                      onClick={() => {
+                        setEditingComponent(c);
+                        setIsComponentModalOpen(true);
+                      }}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="salary-icon-btn danger"
+                      title="Delete component"
+                      disabled={maintenance || !canConfigure}
+                      onClick={() => handleDeleteComponent(c)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ),
+              },
             ]}
           />
         )}
@@ -475,10 +553,12 @@ export default function SalarySetupPage() {
         branches={branches}
         initialBranchId={selectedBranchId}
         initialEmployeeId={assignEmployeeId}
+        initialMonthlySalary={assignSalary}
       />
 
       <CreateComponentModal
         isOpen={isComponentModalOpen}
+        editing={editingComponent}
         onClose={() => setIsComponentModalOpen(false)}
         onSuccess={loadComponents}
         branchId={selectedBranchId}

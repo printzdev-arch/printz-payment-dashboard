@@ -21,6 +21,7 @@ import { useMasterDefaults } from "../../master-settings";
 import jobFlowApi from "../api/jobOrdersApi";
 import { toast } from "react-toastify";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 const getManagerBranch = () => {
   try {
@@ -971,7 +972,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       left: "0.75rem",
                       top: "50%",
                       transform: "translateY(-50%)",
-                      color: "#475569",
+                      color: "#1e293b",
                       pointerEvents: "none",
                     }}
                   />
@@ -1021,7 +1022,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                         style={{
                           background: "none",
                           border: "none",
-                          color: "#475569",
+                          color: "#1e293b",
                           cursor: "pointer",
                           padding: "2px",
                           display: "flex",
@@ -1037,7 +1038,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#475569",
+                        color: "#1e293b",
                         cursor: "pointer",
                         padding: "2px",
                         display: "flex",
@@ -1109,7 +1110,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                                   {c.name || c.companyName}
                                 </span>
                               </div>
-                              <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "2px" }}>
+                              <div style={{ fontSize: "0.75rem", color: "#1e293b", marginTop: "2px" }}>
                                 📞 {c.phone || c.mobile || "N/A"} • ✉️ {c.email || "N/A"}
                               </div>
                             </div>
@@ -1118,7 +1119,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                         );
                       })
                     ) : (
-                      <div style={{ padding: "1rem", textAlign: "center", color: "#475569", fontSize: "0.875rem" }}>
+                      <div style={{ padding: "1rem", textAlign: "center", color: "#1e293b", fontSize: "0.875rem" }}>
                         No customers found matching "{customerSearchTerm}"
                       </div>
                     )}
@@ -1143,7 +1144,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                     title="Job orders are created for your assigned branch"
                   />
                 ) : (
-                  <select
+                  <StyledSelect
                     className="jf-select"
                     value={formData.branchName}
                     onChange={(e) => {
@@ -1164,7 +1165,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                         {b.branchName || b.name} ({b.code || b.branchCode || "BR"})
                       </option>
                     ))}
-                  </select>
+                  </StyledSelect>
                 )}
               </div>
 
@@ -1173,7 +1174,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <label className="jf-label jf-label-required">Job Type</label>
                   {formData.jobType && <JobTypeBadge jobType={formData.jobType} size="sm" />}
                 </div>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.jobType}
                   onChange={(e) => handleInputChange("jobType", e.target.value)}
@@ -1182,7 +1183,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <option value="Print & Design">Print & Design</option>
                   <option value="Print Only">Print Only (Artwork Provided)</option>
                   <option value="Design Only">Design Only</option>
-                </select>
+                </StyledSelect>
               </div>
 
               {/* Row 3: Job Title (Spans 2 columns) */}
@@ -1210,19 +1211,19 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Priority</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.priority}
                   onChange={(e) => handleInputChange("priority", e.target.value)}
                 >
                   <option value="NORMAL">Normal</option>
                   <option value="URGENT">Urgent</option>
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Delivery Method</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.deliveryMethod}
                   onChange={(e) => handleInputChange("deliveryMethod", e.target.value)}
@@ -1233,7 +1234,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {dm.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               {/* Row 5: Quality check toggle (Print Only only) */}
@@ -1285,7 +1286,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               {/* Row 1: Product Type & Quantity */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Product Type</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.productType}
                   onChange={(e) => handleInputChange("productType", e.target.value)}
@@ -1299,7 +1300,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {it.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="jf-form-group">
@@ -1317,7 +1318,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               {/* Row 2: Paper Type & Paper GSM */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Paper Type</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.paperType}
                   onChange={(e) => handleInputChange("paperType", e.target.value)}
@@ -1331,12 +1332,12 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {it.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Paper GSM</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.paperGsm}
                   onChange={(e) => handleInputChange("paperGsm", e.target.value)}
@@ -1350,13 +1351,13 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {it.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               {/* Row 3: Size & Color */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Size</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.size}
                   onChange={(e) => handleInputChange("size", e.target.value)}
@@ -1370,12 +1371,12 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {it.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Color</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.color}
                   onChange={(e) => handleInputChange("color", e.target.value)}
@@ -1389,13 +1390,13 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {it.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               {/* Row 4: Printing Side & Unit Price */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Printing Side</label>
-                <select
+                <StyledSelect
                   className="jf-select"
                   value={formData.printingSide}
                   onChange={(e) => handleInputChange("printingSide", e.target.value)}
@@ -1409,7 +1410,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                       {it.name}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="jf-form-group">
@@ -1486,15 +1487,15 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                   <tbody>
                     {formData.finishingServices.map((svc, idx) => (
                       <tr key={svc.id}>
-                        <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>{idx + 1}</td>
-                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                        <td data-label="#" style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>{idx + 1}</td>
+                        <td data-label="Service" style={{ padding: "0.35rem 0.5rem" }}>
                           {svc.isDefault ? (
                             <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.8125rem" }}>
                               {svc.id === "default-print" ? "Printing" : "Packing"}
                               <span style={{ marginLeft: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "#15803d", background: "#dcfce7", padding: "1px 6px", borderRadius: "9999px" }}>Default</span>
                             </span>
                           ) : (
-                          <select
+                          <StyledSelect
                             className="jf-select"
                             style={{ padding: "0.2rem 0.4rem", fontSize: "0.78125rem", height: "30px", width: "100%", fontWeight: 600 }}
                             value={svc.name}
@@ -1505,16 +1506,16 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                                 {name}
                               </option>
                             ))}
-                          </select>
+                          </StyledSelect>
                           )}
                         </td>
-                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                        <td data-label="Config" style={{ padding: "0.35rem 0.5rem" }}>
                           {svc.id === "default-print" ? (
                             <span style={{ fontSize: "0.78125rem", color: svc.config ? "#0f172a" : "#94a3b8" }}>
                               {svc.config || "Choose Color in Print Specifications"}
                             </span>
                           ) : (
-                          <select
+                          <StyledSelect
                             className="jf-select"
                             style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem", height: "30px", width: "100%" }}
                             value={svc.config}
@@ -1581,12 +1582,12 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                                 <option value="Custom Specification">Custom Specification</option>
                               </>
                             )}
-                          </select>
+                          </StyledSelect>
                           )}
                         </td>
-                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                        <td data-label="Price" style={{ padding: "0.35rem 0.5rem" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-                            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>₹</span>
+                            <span style={{ fontSize: "0.75rem", color: "#1e293b" }}>₹</span>
                             <input
                               type="number"
                               step="0.01"
@@ -1615,7 +1616,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                             />
                           </div>
                         </td>
-                        <td style={{ padding: "0.35rem 0.5rem" }}>
+                        <td data-label="Qty" style={{ padding: "0.35rem 0.5rem" }}>
                           <input
                             type="number"
                             min="1"
@@ -1644,10 +1645,10 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                             }}
                           />
                         </td>
-                        <td style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>
+                        <td data-label="Total" style={{ padding: "0.35rem 0.5rem", whiteSpace: "nowrap" }}>
                           <strong>₹{finishingRowTotal(svc).toFixed(2)}</strong>
                         </td>
-                        <td style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>
+                        <td data-label="Action" style={{ padding: "0.35rem 0.5rem", textAlign: "center" }}>
                           {svc.isDefault ? (
                             <span style={{ color: "#94a3b8", fontSize: "0.75rem" }} title="Printing and Packing are default services">—</span>
                           ) : (
@@ -1666,7 +1667,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                     ))}
                     {otherFinishingServices.length === 0 && (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", color: "#64748b", padding: "1rem" }}>
+                        <td colSpan={7} style={{ textAlign: "center", color: "#1e293b", padding: "1rem" }}>
                          
                           <button
                             type="button"
@@ -1752,7 +1753,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                 <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.8125rem" }}>
                   Click to <span style={{ color: "var(--jf-primary)", textDecoration: "underline" }}>browse</span> and attach files
                 </div>
-                <div style={{ fontSize: "0.72rem", color: "#475569", marginTop: "2px" }}>
+                <div style={{ fontSize: "0.72rem", color: "#1e293b", marginTop: "2px" }}>
                   PDF, JPG, PNG, AI, PSD, CDR (Max {MAX_UPLOAD_MB}MB each)
                 </div>
               </label>
@@ -1781,7 +1782,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
                           <FileText size={16} style={{ color: "#ef4444" }} />
                           <div>
                             <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{file.name}</div>
-                            <div style={{ fontSize: "0.75rem", color: "#475569" }}>{file.size} • {file.type}</div>
+                            <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{file.size} • {file.type}</div>
                           </div>
                         </div>
                         <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" style={{ padding: "2px 6px" }} onClick={() => removeFile(idx)}>
@@ -1832,7 +1833,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
             </div>
 
             <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
-              <div style={{ background: "#f8fafc", padding: "0.875rem", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.8125rem", color: "#475569", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+              <div style={{ background: "#f8fafc", padding: "0.875rem", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.8125rem", color: "#1e293b", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
                 <div><strong>Specs:</strong> {[formData.paperGsm, formData.paperType].filter(Boolean).join(" ") || "-"}</div>
                 <div><strong>Color:</strong> {formData.color ? `${formData.color}${formData.printingSide ? ` (${formData.printingSide})` : ""}` : "-"}</div>
                 <div><strong>Finishing:</strong> {otherFinishingServices.length > 0 ? otherFinishingServices.map((s) => s.name).join(", ") : "None"}</div>
@@ -1857,28 +1858,28 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
 
           <div className="jf-card-body-stretch">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem", fontSize: "0.8125rem", background: "#f8fafc", padding: "0.875rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-              <div><span style={{ color: "#475569" }}>Customer:</span> <strong>{formData.customerName || "Not selected"}</strong></div>
-              <div><span style={{ color: "#475569" }}>Branch:</span> {formData.branchName || "Main Branch"}</div>
-              <div><span style={{ color: "#475569" }}>Job Title:</span> <strong>{formData.jobTitle || "Not specified"}</strong></div>
-              <div><span style={{ color: "#475569" }}>Job Type:</span> {formData.jobType || "-"}</div>
-              <div><span style={{ color: "#475569" }}>Specs:</span> {formData.quantity ? `${formData.quantity} pcs (${formData.productType || "Print"})` : "-"}</div>
-              <div><span style={{ color: "#475569" }}>Due Date:</span> {formData.targetDueDate || "-"}</div>
+              <div><span style={{ color: "#1e293b" }}>Customer:</span> <strong>{formData.customerName || "Not selected"}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Branch:</span> {formData.branchName || "Main Branch"}</div>
+              <div><span style={{ color: "#1e293b" }}>Job Title:</span> <strong>{formData.jobTitle || "Not specified"}</strong></div>
+              <div><span style={{ color: "#1e293b" }}>Job Type:</span> {formData.jobType || "-"}</div>
+              <div><span style={{ color: "#1e293b" }}>Specs:</span> {formData.quantity ? `${formData.quantity} pcs (${formData.productType || "Print"})` : "-"}</div>
+              <div><span style={{ color: "#1e293b" }}>Due Date:</span> {formData.targetDueDate || "-"}</div>
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", paddingTop: "0.5rem", marginTop: "0.25rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Product Cost ({currentQuantity} pcs @ ₹{currentUnitPrice.toFixed(2)}):</span>
+                  <span style={{ color: "#1e293b" }}>Product Cost ({currentQuantity} pcs @ ₹{currentUnitPrice.toFixed(2)}):</span>
                   <strong style={{ color: "#0f172a" }}>₹{productCost.toFixed(2)}</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Printing Cost:</span>
+                  <span style={{ color: "#1e293b" }}>Printing Cost:</span>
                   <span style={{ color: "#0f172a", fontWeight: 600 }}>₹{printingCost.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Packing Cost:</span>
+                  <span style={{ color: "#1e293b" }}>Packing Cost:</span>
                   <span style={{ color: "#0f172a", fontWeight: 600 }}>₹{packingCost.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Finishing Services Total:</span>
-                  <span style={{ color: "#475569" }}>₹{otherFinishingTotal.toFixed(2)}</span>
+                  <span style={{ color: "#1e293b" }}>Finishing Services Total:</span>
+                  <span style={{ color: "#1e293b" }}>₹{otherFinishingTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #cbd5e1", paddingTop: "0.4rem", marginTop: "0.15rem" }}>
                   <strong style={{ color: "#0f172a", fontSize: "0.875rem" }}>Estimated Order Total:</strong>

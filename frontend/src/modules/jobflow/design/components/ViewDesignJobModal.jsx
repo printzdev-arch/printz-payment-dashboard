@@ -282,7 +282,7 @@ export const ViewDesignJobModal = ({
                   border: "1px solid #e2e8f0",
                 }}
               >
-                <div style={{ fontSize: "0.72rem", color: "#475569", textTransform: "uppercase" }}>
+                <div style={{ fontSize: "0.72rem", color: "#1e293b", textTransform: "uppercase" }}>
                   Assigned Designer
                 </div>
                 <div
@@ -340,7 +340,7 @@ export const ViewDesignJobModal = ({
                   border: "1px solid #e2e8f0",
                 }}
               >
-                <div style={{ fontSize: "0.72rem", color: "#475569", textTransform: "uppercase" }}>
+                <div style={{ fontSize: "0.72rem", color: "#1e293b", textTransform: "uppercase" }}>
                   Current Status
                 </div>
                 <div
@@ -356,7 +356,7 @@ export const ViewDesignJobModal = ({
                   ) : isAssigned ? (
                     <Clock size={16} style={{ color: "#d97706" }} />
                   ) : (
-                    <CheckCircle2 size={16} style={{ color: "#475569" }} />
+                    <CheckCircle2 size={16} style={{ color: "#1e293b" }} />
                   )}
                   <strong style={{ fontSize: "0.9rem", color: isCompletedOrApproved ? "#15803d" : "#0f172a" }}>
                     {displayStatus}
@@ -536,7 +536,7 @@ export const ViewDesignJobModal = ({
                   <div style={{ fontWeight: 600, color: "#1e293b", fontSize: "0.875rem" }}>
                     Submitted Artwork Sample Proof
                   </div>
-                  <div style={{ fontSize: "0.78125rem", color: "#475569", marginTop: "0.2rem" }}>
+                  <div style={{ fontSize: "0.78125rem", color: "#1e293b", marginTop: "0.2rem" }}>
                     Uploaded high-resolution sample file ready for evaluation and manager/customer sign-off.
                   </div>
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>

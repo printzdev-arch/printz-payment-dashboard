@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import jobFlowApi from "../api/productionApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const EnhancedQCModal = ({
   isOpen,
@@ -254,14 +255,14 @@ export const EnhancedQCModal = ({
             <div className="qc-modal-info-grid">
               <div className="jf-form-group">
                 <label className="jf-label">Inspection Stage</label>
-                <select
+                <StyledSelect
                   className="jf-input"
                   value={qcType}
                   onChange={(e) => setQcType(e.target.value)}
                 >
                   <option value="FINAL">FINAL (Post-Packing Inspection)</option>
                   <option value="STAGE">STAGE (In-Process Check)</option>
-                </select>
+                </StyledSelect>
               </div>
 
               <div className="jf-form-group">
@@ -382,7 +383,7 @@ export const EnhancedQCModal = ({
                 {correctiveAction === "REWORK" ? (
                   <div className="jf-form-group">
                     <label className="jf-label">Defective Operation to Reopen *</label>
-                    <select
+                    <StyledSelect
                       className="jf-input"
                       value={reworkOperationCode}
                       onChange={(e) => setReworkOperationCode(e.target.value)}
@@ -395,7 +396,7 @@ export const EnhancedQCModal = ({
                           Step #{op.sequenceNo || idx + 1}: {op.operationName || op.operation} ({op.operationCode || "OP"})
                         </option>
                       ))}
-                    </select>
+                    </StyledSelect>
                   </div>
                 ) : (
                   <div className="prod-modal-grid-2">
@@ -412,14 +413,14 @@ export const EnhancedQCModal = ({
                     </div>
                     <div className="jf-form-group">
                       <label className="jf-label">Restart From Stage</label>
-                      <select
+                      <StyledSelect
                         className="jf-input"
                         value={restartFromOperationCode}
                         onChange={(e) => setRestartFromOperationCode(e.target.value)}
                       >
                         <option value="PRINT">PRINT (Full Batch Rerun)</option>
                         <option value="PREPRESS">PREPRESS (Pre-press File Setup)</option>
-                      </select>
+                      </StyledSelect>
                     </div>
                   </div>
                 )}
@@ -461,7 +462,7 @@ export const EnhancedQCModal = ({
                             value={def.description}
                             onChange={(e) => handleUpdateDefect(idx, "description", e.target.value)}
                           />
-                          <select
+                          <StyledSelect
                             className="jf-input jf-input-sm"
                             value={def.severity}
                             onChange={(e) => handleUpdateDefect(idx, "severity", e.target.value)}
@@ -469,7 +470,7 @@ export const EnhancedQCModal = ({
                             <option value="MINOR">MINOR</option>
                             <option value="MAJOR">MAJOR</option>
                             <option value="CRITICAL">CRITICAL</option>
-                          </select>
+                          </StyledSelect>
                           <input
                             type="number"
                             min="1"

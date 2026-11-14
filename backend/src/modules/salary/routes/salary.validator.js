@@ -82,6 +82,16 @@ const componentValidator = [
   validate,
 ];
 
+const componentIdParamValidator = [
+  param("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Salary component ID is required.")
+    .isMongoId()
+    .withMessage("Invalid salary component ID format."),
+  validate,
+];
+
 const structureValidator = [
   body("employeeId")
     .trim()
@@ -263,6 +273,16 @@ const adjustmentIdParamValidator = [
   validate,
 ];
 
+const structureIdParamValidator = [
+  param("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Salary structure ID is required.")
+    .isMongoId()
+    .withMessage("Invalid salary structure ID format."),
+  validate,
+];
+
 const listStructuresQueryValidator = [
   query("employeeId").optional().trim(),
   query("branchId").optional().trim(),
@@ -329,9 +349,11 @@ module.exports = {
   listEntriesQueryValidator,
   listRecordsQueryValidator,
   componentValidator,
+  componentIdParamValidator,
   structureValidator,
   adjustmentValidator,
   adjustmentIdParamValidator,
+  structureIdParamValidator,
   listStructuresQueryValidator,
   listAdjustmentsQueryValidator,
   listLoansQueryValidator,

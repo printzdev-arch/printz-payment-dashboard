@@ -150,7 +150,7 @@ export const CashierSettlementModal = ({ isOpen, onClose, invoiceId, onPaymentCo
                 <h2 className="jf-modal-title">Cashier Payment Collection & Ledger</h2>
                 <StatusBadge status={paymentStatus} domain="settlement" />
               </div>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Invoice No: <strong>{settlementData?.invoiceNumber || "INV-CURRENT"}</strong> • Customer: <strong>{settlementData?.customerName || "Customer"}</strong>
               </div>
             </div>
@@ -169,7 +169,7 @@ export const CashierSettlementModal = ({ isOpen, onClose, invoiceId, onPaymentCo
             marginBottom: "1.25rem"
           }}>
             <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-              <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Total Invoiced</div>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", textTransform: "uppercase", fontWeight: 600 }}>Total Invoiced</div>
               <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "#0f172a" }}>₹{invoiceTotal.toFixed(2)}</div>
             </div>
 
@@ -194,7 +194,7 @@ export const CashierSettlementModal = ({ isOpen, onClose, invoiceId, onPaymentCo
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                 <div className="jf-form-group">
                   <label className="jf-label jf-label-required">
-                    Payment Amount (₹) <span style={{ color: "#475569", fontWeight: 400 }}>(Max: ₹{balanceDue.toFixed(2)})</span>
+                    Payment Amount (₹) <span style={{ color: "#1e293b", fontWeight: 400 }}>(Max: ₹{balanceDue.toFixed(2)})</span>
                   </label>
                   <input
                     type="number"
@@ -305,7 +305,7 @@ export const CashierSettlementModal = ({ isOpen, onClose, invoiceId, onPaymentCo
           {/* Payment History / Ledger Table */}
           <div>
             <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <History size={18} style={{ color: "#475569" }} /> Payment Ledger & Receipt Vouchers
+              <History size={18} style={{ color: "#1e293b" }} /> Payment Ledger & Receipt Vouchers
             </div>
 
             <table className="jf-table" style={{ fontSize: "0.85rem" }}>
@@ -323,7 +323,7 @@ export const CashierSettlementModal = ({ isOpen, onClose, invoiceId, onPaymentCo
               <tbody>
                 {paymentsList.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: "1.5rem", color: "#475569" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "1.5rem", color: "#1e293b" }}>
                       No payments recorded yet for this invoice.
                     </td>
                   </tr>

@@ -66,7 +66,7 @@
 .rb-subtitle {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: #475569;
+  color: #1e293b;
 }
 
 .rb-request-no {
@@ -83,12 +83,12 @@
 
 .rb-empty-icon {
   margin-bottom: 6px;
-  color: #64748b;
+  color: #1e293b;
 }
 
 .rb-empty-title {
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
 }
 
 .rb-btn-close-sm {
@@ -114,7 +114,7 @@
   cursor: pointer;
   font-size: 13.5px;
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
   transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -174,7 +174,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #475569;
+  color: #1e293b;
   pointer-events: none;
 }
 
@@ -222,14 +222,14 @@ select.rb-select-filter:focus {
 .rb-count {
   margin-left: auto;
   font-size: 13px;
-  color: #475569;
+  color: #1e293b;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .rb-muted {
   font-size: 11.5px;
-  color: #475569;
+  color: #1e293b;
   margin-top: 2px;
 }
 
@@ -259,7 +259,7 @@ select.rb-select-filter:focus {
 
 .reprint-batches-page .data-table thead th {
   background: #f8fafc;
-  color: #475569;
+  color: #1e293b;
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -365,7 +365,7 @@ select.rb-select-filter:focus {
 .rb-pill.rb-op-blocked,
 .rb-pill.rb-op-on_hold {
   background: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
   border: 1px solid #e2e8f0;
 }
 
@@ -407,7 +407,7 @@ select.rb-select-filter:focus {
 
 .reprint-batches-page .btn-secondary {
   background-color: #ffffff !important;
-  color: #475569 !important;
+  color: #1e293b !important;
   border-color: #cbd5e1 !important;
 }
 
@@ -439,7 +439,7 @@ select.rb-select-filter:focus {
 .empty-cell {
   text-align: center !important;
   padding: 42px 20px !important;
-  color: #475569 !important;
+  color: #1e293b !important;
   font-size: 13.5px !important;
 }
 
@@ -450,7 +450,7 @@ select.rb-select-filter:focus {
   align-items: center;
   padding: 12px 4px 4px;
   font-size: 13px;
-  color: #475569;
+  color: #1e293b;
   font-weight: 500;
 }
 
@@ -487,7 +487,7 @@ select.rb-select-filter:focus {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #475569;
+  color: #1e293b;
 }
 
 .rb-facts strong {
@@ -547,7 +547,7 @@ select.rb-select-filter:focus {
   border-radius: 6px;
   padding: 3px 8px;
   background: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
 }
 
 .rb-op--completed,
@@ -590,3 +590,25 @@ select.rb-select-filter:focus {
 }
 
 
+
+/* Rework & Reprint: button tabs, one filter row, no boxes */
+body .rb-tabs { border-bottom: none; gap: 8px; padding: 0; margin-bottom: 14px; }
+body .rb-tab {
+  border: 1px solid #dbe3ea; border-radius: 10px; background: #ffffff; color: #0f172a; height: 36px; padding: 0 16px;
+  font-weight: 600; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+body .rb-tab:hover { background: #f1f5f9; }
+body .rb-tab.is-active, body .rb-tab.is-active:hover { background: #0d6245; border-color: #0d6245; color: #ffffff; box-shadow: 0 2px 6px rgba(13, 98, 69, 0.28); }
+body .rb-tab.is-active .rb-tab-count { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
+body .rb-filter-card { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+.rb-filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rb-filter-row .rb-search { flex: 1 1 280px; max-width: 420px; }
+.rb-filter-row .rb-search input { background: #ffffff; }
+.rb-filter-row .branch-select-container { flex: 0 0 190px; width: 190px; }
+.rb-filter-row .branch-select-trigger { height: 40px; }
+.rb-filter-row .rb-count { margin-left: auto; color: #0f172a; font-weight: 600; }
+.rb-refresh-icon { width: 40px; height: 40px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 640px) {
+  .rb-filter-row .rb-search, .rb-filter-row .branch-select-container { flex: 1 1 100%; width: 100%; max-width: none; }
+  .rb-filter-row .rb-count { margin-left: 0; }
+}

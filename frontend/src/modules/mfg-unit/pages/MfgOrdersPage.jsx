@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import StyledSelect from "../../../shared/ui/selects/StyledSelect";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, PackageSearch, Search } from "lucide-react";
 import saleOrderApi from "../../sale-order/api/saleOrderApi";
@@ -75,9 +76,9 @@ export default function MfgOrdersPage() {
       <PageBanner title="Manufacturing" highlight="Orders" subtitle="Every order sent to the manufacturing unit, its current stage and who took it." />
 
       <div className="so-filters">
-        <select className="so-select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+        <StyledSelect className="so-select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
           {FILTERS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
+        </StyledSelect>
         <div className="so-search">
           <Search size={16} />
           <input className="so-input" placeholder="Search by order no. or customer..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
@@ -86,7 +87,7 @@ export default function MfgOrdersPage() {
 
       <div className="so-card spaced">
         {error && <div className="so-error-bar">{error}</div>}
-        <DataTable
+        <DataTable mobileCards
           searchable={false}
           loading={loading}
           data={rows}

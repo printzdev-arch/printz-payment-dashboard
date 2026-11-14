@@ -167,7 +167,7 @@ export const DesignerLoginPage = () => {
 
         {/* Card Mode: choose from the designers in the database */}
         {loginMode === "cards" && designersLoaded && designersList.length === 0 && (
-          <p style={{ textAlign: "center", color: "#64748b" }}>
+          <p style={{ textAlign: "center", color: "#1e293b" }}>
             No designers found. Use Email / Code Input to sign in.
           </p>
         )}

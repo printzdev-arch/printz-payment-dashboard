@@ -80,7 +80,7 @@
 
 .customer-source-pill.walkin {
   background: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
   border: 1px solid #e2e8f0;
 }
 
@@ -235,7 +235,7 @@
 [style*="padding-bottom: 0.5rem"][style*="margin-bottom: 1rem"][style*="display: flex"] > .jf-btn {
   border: none !important;
   background-color: transparent !important;
-  color: #475569 !important;
+  color: #1e293b !important;
   transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -586,3 +586,59 @@
     transition: none;
   }
 }
+/* Customer directory: tabs as buttons (open tab dark green, white text), plain filter row */
+.customers-tabs { border-bottom: none !important; padding-bottom: 0 !important; background: transparent !important; flex-wrap: wrap; }
+.customers-tabs > button.jf-btn {
+  background: #ffffff !important; color: #0f172a !important; border: 1px solid #dbe3ea !important; border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important; padding: 9px 16px !important; font-size: 13.5px !important;
+}
+.customers-tabs > button.jf-btn:hover { background: #f1f5f9 !important; }
+.customers-tabs > button.jf-btn[style*="var(--jf-primary)"] {
+  background: #0d6245 !important; color: #ffffff !important; border-color: #0d6245 !important; box-shadow: 0 2px 6px rgba(13, 98, 69, 0.28) !important;
+}
+.jf-filter-bar .branch-select-container { flex: 0 0 170px; }
+.jf-filter-bar .branch-select-trigger { height: 42px; }
+.jf-filter-bar .jf-search-input { height: 42px; }
+@media (max-width: 640px) {
+  .customers-tabs > button.jf-btn { flex: 1 1 100%; justify-content: center; }
+  .jf-filter-bar .branch-select-container { flex: 1 1 100%; width: 100%; }
+}
+
+/* ── Customer directory, final look (beats the older "modern layer" rules above) ── */
+.customers-tabs.customers-tabs[style] {
+  background: transparent !important; border-radius: 0 !important; padding: 0 !important; width: 100% !important;
+  overflow: visible !important; flex-wrap: wrap !important; gap: 8px !important; border-bottom: none !important;
+}
+.customers-tabs.customers-tabs[style] > button.jf-btn[style] {
+  background-color: #ffffff !important; color: #0f172a !important; border: 1px solid #dbe3ea !important; border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important; padding: 9px 16px !important; font-size: 13.5px !important; font-weight: 600 !important;
+}
+.customers-tabs.customers-tabs[style] > button.jf-btn[style]:hover { background-color: #f1f5f9 !important; }
+.customers-tabs.customers-tabs[style] > button.jf-btn[style*="var(--jf-primary)"] {
+  background-color: #0d6245 !important; color: #ffffff !important; border-color: #0d6245 !important;
+  box-shadow: 0 2px 6px rgba(13, 98, 69, 0.28) !important;
+}
+.customers-tabs.customers-tabs[style] > button.jf-btn[style*="var(--jf-primary)"] svg { color: #ffffff !important; stroke: #ffffff !important; }
+
+/* No box around the search and filters */
+.customers-tabs[style] + .jf-filter-bar { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 14px; }
+.customers-tabs[style] + .jf-filter-bar .jf-search-input { background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.customers-tabs[style] + .jf-filter-bar .jf-search-input::placeholder { color: #1e293b; }
+
+/* The table: no outline ring, darker text */
+.jf-page .printz-dt-card, .jf-page-container .printz-dt-card { border: none; box-shadow: none; }
+.jf-page .printz-dt-card tbody td { color: #0f172a; }
+.customers-tabs ~ .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }
+.customers-tabs ~ .printz-dt-card tbody td { color: #0f172a; }
+
+/* Tabs on the left, the three actions on the right of the same row */
+.customers-tabs.customers-tabs[style] { align-items: center; }
+.customers-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.customers-actions .jf-btn { height: 40px; white-space: nowrap; }
+@media (max-width: 900px) { .customers-actions { margin-left: 0; width: 100%; } .customers-actions .jf-btn { flex: 1 1 auto; justify-content: center; } }
+
+/* Smaller tabs */
+.customers-tabs.customers-tabs[style] > button.jf-btn[style] { padding: 6px 12px !important; font-size: 12.5px !important; border-radius: 8px !important; gap: 6px !important; height: 34px; }
+.customers-tabs.customers-tabs[style] > button.jf-btn[style] svg { width: 14px; height: 14px; }
+.customers-actions .jf-btn { height: 34px; font-size: 12.5px; padding: 6px 12px; }
+.customers-actions .jf-btn svg { width: 14px; height: 14px; }

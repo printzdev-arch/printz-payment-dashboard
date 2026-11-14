@@ -1893,6 +1893,69 @@ class SalaryService {
     return SalaryComponent.create({ ...data, code, branchId, createdBy: userId || null, updatedBy: userId || null });
   }
 
+  async getComponentById(id) {
+    const compId = idString(id);
+    if (!compId) return null;
+    return SalaryComponent.findById(compId).lean();
+  }
+
+  // Is this component part of any employee structure or any calculated salary record?
+  async _componentUsage(componentId) {
+    const ids = idVariants(componentId);
+    const [structures, records] = await Promise.all([
+      EmployeeSalaryStructure.countDocuments({ "components.componentId": { $in: ids } }),
+      SalaryRecord.countDocuments({ "components.componentId": { $in: ids } }),
+    ]);
+    return { structures, records };
+  }
+
+  /**
+   * Edits a component. Its code and branch never change. The type (earning / deduction) is locked once
+   * any structure or salary record uses the component, because that would change what was already paid.
+   */
+  async updateComponent(id, data, userId) {
+    const comp = await SalaryComponent.findById(idString(id));
+    if (!comp) throw ApiError.notFound("Salary component not found.");
+    const calculationType = String(data.calculationType || comp.calculationType || "FIXED").toUpperCase();
+    if (calculationType === "PERCENTAGE" && !fieldRules.isPercentage(data.defaultAmount ?? comp.defaultAmount ?? 0)) {
+      throw ApiError.validation("A percentage component must have a rate between 0 and 100.");
+    }
+    if (data.componentType && data.componentType !== comp.componentType) {
+      const usage = await this._componentUsage(comp._id);
+      if (usage.structures > 0 || usage.records > 0) {
+        throw ApiError.conflict("The type cannot be changed because this component is already used in salary structures or records.");
+      }
+      comp.componentType = data.componentType;
+    }
+    comp.name = String(data.name ?? comp.name).trim();
+    comp.calculationType = calculationType;
+    if (data.defaultAmount !== undefined) comp.defaultAmount = Number(data.defaultAmount) || 0;
+    if (data.percentageOf) comp.percentageOf = data.percentageOf;
+    if (data.isTaxable !== undefined) comp.isTaxable = Boolean(data.isTaxable);
+    if (data.isActive !== undefined) comp.isActive = Boolean(data.isActive);
+    if (data.description !== undefined) comp.description = String(data.description || "");
+    comp.updatedBy = userId || null;
+    await comp.save();
+    return comp.toObject();
+  }
+
+  // Deletes a component for good, unless the payroll engine depends on it or it is already in use.
+  async deleteComponent(id) {
+    const comp = await SalaryComponent.findById(idString(id));
+    if (!comp) throw ApiError.notFound("Salary component not found.");
+    if (["BASIC", "SPECIAL_ALLOWANCE", "SA"].includes(String(comp.code).toUpperCase())) {
+      throw ApiError.conflict(`${comp.code} is used by the payroll calculation and cannot be deleted.`);
+    }
+    const usage = await this._componentUsage(comp._id);
+    if (usage.structures > 0 || usage.records > 0) {
+      throw ApiError.conflict(
+        `This component cannot be deleted because it is used in ${usage.structures} salary structure(s) and ${usage.records} salary record(s). Turn it off (set it to Inactive) instead.`
+      );
+    }
+    await SalaryComponent.deleteOne({ _id: comp._id });
+    return { deleted: true };
+  }
+
   async listStructures(filters = {}) {
     const q = {};
     if (filters.employeeId) q.employeeId = { $in: idVariants(filters.employeeId) };
@@ -2025,6 +2088,58 @@ class SalaryService {
     );
 
     return structure;
+  }
+
+  async getStructureById(id) {
+    const structId = idString(id);
+    if (!structId) return null;
+    return EmployeeSalaryStructure.findById(structId).lean();
+  }
+
+  /**
+   * Deletes a salary structure for good. It is refused when a salary record already exists for a month
+   * the structure covered, because that month was paid using it. After a delete the employee's earlier
+   * structure is opened up again, so they are never left without a current one by mistake.
+   */
+  async deleteStructure(id) {
+    const structure = await EmployeeSalaryStructure.findById(idString(id));
+    if (!structure) throw ApiError.notFound("Salary structure not found.");
+
+    const from = new Date(structure.effectiveFrom);
+    const to = structure.effectiveTo ? new Date(structure.effectiveTo) : null;
+    const startKey = from.getUTCFullYear() * 12 + from.getUTCMonth();
+    const endKey = to ? to.getUTCFullYear() * 12 + to.getUTCMonth() : Infinity;
+    const records = await SalaryRecord.find({ employeeId: { $in: idVariants(structure.employeeId) } })
+      .select("payrollMonth payrollYear")
+      .lean();
+    const used = records.some((r) => {
+      const key = Number(r.payrollYear) * 12 + (Number(r.payrollMonth) - 1);
+      return key >= startKey && key <= endKey;
+    });
+    if (used) {
+      throw ApiError.conflict(
+        "This structure cannot be deleted because salary was already calculated using it. Assign a revised structure instead."
+      );
+    }
+
+    const employeeId = structure.employeeId;
+    await EmployeeSalaryStructure.deleteOne({ _id: structure._id });
+
+    // Re-open the structure this one had ended, then point the employee at their current one
+    const remaining = await EmployeeSalaryStructure.find({ employeeId: { $in: idVariants(employeeId) } }).sort({ effectiveFrom: -1, _id: -1 });
+    const dayBefore = new Date(from.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    for (const prev of remaining) {
+      if (prev.isActive && prev.effectiveTo && new Date(prev.effectiveTo).toISOString().slice(0, 10) === dayBefore) {
+        prev.effectiveTo = null;
+        await prev.save();
+      }
+    }
+    const current = remaining.find((r) => r.isActive) || null;
+    await Employee.updateOne(
+      { _id: idString(employeeId) },
+      { $set: { salaryStructureId: current ? current._id : null, salaryEffectiveFrom: current ? current.effectiveFrom : null } }
+    );
+    return { deleted: true };
   }
 
   async listAdjustments(filters = {}) {

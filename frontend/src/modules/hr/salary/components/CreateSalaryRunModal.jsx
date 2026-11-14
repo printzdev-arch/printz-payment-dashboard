@@ -3,6 +3,7 @@ import { X, Check, ArrowRight, ChevronRight, Users } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function CreateSalaryRunModal({
   isOpen,
@@ -149,7 +150,7 @@ export default function CreateSalaryRunModal({
               <div className="salary-form-grid">
                 <div className="salary-form-group">
                   <label>Payroll Month <span className="req">*</span></label>
-                  <select
+                  <StyledSelect
                     className="salary-form-select"
                     value={formData.month}
                     onChange={(e) => {
@@ -168,7 +169,7 @@ export default function CreateSalaryRunModal({
                     ].map((m, idx) => (
                       <option key={idx + 1} value={idx + 1} disabled={isFuturePeriod(formData.year, idx + 1)}>{m}</option>
                     ))}
-                  </select>
+                  </StyledSelect>
                 </div>
 
                 <div className="salary-form-group">

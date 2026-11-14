@@ -222,28 +222,12 @@ export const productionApi = {
     return res.data;
   },
 
-  // data: { name, phone?, skill?, notes?, isActive? }
-  createOperator: async (data) => {
-    const res = await api.post("/production-resources/operators", data);
-    return res.data;
-  },
-
-  // data: any of { name, phone, skill, notes, isActive } (isActive = availability)
-  updateOperator: async (id, data) => {
-    const res = await api.patch(`/production-resources/operators/${id}`, data);
-    return res.data;
-  },
-
   // Stock items from the existing stock collection (read only): { search?, limit? }
   getStocks: async (params = {}) => {
     const res = await api.get("/production-resources/stocks", { params: scoped(params) });
     return res.data;
   },
 
-  getOperatorById: async (id, params = {}) => {
-    const res = await api.get(`/production-resources/operators/${id}`, { params: scoped(params) });
-    return res.data;
-  },
     // ── Reports ──
   getReportTypes: async () => api.get("/production-reports").then((r) => r.data),
   getReport: async (type, params = {}) => api.get(`/production-reports/${type}`, { params: scoped(params) }).then((r) => r.data),

@@ -159,7 +159,7 @@ export default function SalaryRunReviewModal({
         <div className="salary-modal-body">
           <SalaryMaintenanceBanner />
           {/* Lifecycle stepper */}
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
+          <div className="salary-run-steps" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
             {STEPS.map((step, i) => {
               const current = stepIndexOf(status);
               const done = i < current || status === "LOCKED";
@@ -187,7 +187,7 @@ export default function SalaryRunReviewModal({
                       </span>
                     )}
                   </div>
-                  {i < STEPS.length - 1 && <span style={{ color: "#94a3b8" }}>→</span>}
+                  {i < STEPS.length - 1 && <span className="salary-run-arrow" style={{ color: "#94a3b8" }}>→</span>}
                 </React.Fragment>
               );
             })}
@@ -244,6 +244,7 @@ export default function SalaryRunReviewModal({
           )}
 
           <DataTable
+            mobileCards
             searchable={false}
             pagination={false}
             loading={loading}
@@ -255,6 +256,7 @@ export default function SalaryRunReviewModal({
               {
                 key: "employee",
                 label: "Employee",
+                className: "printz-cell-lead",
                 render: (rec) => {
                   const emp = rec.employeeId || {};
                   return (

@@ -1240,3 +1240,35 @@
   }
 }
 
+
+/* Revenue pages: plain layout, no boxes; Branch and Date fields side by side */
+.revenue-filter-card { background: transparent; border: none; box-shadow: none; padding: 0 !important; }
+/* Only the Stock Readings page card is plain; every other revenue card keeps its white box */
+.revenue-card--plain { background: transparent; border: none; box-shadow: none; overflow: visible; }
+.revenue-card--plain .printz-unified-card-header { background: transparent; border-bottom: none; padding: 0 0 12px; }
+.revenue-card--plain .revenue-unified-toolbar { background: transparent; border-bottom: none; padding: 0 0 14px; align-items: center; }
+.revenue-card--plain .revenue-unified-filter-field { flex: 0 1 260px; min-width: 200px; }
+.revenue-card--plain .revenue-unified-filter-field label { display: none; }
+.revenue-filter-card .branch-select-trigger, .revenue-card--plain .revenue-unified-filter-field .branch-select-trigger { height: 42px; }
+@media (max-width: 640px) { .revenue-card--plain .revenue-unified-filter-field { flex: 1 1 100%; } }
+
+/* Stock Readings Revenue header: no background, one colour */
+body .revenue-card--plain .revenue-card-header, body .revenue-card--plain .revenue-card-header.printz-unified-card-header { background: transparent !important; border: none !important; padding: 0 0 12px !important; box-shadow: none !important; }
+.revenue-card-header .revenue-unified-title { color: #0f172a; }
+
+/* No tint behind the page title */
+.revenue-card--plain .revenue-card-header-left, .revenue-card--plain .revenue-card-header-left *, .revenue-card--plain .revenue-card-header-left h1 { background: none !important; background-color: transparent !important; box-shadow: none !important; border: none !important; }
+
+/* Daily Readings header: no background, no box, same as Stock Readings */
+.printz-header-banner-full { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 12px !important; }
+.printz-header-banner-full h1 { color: #0f172a; }
+
+/* Daily Readings Revenue: no box around the step tabs, bigger title */
+.revenue-page-container .account-sheet-top-stepper { border: none; box-shadow: none; border-radius: 0; padding: 4px 0; background: rgba(238, 241, 244, 0.92); backdrop-filter: blur(6px); }
+.revenue-page-container .printz-header-banner-full h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+@media (max-width: 640px) { .revenue-page-container .printz-header-banner-full h1 { font-size: 21px; } }
+
+/* Tight spacing around the page title: no extra side or top padding */
+body .revenue-page-container > .printz-header-banner-full { padding: 0 0 4px !important; margin: 0 !important; min-height: 0; }
+body .revenue-page-container { gap: 10px; padding-top: 6px; }
+body .revenue-page-container .printz-header-banner-full .printz-header-title-area h1 { margin: 0; }

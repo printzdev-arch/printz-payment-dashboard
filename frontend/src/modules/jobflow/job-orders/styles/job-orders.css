@@ -57,7 +57,7 @@
 
 .job-badge-pill.priority-standard {
   background: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
   border: 1px solid #e2e8f0;
 }
 
@@ -87,7 +87,7 @@
 
 .job-customer-contact {
   font-size: 0.75rem;
-  color: #475569;
+  color: #1e293b;
 }
 
 .job-actions-btn-group {
@@ -497,3 +497,40 @@ body .jf-table tbody td {
   color: #0f172a !important;
   font-weight: 500;
 }
+/* Finishing services on phones: every service becomes a small card */
+@media (max-width: 640px) {
+  body .jf-finishing-table-wrap { overflow: visible; border: none; }
+  body .jf-finishing-table-wrap .jf-table,
+  body .jf-finishing-table-wrap .jf-table tbody { display: block; width: 100%; min-width: 0; }
+  body .jf-finishing-table-wrap .jf-table thead { display: none; }
+  body .jf-finishing-table-wrap .jf-table tbody tr {
+    display: block; border: 1px solid #e2e8f0; border-radius: 12px; padding: 4px 12px; margin-bottom: 10px; background: #ffffff;
+  }
+  body .jf-finishing-table-wrap .jf-table tbody td {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0 !important;
+    border: none; border-bottom: 1px solid #f1f5f9; text-align: left !important; width: auto !important;
+  }
+  body .jf-finishing-table-wrap .jf-table tbody td:last-child { border-bottom: none; }
+  body .jf-finishing-table-wrap .jf-table tbody td[data-label]::before {
+    content: attr(data-label); flex: 0 0 72px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #334155;
+  }
+  body .jf-finishing-table-wrap .jf-table tbody td[data-label="#"] { display: none; }
+  body .jf-finishing-table-wrap .jf-table tbody td select,
+  body .jf-finishing-table-wrap .jf-table tbody td input { max-width: 100%; flex: 1 1 auto; min-width: 0; }
+}
+
+/* Job Orders: search, stage filter and Create Job Order in one row */
+.jo-filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.jo-filter-row .jf-search-input-wrap { flex: 1 1 auto; min-width: 0; }
+.jo-filter-row .branch-select-container { flex: 0 0 180px; }
+.jo-filter-row .jo-create-btn { flex: 0 0 auto; height: 42px; white-space: nowrap; }
+@media (max-width: 720px) {
+  .jo-filter-row { flex-wrap: wrap; }
+  .jo-filter-row .jf-search-input-wrap { flex: 1 1 100%; }
+  .jo-filter-row .branch-select-container { flex: 1 1 calc(50% - 5px); width: auto; }
+  .jo-filter-row .jo-create-btn { flex: 1 1 calc(50% - 5px); justify-content: center; }
+}
+
+/* No outline: neither around the filter row nor as a ring around the table */
+body .jf-filter-bar { background: transparent; border: none; box-shadow: none; padding-left: 0; padding-right: 0; }
+body .jf-filter-bar ~ .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }

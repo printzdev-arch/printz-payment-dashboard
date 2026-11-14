@@ -33,6 +33,7 @@ import "../styles/settlement.css";
 import InvoiceGeneratorModal from "../components/InvoiceGeneratorModal";
 import CashierSettlementModal from "../components/CashierSettlementModal";
 import JobClosureModal from "../components/JobClosureModal";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const SettlementPage = () => {
   const navigate = useNavigate();
@@ -289,8 +290,8 @@ export const SettlementPage = () => {
       <div className="settlement-feature-container">
 
         {/* Search & Status Filters */}
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: "260px" }}>
+        <div className="stl-toolbar">
+          <div className="stl-search" style={{ position: "relative", flex: 1, minWidth: "260px" }}>
             <input
               type="text"
               className="jf-input"
@@ -299,34 +300,27 @@ export const SettlementPage = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingLeft: "2.25rem" }}
             />
-            <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#475569" }} />
+            <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#1e293b" }} />
           </div>
 
           {activeTab === "OUTSTANDING_BOARD" && (
-            <div style={{ display: "flex", gap: "0.4rem" }}>
-              {["ALL", "UNPAID", "PARTIAL", "PAID"].map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className={`jf-btn ${paymentFilter === f ? "jf-btn-primary" : "jf-btn-secondary"} jf-btn-sm`}
-                  onClick={() => setPaymentFilter(f)}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+            <StyledSelect searchable={false} style={{ width: "170px" }} value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}>
+              <option value="ALL">All</option>
+              <option value="UNPAID">Unpaid</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="PAID">Paid</option>
+            </StyledSelect>
           )}
 
           <button
             type="button"
-            className="jf-btn jf-btn-secondary jf-btn-sm"
+            className="stl-refresh"
             onClick={loadAllSettlementData}
             disabled={loading}
-            title="Refresh Settlement Board"
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+            title="Refresh"
+            aria-label="Refresh"
           >
-            <RefreshCw size={14} className={loading ? "spin" : ""} />
-            <span>Refresh</span>
+            <RefreshCw size={15} className={loading ? "spin" : ""} />
           </button>
         </div>
 
@@ -338,12 +332,12 @@ export const SettlementPage = () => {
                 <Receipt size={18} style={{ color: "var(--jf-primary)" }} />
                 Pending Invoicing Queue
               </h3>
-              <span style={{ fontSize: "0.85rem", color: "#475569" }}>
+              <span style={{ fontSize: "0.85rem", color: "#1e293b" }}>
                 Total: <strong>{pendingList.length}</strong> eligible jobs
               </span>
             </div>
 
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={pendingList}
               pageSize={itemsPerPage}
@@ -357,7 +351,7 @@ export const SettlementPage = () => {
                   render: (job) => (
                     <>
                       <div style={{ fontWeight: 600 }}>{job.customerName}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.customerPhone}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{job.customerPhone}</div>
                     </>
                   ),
                 },
@@ -367,7 +361,7 @@ export const SettlementPage = () => {
                   render: (job) => (
                     <>
                       <div style={{ fontWeight: 600 }}>{job.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>Qty: {job.quantity} pcs</div>
+                      <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>Qty: {job.quantity} pcs</div>
                     </>
                   ),
                 },
@@ -395,18 +389,8 @@ export const SettlementPage = () => {
 
         {/* ── TAB 2: OUTSTANDING INVOICES BOARD (PHASE 3) ── */}
         {activeTab === "OUTSTANDING_BOARD" && (
-          <div className="jf-card">
-            <div className="jf-card-header">
-              <h3 className="jf-card-title">
-                <CreditCard size={18} style={{ color: "#2563eb" }} />
-                Outstanding Invoices
-              </h3>
-              <span style={{ fontSize: "0.85rem", color: "#475569" }}>
-                Total: <strong>{outstandingList.length}</strong> invoices
-              </span>
-            </div>
-
-            <DataTable
+          <div className="jf-card stl-plain-card">
+            <DataTable mobileCards
               searchable={false}
               data={outstandingList}
               pageSize={itemsPerPage}
@@ -422,7 +406,7 @@ export const SettlementPage = () => {
                   render: (inv) => (
                     <>
                       <div style={{ fontWeight: 600 }}>{inv.customerName}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{inv.customerPhone}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{inv.customerPhone}</div>
                     </>
                   ),
                 },
@@ -473,12 +457,12 @@ export const SettlementPage = () => {
                 <Lock size={18} style={{ color: "#1e293b" }} />
                 Job Closure
               </h3>
-              <span style={{ fontSize: "0.85rem", color: "#475569" }}>
+              <span style={{ fontSize: "0.85rem", color: "#1e293b" }}>
                 Total: <strong>{closureList.length}</strong> job orders
               </span>
             </div>
 
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={closureList}
               pageSize={itemsPerPage}
@@ -490,7 +474,7 @@ export const SettlementPage = () => {
                   render: (job) => (
                     <>
                       <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.title}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{job.title}</div>
                     </>
                   ),
                 },

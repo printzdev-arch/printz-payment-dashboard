@@ -500,11 +500,7 @@ const AdminLayout = ({ children }) => {
       ],
     },
     {
-      key: "delivery", label: "Delivery", icon: Truck, match: ["/jobflow/delivery", "/delivery"],
-      children: [
-        { label: "Dispatch Delivery", to: "/jobflow/delivery?tab=DISPATCH", icon: Send },
-        { label: "Self Pickup", to: "/jobflow/delivery?tab=PICKUP", icon: Store },
-      ],
+      key: "delivery", label: "Delivery", icon: Truck, to: "/jobflow/delivery", match: ["/jobflow/delivery", "/delivery"],
     },
   ];
 
@@ -940,19 +936,6 @@ const AdminLayout = ({ children }) => {
                     <span className="sidebar-dropdown-link-left">
                       <RotateCcw size={14} className="sidebar-dropdown-icon" />
                       <span className="sidebar-dropdown-text">Rework & Reprint</span>
-                    </span>
-                  </NavLink>
-                </li>
-                <li className="sidebar-dropdown-item">
-                  <NavLink
-                    to="/production/operators"
-                    className={`sidebar-dropdown-link ${
-                      isActiveRoute("/production/operators") ? "active" : ""
-                    }`}
-                  >
-                    <span className="sidebar-dropdown-link-left">
-                      <Users size={14} className="sidebar-dropdown-icon" />
-                      <span className="sidebar-dropdown-text">Operators</span>
                     </span>
                   </NavLink>
                 </li>

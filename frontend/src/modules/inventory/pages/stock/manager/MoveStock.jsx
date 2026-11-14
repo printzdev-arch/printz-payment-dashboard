@@ -563,10 +563,8 @@ const MoveStock = () => {
               Stock
             </span>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
-            Transfer inventory quantities or duplicate stock items across branch
-            stores.
-          </p>
+          
+          
         </div>
       </div>
 
@@ -736,7 +734,7 @@ const MoveStock = () => {
           </div>
 
           {/* Stock Table */}
-          <DataTable
+          <DataTable mobileCards
             searchable={false}
             data={filteredItems}
             pageSize={itemsPerPage}
@@ -825,7 +823,7 @@ const MoveStock = () => {
           </div>
 
           {/* Quantities Table */}
-          <DataTable
+          <DataTable mobileCards
             searchable={false}
             pagination={false}
             data={selectedItems}

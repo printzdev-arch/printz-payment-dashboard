@@ -640,7 +640,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                 <div className="jf-form-group" style={{ marginBottom: "1rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
                     <label className="jf-label" style={{ marginBottom: 0 }}>Customer Code</label>
-                    <span style={{ fontSize: "0.72rem", color: "#475569", fontWeight: 500, background: "#f1f5f9", padding: "2px 8px", borderRadius: "4px" }}>
+                    <span style={{ fontSize: "0.72rem", color: "#1e293b", fontWeight: 500, background: "#f1f5f9", padding: "2px 8px", borderRadius: "4px" }}>
                       Auto-generated
                     </span>
                   </div>
@@ -656,7 +656,7 @@ export const CustomerModal = ({ isOpen, onClose, customer, onSaved }) => {
                       width: "100%",
                       boxSizing: "border-box",
                       backgroundColor: "#f8fafc",
-                      color: "#475569",
+                      color: "#1e293b",
                       cursor: "not-allowed",
                       borderColor: "#e2e8f0",
                       fontWeight: 500,

@@ -16,24 +16,8 @@ router.get(
   productionResourceController.getMachineById
 );
 
-// Operators: GET /production-resources/operators
+// Operators (list only, used by the queue, start-operation and report filters): GET /production-resources/operators
 router.get("/operators", authorizePermission("production", "read"), productionResourceController.getOperators);
-router.get(
-  "/operators/:id",
-  idParamValidator("id"),
-  authorizePermission("production", "read"),
-  productionResourceController.getOperatorById
-);
-
-// Add / edit operators (availability is part of the edit)
-router.post("/operators", authorizePermission("production", "update"), productionResourceController.createOperator);
-router.patch(
-  "/operators/:id",
-  idParamValidator("id"),
-  authorizePermission("production", "update"),
-  productionResourceController.updateOperator
-);
-
 // Stock items (read only, from the existing stock collection): GET /production-resources/stocks?search=
 router.get("/stocks", authorizePermission("production", "read"), productionResourceController.getStocks);
 

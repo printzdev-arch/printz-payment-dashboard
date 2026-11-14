@@ -299,7 +299,7 @@
 
 .jf-badge-gray {
   background-color: #f1f5f9;
-  color: #475569;
+  color: #1e293b;
   border: 1px solid #dbe3ea;
 }
 
@@ -311,7 +311,7 @@
 
 .jf-badge-outline {
   background-color: transparent;
-  color: #475569;
+  color: #1e293b;
   border: 1px dashed var(--jf-ink-400);
 }
 
@@ -1047,3 +1047,20 @@
   border-color: var(--jf-primary);
   background: var(--jf-green-50);
 }
+/* Job flow pages: darker text, no box around filter rows, tidy phone layout */
+.jf-filter-bar { background: transparent; border: none; box-shadow: none; padding-left: 0; padding-right: 0; }
+.jf-filter-bar .jf-input, .jf-filter-bar .jf-search-input { background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; }
+.jf-filter-bar .jf-input::placeholder, .jf-filter-bar .jf-search-input::placeholder, .jf-input::placeholder { color: #475569; }
+.jf-filter-bar .branch-select-container { flex: 0 0 180px; }
+.jf-filter-bar .branch-select-trigger { height: 42px; }
+.jf-form-group .branch-select-container, .jf-form-group .branch-select-trigger { width: 100%; }
+.jf-form-group .branch-select-trigger { height: 40px; }
+.jf-page .printz-dt-card tbody td { color: #0f172a; }
+@media (max-width: 640px) {
+  .jf-filter-bar .branch-select-container { flex: 1 1 100%; width: 100%; }
+  .jf-modal { max-width: 100% !important; }
+}
+
+/* Job flow tables: no border or shadow ring (tables inside popups keep theirs) */
+.jf-container .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }
+.jf-modal .printz-dt-card, .jf-modal-overlay .printz-dt-card { border: 1px solid #e6ece9; }

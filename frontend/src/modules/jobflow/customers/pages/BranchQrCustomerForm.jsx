@@ -19,6 +19,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import jobFlowApi from "../api/customersApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 const getManagerBranchInfo = () => {
   try {
@@ -398,14 +399,14 @@ export const BranchQrCustomerForm = () => {
                   <h2 style={{ fontSize: "1.35rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
                     Customer Registration
                   </h2>
-                  <p style={{ fontSize: "0.875rem", color: "#475569", margin: "4px 0 0 0" }}>
+                  <p style={{ fontSize: "0.875rem", color: "#1e293b", margin: "4px 0 0 0" }}>
                     Checks existing records across all branches; auto-links matching profiles or generates a new Customer Code.
                   </p>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "#475569", fontWeight: 600 }}>Branch:</span>
-                  <select
+                  <span style={{ fontSize: "0.8125rem", color: "#1e293b", fontWeight: 600 }}>Branch:</span>
+                  <StyledSelect
                     name="branchCode"
                     value={formData.branchCode}
                     onChange={handleBranchChange}
@@ -432,7 +433,7 @@ export const BranchQrCustomerForm = () => {
                         {formData.branchName}
                       </option>
                     )}
-                  </select>
+                  </StyledSelect>
                 </div>
               </div>
 
@@ -502,7 +503,7 @@ export const BranchQrCustomerForm = () => {
                 </h3>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                   {checkingCustomer && (
-                    <span style={{ fontSize: "0.725rem", color: "#475569", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <span style={{ fontSize: "0.725rem", color: "#1e293b", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                       <Loader2 size={12} className="animate-spin" /> Checking records...
                     </span>
                   )}
@@ -638,7 +639,7 @@ export const BranchQrCustomerForm = () => {
                   alignItems: "center",
                   gap: "0.75rem",
                   fontSize: "0.8125rem",
-                  color: "#475569",
+                  color: "#1e293b",
                 }}
               >
                 <FileText size={18} style={{ color: "#059669", flexShrink: 0 }} />
@@ -685,45 +686,45 @@ export const BranchQrCustomerForm = () => {
               <h2 style={{ fontSize: "1.45rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "#0f172a" }}>
                 {matchInfo ? "Customer Profile Linked & Enquiry Staged!" : "Customer Registered & Enquiry Staged!"}
               </h2>
-              <p style={{ color: "#475569", margin: "0 0 1.5rem 0", fontSize: "0.875rem" }}>
+              <p style={{ color: "#1e293b", margin: "0 0 1.5rem 0", fontSize: "0.875rem" }}>
                 Customer <strong>{formData.name}</strong> has been {matchInfo ? "verified and linked" : "registered"} in the central system. Enquiry request has been queued in <code>customerRequests</code>.
               </p>
 
               <div style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "1.25rem", textAlign: "left", maxWidth: "440px", margin: "0 auto 1.5rem auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Customer Code:</span>
+                  <span style={{ color: "#1e293b" }}>Customer Code:</span>
                   <span style={{ fontWeight: 700, color: "#0f172a" }}>
                     {submissionResult?.customer?.customerCode || submissionResult?.customerCode || "CUST-RECORD"}
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Customer Name:</span>
+                  <span style={{ color: "#1e293b" }}>Customer Name:</span>
                   <span style={{ fontWeight: 600, color: "#0f172a" }}>{formData.name}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Phone / Mobile:</span>
+                  <span style={{ color: "#1e293b" }}>Phone / Mobile:</span>
                   <span style={{ fontWeight: 600, color: "#0f172a" }}>{formData.phone}</span>
                 </div>
                 {formData.email && (
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.8125rem" }}>
-                    <span style={{ color: "#475569" }}>Email ID:</span>
+                    <span style={{ color: "#1e293b" }}>Email ID:</span>
                     <span style={{ fontWeight: 600, color: "#0f172a" }}>{formData.email}</span>
                   </div>
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Enquiry Staged Ref:</span>
+                  <span style={{ color: "#1e293b" }}>Enquiry Staged Ref:</span>
                   <span style={{ fontWeight: 700, color: "#059669" }}>
                     {submissionResult?.requestNo || "REQ-STAGED"}
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Status:</span>
+                  <span style={{ color: "#1e293b" }}>Status:</span>
                   <span style={{ fontWeight: 700, color: "#d97706", backgroundColor: "#fef3c7", padding: "2px 8px", borderRadius: "4px" }}>
                     PENDING
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "#475569" }}>Branch:</span>
+                  <span style={{ color: "#1e293b" }}>Branch:</span>
                   <span style={{ fontWeight: 600, color: "#0f172a" }}>{formData.branchName}</span>
                 </div>
               </div>

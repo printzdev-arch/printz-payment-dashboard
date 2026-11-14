@@ -4,6 +4,7 @@ import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export default function AssignSalaryStructureModal({
   isOpen,
@@ -12,6 +13,7 @@ export default function AssignSalaryStructureModal({
   branches = [],
   initialBranchId = "",
   initialEmployeeId = "",
+  initialMonthlySalary = "",
 }) {
   const [step, setStep] = useState(1);
   const [employees, setEmployees] = useState([]);
@@ -36,7 +38,7 @@ export default function AssignSalaryStructureModal({
         employeeId: initialEmployeeId || "",
         branchId: initialBranchId || (branches[0]?._id ? String(branches[0]._id) : ""),
         effectiveFrom: new Date().toISOString().split("T")[0],
-        monthlySalary: "",
+        monthlySalary: initialMonthlySalary || "",
         remarks: "",
         components: [],
       });
@@ -249,7 +251,7 @@ export default function AssignSalaryStructureModal({
                   <label>
                     Employee <span className="req">*</span>
                   </label>
-                  <select
+                  <StyledSelect
                     className="salary-form-select"
                     value={formData.employeeId}
                     onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
@@ -266,7 +268,7 @@ export default function AssignSalaryStructureModal({
                         {emp.employeeCode ? `[${emp.employeeCode}] ` : ""}{emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim()}
                       </option>
                     ))}
-                  </select>
+                  </StyledSelect>
                 </div>
               </div>
 

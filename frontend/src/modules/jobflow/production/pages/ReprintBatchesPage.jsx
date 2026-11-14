@@ -24,6 +24,7 @@ import "../styles/reprint-batches.css";
 import "../styles/production-theme.css";
 
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants and helpers                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -315,7 +316,7 @@ function ReprintTab({ onChanged }) {
             />
           </div>
 
-          <select
+          <StyledSelect
             className="jf-input jf-input-sm rb-select-filter"
             value={status}
             onChange={(e) => {
@@ -329,7 +330,7 @@ function ReprintTab({ onChanged }) {
                 {v}
               </option>
             ))}
-          </select>
+          </StyledSelect>
 
           {(search || status !== "ALL") && (
             <button
@@ -345,11 +346,22 @@ function ReprintTab({ onChanged }) {
               Reset
             </button>
           )}
-          <span className="rb-count">{total} requests</span>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary rb-refresh-icon rb-refresh-end"
+            title="Refresh"
+            aria-label="Refresh"
+            onClick={() => {
+              load();
+              if (onChanged) onChanged();
+            }}
+          >
+            <RefreshCw size={15} />
+          </button>
         </div>
       </div>
 
-      <DataTable
+      <DataTable mobileCards
         searchable={false}
         loading={loading}
         data={error ? [] : rows}
@@ -537,7 +549,7 @@ function ReworkTab({ onChanged }) {
             />
           </div>
 
-          <select
+          <StyledSelect
             className="jf-input jf-input-sm rb-select-filter"
             value={status}
             onChange={(e) => {
@@ -551,7 +563,7 @@ function ReworkTab({ onChanged }) {
                 {REWORK_STATUS_LABEL[k]}
               </option>
             ))}
-          </select>
+          </StyledSelect>
 
           {(search || status !== "ALL") && (
             <button
@@ -567,11 +579,22 @@ function ReworkTab({ onChanged }) {
               Reset
             </button>
           )}
-          <span className="rb-count">{total} rework tasks</span>
+          <button
+            type="button"
+            className="jf-btn jf-btn-secondary rb-refresh-icon rb-refresh-end"
+            title="Refresh"
+            aria-label="Refresh"
+            onClick={() => {
+              load();
+              if (onChanged) onChanged();
+            }}
+          >
+            <RefreshCw size={15} />
+          </button>
         </div>
       </div>
 
-      <DataTable
+      <DataTable mobileCards
         searchable={false}
         loading={loading}
         data={error ? [] : rows}
@@ -764,38 +787,23 @@ export function ReprintBatchesPage({ initialTab = "REWORK" }) {
     <div className="reprint-batches-page">
 
 
-      <div className="reprint-header-card">
-        <div className="rb-header-content">
-          <div className="rb-title-group">
-            <div className="reprint-header-icon-wrap">
-              <Printer size={22} />
-            </div>
-            <div>
-              <h1 className="rb-title">Rework & Reprint</h1>
-             
-            </div>
-          </div>
-          <button type="button" className="jf-btn jf-btn-secondary" onClick={() => setReloadKey((k) => k + 1)}>
-            <RefreshCw size={15} /> Refresh counts
-          </button>
+      <div className="rb-top-row">
+        <div className="rb-tabs" role="tablist">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              className={`rb-tab ${tab === t.id ? "is-active" : ""}`}
+              onClick={() => setTab(t.id)}
+              title={t.count != null ? `${t.count} ${t.hint}` : undefined}
+            >
+              {t.label}
+              {t.count != null && <span className="rb-tab-count">{t.count}</span>}
+            </button>
+          ))}
         </div>
-      </div>
-
-      <div className="rb-tabs" role="tablist">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`rb-tab ${tab === t.id ? "is-active" : ""}`}
-            onClick={() => setTab(t.id)}
-            title={t.count != null ? `${t.count} ${t.hint}` : undefined}
-          >
-            {t.label}
-            {t.count != null && <span className="rb-tab-count">{t.count}</span>}
-          </button>
-        ))}
       </div>
 
       {tab === "REWORK" ? (

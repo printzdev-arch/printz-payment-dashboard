@@ -260,38 +260,38 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", fontSize: "0.85rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
-                  <span style={{ color: "#64748b" }}>Job Order No:</span>
+                  <span style={{ color: "#1e293b" }}>Job Order No:</span>
                   <strong style={{ color: "#0f172a" }}>{deliveryOrder.jobNo}</strong>
                 </div>
 
 
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
-                  <span style={{ color: "#64748b" }}>Received By:</span>
+                  <span style={{ color: "#1e293b" }}>Received By:</span>
                   <strong style={{ color: "#0f172a" }}>{recipient}</strong>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
-                  <span style={{ color: "#64748b" }}>Contact Phone:</span>
+                  <span style={{ color: "#1e293b" }}>Contact Phone:</span>
                   <span style={{ color: "#0f172a" }}>{phone}</span>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
-                  <span style={{ color: "#64748b" }}>Relationship to Customer:</span>
+                  <span style={{ color: "#1e293b" }}>Relationship to Customer:</span>
                   <span style={{ textTransform: "capitalize", fontWeight: 600, color: "#047857" }}>{relationship.toLowerCase()}</span>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.4rem" }}>
-                  <span style={{ color: "#64748b" }}>Delivery Staff / Driver:</span>
+                  <span style={{ color: "#1e293b" }}>Delivery Staff / Driver:</span>
                   <span style={{ fontWeight: 600, color: "#0f172a" }}>{deliveryOrder.deliveryPersonName || "Guna Printz Staff"}</span>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem", paddingTop: "0.2rem" }}>
-                  <span style={{ color: "#64748b" }}>Destination / Address:</span>
+                  <span style={{ color: "#1e293b" }}>Destination / Address:</span>
                   <span style={{ color: "#1e293b", fontWeight: 500, fontSize: "0.82rem" }}>{deliveryOrder.deliveryAddress || "Counter Pickup"}</span>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem", paddingTop: "0.2rem" }}>
-                  <span style={{ color: "#64748b" }}>Handover Notes:</span>
+                  <span style={{ color: "#1e293b" }}>Handover Notes:</span>
                   <span style={{ color: "#334155", fontStyle: "italic", background: "#ffffff", padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
                     &ldquo;{notes}&rdquo;
                   </span>
@@ -317,7 +317,7 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
                   <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#334155", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     <PenTool size={15} color="#059669" /> Digital Signature
                   </span>
-                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Legally Verified</span>
+                  <span style={{ fontSize: "0.72rem", color: "#1e293b" }}>Legally Verified</span>
                 </div>
 
                 <div
@@ -346,7 +346,7 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: "0.72rem", color: "#64748b", textAlign: "right" }}>
+                <div style={{ fontSize: "0.72rem", color: "#1e293b", textAlign: "right" }}>
                   Signed by: <strong>{recipient}</strong>
                 </div>
               </div>
@@ -367,7 +367,7 @@ export const ViewDeliveryProofModal = ({ isOpen, onClose, deliveryOrder }) => {
                   <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#334155", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     <Camera size={15} color="#059669" /> Handover Delivery Photo
                   </span>
-                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Parcel Evidence</span>
+                  <span style={{ fontSize: "0.72rem", color: "#1e293b" }}>Parcel Evidence</span>
                 </div>
 
                 <div

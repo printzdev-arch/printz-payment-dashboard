@@ -450,10 +450,6 @@ const DisplayPrinterReadings = () => {
           <div className="display-readings-filter-fields">
             {/* Branch Selector */}
             <div className="display-readings-field-group">
-              <label htmlFor="branch-select" className="display-readings-field-label">
-                <Building2 size={15} color="#059669" />
-                <span>Select Store / Branch</span>
-              </label>
               <BranchSelect
                 id="branch-select"
                 value={branchName}
@@ -467,10 +463,6 @@ const DisplayPrinterReadings = () => {
 
             {/* Date Selector */}
             <div className="display-readings-field-group">
-              <label htmlFor="reading-date" className="display-readings-field-label">
-                <Calendar size={15} color="#059669" />
-                <span>Reading Date</span>
-              </label>
               <CalendarSelect
                 id="reading-date"
                 selected={date ? new Date(date) : null}

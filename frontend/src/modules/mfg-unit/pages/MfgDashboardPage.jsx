@@ -78,7 +78,7 @@ export default function MfgDashboardPage() {
       <div className="so-detail-grid">
         <div className="so-detail-main">
           <Section icon={Workflow} title="Orders you took" subtitle="Still open. Anyone at the unit can work on them too." flush>
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={myOrders}
               pageSize={5}

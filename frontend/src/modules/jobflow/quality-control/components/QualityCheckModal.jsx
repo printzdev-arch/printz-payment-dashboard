@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, ShieldCheck, AlertTriangle, RefreshCw } from "lucide-react";
 import jobFlowApi from "../api/qcApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const QualityCheckModal = ({ isOpen, onClose, productionOrder, onCompleted }) => {
   const [result, setResult] = useState("PASS");
@@ -110,7 +111,7 @@ export const QualityCheckModal = ({ isOpen, onClose, productionOrder, onComplete
 
         <form onSubmit={handleSubmit}>
           <div className="jf-modal-body">
-            <p style={{ fontSize: "0.875rem", color: "#475569", marginTop: 0 }}>
+            <p style={{ fontSize: "0.875rem", color: "#1e293b", marginTop: 0 }}>
               Job Order No: <strong>{productionOrder.jobNo || productionOrder.jobOrderNo || "-"}</strong> •{" "}
               {productionOrder.productType || "Business Cards"}
             </p>
@@ -219,7 +220,7 @@ export const QualityCheckModal = ({ isOpen, onClose, productionOrder, onComplete
                 {correctiveAction === "REWORK" && (
                   <div className="jf-form-group" style={{ marginBottom: "0.75rem" }}>
                     <label className="jf-label jf-label-required">Affected Operation (Resume Here)</label>
-                    <select
+                    <StyledSelect
                       className="jf-select"
                       value={reworkOperationCode}
                       onChange={(e) => setReworkOperationCode(e.target.value)}
@@ -229,7 +230,7 @@ export const QualityCheckModal = ({ isOpen, onClose, productionOrder, onComplete
                       <option value="BINDING">Binding (e.g. spiral alignment, glue gap)</option>
                       <option value="COATING">UV Coating / Varnish</option>
                       <option value="PACKING">Packing & Shrink-wrap</option>
-                    </select>
+                    </StyledSelect>
                   </div>
                 )}
 

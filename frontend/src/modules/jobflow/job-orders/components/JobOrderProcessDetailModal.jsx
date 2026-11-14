@@ -446,7 +446,7 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
               <h2 className="jf-modal-title" style={{ fontSize: "1.15rem", margin: 0 }}>{jobNo}</h2>
               <StatusBadge status={displayStatus} />
             </div>
-            <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.8125rem", color: "#475569" }}>
+            <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.8125rem", color: "#1e293b" }}>
               {customerName} • {jobTitle} • Due {dueDate}
             </p>
           </div>
@@ -504,7 +504,7 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem 1.5rem", marginTop: "0.5rem", fontSize: "0.8125rem" }}>
                   {step.details.map((d, i) => (
-                    <span key={i} style={{ color: "#64748b" }}>
+                    <span key={i} style={{ color: "#1e293b" }}>
                       {d.label}: <strong style={{ color: "#0f172a", fontWeight: 600 }}>{d.value}</strong>
                     </span>
                   ))}
@@ -515,7 +515,7 @@ export const JobOrderProcessDetailModal = ({ isOpen, onClose, job }) => {
         </div>
 
         <div className="jf-modal-footer" style={{ padding: "0.75rem 1.5rem", borderTop: "1px solid var(--jf-border)", justifyContent: "flex-start" }}>
-          <span style={{ fontSize: "0.8125rem", color: "#475569" }}>
+          <span style={{ fontSize: "0.8125rem", color: "#1e293b" }}>
             Status: <strong>{displayStatus}</strong>
           </span>
         </div>

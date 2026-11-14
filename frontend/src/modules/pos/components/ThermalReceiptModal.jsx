@@ -71,7 +71,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
           className="pos-unified-receipt-modal"
           onClick={(e) => e.stopPropagation()}
           style={{
-            maxWidth: template === "a4" ? "820px" : "440px",
+            maxWidth: template === "a4" ? "820px" : "540px",
           }}
         >
           {/* Unified Top Header Bar */}

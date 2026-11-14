@@ -337,7 +337,7 @@ const InventoryTracking = () => {
     if (list.length === 0) return null;
     return (
       <div style={{ marginTop: "14px" }}>
-        <DataTable
+        <DataTable mobileCards
           title={movementTitle(title, list.length)}
           icon={icon}
           columns={columns}
@@ -401,7 +401,7 @@ const InventoryTracking = () => {
     });
 
   return (
-    <div className="add-assets-page-container">
+    <div className="add-assets-page-container extra-feature-page">
       <Popup {...popup} />
 
       {/* Header Banner - Clean emerald design */}

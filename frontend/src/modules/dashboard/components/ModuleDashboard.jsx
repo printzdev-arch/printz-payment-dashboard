@@ -157,7 +157,7 @@ export default function ModuleDashboard({ data, isLoading }) {
       )}
 
       {table && (
-        <DataTable
+        <DataTable mobileCards
           title={table.title}
           subtitle={`${table.rows.length} record${table.rows.length === 1 ? "" : "s"}`}
           data={table.rows}

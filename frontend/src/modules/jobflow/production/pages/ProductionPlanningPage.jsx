@@ -37,6 +37,7 @@ import "../styles/production-theme.css";
 
 import Pagination from "../../../../shared/ui/Pagination";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants                                                                  */
 /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
@@ -347,11 +348,11 @@ function OperationForm({ initial, onCancel, onSubmit }) {
       <div className="pp-modal-body">
         <div className="pp-form-grid">
           <Field label="Operation" required>
-            <select className="pp-select" value={form.operationCode} disabled={Boolean(form.required)} title={form.required ? "Required by the job order" : undefined} onChange={(e) => update("operationCode", e.target.value)}>
+            <StyledSelect className="pp-select" value={form.operationCode} disabled={Boolean(form.required)} title={form.required ? "Required by the job order" : undefined} onChange={(e) => update("operationCode", e.target.value)}>
               {OPERATION_TYPES.map((t) => (
                 <option key={t.code} value={t.code}>{t.name}</option>
               ))}
-            </select>
+            </StyledSelect>
           </Field>
 
           <Field label="Est. Duration (minutes)" required>
@@ -396,7 +397,7 @@ function MaterialForm({ initial, operationChoices = [], stocks = [], onCancel, o
       <div className="pp-modal-body">
         <div className="pp-form-grid">
           <Field label="Stock Item" hint="Pick an item from Stock to show its available quantity. Leave blank for a material that is not in stock.">
-            <select
+            <StyledSelect
               className="pp-select"
               value={form.itemId || ""}
               onChange={(e) => {
@@ -412,7 +413,7 @@ function MaterialForm({ initial, operationChoices = [], stocks = [], onCancel, o
               {stocks.map((s) => (
                 <option key={s.id} value={s.id}>{s.name} ({s.quantity}{s.unit ? ` ${s.unit}` : ""})</option>
               ))}
-            </select>
+            </StyledSelect>
           </Field>
           <Field label="Material Name" required>
             <input type="text" className="pp-input" value={form.name} onChange={(e) => update("name", e.target.value)} required />
@@ -424,22 +425,22 @@ function MaterialForm({ initial, operationChoices = [], stocks = [], onCancel, o
             <input type="number" min="0" className="pp-input" value={form.requiredQty} onChange={(e) => update("requiredQty", e.target.value)} required />
           </Field>
           <Field label="Unit">
-            <select className="pp-select" value={form.unit} onChange={(e) => update("unit", e.target.value)}>
+            <StyledSelect className="pp-select" value={form.unit} onChange={(e) => update("unit", e.target.value)}>
               {UNIT_OPTIONS.map((u) => (
                 <option key={u} value={u}>{u}</option>
               ))}
-            </select>
+            </StyledSelect>
           </Field>
           <Field label="Available Stock" required hint={form.itemId ? "Read from Stock." : "Enter the stock you have for this material."}>
             <input type="number" min="0" className="pp-input" value={form.availableStock} readOnly={Boolean(form.itemId)} onChange={(e) => update("availableStock", e.target.value)} required />
           </Field>
           <Field label="Related Operation">
-            <select className="pp-select" value={form.relatedOperation} onChange={(e) => update("relatedOperation", e.target.value)}>
+            <StyledSelect className="pp-select" value={form.relatedOperation} onChange={(e) => update("relatedOperation", e.target.value)}>
               <option value="General">All steps</option>
               {operationChoices.map((op) => (
                 <option key={op.code} value={op.code}>{op.name}</option>
               ))}
-            </select>
+            </StyledSelect>
           </Field>
         </div>
 
@@ -934,12 +935,11 @@ function PlanProductionView({ job, onBack, onDone }) {
             <Field label="Production Priority">
               <div className={`pp-select-wrap pp-select-wrap--flag pp-select-wrap--${priorityTone(schedule.priority)}`}>
                 <Flag size={14} className="pp-select-flag" />
-                <select className="pp-select" value={schedule.priority} onChange={(e) => updateSchedule("priority", e.target.value)}>
+                <StyledSelect searchable={false} className="pp-select" value={schedule.priority} onChange={(e) => updateSchedule("priority", e.target.value)}>
                   {PRIORITY_OPTIONS.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
-                </select>
-                <ChevronDown size={15} />
+                </StyledSelect>
               </div>
             </Field>
           </div>

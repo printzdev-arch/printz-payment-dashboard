@@ -16,6 +16,7 @@ import {
 import "../../../../shared/styles/printzTheme.css";
 import "../../../../shared/styles/addAssets.css";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect.jsx";
 
 const PreviousBalanceList = () => {
@@ -188,9 +189,16 @@ const PreviousBalanceList = () => {
   };
 
   return (
-    <div className="add-assets-page-container">
-      {/* Header Banner - Clean emerald design, no illustration */}
-      
+    <div className="add-assets-page-container extra-feature-page">
+      {/* Page heading */}
+      <div className="printz-header-banner-full">
+        <div className="printz-header-title-area">
+          <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
+            Previous Balance <span className="highlight" style={{ color: "#059669" }}>List</span>
+          </h1>
+        </div>
+      </div>
+
       {/* Main Card */}
       <div className="add-assets-card">
         <div className="add-assets-card-header">
@@ -220,13 +228,6 @@ const PreviousBalanceList = () => {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Filter size={15} color="#059669" />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
-              Filters:
-            </span>
-          </div>
-
           {/* Branch Filter */}
           <div style={{ minWidth: "180px" }}>
             <BranchSelect
@@ -248,7 +249,7 @@ const PreviousBalanceList = () => {
           <div style={{ minWidth: "150px" }}>
             <div className="add-assets-input-wrap" style={{ height: "38px" }}>
               <Clock size={15} className="add-assets-input-icon" />
-              <select
+              <StyledSelect
                 id="status-filter"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
@@ -256,7 +257,7 @@ const PreviousBalanceList = () => {
                 style={{ fontSize: "13px" }}
               >
                 <option value="">Pending Collections</option>
-              </select>
+              </StyledSelect>
             </div>
           </div>
 
@@ -354,7 +355,7 @@ const PreviousBalanceList = () => {
               )}
             </div>
           ) : (
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={currentItems}
               serverPagination={{

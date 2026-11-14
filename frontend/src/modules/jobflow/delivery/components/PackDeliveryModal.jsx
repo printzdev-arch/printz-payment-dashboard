@@ -61,7 +61,7 @@ export const PackDeliveryModal = ({ isOpen, onClose, deliveryOrder, onPacked }) 
             <Package size={20} style={{ color: "var(--jf-primary)" }} />
             <div>
               <h2 className="jf-modal-title">Pack & Verify Goods</h2>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Job No: <strong>{deliveryOrder.jobNo}</strong>
               </div>
             </div>

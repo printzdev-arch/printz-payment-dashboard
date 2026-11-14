@@ -90,6 +90,20 @@ exports.createComponent = asyncHandler(async (req, res) => {
   assertBranch(req, req.body.branchId);
   return ResponseHelper.cleanCreated(res, "Salary component created.", await service.createComponent(req.body, userId(req)));
 });
+exports.updateComponent = asyncHandler(async (req, res) => {
+  const existing = await service.getComponentById(req.params.id);
+  if (!existing) throw ApiError.notFound("Salary component not found.");
+  if (existing.branchId) assertBranch(req, existing.branchId);
+  else if (!isGlobal(req)) throw ApiError.forbidden("Only a super admin can change a global salary component.");
+  return ResponseHelper.cleanOk(res, "Salary component updated.", await service.updateComponent(req.params.id, req.body, userId(req)));
+});
+exports.deleteComponent = asyncHandler(async (req, res) => {
+  const existing = await service.getComponentById(req.params.id);
+  if (!existing) throw ApiError.notFound("Salary component not found.");
+  if (existing.branchId) assertBranch(req, existing.branchId);
+  else if (!isGlobal(req)) throw ApiError.forbidden("Only a super admin can delete a global salary component.");
+  return ResponseHelper.cleanOk(res, "Salary component deleted.", await service.deleteComponent(req.params.id));
+});
 exports.listStructures = asyncHandler(async (req, res) => {
   const result = await service.listStructures(scopedFilters(req));
   return ResponseHelper.cleanOk(res, "Employee salary structures retrieved.", result, result.meta);
@@ -97,6 +111,13 @@ exports.listStructures = asyncHandler(async (req, res) => {
 exports.createStructure = asyncHandler(async (req, res) => {
   assertBranch(req, req.body.branchId);
   return ResponseHelper.cleanCreated(res, "Employee salary structure created.", await service.createStructure(req.body, userId(req)));
+});
+exports.deleteStructure = asyncHandler(async (req, res) => {
+  const existing = await service.getStructureById(req.params.id);
+  if (!existing) throw ApiError.notFound("Salary structure not found.");
+  assertBranch(req, existing.branchId);
+  const result = await service.deleteStructure(req.params.id);
+  return ResponseHelper.cleanOk(res, "Salary structure deleted.", result);
 });
 exports.listAdjustments = asyncHandler(async (req, res) => {
   const result = await service.listAdjustments(scopedFilters(req));

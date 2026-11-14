@@ -2229,3 +2229,19 @@ input:checked + .slider:before {
   .attendance-print-root thead { display: table-header-group; }
   @page { size: A4 landscape; margin: 12mm; }
 }
+
+/* Tabs as buttons: the open tab is dark green with white text */
+.attendance-tabs-nav { gap: 8px; border-bottom: none; margin-bottom: 16px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
+.attendance-tabs-nav::-webkit-scrollbar { display: none; }
+.attendance-tab-btn {
+  padding: 9px 18px; border: 1px solid #dbe3ea; border-radius: 10px; background: #ffffff; color: #0f172a;
+  font-size: 13.5px; font-weight: 600; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); white-space: nowrap;
+}
+.attendance-tab-btn:hover { background: #f1f5f9; color: #0f172a; }
+.attendance-tab-btn.active, .attendance-tab-btn.active:hover {
+  background: #0d6245; border-color: #0d6245; color: #ffffff; box-shadow: 0 2px 6px rgba(13, 98, 69, 0.28);
+}
+.attendance-tab-btn.active::after { display: none; }
+@media (max-width: 640px) {
+  .attendance-tab-btn { flex: 1 1 0; text-align: center; padding: 9px 10px; font-size: 13px; }
+}

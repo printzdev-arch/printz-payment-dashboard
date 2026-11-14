@@ -22,6 +22,7 @@ import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal
 import jobFlowApi from "../api/jobOrdersApi";
 import "../styles/job-orders.css";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const JobOrdersPage = () => {
   const { id: routeJobId } = useParams();
@@ -95,14 +96,9 @@ export const JobOrdersPage = () => {
   return (
     <JobFlowLayout
       title="Job Orders"
-      actions={
-        <Link to="/jobflow/jobs/new" className="jf-btn jf-btn-primary">
-          <Plus size={16} /> Create Job Order
-        </Link>
-      }
     >
       {/* Search & Filters Filter Bar */}
-      <div className="jf-filter-bar">
+      <div className="jf-filter-bar jo-filter-row">
         <div className="jf-search-input-wrap">
           <Search size={16} className="jf-search-icon" />
           <input
@@ -114,9 +110,9 @@ export const JobOrdersPage = () => {
           />
         </div>
 
-        <select
+        <StyledSelect
           className="jf-select"
-          style={{width:"150px"}}
+          style={{ width: "180px" }}
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value)}
         >
@@ -127,12 +123,15 @@ export const JobOrdersPage = () => {
           <option value="QC">Quality Control</option>
           <option value="DELIVERY">Delivery</option>
           <option value="COMPLETED">Completed</option>
-        </select>
+        </StyledSelect>
 
+        <Link to="/jobflow/jobs/new" className="jf-btn jf-btn-primary jo-create-btn">
+          <Plus size={16} /> Create Job Order
+        </Link>
       </div>
 
       {/* Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}
-      <DataTable renderWithValue
+      <DataTable mobileCards renderWithValue
         columns={[
           {
             key: "jobNo",

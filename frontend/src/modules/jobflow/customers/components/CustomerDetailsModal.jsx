@@ -149,27 +149,27 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                   </h3>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.875rem" }}>
                     <div>
-                      <span style={{ color: "#475569" }}>Customer Code:</span>
+                      <span style={{ color: "#1e293b" }}>Customer Code:</span>
                       <div style={{ fontWeight: 600 }}>{code}</div>
                     </div>
                     <div>
-                      <span style={{ color: "#475569" }}>Type:</span>
+                      <span style={{ color: "#1e293b" }}>Type:</span>
                       <div style={{ fontWeight: 600 }}>{type}</div>
                     </div>
                     <div>
-                      <span style={{ color: "#475569" }}>Email:</span>
+                      <span style={{ color: "#1e293b" }}>Email:</span>
                       <div style={{ fontWeight: 600 }}>{email}</div>
                     </div>
                     <div>
-                      <span style={{ color: "#475569" }}>Phone:</span>
+                      <span style={{ color: "#1e293b" }}>Phone:</span>
                       <div style={{ fontWeight: 600 }}>{phone}</div>
                     </div>
                     <div>
-                      <span style={{ color: "#475569" }}>Default Branch:</span>
+                      <span style={{ color: "#1e293b" }}>Default Branch:</span>
                       <div style={{ fontWeight: 600 }}>{customer.defaultBranch || "Main Branch"}</div>
                     </div>
                     <div>
-                      <span style={{ color: "#475569" }}>GSTIN / Tax No:</span>
+                      <span style={{ color: "#1e293b" }}>GSTIN / Tax No:</span>
                       <div style={{ fontWeight: 600 }}>{gstin}</div>
                     </div>
                   </div>
@@ -193,11 +193,11 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                 </h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "#f8fafc", borderRadius: "6px" }}>
-                    <span style={{ fontSize: "0.875rem", color: "#475569" }}>Total Job Orders</span>
+                    <span style={{ fontSize: "0.875rem", color: "#1e293b" }}>Total Job Orders</span>
                     <strong style={{ fontSize: "1.125rem", color: "#0f172a" }}>{customer.totalJobs || customer.stats?.jobCount || 14}</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "#f8fafc", borderRadius: "6px" }}>
-                    <span style={{ fontSize: "0.875rem", color: "#475569" }}>Total Invoiced</span>
+                    <span style={{ fontSize: "0.875rem", color: "#1e293b" }}>Total Invoiced</span>
                     <strong style={{ fontSize: "1.125rem", color: "#0f172a" }}>₹{(customer.totalInvoiced || 18450).toFixed(2)}</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
@@ -231,7 +231,7 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                 </button>
               </div>
 
-              <DataTable renderWithValue
+              <DataTable mobileCards renderWithValue
                 columns={[
                   {
                     key: "jobNo",
@@ -306,7 +306,7 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
           )}
 
           {activeTab !== "overview" && activeTab !== "job orders" && (
-            <div style={{ padding: "2rem", textAlign: "center", color: "#475569" }}>
+            <div style={{ padding: "2rem", textAlign: "center", color: "#1e293b" }}>
               <p>Viewing historical {activeTab} for {name}. All records are securely synced with the ledger.</p>
             </div>
           )}

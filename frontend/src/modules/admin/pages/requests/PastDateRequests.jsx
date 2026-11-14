@@ -4,6 +4,7 @@ import "../../../../shared/styles/printzTheme.css";
 import "../../../../shared/styles/addAssets.css";
 import { usePopup } from "../../../../shared/hooks/usePopup";
 import Popup from "../../../../shared/ui/Popup/Popup.jsx";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect.jsx";
 import CalendarSelect from "../../../../shared/ui/selects/CalendarSelect.jsx";
@@ -314,7 +315,7 @@ const PastDateRequests = () => {
   };
 
   return (
-    <div className="add-assets-page-container">
+    <div className="add-assets-page-container extra-feature-page">
       <Popup {...popup} />
 
       {/* Header Banner - Clean emerald design, no illustration */}
@@ -358,30 +359,6 @@ const PastDateRequests = () => {
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-          <button
-            type="button"
-            onClick={openAllowDialog}
-            className="printz-btn-primary"
-            style={{
-              padding: "9px 18px",
-              fontSize: "13.5px",
-              fontWeight: 600,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "7px",
-              borderRadius: "10px",
-              background: "#059669",
-              color: "#ffffff",
-              border: "none",
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(5, 150, 105, 0.25)",
-            }}
-          >
-            <Plus size={15} />
-            <span>Allow Past Date</span>
-          </button>
-        </div>
       </div>
 
       {/* Main Card: Filters & Requests Table */}
@@ -398,11 +375,6 @@ const PastDateRequests = () => {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "12.5px", color: "#475569", fontWeight: 500 }}>
-              Showing {requests.length === 0 ? 0 : startIndex + 1}–{endIndex} of {totalCount} requests
-            </span>
-          </div>
         </div>
 
         {/* Filter Controls Row */}
@@ -417,13 +389,6 @@ const PastDateRequests = () => {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Filter size={15} color="#059669" />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
-              Filters:
-            </span>
-          </div>
-
           {/* Branch Filter */}
           <div style={{ minWidth: "190px" }}>
             <BranchSelect
@@ -445,7 +410,7 @@ const PastDateRequests = () => {
           <div style={{ minWidth: "160px" }}>
             <div className="add-assets-input-wrap" style={{ height: "38px" }}>
               <Clock size={15} className="add-assets-input-icon" />
-              <select
+              <StyledSelect
                 id="status-filter"
                 value={statusFilter}
                 onChange={(e) => {
@@ -459,7 +424,7 @@ const PastDateRequests = () => {
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
-              </select>
+              </StyledSelect>
             </div>
           </div>
 
@@ -515,6 +480,11 @@ const PastDateRequests = () => {
               <span>Clear</span>
             </button>
           )}
+
+          <button type="button" onClick={openAllowDialog} className="printz-btn-primary pdr-allow-btn">
+            <Plus size={15} />
+            <span>Allow Past Date</span>
+          </button>
         </div>
 
         {/* Requests Table */}
@@ -551,7 +521,7 @@ const PastDateRequests = () => {
               )}
             </div>
           ) : (
-            <DataTable
+            <DataTable mobileCards
               searchable={false}
               data={currentRequests}
               serverPagination={{

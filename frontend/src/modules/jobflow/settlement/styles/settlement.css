@@ -97,7 +97,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   background: #f8fafc;
-  color: #475569;
+  color: #1e293b;
   border: 1px solid #e2e8f0;
 }
 
@@ -176,7 +176,37 @@
 
 .settlement-feature-container .printz-kpi-label {
   font-size: 12px;
-  color: #475569;
+  color: #1e293b;
   margin-top: 3px;
   font-weight: 500;
 }
+
+/* Toolbar: search, status tabs (open one dark green), refresh icon at the end */
+.stl-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; }
+.stl-search .jf-input { height: 38px; background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.stl-search .jf-input::placeholder { color: #475569; }
+.stl-search svg { top: 11px !important; }
+.stl-tabs { display: flex; gap: 8px; flex: 0 0 auto; }
+.stl-tab {
+  height: 38px; padding: 0 16px; border: 1px solid #dbe3ea; border-radius: 10px; background: #ffffff; color: #0f172a;
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em; cursor: pointer; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.stl-tab:hover { background: #f1f5f9; }
+.stl-tab.active, .stl-tab.active:hover { background: #0d6245; border-color: #0d6245; color: #ffffff; box-shadow: 0 2px 6px rgba(13, 98, 69, 0.28); }
+.stl-refresh {
+  margin-left: auto; width: 38px; height: 38px; flex: 0 0 38px; display: inline-flex; align-items: center; justify-content: center;
+  background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; color: #0f172a; cursor: pointer; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.stl-refresh:hover { background: #f1f5f9; }
+@media (max-width: 720px) {
+  .stl-toolbar { flex-wrap: wrap; }
+  .stl-search { flex: 1 1 100% !important; }
+  .stl-tabs { flex: 1 1 auto; }
+  .stl-tab { flex: 1 1 0; padding: 0 8px; }
+}
+
+/* Outstanding invoices: just the table, no card box around it */
+.stl-plain-card { background: transparent; border: none; box-shadow: none; padding: 0; }
+.stl-plain-card .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }
+.stl-toolbar .branch-select-container { flex: 0 0 170px; }
+.stl-toolbar .branch-select-trigger { height: 38px; }

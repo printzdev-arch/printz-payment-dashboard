@@ -219,7 +219,7 @@
 }
 
 .pp-icon-btn:hover:not(:disabled) { background: var(--pp-accent-soft); }
-.pp-icon-btn:disabled { color: #64748b; cursor: not-allowed; }
+.pp-icon-btn:disabled { color: #1e293b; cursor: not-allowed; }
 
 .pp-icon-btn--neutral { color: var(--pp-body); }
 .pp-icon-btn--neutral:hover:not(:disabled) { background: #eef2f6; }
@@ -400,7 +400,7 @@
 }
 
 .pp-prio--high   { color: #dc2626; }
-.pp-prio--normal { color: #475569; }
+.pp-prio--normal { color: #1e293b; }
 .pp-prio--low    { color: #1d4ed8; }
 
 /* Files & specs */
@@ -473,7 +473,7 @@
 }
 
 .pp-badge--high     { background: #fee2e2; color: #b91c1c; }
-.pp-badge--normal   { background: #f1f5f9; color: #475569; }
+.pp-badge--normal   { background: #f1f5f9; color: #1e293b; }
 .pp-badge--low      { background: #eff6ff; color: #1d4ed8; }
 .pp-badge--approved { background: #dcfce7; color: #166534; }
 
@@ -535,7 +535,7 @@
   border-bottom: 1px solid var(--pp-border);
   font-size: 12.5px;
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
   text-align: left;
   white-space: nowrap;
 }
@@ -615,7 +615,7 @@
 .pp-field-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
 }
 
 .pp-required { color: #ef4444; }
@@ -695,7 +695,7 @@
 }
 
 .pp-select-wrap--high   .pp-select-flag { color: #dc2626; }
-.pp-select-wrap--normal .pp-select-flag { color: #475569; }
+.pp-select-wrap--normal .pp-select-flag { color: #1e293b; }
 .pp-select-wrap--low    .pp-select-flag { color: #2563eb; }
 
 .pp-input-wrap { position: relative; }
@@ -705,7 +705,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #475569;
+  color: #1e293b;
   pointer-events: none;
 }
 
@@ -726,7 +726,7 @@
   right: 12px;
   bottom: 8px;
   font-size: 11.5px;
-  color: #475569;
+  color: #1e293b;
   pointer-events: none;
 }
 
@@ -763,7 +763,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  background: linear-gradient(180deg, rgba(244, 247, 245, 0) 0%, #f4f7f5 35%);
+  background: linear-gradient(180deg, rgba(238, 241, 244, 0) 0%, #eef1f4 35%);
 }
 
 /* ---------- Approved jobs: filters ---------- */
@@ -855,7 +855,7 @@
 }
 
 .pp-page-btn:hover:not(:disabled) { border-color: var(--pp-accent); color: var(--pp-accent); }
-.pp-page-btn:disabled { color: #64748b; cursor: not-allowed; }
+.pp-page-btn:disabled { color: #1e293b; cursor: not-allowed; }
 
 .pp-page-btn--active,
 .pp-page-btn--active:hover {
@@ -1060,11 +1060,14 @@
 
 /* ΓöÇΓöÇ Production Planning V2 Extensions ΓöÇΓöÇ */
 .pp2-locked td { background: #f8fafc; }
-.pp2-lock { display: inline-flex; align-items: center; gap: 4px; color: #475569; font-size: 0.75rem; }
+.pp2-lock { display: inline-flex; align-items: center; gap: 4px; color: #1e293b; font-size: 0.75rem; }
 .pp2-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .pp2-tab { border: 1px solid #e2e8f0; background: #ffffff; border-radius: 999px; padding: 6px 14px; cursor: pointer; font: inherit; color: #334155; font-size: 13px; font-weight: 500; transition: all 0.15s ease; }
 .pp2-tab:hover { background: #f8fafc; border-color: #cbd5e1; }
 .pp2-tab--active { background: #059669; border-color: #059669; color: #ffffff; }
 .pp2-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 10px; padding: 10px 16px; font-size: 14px; }
 .pp2-check { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.85rem; }
-.pp2-loading-note { padding: 1.25rem; font-size: 0.875rem; color: #475569; margin: 0; }
+.pp2-loading-note { padding: 1.25rem; font-size: 0.875rem; color: #1e293b; margin: 0; }
+
+.pp-select-wrap .branch-select-container { flex: 1; min-width: 0; }
+.pp-select-wrap .branch-select-trigger { border: none; box-shadow: none; background: transparent; height: 36px; }

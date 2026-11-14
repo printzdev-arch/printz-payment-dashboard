@@ -21,6 +21,7 @@ import CustomerDetailsModal from "../components/CustomerDetailsModal";
 import BranchQrModal from "../components/BranchQrModal";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import jobFlowApi from "../api/customersApi";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import "../styles/customers.css";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -191,42 +192,9 @@ export const CustomersPage = () => {
   return (
     <JobFlowLayout
       title="Customer Directory & Enquiries"
-      actions={
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="jf-btn jf-btn-secondary"
-            onClick={() => setIsQrModalOpen(true)}
-            title="View & Print Scannable Branch Counter Stand"
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-          >
-            <QrCode size={16} /> Branch QR Stand
-          </button>
-          <button
-            type="button"
-            className="jf-btn jf-btn-secondary"
-            onClick={() => navigate("/jobflow/qr-request")}
-            title="Open Self-Service Branch QR Form"
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-          >
-            <ExternalLink size={16} /> Open QR Form
-          </button>
-          <button
-            type="button"
-            className="jf-btn jf-btn-primary"
-            onClick={() => {
-              setSelectedCustomer(null);
-              setIsAddModalOpen(true);
-            }}
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> Add Customer
-          </button>
-        </div>
-      }
     >
       {/* ── Main Tab Switcher: Three Tabs for Three Lists ── */}
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem" }}>
+      <div className="customers-tabs" style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem" }}>
         <button
           type="button"
           onClick={() => setActiveTab("both")}
@@ -277,6 +245,38 @@ export const CustomersPage = () => {
         >
           <QrCode size={16} /> QR ({counts.qr})
         </button>
+
+          <div className="customers-actions">
+            <button
+              type="button"
+              className="jf-btn jf-btn-secondary"
+              onClick={() => setIsQrModalOpen(true)}
+              title="View & Print Scannable Branch Counter Stand"
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <QrCode size={16} /> Branch QR Stand
+            </button>
+            <button
+              type="button"
+              className="jf-btn jf-btn-secondary"
+              onClick={() => navigate("/jobflow/qr-request")}
+              title="Open Self-Service Branch QR Form"
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <ExternalLink size={16} /> Open QR Form
+            </button>
+            <button
+              type="button"
+              className="jf-btn jf-btn-primary"
+              onClick={() => {
+                setSelectedCustomer(null);
+                setIsAddModalOpen(true);
+              }}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <Plus size={16} /> Add Customer
+            </button>
+          </div>
       </div>
 
       {/* Search & Filters */}
@@ -298,27 +298,27 @@ export const CustomersPage = () => {
           />
         </div>
 
-        <select
-          className="jf-select"
-          style={{width:"150px"}}
+        <StyledSelect
+          searchable={false}
+          style={{ width: "170px" }}
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
         >
           <option value="all">All Sources</option>
           <option value="individual">Individual</option>
           <option value="company">Company (B2B)</option>
-        </select>
+        </StyledSelect>
 
-        <select
-          className="jf-select"
-          style={{width:"150px"}}
+        <StyledSelect
+          searchable={false}
+          style={{ width: "170px" }}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-        </select>
+        </StyledSelect>
 
         
 
@@ -342,7 +342,7 @@ export const CustomersPage = () => {
       </form>
 
       {/* Customer Directory Table */}
-      <DataTable renderWithValue
+      <DataTable mobileCards renderWithValue
         sortable={false}
         columns={[
           {
@@ -370,7 +370,7 @@ export const CustomersPage = () => {
                 <div>
                   <div style={{ fontWeight: 600 }}>{val || row.companyName}</div>
                   {row.companyName && row.companyName !== val && (
-                    <div style={{ fontSize: "0.75rem", color: "#475569" }}>{row.companyName}</div>
+                    <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>{row.companyName}</div>
                   )}
                 </div>
               </div>
@@ -400,7 +400,7 @@ export const CustomersPage = () => {
                   <QrCode size={12} /> QR
                 </span>
               ) : (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.55rem", borderRadius: "12px", backgroundColor: "#f1f5f9", color: "#475569", fontSize: "0.75rem", fontWeight: 600 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.55rem", borderRadius: "12px", backgroundColor: "#f1f5f9", color: "#1e293b", fontSize: "0.75rem", fontWeight: 600 }}>
                   <User size={12} /> Walk-in
                 </span>
               );
@@ -418,7 +418,7 @@ export const CustomersPage = () => {
                   <Building size={12} /> Company
                 </span>
               ) : (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.55rem", borderRadius: "12px", backgroundColor: "#f8fafc", color: "#475569", fontSize: "0.75rem", fontWeight: 600 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.55rem", borderRadius: "12px", backgroundColor: "#f8fafc", color: "#1e293b", fontSize: "0.75rem", fontWeight: 600 }}>
                   <User size={12} /> Individual
                 </span>
               );
@@ -428,7 +428,7 @@ export const CustomersPage = () => {
           //   key: "gstin",
           //   label: "GSTIN",
           //   sortable: false,
-          //   render: (val) => val ? <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#475569" }}>{val}</span> : "—",
+          //   render: (val) => val ? <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#1e293b" }}>{val}</span> : "—",
           // },
           {
             key: "status",

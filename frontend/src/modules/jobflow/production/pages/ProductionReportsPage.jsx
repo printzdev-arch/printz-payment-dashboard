@@ -1,5 +1,6 @@
 import "../styles/production-reports.css";
 import "../styles/production-theme.css";
+import { createPortal } from "react-dom";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, FileDown, FileText, Printer, RefreshCw, Search } from "lucide-react";
 import { toast } from "react-toastify";
@@ -8,6 +9,7 @@ import productionApi from "../api/productionApi";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 const REPORT_TYPES = [
   { id: "SUMMARY", label: "1. Production Summary" },
   { id: "OP_PERFORMANCE", label: "2. Operation Performance" },
@@ -289,38 +291,33 @@ export const ProductionReportsPage = () => {
           </div>
 
           <div className="pr2-no-print pr2-actions-bar">
-            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm pr2-btn" onClick={load} disabled={loading}>
-              <RefreshCw size={14} /> {loading ? "Loading..." : "Refresh"}
+            <button type="button" className="jf-btn jf-btn-secondary pr2-icon-btn" onClick={load} disabled={loading} title="Refresh" aria-label="Refresh">
+              <RefreshCw size={15} className={loading ? "spin" : ""} />
             </button>
-            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm pr2-btn" onClick={handleExport} disabled={exporting || loading || rows.length === 0}>
-              <FileDown size={14} /> {exporting ? "Exporting..." : "Export Excel (CSV)"}
+            <button type="button" className="jf-btn jf-btn-secondary pr2-btn" onClick={handleExport} disabled={exporting || loading || rows.length === 0}>
+              <FileDown size={15} /> {exporting ? "Exporting..." : "Export CSV"}
             </button>
-            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm pr2-btn" onClick={() => window.print()} disabled={loading}>
-              <FileText size={14} /> Save as PDF
-            </button>
-            <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm pr2-btn" onClick={() => window.print()} disabled={loading}>
-              <Printer size={14} /> Print
+            <button type="button" className="jf-btn jf-btn-secondary pr2-btn" onClick={() => window.print()} disabled={loading} title="Print, or choose Save as PDF in the print window">
+              <Printer size={15} /> Print / PDF
             </button>
           </div>
         </div>
 
         <div className="pr2-filters pr2-no-print">
           <div>
-            <label className="pr2-label">Report Category</label>
-            <select className="jf-input jf-input-sm pr2-select-bold" value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)}>
+            <StyledSelect className="jf-input jf-input-sm pr2-select-bold" value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)}>
               {REPORT_TYPES.map((r) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
-            </select>
+            </StyledSelect>
           </div>
 
           <div>
-            <label className="pr2-label">Date Range</label>
-            <select className="jf-input jf-input-sm" value={preset} onChange={(e) => changePreset(e.target.value)}>
+            <StyledSelect className="jf-input jf-input-sm" value={preset} onChange={(e) => changePreset(e.target.value)}>
               {DATE_PRESETS.map((p) => (
                 <option key={p.id} value={p.id}>{p.label}</option>
               ))}
-            </select>
+            </StyledSelect>
           </div>
 
           {preset === "CUSTOM" && (
@@ -338,7 +335,6 @@ export const ProductionReportsPage = () => {
 
           {branches.length > 1 && (
             <div>
-              <label className="pr2-label">Branch</label>
               <BranchSelect
                 valueKey="id"
                 allowAll
@@ -353,37 +349,34 @@ export const ProductionReportsPage = () => {
 
           {support.machine && (
             <div>
-              <label className="pr2-label">Machine</label>
-              <select className="jf-input jf-input-sm" value={machine} onChange={(e) => setMachine(e.target.value)}>
+              <StyledSelect className="jf-input jf-input-sm" value={machine} onChange={(e) => setMachine(e.target.value)}>
                 <option value="ALL">All Machines</option>
                 {machines.map((m) => (
                   <option key={m.id || m._id} value={m.id || m._id}>{m.name}</option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
           )}
 
           {support.operator && (
             <div>
-              <label className="pr2-label">Operator</label>
-              <select className="jf-input jf-input-sm" value={operator} onChange={(e) => setOperator(e.target.value)}>
+              <StyledSelect className="jf-input jf-input-sm" value={operator} onChange={(e) => setOperator(e.target.value)}>
                 <option value="ALL">All Operators</option>
                 {operators.map((o) => (
                   <option key={o.id || o._id} value={o.id || o._id}>{o.name}</option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
           )}
 
           {support.priority && (
             <div>
-              <label className="pr2-label">Priority</label>
-              <select className="jf-input jf-input-sm" value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <StyledSelect className="jf-input jf-input-sm" value={priority} onChange={(e) => setPriority(e.target.value)}>
                 <option value="ALL">All Priorities</option>
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>{p}</option>
                 ))}
-              </select>
+              </StyledSelect>
             </div>
           )}
 
@@ -402,14 +395,6 @@ export const ProductionReportsPage = () => {
       </div>
 
       <div className="jf-card pr2-card">
-        <div className="pr2-report-header">
-          <h3 className="pr2-report-title">{meta?.label}</h3>
-          <span className="pr2-report-desc">{meta?.desc}</span>
-          <div className="pr2-print-title">
-            {range.from} to {range.to}
-          </div>
-        </div>
-
         {error && (
           <div className="pr2-error" role="alert">
             <span>{error}</span>
@@ -417,7 +402,7 @@ export const ProductionReportsPage = () => {
           </div>
         )}
 
-        <DataTable
+        <DataTable mobileCards
           key={selectedReport}
           searchable={false}
           loading={loading}
@@ -443,6 +428,36 @@ export const ProductionReportsPage = () => {
         {report?.truncated && <p className="pr2-note">Showing the first {rows.length} rows. Narrow the date range to see the rest.</p>}
         {report?.note && rows.length > 0 && <p className="pr2-note">{report.note}</p>}
       </div>
+      {/* Printable copy: every row of the report, shown only when printing */}
+      {createPortal(
+        <div className="pr2-print-root">
+          <h1>{meta?.label || "Production Report"}</h1>
+          <p className="pr2-print-meta">
+            {range.from} to {range.to} · {rows.length} row{rows.length === 1 ? "" : "s"}
+          </p>
+          <table>
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th key={c.key} style={{ textAlign: c.align === "right" ? "right" : "left" }}>{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr key={row.id || row._id || ri}>
+                  {columns.map((c) => (
+                    <td key={c.key} style={{ textAlign: c.align === "right" ? "right" : "left" }}>
+                      <Cell column={c} value={row[c.key]} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

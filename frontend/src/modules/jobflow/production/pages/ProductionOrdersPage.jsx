@@ -30,6 +30,7 @@ import "../styles/production-theme.css";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 /* ---------- helpers ---------- */
 
 // Database value -> label shown to users
@@ -490,7 +491,7 @@ export default function ProductionOrdersPage() {
 
         <label className="po-field">
           <span>Status</span>
-          <select value={statusFilter} onChange={withReset(setStatusFilter)}>
+          <StyledSelect value={statusFilter} onChange={withReset(setStatusFilter)}>
             <option value="ALL">All</option>
             <option value="DRAFT">Draft</option>
             {Object.entries(STATUS_LABELS).map(([k, v]) => (
@@ -498,7 +499,7 @@ export default function ProductionOrdersPage() {
                 {v}
               </option>
             ))}
-          </select>
+          </StyledSelect>
         </label>
 
         <div className="po-field po-date" ref={dateRef}>
@@ -550,16 +551,6 @@ export default function ProductionOrdersPage() {
 
       {/* Table */}
       <section className="po-card">
-        <div className="po-card-head">
-          <div className="po-card-title">
-            <span className="po-card-title-icon">
-              <ClipboardList size={16} />
-            </span>
-            <h2>Production Orders</h2>
-          </div>
-         
-        </div>
-
         <DataTable
           searchable={false}
           mobileCards

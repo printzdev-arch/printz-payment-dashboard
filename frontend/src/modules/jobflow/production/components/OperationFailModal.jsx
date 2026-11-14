@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, AlertTriangle, XCircle } from "lucide-react";
 import jobFlowApi from "../api/productionApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const OperationFailModal = ({
   isOpen,
@@ -85,7 +86,7 @@ export const OperationFailModal = ({
 
             <div className="jf-form-group">
               <label className="jf-label">Failure Category / Reason *</label>
-              <select
+              <StyledSelect
                 className="jf-input"
                 value={failureReason}
                 onChange={(e) => setFailureReason(e.target.value)}
@@ -99,7 +100,7 @@ export const OperationFailModal = ({
                 <option value="Operator Error">Operator Error</option>
                 <option value="Power Interruption / Hardware Fault">Power Interruption / Hardware Fault</option>
                 <option value="Other Operational Fault">Other Operational Fault</option>
-              </select>
+              </StyledSelect>
             </div>
 
             <div className="jf-form-group">

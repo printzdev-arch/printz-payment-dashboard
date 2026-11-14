@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Play } from "lucide-react";
 import jobFlowApi from "../api/productionApi";
 import { toast } from "react-toastify";
+import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 
 export const OperationStartModal = ({
   isOpen,
@@ -126,12 +127,12 @@ export const OperationStartModal = ({
             <div className="prod-modal-grid-2">
               <div className="jf-form-group">
                 <label className="jf-label">Assigned Operator</label>
-                <select className="jf-input" value={operatorId} onChange={(e) => setOperatorId(e.target.value)} required>
+                <StyledSelect className="jf-input" value={operatorId} onChange={(e) => setOperatorId(e.target.value)} required>
                   <option value="">Select operator</option>
                   {operators.map((o) => (
                     <option key={o.id} value={o.id}>{o.name}{o.role ? ` (${o.role})` : ""}</option>
                   ))}
-                </select>
+                </StyledSelect>
                 {operators.length === 0 && (
                   <span className="prod-field-hint">No available operators. Add or enable one in Production &gt; Operators.</span>
                 )}
@@ -139,14 +140,14 @@ export const OperationStartModal = ({
 
               <div className="jf-form-group">
                 <label className="jf-label">Machine *</label>
-                <select className="jf-input" value={machineId} onChange={(e) => setMachineId(e.target.value)} required>
+                <StyledSelect className="jf-input" value={machineId} onChange={(e) => setMachineId(e.target.value)} required>
                   <option value="">Select machine</option>
                   {machines.map((m) => (
                     <option key={m.id} value={m.id} disabled={m.underMaintenance}>
                       {m.name}{m.underMaintenance ? " (under maintenance)" : ""}
                     </option>
                   ))}
-                </select>
+                </StyledSelect>
               </div>
             </div>
 

@@ -97,31 +97,31 @@ const TablesGrid = ({
                 <tbody>
                   {jobsList.slice(0, 5).map((job) => (
                     <tr key={job.id || job.jobId}>
-                      <td style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
+                      <td data-label="Job ID" style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
                         {job.jobId}
                       </td>
-                      <td style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
+                      <td data-label="Customer Name" style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
                         {job.customerName}
                       </td>
-                      <td style={{ whiteSpace: "nowrap" }}>
+                      <td data-label="Design Status" style={{ whiteSpace: "nowrap" }}>
                         <span className={getDesignStatusBadgeClass(job.designStatus)}>
                           {job.designStatus || "Pending"}
                         </span>
                       </td>
-                      <td style={{ whiteSpace: "nowrap" }}>
+                      <td data-label="Production Status" style={{ whiteSpace: "nowrap" }}>
                         <span className={getProdStatusBadgeClass(job.productionStatus)}>
                           {job.productionStatus || "Pending"}
                         </span>
                       </td>
-                      <td style={{ color: "#475569", whiteSpace: "nowrap" }}>
+                      <td data-label="Delivery Date" style={{ color: "#475569", whiteSpace: "nowrap" }}>
                         {job.deliveryDate}
                       </td>
-                      <td style={{ whiteSpace: "nowrap" }}>
+                      <td data-label="Priority" style={{ whiteSpace: "nowrap" }}>
                         <span className={getPriorityBadgeClass(job.priority)}>
                           {job.priority || "Normal"}
                         </span>
                       </td>
-                      <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                      <td data-label="Action" style={{ textAlign: "center", whiteSpace: "nowrap" }}>
                         <button
                           type="button"
                           onClick={() => onViewJobOrder && onViewJobOrder(job)}
@@ -164,10 +164,10 @@ const TablesGrid = ({
                     const isOutOfStock = item.availableQty === 0 || item.status === "Out of Stock";
                     return (
                       <tr key={item.id || item.materialName}>
-                        <td style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
+                        <td data-label="Material Name" style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
                           {item.materialName}
                         </td>
-                        <td
+                        <td data-label="Available Qty"
                           style={{
                             textAlign: "right",
                             fontWeight: 700,
@@ -177,13 +177,13 @@ const TablesGrid = ({
                         >
                           {item.availableQty}
                         </td>
-                        <td style={{ textAlign: "right", color: "#475569", whiteSpace: "nowrap" }}>
+                        <td data-label="Min Stock" style={{ textAlign: "right", color: "#475569", whiteSpace: "nowrap" }}>
                           {item.minStock}
                         </td>
-                        <td style={{ textAlign: "right", color: "#475569", fontWeight: 600, whiteSpace: "nowrap" }}>
+                        <td data-label="Required Qty" style={{ textAlign: "right", color: "#475569", fontWeight: 600, whiteSpace: "nowrap" }}>
                           {item.requiredQty}
                         </td>
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                        <td data-label="Status" style={{ textAlign: "center", whiteSpace: "nowrap" }}>
                           <span
                             className={
                               isOutOfStock
@@ -235,22 +235,22 @@ const TablesGrid = ({
                     const isOverdue = String(p.status || "").toLowerCase().includes("overdue");
                     return (
                       <tr key={p.id || p.invoiceNo}>
-                        <td style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
+                        <td data-label="Invoice No" style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
                           {p.invoiceNo}
                         </td>
-                        <td style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
+                        <td data-label="Customer Name" style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
                           {p.customerName}
                         </td>
-                        <td style={{ textAlign: "right", color: "#475569", whiteSpace: "nowrap" }}>
+                        <td data-label="Amount" style={{ textAlign: "right", color: "#475569", whiteSpace: "nowrap" }}>
                           {formatINR(p.amount)}
                         </td>
-                        <td style={{ textAlign: "right", color: "#e11d48", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        <td data-label="Pending" style={{ textAlign: "right", color: "#e11d48", fontWeight: 700, whiteSpace: "nowrap" }}>
                           {formatINR(p.pending)}
                         </td>
-                        <td style={{ color: "#475569", fontSize: "11.5px", whiteSpace: "nowrap" }}>
+                        <td data-label="Due Date" style={{ color: "#475569", fontSize: "11.5px", whiteSpace: "nowrap" }}>
                           {p.dueDate}
                         </td>
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                        <td data-label="Status" style={{ textAlign: "center", whiteSpace: "nowrap" }}>
                           <span
                             className={
                               isOverdue
@@ -295,16 +295,16 @@ const TablesGrid = ({
                     const isDelayed = String(d.status || "").toLowerCase().includes("delayed");
                     return (
                       <tr key={d.id || d.jobId}>
-                        <td style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
+                        <td data-label="Job ID" style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>
                           {d.jobId}
                         </td>
-                        <td style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
+                        <td data-label="Customer Name" style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
                           {d.customerName}
                         </td>
-                        <td style={{ color: "#475569", whiteSpace: "nowrap" }}>
+                        <td data-label="Delivery Date" style={{ color: "#475569", whiteSpace: "nowrap" }}>
                           {d.deliveryDate}
                         </td>
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                        <td data-label="Status" style={{ textAlign: "center", whiteSpace: "nowrap" }}>
                           <span
                             className={
                               isDelayed
