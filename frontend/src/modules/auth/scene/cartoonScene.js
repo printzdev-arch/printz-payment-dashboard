@@ -46,37 +46,92 @@ export function startCartoonScene(root, opts = {}) {
     ctx.translate(0,bounce);
     ctx.rotate(lean);
 
-    function limb(x1,y1,len1,a1,len2,a2,color,width=8,hc){
+    // Anatomically articulated arm & hand with shoulder cap, elbow bend, white shirt cuff, palm, and thumb
+    function drawArm(x1,y1,len1,a1,len2,a2,suitColor,width=9,skinColor='#e6b08c',isFront=true,waveAmt=0,reachAmt=0){
+      ctx.save();
+      ctx.translate(x1,y1);
+      ctx.rotate(a1);
+      // Shoulder cap & upper sleeve
+      ell(0,0, width*.54, width*.54, suitColor);
+      line(0,0,0,len1,suitColor,width);
+      // Elbow joint
+      ell(0,len1, width*.44, width*.44, suitColor);
+      ctx.translate(0,len1);
+      ctx.rotate(a2);
+      // Forearm sleeve
+      line(0,0,0,len2-2,suitColor,width*.92);
+      // Crisp white dress-shirt cuff at wrist
+      line(0,len2-2.5,0,len2+.5,'#f7f9fc',width*.76);
+      // Wrist & articulated hand
+      ctx.translate(0,len2+2);
+      ctx.fillStyle = skinColor;
+      ctx.strokeStyle = '#c58c68';
+      ctx.lineWidth = 0.9;
+      if(isFront && waveAmt > 0.15){
+        // Open waving hand facing viewer with thumb and fingers
+        ctx.rotate(Math.sin(live*8)*0.22*waveAmt);
+        rrect(-4.2,-1.5,8.4,8.8,3.6,skinColor,'#c58c68',0.8);
+        // Thumb pointing inward toward face
+        ctx.save();
+        ctx.translate(-4.2,2.2);
+        ctx.rotate(-0.45);
+        rrect(-2.2,-1.8,4.2,3.2,1.5,skinColor);
+        ctx.restore();
+        // Subtle finger separation lines
+        line(-1.4,3.2,-1.4,6.4,'#c58c68',0.8);
+        line(1.4,3.2,1.4,6.4,'#c58c68',0.8);
+      } else if(isFront && reachAmt > 0.15){
+        // Reaching hand grasping door handle
+        rrect(-3.6,-1,7.6,7.8,3.2,skinColor,'#c58c68',0.8);
+        ell(2.6,1.2,2.4,1.8,skinColor);
+      } else {
+        // Natural relaxed hand while standing/walking
+        rrect(-3.5,-1,7,7.6,3.2,skinColor,'#c58c68',0.8);
+        ell(2.2,2.2,2.0,2.6,skinColor);
+      }
+      ctx.restore();
+    }
+
+    function drawLeg(x1,y1,len1,a1,len2,a2,color,width=9){
       ctx.save();
       ctx.translate(x1,y1);
       ctx.rotate(a1);
       line(0,0,0,len1,color,width);
-      ell(0,len1, width*.34, width*.34, color);
+      ell(0,len1, width*.38, width*.38, color);
       ctx.translate(0,len1);
       ctx.rotate(a2);
-      line(0,0,0,len2,color,width*.96);
-      ell(0,len2+1, width*.46, width*.46, hc||color);
+      line(0,0,0,len2,color,width*.92);
       ctx.restore();
     }
 
+    // Ground shadow
     ell(0,8,22,7,'#173d3428');
 
     const sw = .4*amt;
-    const backArm1 = .06 + .36*amt*gait;
-    const backArm2 = -(.18 + .28*amt*Math.max(0,-gait));
-    let frontArm1 = .1 - .36*amt*gait;
-    let frontArm2 = -(.2 + .3*amt*Math.max(0,gait));
+    // Back arm (left arm): natural relaxed posture at side + smooth opposite gait swing
+    const backArm1 = .12 + .34*amt*gait;
+    const backArm2 = -(.22 + .26*amt*Math.max(0,-gait));
+
+    // Front arm (right arm): natural relaxed posture at side + smooth gait swing
+    let frontArm1 = -.10 - .34*amt*gait;
+    let frontArm2 = -(.24 + .28*amt*Math.max(0,gait));
+
+    // Waving pose: shoulder lifts cleanly from (-84) and elbow bends upward into a friendly wave
     if(wave>0){
-      frontArm1 = mix(frontArm1,-2.5+Math.sin(live*8)*0.38,wave);
-      frontArm2 = mix(frontArm2,-0.35+Math.sin(live*8+1)*0.3,wave);
+      const waveShoulder = -1.92 + Math.sin(live*6.5)*0.16;
+      const waveElbow    = -0.68 + Math.sin(live*6.5 - 0.7)*0.28;
+      frontArm1 = mix(frontArm1, waveShoulder, wave);
+      frontArm2 = mix(frontArm2, waveElbow, wave);
     }
-    // reach: solve the arm to the door handle (2-bone IK)
+
+    // Reach: 2-bone IK solved from the true anatomical shoulder at (19, -84) to the door handle
     const DT = window.__doorT;
     if(reach>.001 && DT){
       const cl=Math.cos(-lean), sl=Math.sin(-lean);
       const wx=(DT[0]-x)/s, wy=(DT[1]-y)/s - bounce;
       const lx=wx*cl - wy*sl, ly=wx*sl + wy*cl;
-      const dx=lx-14, dy=ly+64, L1=22, L2=20;
+      const shX=19, shY=-84, L1=24, L2=22;
+      const dx=lx-shX, dy=ly-shY;
       let d=Math.hypot(dx,dy); const dd=Math.min(d, (L1+L2)*.985);
       const phi=Math.atan2(-dx,dy);
       const al=Math.acos(clamp((L1*L1+dd*dd-L2*L2)/(2*L1*dd),-1,1));
@@ -90,14 +145,25 @@ export function startCartoonScene(root, opts = {}) {
       frontArm1=mix(frontArm1,best.A1,reach);
       frontArm2=mix(frontArm2,best.a2,reach);
     }
+
     const leftLeg1 = .04 - sw*gait;
     const leftLeg2 = amt*(.12 + .85*Math.pow(Math.max(0,Math.cos(th)),1.4));
     const rightLeg1 = -.04 + sw*gait;
     const rightLeg2 = amt*(.12 + .85*Math.pow(Math.max(0,-Math.cos(th)),1.4));
 
-    limb(-14,-64,22,backArm1,20,backArm2,'#1b2640',9,'#e6b08c');
+    // 1. Back Arm (Anchored at anatomical left shoulder: x=-19, y=-84)
+    drawArm(-19,-84,23,backArm1,21,backArm2,'#1b2640',9,'#e6b08c',false,0,0);
 
-    // --- business suit: navy blazer, white shirt, tie ---
+    // 2. Legs & Shoes (Drawn behind torso jacket hem so suit jacket overlaps hips cleanly)
+    drawLeg(-8,-43,24,leftLeg1,19,leftLeg2,'#1a2238',9);
+    drawLeg(7,-43,24,rightLeg1,19,rightLeg2,'#141b2e',9);
+    {const lax=-8-Math.sin(leftLeg1)*24-Math.sin(leftLeg1+leftLeg2)*19, lay=-43+Math.cos(leftLeg1)*24+Math.cos(leftLeg1+leftLeg2)*19; ell(lax+3,lay+1,8.5,4,'#0c0c10');}
+    {const rax=7-Math.sin(rightLeg1)*24-Math.sin(rightLeg1+rightLeg2)*19, ray=-43+Math.cos(rightLeg1)*24+Math.cos(rightLeg1+rightLeg2)*19; ell(rax+3,ray+1,8.5,4,'#0c0c10');}
+
+    // 3. Neck (Positioned anatomically at y=-96 to -86 between head and collar)
+    rrect(-4.5,-96,9,10,3,gradient(0,-96,0,-86,[[0,'#d7a07f'],[1,'#e9b895']]));
+
+    // 4. Business Suit: Navy Blazer, White Shirt, Tie
     shadow('#0b1a3033',9,4);
     rrect(-22,-91,44,52,9,gradient(-22,-91,22,-39,[[0,'#26365a'],[.5,'#1b2640'],[1,'#121a2e']]));
     clearshadow();
@@ -118,9 +184,7 @@ export function startCartoonScene(root, opts = {}) {
     // company pin
     ell(-13,-74,1.6,1.6,'#ec1c8c');
 
-    // neck
-    rrect(-4.5,-48,9,10,3,gradient(0,-48,0,-38,[[0,'#d7a07f'],[1,'#e9b895']]));
-
+    // 5. Head & Facial Features
     // ears
     ell(-16.5,-111,3,4.6,'#e2a984'); ell(18.5,-111,3,4.6,'#e2a984');
     // back hair
@@ -128,45 +192,32 @@ export function startCartoonScene(root, opts = {}) {
     // face with soft shading
     const fg=ctx.createRadialGradient(-3,-117,3,1,-111,22);
     fg.addColorStop(0,'#eec29b'); fg.addColorStop(.7,'#e0a980'); fg.addColorStop(1,'#c98e66');
-    ctx.beginPath(); ctx.moveTo(-16,-116); ctx.bezierCurveTo(-16,-128,18,-128,18,-116); ctx.lineTo(17,-106); ctx.bezierCurveTo(16,-98,8,-91.5,1,-91); ctx.bezierCurveTo(-6,-91.5,-14,-98,-15,-106); ctx.closePath(); ctx.fillStyle=fg; ctx.fill(); ctx.globalAlpha=.2; ctx.beginPath(); ctx.moveTo(-14.5,-104); ctx.bezierCurveTo(-12,-95,-5,-92.5,1,-92); ctx.bezierCurveTo(7,-92.5,14,-95,16.5,-104); ctx.bezierCurveTo(12,-100,8,-99,1,-99); ctx.bezierCurveTo(-6,-99,-11,-100,-14.5,-104); ctx.fillStyle='#3a2418'; ctx.fill(); ctx.globalAlpha=1; ctx.globalAlpha=0; ctx.globalAlpha=.18; line(-14,-108,-9,-97,'#a8704f',2); line(16,-108,11,-97,'#a8704f',2); ctx.globalAlpha=1;
+    ctx.beginPath(); ctx.moveTo(-16,-116); ctx.bezierCurveTo(-16,-128,18,-128,18,-116); ctx.lineTo(17,-106); ctx.bezierCurveTo(16,-98,8,-91.5,1,-91); ctx.bezierCurveTo(-6,-91.5,-14,-98,-15,-106); ctx.closePath(); ctx.fillStyle=fg; ctx.fill(); ctx.globalAlpha=.2; ctx.beginPath(); ctx.moveTo(-14.5,-104); ctx.bezierCurveTo(-12,-95,-5,-92.5,1,-92); ctx.bezierCurveTo(7,-92.5,14,-95,16.5,-104); ctx.bezierCurveTo(12,-100,8,-99,1,-99); ctx.bezierCurveTo(-6,-99,-11,-100,-14.5,-104); ctx.fillStyle='#3a2418'; ctx.fill(); ctx.globalAlpha=1; ctx.globalAlpha=.18; line(-14,-108,-9,-97,'#a8704f',2); line(16,-108,11,-97,'#a8704f',2); ctx.globalAlpha=1;
     // hair top + fringe with strands
     const hg=gradient(-16,-132,16,-110,[[0,'#2b2b33'],[1,'#0b0b10']]);
     poly([[-17.5,-109],[-18.5,-123],[-13,-133],[-3,-137],[9,-136],[18,-130],[19.5,-120],[17.5,-108],[15,-116],[9,-121],[0,-122],[-8,-119],[-14,-113]],hg); ctx.globalAlpha=.4; line(-8,-136,4,-137,'#ffffff',1.6); line(2,-136,12,-132,'#ffffff',1.2); ctx.globalAlpha=1;
     ctx.globalAlpha=.35; line(-10,-128,-3,-120,'#1f120a',1); line(-2,-131,3,-122,'#1f120a',1); line(6,-130,10,-121,'#1f120a',1); ctx.globalAlpha=1;
     ctx.globalAlpha=.25; line(-9,-128,-1,-125,'#ffffff',1.4); ctx.globalAlpha=1;
-    // hair clip / bow (kept, smaller and subtler)
-    
     // eyebrows
     line(-10.5,-118,-2.5,-119,'#2a1a10',2.2); line(4.5,-119,12.5,-118,'#2a1a10',2.2);
-    // eyes: white, iris, pupil, lash, highlight
+    // eyes: white, iris, pupil, highlight
     const blink = (live%3.4)<0.12 ? 0.2 : 1;
     ell(-6.5,-113,4,3.2*blink,'#ffffff'); ell(8.5,-113,4,3.2*blink,'#ffffff');
     ell(-6,-113,2.5,2.7*blink,'#3a2518'); ell(8,-113,2.5,2.7*blink,'#3a2518');
     ell(-6,-113,1.2,1.3*blink,'#120a06'); ell(8,-113,1.2,1.3*blink,'#120a06');
     ell(-5.2,-114.2,.7,.7*blink,'#fff'); ell(8.8,-114.2,.7,.7*blink,'#fff');
-    
     // nose with soft shadow
     ctx.globalAlpha=.35; ell(2,-106,2.6,1.4,'#b9785a'); ctx.globalAlpha=1;
     line(1,-112,1.6,-107,'#d09273',1.1);
-    // subtle cheeks
-    ctx.globalAlpha=.22;  ctx.globalAlpha=1;
     // lips
     ctx.beginPath(); ctx.moveTo(-3,-100.5); ctx.quadraticCurveTo(1,-100.5+1.5+wave,6,-100.5); ctx.quadraticCurveTo(1,-98.2+wave*1.2,-4,-100.5); ctx.fillStyle='#b5675a'; ctx.fill(); ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(-2.5,-100.3); ctx.quadraticCurveTo(1,-99+wave,4.5,-100.3); ctx.quadraticCurveTo(1,-98.6+wave,-2.5,-100.3); ctx.fillStyle='#fff'; ctx.fill(); ctx.globalAlpha=1;
-    
 
-    limb(14,-64,22,frontArm1,20,frontArm2,'#1b2640',9,'#e6b08c');
-
-
-
-    limb(-8,-43,24,leftLeg1,19,leftLeg2,'#1a2238',9);
-    limb(7,-43,24,rightLeg1,19,rightLeg2,'#141b2e',9);
-    {const lax=-8-Math.sin(leftLeg1)*24-Math.sin(leftLeg1+leftLeg2)*19, lay=-43+Math.cos(leftLeg1)*24+Math.cos(leftLeg1+leftLeg2)*19; ell(lax+3,lay+1,8.5,4,'#0c0c10');}
-    {const rax=7-Math.sin(rightLeg1)*24-Math.sin(rightLeg1+rightLeg2)*19, ray=-43+Math.cos(rightLeg1)*24+Math.cos(rightLeg1+rightLeg2)*19; ell(rax+3,ray+1,8.5,4,'#0c0c10');}
+    // 6. Front Arm (Anchored at anatomical right shoulder: x=19, y=-84)
+    drawArm(19,-84,24,frontArm1,22,frontArm2,'#1b2640',9,'#e6b08c',true,wave,reach);
 
     if(reach>.62 && door<.24){ star(32,-63,.28,'#fff0a1'); }
     ctx.restore();
   }
-
 
   function heart(x,y,s,color,rot=0){return;ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s,s);ctx.beginPath();ctx.moveTo(0,6);ctx.bezierCurveTo(-14,-4,-8,-16,0,-8);ctx.bezierCurveTo(8,-16,14,-4,0,6);ctx.fillStyle=color;ctx.fill();ctx.restore();}
   function cat(x,y,s,live){
@@ -435,7 +486,7 @@ export function startCartoonScene(root, opts = {}) {
     ctx.restore();
   }
 
-  const R0W=1.38, DW=2.7;
+  const R0W=1.38, DW=2.05;
   let RT=0;
   function draw(t,live){
     RT=t; t = t<R0W ? t : (t<R0W+DW ? R0W : t-DW);

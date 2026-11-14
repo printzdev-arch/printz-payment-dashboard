@@ -1331,7 +1331,6 @@ const AdminLayout = ({ children }) => {
               <Sliders size={14} className="sidebar-autohide-icon" />
               <div className="sidebar-autohide-texts">
                 <span className="sidebar-autohide-title">Auto-Hide Sidebar</span>
-                <span className="sidebar-autohide-sub">Page hover close • 1s open</span>
               </div>
             </div>
             <button

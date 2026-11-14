@@ -24,7 +24,6 @@ printz_logavasu/
 │   │   ├── utils/       # Validation rules, soft delete, helpers, integrations
 │   │   ├── assets/      # logo.png used in emails, receipts and PDFs
 │   │   └── docs/        # Swagger / OpenAPI documentation
-│   ├── scripts/         # One-off maintenance scripts
 │   ├── uploads/         # Uploaded files (not committed; .gitkeep keeps the folder)
 │   ├── .env.example     # Backend settings template
 │   └── README.md        # Backend details

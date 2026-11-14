@@ -1345,3 +1345,12 @@ body .sidebar-backdrop {
 @media (max-height: 760px) {
   .sidebar-illustration-container { display: none; }
 }
+
+/* Only menus that open a submenu show an arrow; a plain page link never does */
+body .sidebar-active-arrow { display: none !important; }
+
+/* Auto-hide switch: just a label and a switch, no box */
+body .sidebar-autohide-toggle-card { background: transparent; border: none; padding: 6px 12px; margin: 0 14px 6px; }
+body .sidebar-autohide-toggle-card:hover { background: transparent; }
+body .sidebar-autohide-icon, body .sidebar-autohide-sub { display: none; }
+body .sidebar-autohide-title { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.92); }

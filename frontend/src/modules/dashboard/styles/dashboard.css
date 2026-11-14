@@ -855,3 +855,24 @@ body .printz-dash-filter-card .printz-dash-btn-reset:hover { background: #f1f5f9
   .printz-tables-row-1, .printz-tables-row-2 { grid-template-columns: minmax(0, 1fr); }
   .printz-tables-row-2 > :nth-child(3) { grid-column: auto; }
 }
+
+/* Admin tables grid: columns can shrink below their table's width (the table scrolls inside its card)
+   so no card is pushed off the right edge of the page. */
+body .printz-admin-tables-row-1, body .printz-admin-tables-row-2 { min-width: 0; }
+body .printz-admin-tables-row-1 > *, body .printz-admin-tables-row-2 > * { min-width: 0; }
+body .printz-admin-tables-row-1 { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) !important; align-items: start; }
+body .printz-admin-tables-row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-items: start; }
+body .printz-admin-tables-row-2 > :nth-child(3) { grid-column: 1 / -1; }
+@media (min-width: 1700px) {
+  body .printz-admin-tables-row-2 { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, 1fr) !important; }
+  body .printz-admin-tables-row-2 > :nth-child(3) { grid-column: auto; }
+}
+@media (max-width: 1280px) {
+  body .printz-admin-tables-row-1, body .printz-admin-tables-row-2 { grid-template-columns: minmax(0, 1fr) !important; }
+  body .printz-admin-tables-row-2 > :nth-child(3) { grid-column: auto; }
+}
+
+/* Admin KPI cards: two rows (4 + 3) so the figures have room */
+@media (min-width: 991px) {
+  body .printz-kpi-grid.admin-overview { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+}

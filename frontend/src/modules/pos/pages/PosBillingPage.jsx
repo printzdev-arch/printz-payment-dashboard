@@ -40,6 +40,7 @@ import { JobFlowLayout } from "../../../layouts/JobFlowLayout/JobFlowLayout";
 import DataTable from "../../../shared/ui/DataTable/DataTable";
 import posApi from "../api/posApi";
 import SelectField from "../../../shared/ui/selects/SelectField";
+import Pagination from "../../../shared/ui/Pagination";
 import ThermalReceiptModal from "../components/ThermalReceiptModal";
 import VoidSaleModal from "../components/VoidSaleModal";
 import "../styles/pos.css";
@@ -76,6 +77,8 @@ export const PosBillingPage = () => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogPageSize, setCatalogPageSize] = useState(12);
 
   // Cart state
   const [cart, setCart] = useState([]);
@@ -317,6 +320,19 @@ export const PosBillingPage = () => {
       (selectedCategory === "ALL" || selectedCategory === "SERVICES") &&
       (!searchQuery || s.label.toLowerCase().includes(searchQuery.toLowerCase()) || "print".includes(searchQuery.toLowerCase()))
   );
+
+  // The catalog shows one page at a time: print services first, then products and stock items
+  const catalogTotal = visiblePrintServices.length + filteredProducts.length;
+  const catalogLastPage = Math.max(1, Math.ceil(catalogTotal / catalogPageSize));
+  const catalogPageSafe = Math.min(catalogPage, catalogLastPage);
+  const catalogStart = (catalogPageSafe - 1) * catalogPageSize;
+  const pagedServices = visiblePrintServices.slice(catalogStart, catalogStart + catalogPageSize);
+  const productStart = Math.max(0, catalogStart - visiblePrintServices.length);
+  const pagedProducts = filteredProducts.slice(productStart, productStart + Math.max(0, catalogPageSize - pagedServices.length));
+
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [searchQuery, selectedCategory]);
 
   const openPrintModal = (service) => {
     setPrintSides("SINGLE");
@@ -833,8 +849,9 @@ export const PosBillingPage = () => {
                   <div>No products match your search or filter.</div>
                 </div>
               ) : (
+                <>
                 <div className="pos-products-grid">
-                  {visiblePrintServices.map((s) => {
+                  {pagedServices.map((s) => {
                     const Icon = s.icon;
                     return (
                       <div key={s.key} className="pos-product-card" onClick={() => openPrintModal(s)}>
@@ -867,7 +884,7 @@ export const PosBillingPage = () => {
                       </div>
                     );
                   })}
-                  {filteredProducts.map((p) => {
+                  {pagedProducts.map((p) => {
                     const price = Number(p.saleRate || 0);
                     const stock = Number(p.currentStock || 0);
                     const isOutOfStock = stock <= 0;
@@ -929,6 +946,19 @@ export const PosBillingPage = () => {
                     );
                   })}
                 </div>
+                <Pagination
+                  currentPage={catalogPageSafe}
+                  totalItems={catalogTotal}
+                  itemsPerPage={catalogPageSize}
+                  onPageChange={setCatalogPage}
+                  onItemsPerPageChange={(n) => {
+                    setCatalogPageSize(n);
+                    setCatalogPage(1);
+                  }}
+                  pageSizeOptions={[12, 24, 48, 96]}
+                  itemLabel="items"
+                />
+                </>
               )}
             </div>
 

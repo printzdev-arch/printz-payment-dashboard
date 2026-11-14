@@ -1117,3 +1117,14 @@
   .pos-receipt-modal-header > div:last-child > button:first-child { flex: 1 1 0; justify-content: center; }
   .pos-receipt-modal-header > div:last-child > button:nth-child(2) { flex: 1 1 0; justify-content: center; }
 }
+
+/* Product cards: soft off-white with dark, high-contrast text */
+.pos-product-card { background: #eef1ef; border-color: #dde3df; border-radius: 16px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06); }
+.pos-product-card:hover { border-color: #b7c4bc; box-shadow: 0 12px 24px -12px rgba(15, 23, 42, 0.25); }
+.pos-product-card .pos-prod-code { color: #334155; }
+.pos-product-card .pos-prod-name { color: #0b1220; font-weight: 700; }
+.pos-product-card .pos-prod-price { color: #064e3b; }
+.pos-product-card .pos-prod-unit { color: #334155; }
+.pos-product-card .pos-source-tag, .pos-product-card .pos-source-tag.stock { background: #fde68a; color: #78350f; }
+.pos-product-card .pos-add-btn { background: #064e3b; color: #ffffff; border: none; font-weight: 700; padding: 0.6rem 0.75rem; border-radius: 10px; }
+.pos-product-card .pos-add-btn:hover { background: #053f30; color: #ffffff; box-shadow: none; }

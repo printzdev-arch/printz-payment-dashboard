@@ -194,6 +194,18 @@ Network Trash Folder/
 Temporary Items/
 
 # ===================================================
+# Local Tooling, Scratch & Merge Leftovers
+# ===================================================
+.claude/
+.playwright-mcp/
+scratch/
+scratchpad/
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ===================================================
 # Always Preserve .gitkeep Files
 # ===================================================
 !.gitkeep

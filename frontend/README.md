@@ -19,8 +19,8 @@ Modern, responsive Single Page Application (SPA) for the **PrintZ Multi-Branch P
 ## 🖥️ Feature Portals & Modules
 
 1. **Authentication (`src/modules/auth`)**:
-   - Interactive animated entrance scene in Shadow DOM with mascot animation and shop entrance.
-   - Profile management, password reset, and session storage.
+   - Interactive animated entrance scene in Shadow DOM (`modules/auth/scene`) with the shop entrance and a staff character; the real sign-in and role redirect are wired into it.
+   - Read-only profile page for every role (details are edited by an admin under Employees), password reset, and session storage.
 2. **Dashboard (`src/modules/dashboard`)**:
    - Role-specific KPI metrics and analytics for Admin, Branch Manager, and Designer.
 3. **POS & Billing (`src/modules/pos`)**:
@@ -30,17 +30,17 @@ Modern, responsive Single Page Application (SPA) for the **PrintZ Multi-Branch P
    - **Estimations**: Multi-item pricing calculation, pro-rata tax, and discount authorization.
    - **Job Orders**: Multi-stage lifecycle tracking from Enquiry to Delivery.
    - **Design Workflow**: Designer allocation, proofs review, and client approval links.
-   - **Production Planning**: Operation queues, rework management, and machine operator assignments.
+   - **Production Planning**: Operation queues, tracking, and rework management.
    - **Quality Control**: QC checklists, approval passes, and reprint request triggers.
    - **Delivery**: Dispatch manifests, self-pickup handovers, and electronic proof of delivery.
    - **Invoices & Settlements**: GST invoices, partial payment tracking, and ledger settlements.
    - **Master Settings**: System categories, unit rates, and defaults.
-5. **Manufacturing Unit (`src/modules/mfg-unit` / `src/modules/jobflow`)**:
-   - Dedicated portal for Central Manufacturing Unit managers and production designers.
+5. **Manufacturing Unit (`src/modules/mfg-unit`)**:
+   - Dedicated portal for Central Manufacturing Unit staff (Dashboard, Orders, Queue). It uses the same sidebar and top bar as the manager portal.
 6. **Branch & Inventory (`src/modules/inventory` & `src/modules/admin`)**:
    - Branch setup (with soft delete and 10-digit phone validation), printer meter readings, Jumbo Xerox logs, and stock movement tracking.
 7. **HR & Payroll (`src/modules/hr`)**:
-   - **Employees**: Master directory, designation, and branch assignment.
+   - **Employees**: Master directory, designation, and branch assignment, with an **Access control** menu: Employees, Roles, Role setup (a View / Create / Edit / Delete matrix per page), and an Audit trail of permission changes.
    - **Daily Attendance**: Branch-scoped check-in/out, live KPI badges, and status marking.
    - **Attendance Setup**: Configurable attendance policies and annual holiday calendars.
    - **Branch Shifts**: Inter-branch temporary shift management.
@@ -57,7 +57,7 @@ frontend/
 ├── public/                    # Static assets, favicon, manifest.json, index.html
 ├── src/
 │   ├── app/                   # App.jsx (routes), PrivateRoute.jsx, providers (AuthContext)
-│   ├── layouts/               # AdminLayout, ManagerLayout, JobFlowLayout, MfgLayout
+│   ├── layouts/               # AdminLayout, ManagerLayout, JobFlowLayout, MfgLayout (shared sidebar and top bar styles)
 │   ├── modules/               # Domain-specific UI feature modules
 │   │   ├── auth/              # Login page, profile, forgot password & animated scene
 │   │   ├── admin/             # Branches, users, roles, past-date requests, export data
@@ -69,7 +69,7 @@ frontend/
 │   │   └── sale-order/        # Sale orders creation, tracking, and detail views
 │   ├── shared/                # Shared utilities, Axios API client, UI components, hooks, styles
 │   └── index.js               # React DOM root entry point
-├── uploads/                   # Local uploads directory (.gitkeep preserved)
+├── uploads/                   # Local uploads directory (.gitkeep preserved; contents ignored)
 ├── build/                     # Vite production build output (ignored in git)
 ├── .env.example               # Frontend environment template
 ├── .gitignore                 # Frontend-specific ignore rules
@@ -122,7 +122,15 @@ npm run preview     # Serves the production build locally for verification
 
 ---
 
+## 🔐 Page access and action limits
+
+- A signed-in user gets `pageAccess` (the pages their role or personal list allows) and `pageActions` (which of view / create / edit / delete they may use per page) from the API.
+- `src/shared/utils/permissions.js` exports `canDo(pageKey, action)`. Pages use it to hide Add, Edit and Delete buttons the user may not use, for example `{canDo("customer-directory", "create") && <button>Add Customer</button>}`. Admins and pages without limits see every button. The server enforces the same limits, so hiding a button is only a convenience.
+- `src/shared/ui/FitTablePage` keeps table-only pages fixed on desktop so only the table scrolls.
+
+---
+
 ## 📁 Git Tracking & Directories
 
 - Empty source directories and local upload locations (`uploads/`, `src/modules/hr/employees/constants/`, `src/modules/jobflow/master-settings/constants/`) are preserved in Git using `.gitkeep` files.
-- Production build outputs (`build/`, `dist/`), dependency caches (`node_modules/`, `.vite/`), local uploads (`uploads/*`), logs, and local environment files (`.env`, `.env.local`) are excluded via [`frontend/.gitignore`](file:///d:/printz_logavasu/frontend/.gitignore).
+- Production build outputs (`build/`, `dist/`), dependency caches (`node_modules/`, `.vite/`), local uploads (`uploads/*`), logs, and local environment files (`.env`, `.env.local`) are excluded via [`.gitignore`](.gitignore). Local tool folders (`.claude/`, scratch files, `*.bak`, `*.orig`) are ignored as well; copy `.env.example` to `.env` instead of committing it.

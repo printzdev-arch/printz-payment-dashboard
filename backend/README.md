@@ -10,7 +10,7 @@ Production-ready REST API backend for the **PrintZ Enterprise Multi-Branch Print
 - **Database & ODM**: MongoDB (6.0+ / Atlas) with Mongoose 8.5
 - **Authentication & Security**:
   - JWT token lifecycle (short-lived access tokens + refresh tokens)
-  - Granular Role-Based Access Control (RBAC) with 64 standard permission codes
+  - Granular Role-Based Access Control (RBAC): permission codes per API plus a per-page **View / Create / Edit / Delete** matrix (see "Roles, pages and actions" below)
   - Multi-branch data isolation and fail-closed branch scoping
   - Security headers via Helmet, configurable CORS, and Express rate limiting
 - **API Documentation**: OpenAPI 3.0 / Swagger UI live at `http://localhost:5000/api-docs` (JSON at `/api-docs.json`)
@@ -30,14 +30,14 @@ backend/
 │   ├── config/                # Environment (env.js), database (database.js), CORS, and Swagger configs
 │   ├── middleware/            # Security (auth, roles, permissions), request validation, upload & error handlers
 │   ├── modules/               # Domain-driven feature modules
-│   │   ├── auth/              # User credentials, JWT tokens, RBAC roles & permissions, page catalog
+│   │   ├── auth/              # User credentials, JWT tokens, roles, page catalog and actions, permission audit trail
 │   │   ├── branches/          # Retail branches, manufacturing units, soft deletion & branch assignments
 │   │   ├── customers/         # Customer master records and branch QR requests
 │   │   ├── job-orders/        # Job order lifecycle (quotation, design, production, delivery, billing)
 │   │   ├── estimates/         # Customer estimates, multi-tier approvals, and discounts
 │   │   ├── sale-orders/       # Multi-item sale orders, deposits, and WhatsApp notifications
 │   │   ├── design/            # Designer allocation, workload balancing, proofs, and approvals
-│   │   ├── production/        # Production routing, operation queues, rework, and machine operators
+│   │   ├── production/        # Production routing, operation queues, quality checks, and rework
 │   │   ├── delivery/          # Delivery orders, proof of delivery, and dispatch/pickup tracking
 │   │   ├── invoices/          # GST invoices, payment receipts, and balance settlement
 │   │   ├── inventory/         # Stock items, stock movements, and transaction ledgers
@@ -55,7 +55,6 @@ backend/
 │   ├── routes/                # Master route aggregator mounting all domain modules
 │   ├── utils/                 # Constants, API error classes, response helpers, and integrations
 │   └── docs/swagger/          # Modular OpenAPI / Swagger documentation components
-├── scripts/                   # One-off maintenance scripts
 ├── uploads/                   # Local file storage for proofs and attachments (.gitkeep preserved)
 ├── .env.example               # Template environment configuration
 ├── .gitignore                 # Backend-specific ignore rules
@@ -116,9 +115,23 @@ The server listens on `http://localhost:5000`:
 ### 6. Tests
 The repository does not include an automated test suite yet.
 
+### 7. Maintenance script
+`src/modules/inventory/services/inventoryMigration.js` is a standalone script that copies legacy `stocks` into the inventory collections. It never runs on its own; start it by hand (`node src/modules/inventory/services/inventoryMigration.js`) only when you want that migration.
+
+---
+
+## 🔐 Roles, pages and actions
+
+- **Pages:** `src/modules/auth/constants/pageCatalog.js` lists every page key (for example `sale-orders`, `customer-directory`, `stock-list`) and the API permission codes each page covers.
+- **Actions:** a role or an employee can limit a page to some of `view`, `create`, `edit`, `delete` (`pageActions`). A page with no entry allows all four, and view-only pages (dashboards, reports) offer only `view`. An employee's own list replaces the role's. Super Admin is never limited.
+- **Enforcement:** `src/middleware/security/permission.middleware.js` blocks a request when the user's actions for the covering page do not include what the HTTP method needs (GET = view, POST = create, PUT/PATCH = edit, DELETE = delete). The helper lives in `src/middleware/security/pageActions.js`.
+- **Not yet covered:** a few routes check only that the user is signed in or check a role name, so the matrix does not limit them (stock, estimates, payments, total amounts and Jumbo Xerox readings, customer requests, general). Add `authorizePermission` to a route to bring it under the matrix.
+- **Audit trail:** every change to a role's or employee's pages and actions is stored in the `permissionaudits` collection and listed at `GET /api/roles/audit` (admin only).
+- **Delivery:** the delivery review routes use the `delivery` page permission.
+
 ---
 
 ## 📁 Git Tracking & Uploads
 
-- The `uploads/` directory is preserved in source control via [`backend/uploads/.gitkeep`](file:///d:/printz_logavasu/backend/uploads/.gitkeep).
-- Uploaded runtime assets (`uploads/*`), local backups (`backups/`), database dumps (`dump/`), logs (`logs/*.log`), and temporary files are ignored in [`backend/.gitignore`](file:///d:/printz_logavasu/backend/.gitignore) to keep the repository clean.
+- The `uploads/` directory is preserved in source control via [`uploads/.gitkeep`](uploads/.gitkeep). Sub-folders (such as `proofs/`) are created by the server when needed.
+- Uploaded runtime assets (`uploads/*`), local backups (`backups/`), database dumps (`dump/`), logs (`logs/*.log`), and temporary files are ignored in [`.gitignore`](.gitignore) to keep the repository clean. Local tool folders (`.claude/`, scratch files, `*.bak`, `*.orig`) are ignored too, and `.env` is never committed: copy `.env.example` instead.

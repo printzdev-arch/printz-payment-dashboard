@@ -127,6 +127,18 @@ ehthumbs_vista.db
 $RECYCLE.BIN/
 
 # ===================================================
+# Local Tooling, Scratch & Merge Leftovers
+# ===================================================
+.claude/
+.playwright-mcp/
+scratch/
+scratchpad/
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ===================================================
 # Always Preserve .gitkeep Files
 # ===================================================
 !.gitkeep
