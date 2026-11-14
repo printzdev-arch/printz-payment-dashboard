@@ -64,6 +64,7 @@ import {
   Trash2,
 } from "lucide-react";
 import PrintZSidebarIllustration from "../../shared/assets/illustrations/PrintZSidebarIllustration";
+import FitTablePage from "../../shared/ui/FitTablePage/FitTablePage";
 
 /**
  * 3D Isometric Faceted Cube Logo matching PrintZ design references
@@ -1487,6 +1488,7 @@ const AdminLayout = ({ children }) => {
 
         {/* Page Content */}
         <main className="content-body">
+          <FitTablePage routeKey={`${location.pathname}${location.search}`} />
           <PageTransition routeKey={`${location.pathname}${location.search}`}>
             {children}
           </PageTransition>

@@ -109,6 +109,7 @@ import {
   SaleOrdersListPage,
   CreateSaleOrderPage,
   SaleOrderDetailPage,
+  saleOrderApi,
 } from "../modules/sale-order";
 
 import {
@@ -222,6 +223,14 @@ const MFG_PORTAL_ROLES = ["admin", "super_admin"];
 
 const ProfileRouteWrapper = () => {
   const { role } = useAuth();
+  const scope = saleOrderApi.getUserScope();
+  if (scope.isMfgUnit && !scope.isAdmin) {
+    return (
+      <MfgLayout>
+        <ProfilePage />
+      </MfgLayout>
+    );
+  }
   if (role === "manager") {
     return (
       <ManagerLayout>
@@ -690,7 +699,6 @@ const AppContent = () => {
           path="/profile"
           element={
             <PrivateRoute
-              roles={["admin", "manager"]}
               component={ProfileRouteWrapper}
             />
           }

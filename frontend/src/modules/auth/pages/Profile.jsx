@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../app/providers/AuthContext.jsx';
-import { FaUser, FaCamera, FaEnvelope, FaPhone, FaBuilding, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaUser, FaCamera, FaEnvelope, FaPhone, FaBuilding } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/profile.css';
@@ -88,15 +88,6 @@ const Profile = () => {
       toast.error('Failed to update profile: ' + (error.response?.data?.message || error.message));
       setLoading(false);
     }
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setFormData(originalData);
-    setIsEditing(false);
   };
 
   const handleProfilePicUpload = async (event) => {
@@ -310,37 +301,6 @@ const Profile = () => {
                     />
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Actions Row */}
-            <div className="profile-actions-row">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    disabled={loading}
-                    className="profile-btn-secondary"
-                  >
-                    <FaTimes /> Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="profile-btn-primary"
-                  >
-                    <FaSave /> {loading ? "Saving..." : "Save Changes"}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="profile-btn-primary"
-                >
-                  <FaEdit /> Edit Profile
-                </button>
               )}
             </div>
           </form>

@@ -1325,7 +1325,7 @@ const PdfGenerator = () => {
         <div className="printz-header-title-area">
           <h1>
             <FileDown size={20} color="#059669" />
-            Generate Daily PDF Report — {branchName}
+            Daily Reports — {branchName}
           </h1>
         </div>
       </div>
@@ -1341,27 +1341,6 @@ const PdfGenerator = () => {
             gap: "16px",
           }}
         >
-          {/* Left: Bigger Heading with Icon */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
-              className="revenue-filter-icon"
-              style={{ width: "42px", height: "42px", borderRadius: "10px" }}
-            >
-              <Calendar size={22} color="#059669" />
-            </div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "20px",
-                fontWeight: 700,
-                color: "#0f172a",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Select Report Date
-            </h2>
-          </div>
-
           {/* Right: Calendar Input Field + Status Badges */}
           <div
             style={{

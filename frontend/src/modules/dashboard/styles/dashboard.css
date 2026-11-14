@@ -840,3 +840,18 @@ body .printz-dash-filter-card .printz-dash-btn-reset:hover { background: #f1f5f9
   body .printz-dash-filter-card .printz-dash-field-group { flex: 1 1 100%; width: 100%; }
   body .printz-dash-filter-card .printz-dash-btn-reset { width: 100%; }
 }
+
+/* Tables grid: columns may shrink below their table's width (the table then scrolls inside its card)
+   instead of pushing the cards off the right edge of the page. */
+.printz-tables-row > * { min-width: 0; }
+.printz-tables-row-1 { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.printz-tables-row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.printz-tables-row-2 > :nth-child(3) { grid-column: 1 / -1; }
+@media (min-width: 1700px) {
+  .printz-tables-row-2 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .printz-tables-row-2 > :nth-child(3) { grid-column: auto; }
+}
+@media (max-width: 1200px) {
+  .printz-tables-row-1, .printz-tables-row-2 { grid-template-columns: minmax(0, 1fr); }
+  .printz-tables-row-2 > :nth-child(3) { grid-column: auto; }
+}

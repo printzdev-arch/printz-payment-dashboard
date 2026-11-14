@@ -4,12 +4,12 @@ import { useAuth } from "../../../../../app/providers/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
-  FaCalendarAlt,
   FaSave,
   FaExclamationTriangle,
   FaFilePdf,
 } from "react-icons/fa";
 import "../../../styles/totalAmountDisplay.css";
+import "../../../styles/taPage.css";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import CalendarSelect from "../../../../../shared/ui/selects/CalendarSelect.jsx";
@@ -691,15 +691,11 @@ const TotalAmountDisplay = () => {
   }
 
   return (
-    <div className="total-amount-container">
-      <div className="total-page-header">
-        <h2>Add Total Amount Readings for {branchName}</h2>
-        <p>Submit usage details for this branch.</p>
-      </div>
+    <div className="total-amount-container ta-page">
+      <h1 className="ta-title">Add Total Amount — {branchName}</h1>
 
-      <div className="total-date-picker-container">
-        <div className="total-date-picker-wrapper" style={{ minWidth: "220px" }}>
-          <label htmlFor="amount-date">Select Date</label>
+      <div className="ta-toolbar">
+        <div className="ta-date">
           <CalendarSelect
             id="amount-date"
             selected={date ? new Date(date) : null}
@@ -707,101 +703,71 @@ const TotalAmountDisplay = () => {
             highlightDates={approvedDates}
             dateFormat="yyyy-MM-dd"
             required
-            placeholder="Select Date"
-            triggerStyle={{ height: "42px" }}
+            placeholder="Select date"
+            triggerStyle={{ height: "40px" }}
           />
         </div>
-        <button
-          type="button"
-          onClick={generatePDF}
-          className="printer-download-button"
-          disabled={!date}
-        >
-          <FaFilePdf /> Generate PDF
-        </button>
+        {date && hasExistingData && (
+          <span className="ta-warn">
+            <FaExclamationTriangle /> Data exists for this date (view only)
+          </span>
+        )}
+        <span className="ta-spacer" />
+        <div className="ta-actions">
+          <button type="button" onClick={generatePDF} className="ta-btn" disabled={!date}>
+            <FaFilePdf /> Generate PDF
+          </button>
+          {date && approvedDates && (
+            <button type="button" onClick={handleSubmit} className="ta-btn primary" disabled={isLoading || hasExistingData}>
+              <FaSave /> {hasExistingData ? "Data exists" : "Save amounts"}
+            </button>
+          )}
+        </div>
       </div>
 
       {date && approvedDates ? (
-        <div className="total-amount-card">
-          <div className="total-amount-header">
-            <div className="total-amount-title">
-              <h3>Total Amount Readings</h3>
-              {hasExistingData && (
-                <div className="total-existing-data-warning">
-                  <FaExclamationTriangle /> Data exists for this date (view
-                  only)
-                </div>
-              )}
-            </div>
-            <div className="total-action-buttons">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="total-save-button"
-                disabled={isLoading || hasExistingData}
-              >
-                <FaSave /> {hasExistingData ? "Data Exists" : "Save Amounts"}
-              </button>
-            </div>
-          </div>
-
-          <div className="total-amount-content">
-            <table className="total-amounts-table">
-              <thead>
-                <tr>
-                  <th className="total-item-col">Items</th>
-                  <th className="total-amount-col">Total Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr key={index}>
-                    <td className="total-item-name">{row.itemName}</td>
-                    <td className="total-parent-conatiner">
-                      {row.isCalculated ? (
-                        <div className="total-calculated-amount">
-                          {formatCurrency(row.amount)}
-                        </div>
-                      ) : row.autoLoad ? (
-                        <div className="total-auto-loaded-amount">
-                          {row.amount === ""
-                            ? "No data"
-                            : formatCurrency(row.amount)}
-                        </div>
-                      ) : (
-                        <input
-                          type="number"
-                          value={row.amount}
-                          onChange={(e) =>
-                            handleInputChange(row.key, e.target.value)
-                          }
-                          className="total-amount-input"
-                          disabled={isLoading || hasExistingData}
-                          min="0"
-                          placeholder="Enter amount"
-                        />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="total-row">
-                  <td className="total-grand-total-label">
-                    Grand Total (After Deductions)
-                  </td>
-                  <td className="total-grand-total">
-                    {formatCurrency(totalAmount)}
+        <div className="ta-card">
+          <table className="total-amounts-table">
+            <thead>
+              <tr>
+                <th className="total-item-col">Items</th>
+                <th className="total-amount-col">Total Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  <td className="total-item-name">{row.itemName}</td>
+                  <td className="total-parent-conatiner">
+                    {row.isCalculated ? (
+                      <div className="total-calculated-amount">{formatCurrency(row.amount)}</div>
+                    ) : row.autoLoad ? (
+                      <div className="total-auto-loaded-amount">{row.amount === "" ? "No data" : formatCurrency(row.amount)}</div>
+                    ) : (
+                      <input
+                        type="number"
+                        value={row.amount}
+                        onChange={(e) => handleInputChange(row.key, e.target.value)}
+                        className="total-amount-input"
+                        disabled={isLoading || hasExistingData}
+                        min="0"
+                        placeholder="Enter amount"
+                      />
+                    )}
                   </td>
                 </tr>
-              </tfoot>
-            </table>
-          </div>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="total-row">
+                <td className="total-grand-total-label">Grand Total (After Deductions)</td>
+                <td className="total-grand-total">{formatCurrency(totalAmount)}</td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       ) : (
-        <div className="total-select-date-message">
-          <p>Please select a date to view and record total amount readings</p>
-        </div>
+        <div className="ta-empty"><p>Select a date to view and record the total amount sheet.</p></div>
       )}
     </div>
   );

@@ -4,7 +4,6 @@ import { useAuth } from "../../../../../app/providers/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
-  FaCalendarAlt,
   FaSave,
   FaRedo,
   FaExclamationTriangle,
@@ -12,6 +11,7 @@ import {
 } from "react-icons/fa";
 import CalendarSelect from "../../../../../shared/ui/selects/CalendarSelect";
 import "../../../styles/totalAmountDisplay.css";
+import "../../../styles/taPage.css";
 
 const TotalAmountList = () => {
   const { currentUser } = useAuth();
@@ -292,132 +292,89 @@ const TotalAmountList = () => {
   }
 
   return (
-    <div className="total-amount-container">
-      <div className="total-page-header">
-        <h2>Total Amount Readings for {branchName}</h2>
-        <p>View and edit printer readings for selected date.</p>
-      </div>
+    <div className="total-amount-container ta-page">
+      <h1 className="ta-title">Total Amount — {branchName}</h1>
 
-      <div className="total-date-picker-container">
-        <div className="total-date-picker-wrapper">
-          <label htmlFor="amount-date">Select Date</label>
+      <div className="ta-toolbar">
+        <div className="ta-date">
           <CalendarSelect
             id="amount-date"
             selected={date}
             onChange={(d, formattedStr) => setDate(formattedStr || "")}
             maxDate={new Date()}
             placeholder="Select date"
+            triggerStyle={{ height: "40px" }}
           />
         </div>
+        {date && hasExistingData && <span className={`ta-mode ${isEditing ? "editing" : ""}`}>{isEditing ? "Editing" : "Viewing"}</span>}
+        <span className="ta-spacer" />
+        {date && hasExistingData && (
+          <div className="ta-actions">
+            {!isEditing ? (
+              <button type="button" onClick={handleEditToggle} className="ta-btn primary" disabled={isLoading}>
+                <FaEdit /> Edit
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={handleReset} className="ta-btn" disabled={isLoading}>
+                  <FaRedo /> Reset
+                </button>
+                <button type="button" onClick={handleEditToggle} className="ta-btn" disabled={isLoading}>
+                  Cancel
+                </button>
+                <button type="button" onClick={handleSave} className="ta-btn primary" disabled={isLoading}>
+                  <FaSave /> Save changes
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {date ? (
         hasExistingData ? (
-          <div className="total-amount-card">
-            <div className="total-amount-header">
-              <div className="total-amount-title">
-                <h3>Total Amount Readings for {date}</h3>
-                <div className="total-existing-data-warning">
-                  <FaExclamationTriangle />{" "}
-                  {isEditing ? "Editing mode" : "Viewing mode"}
-                </div>
-              </div>
-              <div className="total-action-buttons">
-                {!isEditing ? (
-                  <button
-                    type="button"
-                    onClick={handleEditToggle}
-                    className="total-edit-button"
-                    disabled={isLoading}
-                  >
-                    <FaEdit /> Edit
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      className="total-save-button"
-                      disabled={isLoading}
-                    >
-                      <FaSave /> Save Changes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleEditToggle}
-                      className="total-cancel-button"
-                      disabled={isLoading}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="total-reset-button"
-                  disabled={isLoading || !isEditing}
-                >
-                  <FaRedo /> Reset
-                </button>
-              </div>
-            </div>
-
-            <div className="total-amount-content">
-              <table className="total-amounts-table">
-                <thead>
-                  <tr>
-                    <th className="total-item-col">Items</th>
-                    <th className="total-amount-col">Total Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row, index) => (
-                    <tr key={index}>
-                      <td className="total-item-name">{row.itemName}</td>
-                      <td className="total-parent-conatiner">
-                        {row.isCalculated ? (
-                          <div className="total-calculated-amount">
-                            {formatCurrency(row.amount)}
-                          </div>
-                        ) : (
-                          <input
-                            type="number"
-                            value={row.amount}
-                            onChange={(e) =>
-                              handleInputChange(row.key, e.target.value)
-                            }
-                            className="total-amount-input"
-                            disabled={!isEditing || isLoading}
-                            min="0"
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="total-row">
-                    <td className="total-grand-total-label">
-                      Grand Total (After Deductions)
-                    </td>
-                    <td className="total-grand-total">
-                      {formatCurrency(totalAmount)}
+          <div className="ta-card">
+            <table className="total-amounts-table">
+              <thead>
+                <tr>
+                  <th className="total-item-col">Items</th>
+                  <th className="total-amount-col">Total Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={index}>
+                    <td className="total-item-name">{row.itemName}</td>
+                    <td className="total-parent-conatiner">
+                      {row.isCalculated ? (
+                        <div className="total-calculated-amount">{formatCurrency(row.amount)}</div>
+                      ) : (
+                        <input
+                          type="number"
+                          value={row.amount}
+                          onChange={(e) => handleInputChange(row.key, e.target.value)}
+                          className="total-amount-input"
+                          disabled={!isEditing || isLoading}
+                          min="0"
+                        />
+                      )}
                     </td>
                   </tr>
-                </tfoot>
-              </table>
-            </div>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="total-row">
+                  <td className="total-grand-total-label">Grand Total (After Deductions)</td>
+                  <td className="total-grand-total">{formatCurrency(totalAmount)}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         ) : (
-          <div className="total-no-data-message">
-            <p>No data available for the selected date.</p>
-          </div>
+          <div className="ta-empty"><p>No data available for the selected date.</p></div>
         )
       ) : (
-        <div className="total-select-date-message">
-          <p>Please select a date to view or edit total amount readings</p>
-        </div>
+        <div className="ta-empty"><p>Select a date to view or edit the total amount sheet.</p></div>
       )}
     </div>
   );
