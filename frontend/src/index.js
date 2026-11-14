@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './app/App.jsx';
 import './index.css';
 import './shared/styles/printzUnified.css';
+import './shared/styles/stickyTables.css';
 import jsPDF from 'jspdf';
 import autoTable, { applyPlugin } from 'jspdf-autotable';
 
