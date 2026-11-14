@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Edit, PlusCircle, Building2, Phone, Mail, MapPin, Receipt, CheckCircle, Eye } from "lucide-react";
 import StatusBadge from "../../shared/components/StatusBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import JobOrderProcessDetailModal from "../../job-orders/components/JobOrderProcessDetailModal";
 import jobFlowApi from "../api/customersApi";
 
@@ -231,7 +231,7 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                 </button>
               </div>
 
-              <JobFlowDataTable
+              <DataTable renderWithValue
                 columns={[
                   {
                     key: "jobNo",
@@ -294,7 +294,7 @@ export const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onCrea
                 loading={loadingJobs}
                 searchable={true}
                 searchPlaceholder="Search customer jobs..."
-                initialPageSize={5}
+                pageSize={5}
                 pageSizeOptions={[5, 10, 25]}
                 emptyMessage="No job orders found for this customer."
                 onRowClick={(row) => {

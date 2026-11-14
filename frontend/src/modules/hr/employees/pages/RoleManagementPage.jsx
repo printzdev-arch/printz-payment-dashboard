@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import employeesApi from "../api/employeesApi";
 import CapabilityGrid from "../components/CapabilityGrid";
 import { allLeafKeys, expandKeys } from "../components/capabilityUtils";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import "../styles/employees.css";
 
 /**
@@ -34,8 +34,6 @@ export default function RoleManagementPage() {
   const [requiresLogin, setRequiresLogin] = useState({}); // role id -> can sign in, for roles saved before this setting existed
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   // null = showing the list; an object = editing (id null means a new role)
   const [draft, setDraft] = useState(null);
   const [deleting, setDeleting] = useState(null); // role waiting for delete confirmation
@@ -61,10 +59,6 @@ export default function RoleManagementPage() {
     load();
   }, [load]);
 
-  const pageRows = useMemo(() => roles.slice((page - 1) * pageSize, page * pageSize), [roles, page, pageSize]);
-
-  // When the list spans several pages, the last page is padded with blank rows so the table keeps its height
-  const fillerRows = !loading && roles.length > pageSize ? Math.max(0, pageSize - pageRows.length) : 0;
 
   const allKeys = useMemo(() => allLeafKeys(catalog), [catalog]);
 
@@ -265,70 +259,49 @@ export default function RoleManagementPage() {
       </div>
 
       <div className="emp-card">
-        <div className="emp-table-wrap">
-          <table className="emp-table">
-            <thead>
-              <tr>
-                <th>Role</th>
-                <th>Login</th>
-                <th className="emp-th-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr><td colSpan={3} className="emp-empty">Loading roles...</td></tr>
-              )}
-              {!loading && roles.length === 0 && (
-                <tr><td colSpan={3} className="emp-empty">No roles yet.</td></tr>
-              )}
-              {pageRows.map((r) => {
+        <DataTable
+          searchable={false}
+          loading={loading}
+          data={roles}
+          pageSize={10}
+          emptyMessage="No roles yet."
+          columns={[
+            { key: "name", label: "Role", render: (r) => <div className="emp-cell-name">{r.name}</div> },
+            {
+              key: "login",
+              label: "Login",
+              render: (r) => {
                 const login = loginLabel(r, requiresLogin);
-                return (
-                  <tr key={r._id}>
-                    <td><div className="emp-cell-name">{r.name}</div></td>
-                    <td><span className={`emp-badge ${login.on ? "emp-badge-active" : "emp-badge-inactive"}`}>{login.text}</span></td>
-                    <td className="emp-td-right"><div className="emp-actions">
-                      <button type="button" className="emp-btn emp-btn-icon" title="View" aria-label={`View ${r.name}`} onClick={() => open(r, true)}>
-                        <Eye size={15} />
-                      </button>
-                      {isSuper(r) ? (
-                        <span className="emp-btn emp-btn-icon emp-btn-ghost" aria-hidden="true"><Pencil size={15} /></span>
-                      ) : (
-                        <button type="button" className="emp-btn emp-btn-icon" title="Edit" aria-label={`Edit ${r.name}`} onClick={() => open(r, false)}>
-                          <Pencil size={15} />
-                        </button>
-                      )}
-                      {ADMIN_CODES.includes(r.code) ? (
-                        <span className="emp-btn emp-btn-icon emp-btn-ghost" aria-hidden="true"><Trash2 size={15} /></span>
-                      ) : (
-                        <button type="button" className="emp-btn emp-btn-icon emp-btn-danger" title="Delete" aria-label={`Delete ${r.name}`} onClick={() => setDeleting(r)}>
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div></td>
-                  </tr>
-                );
-              })}
-              {Array.from({ length: fillerRows }, (_, i) => (
-                <tr key={`filler-${i}`} className="emp-row-filler" aria-hidden="true">
-                  <td colSpan={3} />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <Pagination
-          variant="compact"
-          currentPage={page}
-          totalItems={roles.length}
-          itemsPerPage={pageSize}
-          onPageChange={(n) => setPage(Math.max(1, n))}
-          onItemsPerPageChange={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
-          pageSizeOptions={[10, 20, 50, 100]}
-          itemLabel="roles"
+                return <span className={`emp-badge ${login.on ? "emp-badge-active" : "emp-badge-inactive"}`}>{login.text}</span>;
+              },
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              align: "right",
+              render: (r) => (
+                <div className="emp-actions">
+                  <button type="button" className="emp-btn emp-btn-icon" title="View" aria-label={`View ${r.name}`} onClick={() => open(r, true)}>
+                    <Eye size={15} />
+                  </button>
+                  {isSuper(r) ? (
+                    <span className="emp-btn emp-btn-icon emp-btn-ghost" aria-hidden="true"><Pencil size={15} /></span>
+                  ) : (
+                    <button type="button" className="emp-btn emp-btn-icon" title="Edit" aria-label={`Edit ${r.name}`} onClick={() => open(r, false)}>
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                  {ADMIN_CODES.includes(r.code) ? (
+                    <span className="emp-btn emp-btn-icon emp-btn-ghost" aria-hidden="true"><Trash2 size={15} /></span>
+                  ) : (
+                    <button type="button" className="emp-btn emp-btn-icon emp-btn-danger" title="Delete" aria-label={`Delete ${r.name}`} onClick={() => setDeleting(r)}>
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]}
         />
       </div>
 

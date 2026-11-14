@@ -5,7 +5,9 @@ import { ChevronLeft, ChevronRight, FileDown, FileText, Printer, RefreshCw, Sear
 import { toast } from "react-toastify";
 import productionApi from "../api/productionApi";
 
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 const REPORT_TYPES = [
   { id: "SUMMARY", label: "1. Production Summary" },
   { id: "OP_PERFORMANCE", label: "2. Operation Performance" },
@@ -325,11 +327,11 @@ export const ProductionReportsPage = () => {
             <>
               <div>
                 <label className="pr2-label">From</label>
-                <input type="date" className="jf-input jf-input-sm" value={range.from} max={range.to || undefined} onChange={(e) => changeDate("from", e.target.value)} />
+                <DateField value={range.from} max={range.to || undefined} onChange={(e) => changeDate("from", e.target.value)} />
               </div>
               <div>
                 <label className="pr2-label">To</label>
-                <input type="date" className="jf-input jf-input-sm" value={range.to} min={range.from || undefined} onChange={(e) => changeDate("to", e.target.value)} />
+                <DateField value={range.to} min={range.from || undefined} onChange={(e) => changeDate("to", e.target.value)} />
               </div>
             </>
           )}
@@ -337,12 +339,15 @@ export const ProductionReportsPage = () => {
           {branches.length > 1 && (
             <div>
               <label className="pr2-label">Branch</label>
-              <select className="jf-input jf-input-sm" value={branch} onChange={(e) => setBranch(e.target.value)}>
-                <option value="ALL">All Branches</option>
-                {branches.map((b) => (
-                  <option key={b._id || b.id} value={b._id || b.id}>{b.name}</option>
-                ))}
-              </select>
+              <BranchSelect
+                valueKey="id"
+                allowAll
+                allOptionLabel="All Branches"
+                allOptionValue="ALL"
+                branches={branches}
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+              />
             </div>
           )}
 
@@ -412,48 +417,27 @@ export const ProductionReportsPage = () => {
           </div>
         )}
 
-        <div className="pr2-table-wrap">
-          <table className="jf-table">
-            <thead>
-              <tr>
-                {columns.map((c) => (
-                  <th key={c.key} className={c.align === "right" ? "pr2-right" : undefined}>{c.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={Math.max(columns.length, 1)} className="pr2-empty">Loading report...</td></tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td colSpan={Math.max(columns.length, 1)} className="pr2-empty">
-                    {report?.note && selectedReport === "JOB_HISTORY" ? report.note : "No data for the selected filters."}
-                  </td>
-                </tr>
-              ) : (
-                pagedRows.map((row, i) => (
-                  <tr key={`${selectedReport}-${startIdx + i}`}>
-                    {columns.map((c, ci) => (
-                      <td key={c.key} className={c.align === "right" ? "pr2-right" : undefined}>
-                        {ci === 0 ? <strong><Cell column={c} value={row[c.key]} /></strong> : <Cell column={c} value={row[c.key]} />}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          variant="compact"
-          currentPage={currentPage}
-          totalItems={rows.length}
-          itemsPerPage={rowsPerPage}
-          onPageChange={(n) => setPage(Math.min(Math.max(1, n), totalPages))}
-          onItemsPerPageChange={(n) => setRowsPerPage(n)}
+        <DataTable
+          key={selectedReport}
+          searchable={false}
+          loading={loading}
+          data={rows}
+          pageSize={10}
           pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-          itemLabel="records"
+          emptyMessage={report?.note && selectedReport === "JOB_HISTORY" ? report.note : "No data for the selected filters."}
+          columns={columns.map((c, ci) => ({
+            key: c.key,
+            label: c.label,
+            align: c.align === "right" ? "right" : "left",
+            render: (row) =>
+              ci === 0 ? (
+                <strong>
+                  <Cell column={c} value={row[c.key]} />
+                </strong>
+              ) : (
+                <Cell column={c} value={row[c.key]} />
+              ),
+          }))}
         />
 
         {report?.truncated && <p className="pr2-note">Showing the first {rows.length} rows. Narrow the date range to see the rest.</p>}

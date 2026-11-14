@@ -1,5 +1,7 @@
 import React from "react";
 import { RefreshCw, Search } from "lucide-react";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import SelectField from "../../../../shared/ui/selects/SelectField";
 
 /**
  * Search box and dropdown filters for the employee list.
@@ -29,34 +31,40 @@ export default function EmployeeFilters({
       </div>
 
       {!lockedBranchId && (
-        <select className="emp-select" value={filters.branchId} onChange={set("branchId")} aria-label="Branch">
-          <option value="">All branches</option>
-          {branches.map((b) => (
-            <option key={b._id || b.id} value={b._id || b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+        <BranchSelect
+          valueKey="id"
+          allowAll
+          allOptionLabel="All branches"
+          allOptionValue=""
+          branches={branches}
+          value={filters.branchId}
+          onChange={set("branchId")}
+          style={{ minWidth: "200px" }}
+          triggerStyle={{ height: "40px" }}
+        />
       )}
 
 
       {roles.length > 0 && (
-        <select className="emp-select" value={filters.roleId} onChange={set("roleId")} aria-label="Role">
-          <option value="">All roles</option>
-          {roles.map((r) => (
-            <option key={r._id || r.id} value={r._id || r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
+        <SelectField
+          searchable={false}
+          value={filters.roleId}
+          onChange={set("roleId")}
+          options={[{ value: "", label: "All roles" }, ...roles.map((r) => ({ value: r._id || r.id, label: r.name }))]}
+        />
       )}
 
-      <select className="emp-select" value={filters.status} onChange={set("status")} aria-label="Status">
-        <option value="ACTIVE">Active</option>
-        <option value="INACTIVE">Inactive</option>
-        <option value="LEFT">Left company</option>
-        <option value="">All statuses</option>
-      </select>
+      <SelectField
+        searchable={false}
+        value={filters.status}
+        onChange={set("status")}
+        options={[
+          { value: "ACTIVE", label: "Active" },
+          { value: "INACTIVE", label: "Inactive" },
+          { value: "LEFT", label: "Left company" },
+          { value: "", label: "All statuses" },
+        ]}
+      />
 
       <button type="button" className="emp-btn" onClick={onRefresh} disabled={loading}>
         <RefreshCw size={14} /> {loading ? "Loading..." : "Refresh"}

@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import EmployeeSalaryDetailsModal from "../components/EmployeeSalaryDetailsModal";
-import SalaryPagination from "../components/SalaryPagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import { exportSalaryRecordsXlsx } from "../utils/salaryExcel";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
 
 export default function SalaryRecordsPage() {
@@ -169,20 +170,21 @@ export default function SalaryRecordsPage() {
 
         <div className="salary-header-actions">
           {/* Branch Selector */}
-          <select
-            className="salary-branch-pill-select"
-            disabled={!!salaryApi.getLockedBranchId()}
+          <BranchSelect
+            valueKey="id"
+            lockToUserBranch
+            allowAll
+            allOptionLabel="All Branches"
+            allOptionValue=""
+            branches={branches}
             value={selectedBranchId}
             onChange={(e) => {
               setSelectedBranchId(e.target.value);
               setPage(1);
             }}
-          >
-            {!salaryApi.getLockedBranchId() && <option value="">All Branches</option>}
-            {branches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name}</option>
-            ))}
-          </select>
+            style={{ minWidth: "210px" }}
+            triggerStyle={{ height: "38px", fontSize: "13px" }}
+          />
 
           <button type="button" className="btn-salary-excel" onClick={handleExportExcel} disabled={filteredRecords.length === 0 || exporting}>
             <FileSpreadsheet size={15} /> {exporting ? "Exporting..." : "Export Excel"}
@@ -269,162 +271,85 @@ export default function SalaryRecordsPage() {
         </div>
       </div>
 
-      {/* ── 5 Summary Cards Grid ───────────────────────────────────────── */}
-      <div className="salary-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))" }}>
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box green">
-            <Users size={22} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{totalEmployees}</span>
-            <span className="salary-kpi-label">Employees with Records</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box blue">
-            <FileText size={22} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{paidEmployees}</span>
-            <span className="salary-kpi-label">Paid Employees</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box teal">
-            <DollarSign size={22} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">₹ {totalGross.toLocaleString("en-IN")}</span>
-            <span className="salary-kpi-label">Total Gross Salary</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box red">
-            <MinusCircle size={22} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">₹ {totalDeductions.toLocaleString("en-IN")}</span>
-            <span className="salary-kpi-label">Total Deductions</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box purple">
-            <TrendingUp size={22} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">₹ {totalNet.toLocaleString("en-IN")}</span>
-            <span className="salary-kpi-label">Total Final Pay</span>
-          </div>
-        </div>
-      </div>
 
       {/* ── Table Card ───────────────────────────────────────────────── */}
-      <div className="salary-table-card">
-        {error && (
-          <div style={{ background: "#fee2e2", color: "#b91c1c", padding: "12px 16px", fontSize: "13px" }}>
-            {error}
-          </div>
-        )}
-
-        <div className="salary-table-responsive">
-          <table className="salary-table">
-            <thead>
-              <tr>
-                <th>Employee ID</th>
-                <th>Employee Name</th>
-                <th>Working Days</th>
-                <th>Days Worked</th>
-                <th>LOP Days</th>
-                <th>Gross Pay</th>
-                <th>Total Deductions</th>
-                <th>Final Pay</th>
-                <th>Status</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                    Loading salary records...
-                  </td>
-                </tr>
-              ) : filteredRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                    No salary records found for the selected filters.
-                  </td>
-                </tr>
-              ) : (
-                paginatedRecords.map((r, index) => {
-                  const emp = r.employeeId || {};
-                  const empName = emp.name || "—";
-                  const empCode = emp.employeeCode || "—";
-                  const workingDays = r.salaryCalculationDays ?? "—";
-                  const lopDays = r.lopDays ?? 0;
-                  const isPaid = r.status === "PAID" || r.status === "LOCKED";
-
-                  return (
-                    <tr key={r._id || index}>
-                      <td>
-                        <strong>{empCode}</strong>
-                      </td>
-                      <td>{empName}</td>
-                      <td>{workingDays}</td>
-                      <td>{r.daysWorked ?? "—"}</td>
-                      <td style={{ color: Number(lopDays) > 0 ? "#b91c1c" : "inherit" }}>{lopDays}</td>
-                      <td style={{ fontWeight: 600 }}>₹ {Number(r.grossPay || 0).toLocaleString("en-IN")}</td>
-                      <td style={{ color: "#b91c1c" }}>₹ {Number(r.totalDeductions || 0).toLocaleString("en-IN")}</td>
-                      <td style={{ fontWeight: 700, color: r.isDeficit ? "#dc2626" : "#107548" }}>
-                        ₹ {Number(r.roundPay || 0).toLocaleString("en-IN")}
-                        {r.isDeficit && (
-                          <div style={{ fontSize: "10px", color: "#b91c1c", fontWeight: 600 }}>
-                            Deficit: ₹ {Number(r.deficitAmount || 0).toLocaleString("en-IN")}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`badge-salary-status ${isPaid ? "paid" : String(r.status || "draft").toLowerCase()}`}>
-                          {String(r.status || "DRAFT").replace("_", " ")}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
-                          <button
-                            type="button"
-                            className="salary-icon-btn primary"
-                            title="View salary details & payslip"
-                            onClick={() => setSelectedRecordForView(r)}
-                          >
-                            <Eye size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {error && (
+        <div style={{ background: "#fee2e2", color: "#b91c1c", padding: "12px 16px", fontSize: "13px", borderRadius: "8px", marginBottom: "12px" }}>
+          {error}
         </div>
+      )}
 
-        {/* ── Pagination Bar ─────────────────────────────────────────── */}
-        <SalaryPagination
-          total={filteredRecords.length}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
-          unit="records"
-        />
-      </div>
+      <DataTable
+        searchable={false}
+        loading={loading}
+        data={filteredRecords}
+        pageSize={10}
+        emptyMessage="No salary records found for the selected filters."
+        columns={[
+          { key: "employeeCode", label: "Employee ID", render: (r) => <strong>{r.employeeId?.employeeCode || "—"}</strong> },
+          { key: "employeeName", label: "Employee Name", render: (r) => r.employeeId?.name || "—" },
+          { key: "workingDays", label: "Working Days", render: (r) => r.salaryCalculationDays ?? "—" },
+          { key: "daysWorked", label: "Days Worked", render: (r) => r.daysWorked ?? "—" },
+          {
+            key: "lopDays",
+            label: "LOP Days",
+            render: (r) => <span style={{ color: Number(r.lopDays ?? 0) > 0 ? "#b91c1c" : "inherit" }}>{r.lopDays ?? 0}</span>,
+          },
+          {
+            key: "grossPay",
+            label: "Gross Pay",
+            render: (r) => <span style={{ fontWeight: 600 }}>₹ {Number(r.grossPay || 0).toLocaleString("en-IN")}</span>,
+          },
+          {
+            key: "totalDeductions",
+            label: "Total Deductions",
+            render: (r) => <span style={{ color: "#b91c1c" }}>₹ {Number(r.totalDeductions || 0).toLocaleString("en-IN")}</span>,
+          },
+          {
+            key: "roundPay",
+            label: "Final Pay",
+            render: (r) => (
+              <span style={{ fontWeight: 700, color: r.isDeficit ? "#dc2626" : "#107548" }}>
+                ₹ {Number(r.roundPay || 0).toLocaleString("en-IN")}
+                {r.isDeficit && (
+                  <div style={{ fontSize: "10px", color: "#b91c1c", fontWeight: 600 }}>
+                    Deficit: ₹ {Number(r.deficitAmount || 0).toLocaleString("en-IN")}
+                  </div>
+                )}
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (r) => {
+              const isPaid = r.status === "PAID" || r.status === "LOCKED";
+              return (
+                <span className={`badge-salary-status ${isPaid ? "paid" : String(r.status || "draft").toLowerCase()}`}>
+                  {String(r.status || "DRAFT").replace("_", " ")}
+                </span>
+              );
+            },
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            align: "right",
+            render: (r) => (
+              <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="salary-icon-btn primary"
+                  title="View salary details & payslip"
+                  onClick={() => setSelectedRecordForView(r)}
+                >
+                  <Eye size={15} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* ── Employee Salary Details Modal ────────────────────────────── */}
       <EmployeeSalaryDetailsModal

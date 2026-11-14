@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ArrowLeft, BadgeCheck, Eye, FileText, HandCoins, PackageCheck, Pencil, RefreshCw, Wallet, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Eye, Factory, User, FileText, HandCoins, PackageCheck, Pencil, RefreshCw, Wallet, XCircle } from "lucide-react";
 import saleOrderApi from "../api/saleOrderApi";
 import ReceiveOrderModal from "../components/branch/ReceiveOrderModal";
 import DeliverOrderModal from "../components/branch/DeliverOrderModal";
@@ -73,7 +73,7 @@ export default function SaleOrderDetailPage() {
   if (error || !order) {
     return (
       <div className="so-page">
-        <button type="button" className="so-back-link" onClick={() => navigate("/sale-orders")}><ArrowLeft size={15} /> Back to orders</button>
+        <button type="button" className="so-back-link" onClick={() => navigate("/sale-orders")}><ArrowLeft size={15} /> Back</button>
         <div className="so-alert error"><span>{error || "Order not found."}</span></div>
       </div>
     );
@@ -94,7 +94,7 @@ export default function SaleOrderDetailPage() {
   return (
     <div className="so-page">
       <button type="button" className="so-back-link" onClick={() => navigate("/sale-orders")}>
-        <ArrowLeft size={15} /> Back to orders
+        <ArrowLeft size={15} /> Back
       </button>
 
       <div className="so-header">
@@ -104,10 +104,17 @@ export default function SaleOrderDetailPage() {
             <OrderStatusBadge status={order.status} />
             <PriorityTag priority={order.priority} />
           </div>
-          <p>
-            {order.customerSnapshot?.name} · {order.orderBranch?.name}
-            {order.manufacturingUnit?.name ? ` → ${order.manufacturingUnit.name}` : ""}
-          </p>
+          <div className="so-meta-row">
+            <span className="so-meta-item"><User size={13} /> {order.customerSnapshot?.name || "—"}</span>
+            <span className="so-meta-sep" />
+            <span className="so-meta-item"><Building2 size={13} /> {order.orderBranch?.name || "—"}</span>
+            {order.manufacturingUnit?.name && (
+              <>
+                <ArrowRight size={13} className="so-meta-arrow" />
+                <span className="so-meta-item"><Factory size={13} /> {order.manufacturingUnit.name}</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="so-header-actions">
@@ -170,13 +177,20 @@ export default function SaleOrderDetailPage() {
         </div>
       )}
       {order.status === "RECEIVED_AT_BRANCH" && (
-        <div className="so-alert success">
-          <span>
-            <strong>The order is at your branch.</strong>{" "}
-            {Number(order.balanceDue) > 0
-              ? `Collect the balance of ${formatMoney(order.balanceDue)} and hand it to the customer.`
-              : "Fully paid. Hand it to the customer."}
-          </span>
+        <div className="so-alert success so-alert-rich">
+          <span className="so-alert-icon"><PackageCheck size={18} /></span>
+          <div className="so-alert-text">
+            <strong>
+              {scope.isAdmin
+                ? `The order is at ${order.orderBranch?.name || "the"} branch.`
+                : "The order is at your branch."}
+            </strong>
+            <span>
+              {Number(order.balanceDue) > 0
+                ? `Collect the balance of ${formatMoney(order.balanceDue)} and hand it to the customer.`
+                : "Fully paid. Hand it to the customer."}
+            </span>
+          </div>
         </div>
       )}
 

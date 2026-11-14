@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { RefreshCw } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import deliveryApi from "../api/deliveryApi";
 import settlementApi from "../../settlement/api/settlementApi";
@@ -462,7 +462,7 @@ export const DeliveryPage = ({ embedded = false }) => {
         ))}
       </div>
 
-      <JobFlowDataTable
+      <DataTable renderWithValue
         key={`${tab}-${chip}`}
         columns={columns}
         data={chipRows}

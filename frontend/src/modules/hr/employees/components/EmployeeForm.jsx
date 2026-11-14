@@ -9,6 +9,8 @@ import {
   onlyMobile,
   onlyPersonName,
 } from "../../../../shared/utils/validation";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 
 /**
  * Add / edit form for one employee. The same form serves both.
@@ -130,18 +132,20 @@ export default function EmployeeForm({
           {field(
             "branchId",
             "Branch",
-            <select className="emp-select" value={values.branchId} onChange={set("branchId")} disabled={Boolean(lockedBranchId)}>
-              <option value="">Select branch</option>
-              {branches.map((b) => (
-                <option key={b._id || b.id} value={b._id || b.id}>{b.name}</option>
-              ))}
-            </select>,
+            <BranchSelect
+              valueKey="id"
+              branches={branches}
+              value={values.branchId}
+              placeholder="Select branch"
+              disabled={Boolean(lockedBranchId)}
+              onChange={set("branchId")}
+            />,
             { required: true }
           )}
 
-          {field("joiningDate", "Joining date", <input className="emp-input" type="date" value={values.joiningDate} onChange={set("joiningDate")} disabled={isEdit} />, { required: true })}
-          {field("leavingDate", "Leaving date", <input className="emp-input" type="date" min={values.joiningDate || undefined} value={values.leavingDate} onChange={set("leavingDate")} />, { hint: "Leave empty while the person is still working." })}
-          {field("dateOfBirth", "Date of birth", <input className="emp-input" type="date" max={today()} value={values.dateOfBirth} onChange={set("dateOfBirth")} />)}
+          {field("joiningDate", "Joining date", <DateField value={values.joiningDate} onChange={set("joiningDate")} disabled={isEdit} />, { required: true })}
+          {field("leavingDate", "Leaving date", <DateField min={values.joiningDate || undefined} value={values.leavingDate} onChange={set("leavingDate")} />, { hint: "Leave empty while the person is still working." })}
+          {field("dateOfBirth", "Date of birth", <DateField max={today()} value={values.dateOfBirth} onChange={set("dateOfBirth")} />)}
           {field("address", "Address", <input className="emp-input" value={values.address} onChange={set("address")} />, { full: true })}
 
           {loginAvailable && (

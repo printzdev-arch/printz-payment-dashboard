@@ -19,9 +19,10 @@ import salaryApi from "../api/salaryApi";
 import AddLoanModal from "../components/AddLoanModal";
 import RecordRepaymentModal from "../components/RecordRepaymentModal";
 import AddAdjustmentModal from "../components/AddAdjustmentModal";
-import SalaryPagination from "../components/SalaryPagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import SalaryMaintenanceBanner from "../components/SalaryMaintenanceBanner";
 import { flagIfMaintenance, useSalaryMaintenance } from "../utils/salaryGuards";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
 
 export default function LoansAdjustmentsPage() {
@@ -419,20 +420,21 @@ export default function LoansAdjustmentsPage() {
 
         <div className="salary-header-actions">
           {/* Branch Selector */}
-          <select
-            className="salary-branch-pill-select"
-            disabled={!!salaryApi.getLockedBranchId()}
+          <BranchSelect
+            valueKey="id"
+            lockToUserBranch
+            allowAll
+            allOptionLabel="All Branches"
+            allOptionValue=""
+            branches={branches}
             value={selectedBranchId}
             onChange={(e) => {
               setSelectedBranchId(e.target.value);
               setPage(1);
             }}
-          >
-            {!salaryApi.getLockedBranchId() && <option value="">All Branches</option>}
-            {branches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name}</option>
-            ))}
-          </select>
+            style={{ minWidth: "210px" }}
+            triggerStyle={{ height: "38px", fontSize: "13px" }}
+          />
 
           {activeTab === "loans" && canConfigure && (
             <button
@@ -598,50 +600,6 @@ export default function LoansAdjustmentsPage() {
         </div>
       </div>
 
-      {/* ── KPI Summary Cards ─────────────────────────────────────────── */}
-      {activeTab === "loans" && (
-        <div className="salary-kpi-grid">
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box green">
-              <Users size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{totalLoansCount}</span>
-              <span className="salary-kpi-label">Total Loans</span>
-            </div>
-          </div>
-
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box blue">
-              <Wallet size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{activeLoansCount}</span>
-              <span className="salary-kpi-label">Active Loans</span>
-            </div>
-          </div>
-
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box amber">
-              <CheckCircle size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{closedLoansCount}</span>
-              <span className="salary-kpi-label">Closed Loans</span>
-            </div>
-          </div>
-
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box red">
-              <XCircle size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{onHoldLoansCount}</span>
-              <span className="salary-kpi-label">On Hold Loans</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Table Card ───────────────────────────────────────────────── */}
       <div className="salary-table-card">
@@ -651,282 +609,231 @@ export default function LoansAdjustmentsPage() {
           </div>
         )}
 
-        <div className="salary-table-responsive">
-          {activeTab === "loans" && (
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>Loan Number</th>
-                  <th>Employee</th>
-                  <th>Branch</th>
-                  <th>Loan Amount</th>
-                  <th>EMI Amount</th>
-                  <th>Outstanding</th>
-                  <th>EMI Deduction</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      Loading loans...
-                    </td>
-                  </tr>
-                ) : filteredLoans.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      No loans found. Click <strong>"+ Add Loan"</strong> to issue an employee loan.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedLoans.map((l, index) => {
-                    const empName = empNameOf(l.employeeId);
-                    const isCompleted = l.status === "CLOSED";
-
-                    return (
-                      <tr key={l._id || index}>
-                        <td>
-                          <strong>{l.loanNumber}</strong>
-                        </td>
-                        <td>{empName}</td>
-                        <td>{branchNameOf(l, l.employeeId)}</td>
-                        <td style={{ fontWeight: 600 }}>₹ {Number(l.loanAmount || 0).toLocaleString("en-IN")}</td>
-                        <td>₹ {Number(l.emiAmount || 0).toLocaleString("en-IN")} / mo</td>
-                        <td style={{ color: Number(l.outstandingBalance || 0) > 0 ? "#b91c1c" : "#15803d", fontWeight: 700 }}>
-                          ₹ {Number(l.outstandingBalance || 0).toLocaleString("en-IN")}
-                        </td>
-                        <td>
-                          <span className={`badge-salary-status ${l.autoDeduct === false ? "pending" : "active"}`}>
-                            {l.autoDeduct === false ? "Manual" : "Auto"}
-                          </span>
-                          {(l.skippedMonths || []).length > 0 && (
-                            <div style={{ marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                              {[...l.skippedMonths]
-                                .sort((a, b) => a.year - b.year || a.month - b.month)
-                                .map((s) => (
-                                  <span
-                                    key={`${s.year}-${s.month}`}
-                                    title={s.reason ? `Skipped: ${s.reason}` : "EMI skipped for this month"}
-                                    style={{ fontSize: "11px", background: "#fef3c7", color: "#92400e", borderRadius: "999px", padding: "1px 8px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                                  >
-                                    Skip {MONTH_NAMES[s.month - 1].slice(0, 3)} {s.year}
-                                    {canConfigure && (
-                                      <button
-                                        type="button"
-                                        aria-label="Remove skip"
-                                        title="Remove this skip"
-                                        disabled={maintenance || Boolean(skipBusy)}
-                                        onClick={() => handleUnskip(l, s)}
-                                        style={{ border: "none", background: "transparent", color: "#92400e", cursor: "pointer", padding: 0, fontSize: "12px" }}
-                                      >
-                                        ✕
-                                      </button>
-                                    )}
-                                  </span>
-                                ))}
-                            </div>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`badge-salary-status ${isCompleted ? "paid" : l.status === "ON_HOLD" ? "pending" : "active"}`}>
-                            {String(l.status || "ACTIVE").replace("_", " ")}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
-                            {l.status === "ACTIVE" && l.autoDeduct !== false && canConfigure && (
-                              <button
-                                type="button"
-                                className="btn-salary-secondary"
-                                style={{ padding: "4px 10px", fontSize: "12px" }}
-                                title="Skip the EMI for one month"
-                                disabled={maintenance}
-                                onClick={() => openSkipDialog(l)}
-                              >
-                                Skip month
-                              </button>
-                            )}
-                            {l.status === "ACTIVE" && (
-                              <button
-                                type="button"
-                                className="salary-icon-btn primary"
-                                title="Record repayment"
-                                onClick={() => {
-                                  setSelectedLoanForRepayment(l);
-                                  setIsRepaymentModalOpen(true);
-                                }}
-                              >
-                                <Wallet size={15} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          )}
-
-          {activeTab === "repayments" && (
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>Loan Number</th>
-                  <th>Employee</th>
-                  <th>Branch</th>
-                  <th>Repayment Date</th>
-                  <th>Amount</th>
-                  <th>Previous Balance</th>
-                  <th>Remaining Balance</th>
-                  <th>Source</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      Loading repayments...
-                    </td>
-                  </tr>
-                ) : filteredRepayments.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      No loan repayments recorded yet.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedRepayments.map((r, index) => {
-                    const empName = empNameOf(r.employeeId);
-                    const loanNo = loanNumberOf(r.employeeLoanId);
-                    const dateStr = r.repaymentDate ? new Date(r.repaymentDate).toLocaleDateString("en-GB") : "-";
-                    const isPayroll = r.paymentMethod === "SALARY_DEDUCTION";
-
-                    return (
-                      <tr key={r._id || index}>
-                        <td><strong>{loanNo}</strong></td>
-                        <td>{empName}</td>
-                        <td>{branchNameOf(r, r.employeeId)}</td>
-                        <td>{dateStr}</td>
-                        <td style={{ fontWeight: 700, color: "#15803d" }}>
-                          ₹ {Number(r.amount || 0).toLocaleString("en-IN")}
-                        </td>
-                        <td>₹ {Number(r.previousBalance || 0).toLocaleString("en-IN")}</td>
-                        <td style={{ fontWeight: 600 }}>
-                          ₹ {Number(r.remainingBalance || 0).toLocaleString("en-IN")}
-                        </td>
-                        <td>
-                          <span style={{ fontSize: "11.5px", padding: "3px 8px", borderRadius: "4px", background: "#f1f5f9", fontWeight: 600 }}>
-                            {isPayroll
-                              ? `Payroll${r.payrollMonth ? ` ${r.payrollMonth}/${r.payrollYear}` : ""}`
-                              : String(r.paymentMethod || "").replace("_", " ")}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          )}
-
-          {activeTab === "adjustments" && (
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Branch</th>
-                  <th>Period</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Description</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      Loading adjustments...
-                    </td>
-                  </tr>
-                ) : filteredAdjustments.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      No salary adjustments found. Click <strong>"+ Add Adjustment"</strong> to record incentives, shortages or advance deductions.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedAdjustments.map((a, index) => {
-                    const empName = empNameOf(a.employeeId);
-                    const isAddition = a.adjustmentType === "INCENTIVE" || a.adjustmentType === "OTHER_EARNING";
-                    const isPending = a.status === "PENDING";
-
-                    return (
-                      <tr key={a._id || index}>
-                        <td><strong>{empName}</strong></td>
-                        <td>{branchNameOf(a, a.employeeId)}</td>
-                        <td>{a.payrollMonth}/{a.payrollYear}</td>
-                        <td>
-                          <span
-                            style={{
-                              padding: "3px 8px",
-                              borderRadius: "4px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              background: isAddition ? "#dcfce7" : "#fee2e2",
-                              color: isAddition ? "#15803d" : "#b91c1c",
-                            }}
-                          >
-                            {String(a.adjustmentType || "").replace(/_/g, " ")}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 700, color: isAddition ? "#15803d" : "#b91c1c" }}>
-                          {isAddition ? "+" : "-"} ₹ {Number(a.amount || 0).toLocaleString("en-IN")}
-                        </td>
-                        <td>{a.description}</td>
-                        <td>
-                          <span className={`badge-salary-status ${String(a.status || "PENDING").toLowerCase()}`}>
-                            {a.status || "PENDING"}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          {isPending && (
-                            <button
-                              type="button"
-                              className="salary-icon-btn danger"
-                              disabled={actionBusyId === a._id}
-                              title="Cancel adjustment"
-                              onClick={() => handleCancelAdjustment(a._id)}
+        {activeTab === "loans" && (
+          <DataTable
+            searchable={false}
+            loading={loading}
+            data={filteredLoans}
+            pageSize={10}
+            emptyMessage={<>No loans found. Click <strong>"+ Add Loan"</strong> to issue an employee loan.</>}
+            columns={[
+              { key: "loanNumber", label: "Loan Number", render: (l) => <strong>{l.loanNumber}</strong> },
+              { key: "employee", label: "Employee", render: (l) => empNameOf(l.employeeId) },
+              { key: "branch", label: "Branch", render: (l) => branchNameOf(l, l.employeeId) },
+              {
+                key: "loanAmount",
+                label: "Loan Amount",
+                render: (l) => <span style={{ fontWeight: 600 }}>₹ {Number(l.loanAmount || 0).toLocaleString("en-IN")}</span>,
+              },
+              { key: "emiAmount", label: "EMI Amount", render: (l) => `₹ ${Number(l.emiAmount || 0).toLocaleString("en-IN")} / mo` },
+              {
+                key: "outstandingBalance",
+                label: "Outstanding",
+                render: (l) => (
+                  <span style={{ color: Number(l.outstandingBalance || 0) > 0 ? "#b91c1c" : "#15803d", fontWeight: 700 }}>
+                    ₹ {Number(l.outstandingBalance || 0).toLocaleString("en-IN")}
+                  </span>
+                ),
+              },
+              {
+                key: "autoDeduct",
+                label: "EMI Deduction",
+                render: (l) => (
+                  <>
+                    <span className={`badge-salary-status ${l.autoDeduct === false ? "pending" : "active"}`}>
+                      {l.autoDeduct === false ? "Manual" : "Auto"}
+                    </span>
+                    {(l.skippedMonths || []).length > 0 && (
+                      <div style={{ marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {[...l.skippedMonths]
+                          .sort((a, b) => a.year - b.year || a.month - b.month)
+                          .map((s) => (
+                            <span
+                              key={`${s.year}-${s.month}`}
+                              title={s.reason ? `Skipped: ${s.reason}` : "EMI skipped for this month"}
+                              style={{ fontSize: "11px", background: "#fef3c7", color: "#92400e", borderRadius: "999px", padding: "1px 8px", display: "inline-flex", alignItems: "center", gap: "4px" }}
                             >
-                              <RotateCcw size={14} />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
+                              Skip {MONTH_NAMES[s.month - 1].slice(0, 3)} {s.year}
+                              {canConfigure && (
+                                <button
+                                  type="button"
+                                  aria-label="Remove skip"
+                                  title="Remove this skip"
+                                  disabled={maintenance || Boolean(skipBusy)}
+                                  onClick={() => handleUnskip(l, s)}
+                                  style={{ border: "none", background: "transparent", color: "#92400e", cursor: "pointer", padding: 0, fontSize: "12px" }}
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (l) => (
+                  <span className={`badge-salary-status ${l.status === "CLOSED" ? "paid" : l.status === "ON_HOLD" ? "pending" : "active"}`}>
+                    {String(l.status || "ACTIVE").replace("_", " ")}
+                  </span>
+                ),
+              },
+              {
+                key: "actions",
+                label: "Actions",
+                align: "right",
+                render: (l) => (
+                  <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
+                    {l.status === "ACTIVE" && l.autoDeduct !== false && canConfigure && (
+                      <button
+                        type="button"
+                        className="btn-salary-secondary"
+                        style={{ padding: "4px 10px", fontSize: "12px" }}
+                        title="Skip the EMI for one month"
+                        disabled={maintenance}
+                        onClick={() => openSkipDialog(l)}
+                      >
+                        Skip month
+                      </button>
+                    )}
+                    {l.status === "ACTIVE" && (
+                      <button
+                        type="button"
+                        className="salary-icon-btn primary"
+                        title="Record repayment"
+                        onClick={() => {
+                          setSelectedLoanForRepayment(l);
+                          setIsRepaymentModalOpen(true);
+                        }}
+                      >
+                        <Wallet size={15} />
+                      </button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        )}
 
-        {/* ── Pagination Bar ─────────────────────────────────────────── */}
-        <SalaryPagination
-          total={currentListLength}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
-        />
+        {activeTab === "repayments" && (
+          <DataTable
+            searchable={false}
+            loading={loading}
+            data={filteredRepayments}
+            pageSize={10}
+            emptyMessage="No loan repayments recorded yet."
+            columns={[
+              { key: "loanNumber", label: "Loan Number", render: (r) => <strong>{loanNumberOf(r.employeeLoanId)}</strong> },
+              { key: "employee", label: "Employee", render: (r) => empNameOf(r.employeeId) },
+              { key: "branch", label: "Branch", render: (r) => branchNameOf(r, r.employeeId) },
+              {
+                key: "repaymentDate",
+                label: "Repayment Date",
+                render: (r) => (r.repaymentDate ? new Date(r.repaymentDate).toLocaleDateString("en-GB") : "-"),
+              },
+              {
+                key: "amount",
+                label: "Amount",
+                render: (r) => <span style={{ fontWeight: 700, color: "#15803d" }}>₹ {Number(r.amount || 0).toLocaleString("en-IN")}</span>,
+              },
+              { key: "previousBalance", label: "Previous Balance", render: (r) => `₹ ${Number(r.previousBalance || 0).toLocaleString("en-IN")}` },
+              {
+                key: "remainingBalance",
+                label: "Remaining Balance",
+                render: (r) => <span style={{ fontWeight: 600 }}>₹ {Number(r.remainingBalance || 0).toLocaleString("en-IN")}</span>,
+              },
+              {
+                key: "source",
+                label: "Source",
+                render: (r) => (
+                  <span style={{ fontSize: "11.5px", padding: "3px 8px", borderRadius: "4px", background: "#f1f5f9", fontWeight: 600 }}>
+                    {r.paymentMethod === "SALARY_DEDUCTION"
+                      ? `Payroll${r.payrollMonth ? ` ${r.payrollMonth}/${r.payrollYear}` : ""}`
+                      : String(r.paymentMethod || "").replace("_", " ")}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        )}
+
+        {activeTab === "adjustments" && (
+          <DataTable
+            searchable={false}
+            loading={loading}
+            data={filteredAdjustments}
+            pageSize={10}
+            emptyMessage={<>No salary adjustments found. Click <strong>"+ Add Adjustment"</strong> to record incentives, shortages or advance deductions.</>}
+            columns={[
+              { key: "employee", label: "Employee", render: (a) => <strong>{empNameOf(a.employeeId)}</strong> },
+              { key: "branch", label: "Branch", render: (a) => branchNameOf(a, a.employeeId) },
+              { key: "period", label: "Period", render: (a) => `${a.payrollMonth}/${a.payrollYear}` },
+              {
+                key: "adjustmentType",
+                label: "Type",
+                render: (a) => {
+                  const isAddition = a.adjustmentType === "INCENTIVE" || a.adjustmentType === "OTHER_EARNING";
+                  return (
+                    <span
+                      style={{
+                        padding: "3px 8px",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        background: isAddition ? "#dcfce7" : "#fee2e2",
+                        color: isAddition ? "#15803d" : "#b91c1c",
+                      }}
+                    >
+                      {String(a.adjustmentType || "").replace(/_/g, " ")}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "amount",
+                label: "Amount",
+                render: (a) => {
+                  const isAddition = a.adjustmentType === "INCENTIVE" || a.adjustmentType === "OTHER_EARNING";
+                  return (
+                    <span style={{ fontWeight: 700, color: isAddition ? "#15803d" : "#b91c1c" }}>
+                      {isAddition ? "+" : "-"} ₹ {Number(a.amount || 0).toLocaleString("en-IN")}
+                    </span>
+                  );
+                },
+              },
+              { key: "description", label: "Description", render: (a) => a.description },
+              {
+                key: "status",
+                label: "Status",
+                render: (a) => (
+                  <span className={`badge-salary-status ${String(a.status || "PENDING").toLowerCase()}`}>{a.status || "PENDING"}</span>
+                ),
+              },
+              {
+                key: "actions",
+                label: "Actions",
+                align: "right",
+                render: (a) =>
+                  a.status === "PENDING" ? (
+                    <button
+                      type="button"
+                      className="salary-icon-btn danger"
+                      disabled={actionBusyId === a._id}
+                      title="Cancel adjustment"
+                      onClick={() => handleCancelAdjustment(a._id)}
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  ) : null,
+              },
+            ]}
+          />
+        )}
       </div>
 
       {/* ── Modals ───────────────────────────────────────────────────── */}

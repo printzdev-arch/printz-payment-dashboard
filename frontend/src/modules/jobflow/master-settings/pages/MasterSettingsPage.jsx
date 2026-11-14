@@ -36,7 +36,7 @@ import {
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import masterSettingsApi from "../api/masterSettingsApi";
 import { toast } from "react-toastify";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 
 const CATEGORY_ICONS = {
   productTypes: Layers,
@@ -853,227 +853,172 @@ export const MasterSettingsPage = () => {
             </div>
 
             {/* Options Table (No Description Column) */}
-            <div className="jf-table-container" style={{ overflowX: "auto" }}>
-              <table className="jf-table" style={{ width: "100%", fontSize: "0.8125rem" }}>
-                <thead>
-                  <tr style={{ background: "#f8fafc" }}>
-                    <th style={{ width: "45px", textAlign: "center" }}>#</th>
-                    <th style={{ textAlign: "left" }}>Option Name</th>
-                    <th style={{ textAlign: "left", width: "180px" }}>Code / Identifier</th>
-                    <th style={{ textAlign: "left" }}>Config / Specifications</th>
-                    <th style={{ textAlign: "center", width: "110px" }}>Status</th>
-                    <th style={{ textAlign: "center", width: "130px" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: "center", padding: "2.5rem 1rem", color: "#475569" }}>
-                        <AlertCircle size={28} style={{ margin: "0 auto 0.5rem auto", opacity: 0.5 }} />
-                        <div style={{ fontWeight: 600, color: "#475569" }}>No options found</div>
-                        <div style={{ fontSize: "0.75rem", marginTop: "2px" }}>
-                          {searchQuery
-                            ? `No results matching "${searchQuery}"`
-                            : "Click 'Add Option' above to create one in this category."}
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedItems.map((item, idx) => {
-                      const isDefault = Boolean(item.isDefault);
-                      const isActive = item.isActive !== false;
-                      const itemIndex = (validPage - 1) * parsedRowsPerPage + idx + 1;
-
-                      return (
-                        <tr
-                          key={item._id || item.id || idx}
-                          style={{
-                            background: isDefault ? "rgba(254, 243, 199, 0.15)" : "#ffffff",
-                            opacity: isActive ? 1 : 0.6,
-                            transition: "background 0.1s ease",
-                          }}
-                        >
-                          {/* Order / Index */}
-                          <td style={{ textAlign: "center", color: "#475569", fontWeight: 600 }}>
-                            {itemIndex}
-                          </td>
-
-                          {/* Name + Default Badge */}
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span style={{ fontWeight: 600, color: isActive ? "#0f172a" : "#64748b" }}>
-                                {item.name}
-                              </span>
-                              {isDefault && (
-                                <span
-                                  title="Default selected option for new forms"
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "3px",
-                                    fontSize: "0.68rem",
-                                    fontWeight: 700,
-                                    background: "#fef3c7",
-                                    color: "#b45309",
-                                    border: "1px solid #fde68a",
-                                    padding: "1px 6px",
-                                    borderRadius: "10px",
-                                  }}
-                                >
-                                  <Star size={10} fill="#b45309" />
-                                  DEFAULT
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Code */}
-                          <td>
-                            <code
-                              style={{
-                                fontSize: "0.75rem",
-                                background: "#f1f5f9",
-                                color: "#475569",
-                                padding: "2px 6px",
-                                borderRadius: "4px",
-                                fontFamily: "'Poppins', sans-serif",
-                              }}
-                            >
-                              {item.code || "—"}
-                            </code>
-                          </td>
-
-                          {/* Config / Specifications (Clean - No Description) */}
-                          <td>
-                            {item.config || item.defaultPrice > 0 ? (
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                {item.config && (
-                                  <span style={{ fontSize: "0.75rem", background: "#e0f2fe", color: "#0369a1", padding: "2px 8px", borderRadius: "4px", fontWeight: 500 }}>
-                                    {item.config}
-                                  </span>
-                                )}
-                                {item.defaultPrice > 0 && (
-                                  <span style={{ fontSize: "0.75rem", background: "#ecfdf5", color: "#065f46", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-                                    ₹{Number(item.defaultPrice).toFixed(2)} / {item.unit || "pcs"}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span style={{ color: "#475569", fontSize: "0.8rem" }}>—</span>
-                            )}
-                          </td>
-
-                          {/* Live Active Toggle */}
-                          <td style={{ textAlign: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleActive(item)}
-                              title={isActive ? "Click to Disable" : "Click to Enable"}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "5px",
-                                padding: "3px 8px",
-                                borderRadius: "12px",
-                                fontSize: "0.72rem",
-                                fontWeight: 600,
-                                border: "none",
-                                cursor: "pointer",
-                                background: isActive ? "#dcfce7" : "#f1f5f9",
-                                color: isActive ? "#15803d" : "#64748b",
-                                transition: "all 0.15s ease",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: "6px",
-                                  height: "6px",
-                                  borderRadius: "50%",
-                                  background: isActive ? "#16a34a" : "#94a3b8",
-                                }}
-                              />
-                              {isActive ? "Active" : "Inactive"}
-                            </button>
-                          </td>
-
-                          {/* Actions */}
-                          <td style={{ textAlign: "center" }}>
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                              {/* Set as Default button */}
-                              {!isDefault && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleSetDefault(item)}
-                                  title="Set as Default Option"
-                                  style={{
-                                    background: "#fef3c7",
-                                    border: "1px solid #fde68a",
-                                    color: "#b45309",
-                                    borderRadius: "4px",
-                                    padding: "4px",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                  }}
-                                >
-                                  <Star size={13} />
-                                </button>
-                              )}
-
-                              {/* Edit */}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditModal(item)}
-                                title="Edit Option"
-                                style={{
-                                  background: "#f1f5f9",
-                                  border: "1px solid #cbd5e1",
-                                  color: "#334155",
-                                  borderRadius: "4px",
-                                  padding: "4px",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                }}
-                              >
-                                <Edit2 size={13} />
-                              </button>
-
-                              {/* Delete */}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteItem(item)}
-                                title="Delete Option"
-                                style={{
-                                  background: "#fee2e2",
-                                  border: "1px solid #fca5a5",
-                                  color: "#b91c1c",
-                                  borderRadius: "4px",
-                                  padding: "4px",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                }}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ──────────────── Pagination Controls Footer ──────────────── */}
-            <Pagination
-              variant="compact"
-              currentPage={validPage}
-              totalItems={totalEntries}
-              itemsPerPage={parsedRowsPerPage}
-              onPageChange={(n) => setCurrentPage(Math.min(Math.max(1, n), totalPages))}
-              onItemsPerPageChange={(n) => setRowsPerPage(n)}
+            <DataTable
+              searchable={false}
+              data={filteredItems}
+              pageSize={parsedRowsPerPage}
               pageSizeOptions={[5, 8, 10, 20, 25, 50, 100]}
-              itemLabel="entries"
+              rowClassName={(item) =>
+                `${item.isDefault ? "printz-row-highlight" : ""} ${item.isActive !== false ? "" : "printz-row-muted"}`.trim()
+              }
+              emptyMessage={
+                <>
+                  <AlertCircle size={28} style={{ margin: "0 auto 0.5rem auto", opacity: 0.5 }} />
+                  <div style={{ fontWeight: 600, color: "#475569" }}>No options found</div>
+                  <div style={{ fontSize: "0.75rem", marginTop: "2px" }}>
+                    {searchQuery ? `No results matching "${searchQuery}"` : "Click 'Add Option' above to create one in this category."}
+                  </div>
+                </>
+              }
+              columns={[
+                { key: "sno", label: "#", width: "45px", align: "center", render: (item, idx) => <span style={{ color: "#475569", fontWeight: 600 }}>{idx + 1}</span> },
+                {
+                  key: "name",
+                  label: "Option Name",
+                  render: (item) => {
+                    const isActive = item.isActive !== false;
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontWeight: 600, color: isActive ? "#0f172a" : "#64748b" }}>{item.name}</span>
+                        {item.isDefault && (
+                          <span
+                            title="Default selected option for new forms"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                              fontSize: "0.68rem",
+                              fontWeight: 700,
+                              background: "#fef3c7",
+                              color: "#b45309",
+                              border: "1px solid #fde68a",
+                              padding: "1px 6px",
+                              borderRadius: "10px",
+                            }}
+                          >
+                            <Star size={10} fill="#b45309" />
+                            DEFAULT
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "code",
+                  label: "Code / Identifier",
+                  width: "180px",
+                  render: (item) => (
+                    <code
+                      style={{
+                        fontSize: "0.75rem",
+                        background: "#f1f5f9",
+                        color: "#475569",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontFamily: "'Poppins', sans-serif",
+                      }}
+                    >
+                      {item.code || "—"}
+                    </code>
+                  ),
+                },
+                {
+                  key: "config",
+                  label: "Config / Specifications",
+                  render: (item) =>
+                    item.config || item.defaultPrice > 0 ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {item.config && (
+                          <span style={{ fontSize: "0.75rem", background: "#e0f2fe", color: "#0369a1", padding: "2px 8px", borderRadius: "4px", fontWeight: 500 }}>
+                            {item.config}
+                          </span>
+                        )}
+                        {item.defaultPrice > 0 && (
+                          <span style={{ fontSize: "0.75rem", background: "#ecfdf5", color: "#065f46", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
+                            ₹{Number(item.defaultPrice).toFixed(2)} / {item.unit || "pcs"}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ color: "#475569", fontSize: "0.8rem" }}>—</span>
+                    ),
+                },
+                {
+                  key: "isActive",
+                  label: "Status",
+                  width: "110px",
+                  align: "center",
+                  render: (item) => {
+                    const isActive = item.isActive !== false;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(item)}
+                        title={isActive ? "Click to Disable" : "Click to Enable"}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          padding: "3px 8px",
+                          borderRadius: "12px",
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          border: "none",
+                          cursor: "pointer",
+                          background: isActive ? "#dcfce7" : "#f1f5f9",
+                          color: isActive ? "#15803d" : "#64748b",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isActive ? "#16a34a" : "#94a3b8" }} />
+                        {isActive ? "Active" : "Inactive"}
+                      </button>
+                    );
+                  },
+                },
+                {
+                  key: "actions",
+                  label: "Actions",
+                  width: "130px",
+                  align: "center",
+                  render: (item) => (
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      {/* Set as Default button */}
+                      {!item.isDefault && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetDefault(item)}
+                          title="Set as Default Option"
+                          style={{ background: "#fef3c7", border: "1px solid #fde68a", color: "#b45309", borderRadius: "4px", padding: "4px", cursor: "pointer", display: "flex" }}
+                        >
+                          <Star size={13} />
+                        </button>
+                      )}
+
+                      {/* Edit */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(item)}
+                        title="Edit Option"
+                        style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", color: "#334155", borderRadius: "4px", padding: "4px", cursor: "pointer", display: "flex" }}
+                      >
+                        <Edit2 size={13} />
+                      </button>
+
+                      {/* Delete */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(item)}
+                        title="Delete Option"
+                        style={{ background: "#fee2e2", border: "1px solid #fca5a5", color: "#b91c1c", borderRadius: "4px", padding: "4px", cursor: "pointer", display: "flex" }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
             />
           </div>
         </div>

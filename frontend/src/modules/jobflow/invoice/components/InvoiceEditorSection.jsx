@@ -25,6 +25,7 @@ import { customersApi } from "../../customers/api/customersApi";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import InvoiceBillModal from "./InvoiceBillModal";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 import "../styles/invoice.css";
 
 export const InvoiceEditorSection = ({
@@ -1289,13 +1290,11 @@ export const InvoiceEditorSection = ({
           </div>
           <div>
             <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Invoice Due Date</div>
-            <input
-              type="date"
-              className="jf-input"
+            <DateField
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               disabled={isFinalized || !jobSnapshot}
-              style={{ padding: "0.3rem 0.5rem", fontSize: "0.85rem", marginTop: "0.2rem" }}
+              style={{ marginTop: "0.2rem" }}
             />
           </div>
         </div>

@@ -15,8 +15,9 @@ import {
 import attendanceApi from "../api/attendanceApi";
 import CreatePolicyModal from "../components/CreatePolicyModal";
 import AddHolidayModal from "../components/AddHolidayModal";
-import SearchableBranchSelect from "../components/SearchableBranchSelect";
-import AttendancePagination from "../components/AttendancePagination";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import SelectField from "../../../../shared/ui/selects/SelectField";
 import "../styles/attendance.css";
 
 export default function AttendanceSetupPage() {
@@ -217,23 +218,26 @@ export default function AttendanceSetupPage() {
         <div className="attendance-header-actions">
           {/* Year Selector (Holiday Calendars tab only) */}
           {activeTab === "calendars" && (
-            <select
-              className="attendance-branch-pill-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
-            >
-              <option value={2026}>2026</option>
-              <option value={2025}>2025</option>
-              <option value={2024}>2024</option>
-            </select>
+            <div className="attendance-year-wrap">
+              <SelectField
+                searchable={false}
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                options={[2026, 2025, 2024]}
+              />
+            </div>
           )}
 
           {/* Branch Pill Selector */}
-          <div style={{ width: "230px" }}>
-            <SearchableBranchSelect
-              value={selectedBranchId}
-              onChange={setSelectedBranchId}
+          <div className="attendance-branch-wrap">
+            <BranchSelect
+              valueKey="id"
+              allowAll
+              allOptionLabel="All Branches"
+              allOptionValue=""
               branches={branches}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
             />
           </div>
 
@@ -283,118 +287,6 @@ export default function AttendanceSetupPage() {
         </button>
       </div>
 
-      {/* ─── Dashboard UI KPI Cards ─────────────────────────────────── */}
-      {activeTab === "policies" ? (
-        <div className="printz-kpi-grid">
-          {/* Total Policies */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon purple">
-                <FileText size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{policies.length}</div>
-                <div className="printz-kpi-label">Total Policies</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Policies */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon green">
-                <CheckCircle2 size={20} strokeWidth={2.4} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{activePoliciesCount}</div>
-                <div className="printz-kpi-label">Active Policies</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Default Policy */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon teal">
-                <Clock size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number" style={{ fontSize: "16px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "160px" }}>
-                  {defaultPolicy?.name || "Assigned"}
-                </div>
-                <div className="printz-kpi-label">Default Policy</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Branches Covered */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon blue">
-                <Building2 size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{branchesWithPolicyCount || (selectedBranchId ? 1 : branches.length)}</div>
-                <div className="printz-kpi-label">Branches Covered</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="printz-kpi-grid">
-          {/* Total Holidays */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon purple">
-                <Calendar size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{flattenedHolidays.length}</div>
-                <div className="printz-kpi-label">Total Holidays</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Upcoming Holidays */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon green">
-                <CheckCircle2 size={20} strokeWidth={2.4} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{upcomingHolidaysCount}</div>
-                <div className="printz-kpi-label">Upcoming Holidays</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Organization Holidays */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon blue">
-                <Building2 size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{orgHolidaysCount}</div>
-                <div className="printz-kpi-label">Company-wide</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Branch-Specific Holidays */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon orange">
-                <Clock size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{branchHolidaysCount}</div>
-                <div className="printz-kpi-label">Branch Holidays</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {error && (
         <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "10px 18px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
@@ -404,214 +296,152 @@ export default function AttendanceSetupPage() {
 
       {/* ─── Tab 1: Attendance Policies ──────────────────────────────── */}
       {activeTab === "policies" && (
-        <div className="attendance-table-card">
-          <table className="attendance-table">
-            <thead>
-              <tr>
-                <th style={{ width: "40px" }}>#</th>
-                <th>Policy Name</th>
-                <th>Branch</th>
-                <th>Shift Time</th>
-                <th>Working Hours</th>
-                <th>Status</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {policiesLoading ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                    Loading policies...
-                  </td>
-                </tr>
-              ) : paginatedPolicies.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                    No attendance policies configured. Click "+ Create Policy" to add one.
-                  </td>
-                </tr>
-              ) : (
-                paginatedPolicies.map((p, idx) => {
-                  const rowNum = (policyPage - 1) * policyPageSize + idx + 1;
-                  return (
-                    <tr key={p._id}>
-                      <td>{rowNum}</td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: "#0f172a" }}>{p.name}</div>
-                        <div style={{ fontSize: "11px", color: "#475569" }}>{p.code}</div>
-                      </td>
-                      <td>{p.branchId?.name || (p.branchId ? "Branch" : "All Branches")}</td>
-                      <td>
-                        {p.shiftStartTime || "09:00"} - {p.shiftEndTime || "18:00"}
-                      </td>
-                      <td>{p.workingHoursPerDay || 8}h</td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <label className="switch">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(p.isActive)}
-                              onChange={() => handleTogglePolicyStatus(p._id, p.isActive)}
-                            />
-                            <span className="slider"></span>
-                          </label>
-                          {!p.isActive && <span style={{ fontSize: "12px", color: "#475569" }}>Inactive</span>}
-                        </div>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div className="action-icon-group" style={{ justifyContent: "flex-end" }}>
-                          <button
-                            type="button"
-                            className="icon-btn view"
-                            title="View Policy"
-                            onClick={() => {
-                              setEditingPolicy(p);
-                              setIsPolicyModalOpen(true);
-                            }}
-                          >
-                            <Eye size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-btn edit"
-                            title="Edit Policy"
-                            onClick={() => {
-                              setEditingPolicy(p);
-                              setIsPolicyModalOpen(true);
-                            }}
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-btn delete"
-                            title="Delete Policy"
-                            onClick={() => handleDeletePolicy(p._id)}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-
-          {/* ─── Modern Pagination ─── */}
-          <AttendancePagination
-            currentPage={policyPage}
-            totalItems={policies.length}
-            pageSize={policyPageSize}
-            onPageChange={setPolicyPage}
-            onPageSizeChange={(newSize) => {
-              setPolicyPageSize(newSize);
-              setPolicyPage(1);
-            }}
-            pageSizeOptions={[5, 10, 20, 50]}
-            itemName="policies"
-          />
-        </div>
+        <DataTable
+          mobileCards
+          searchable={false}
+          loading={policiesLoading}
+          data={policies}
+          pageSize={10}
+          emptyMessage={'No attendance policies configured. Click "+ Create Policy" to add one.'}
+          columns={[
+            { key: "sno", label: "#", width: "40px", className: "printz-cell-hide-mobile", render: (p, idx) => idx + 1 },
+            {
+              key: "name",
+              label: "Policy Name",
+              className: "printz-cell-lead",
+              render: (p) => (
+                <>
+                  <div style={{ fontWeight: 600, color: "#0f172a" }}>{p.name}</div>
+                  <div style={{ fontSize: "11px", color: "#1e293b" }}>{p.code}</div>
+                </>
+              ),
+            },
+            { key: "branch", label: "Branch", render: (p) => p.branchId?.name || (p.branchId ? "Branch" : "All Branches") },
+            { key: "shift", label: "Shift Time", render: (p) => `${p.shiftStartTime || "09:00"} - ${p.shiftEndTime || "18:00"}` },
+            { key: "workingHoursPerDay", label: "Working Hours", render: (p) => `${p.workingHoursPerDay || 8}h` },
+            {
+              key: "isActive",
+              label: "Status",
+              render: (p) => (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(p.isActive)}
+                      onChange={() => handleTogglePolicyStatus(p._id, p.isActive)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                  {!p.isActive && <span style={{ fontSize: "12px", color: "#1e293b" }}>Inactive</span>}
+                </div>
+              ),
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              align: "right",
+              className: "printz-cell-actions",
+              render: (p) => (
+                <div className="action-icon-group" style={{ justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    className="icon-btn view"
+                    title="View Policy"
+                    onClick={() => {
+                      setEditingPolicy(p);
+                      setIsPolicyModalOpen(true);
+                    }}
+                  >
+                    <Eye size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn edit"
+                    title="Edit Policy"
+                    onClick={() => {
+                      setEditingPolicy(p);
+                      setIsPolicyModalOpen(true);
+                    }}
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn delete"
+                    title="Delete Policy"
+                    onClick={() => handleDeletePolicy(p._id)}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* ─── Tab 2: Holiday Calendars ────────────────────────────────── */}
       {activeTab === "calendars" && (
         <>
-          <div className="attendance-table-card">
-            <table className="attendance-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "40px" }}>#</th>
-                  <th>Date</th>
-                  <th>Day</th>
-                  <th>Holiday Name</th>
-                  <th>Type</th>
-                  <th>Branch</th>
-                  <th>Scope</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calendarsLoading ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                      Loading holiday calendars...
-                    </td>
-                  </tr>
-                ) : paginatedHolidays.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                      No holidays found for year {selectedYear}. Click "+ Add Holiday" to configure.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedHolidays.map((h, idx) => {
-                    const rowNum = (holidayPage - 1) * holidayPageSize + idx + 1;
-                    return (
-                      <tr key={`${h.calendarId}_${h.date}`}>
-                        <td>{rowNum}</td>
-                        <td style={{ fontWeight: 600 }}>{h.date}</td>
-                        <td style={{ color: "#475569" }}>{h.day}</td>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{h.name}</td>
-                        <td>
-                          <span className={`status-badge ${(h.type || "public").toLowerCase()}`}>
-                            {h.type || "PUBLIC"}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{h.branchName || "-"}</td>
-                        <td>{h.scope}</td>
-                        <td>
-                          <label className="switch">
-                            <input type="checkbox" checked={Boolean(h.calendarActive)} readOnly />
-                            <span className="slider"></span>
-                          </label>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div className="action-icon-group" style={{ justifyContent: "flex-end" }}>
-                            <button
-                              type="button"
-                              className="icon-btn edit"
-                              title="Edit Holiday"
-                              onClick={() => {
-                                setEditingHoliday(h);
-                                setIsHolidayModalOpen(true);
-                              }}
-                            >
-                              <Edit2 size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              className="icon-btn delete"
-                              title="Delete Holiday"
-                              onClick={() => handleDeleteHoliday(h.calendarId, h.date)}
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-
-            {/* ─── Modern Pagination ─── */}
-            <AttendancePagination
-              currentPage={holidayPage}
-              totalItems={flattenedHolidays.length}
-              pageSize={holidayPageSize}
-              onPageChange={setHolidayPage}
-              onPageSizeChange={(newSize) => {
-                setHolidayPageSize(newSize);
-                setHolidayPage(1);
-              }}
-              pageSizeOptions={[5, 10, 20, 50]}
-              itemName="holidays"
-            />
-          </div>
+          <DataTable
+            mobileCards
+            searchable={false}
+            loading={calendarsLoading}
+            data={flattenedHolidays}
+            pageSize={10}
+            emptyMessage={`No holidays found for year ${selectedYear}. Click "+ Add Holiday" to configure.`}
+            columns={[
+              { key: "sno", label: "#", width: "40px", className: "printz-cell-hide-mobile", render: (h, idx) => idx + 1 },
+              { key: "date", label: "Date", className: "printz-cell-lead", render: (h) => <span style={{ fontWeight: 600 }}>{h.date}</span> },
+              { key: "day", label: "Day", render: (h) => <span style={{ color: "#1e293b" }}>{h.day}</span> },
+              { key: "name", label: "Holiday Name", render: (h) => <span style={{ fontWeight: 600, color: "#0f172a" }}>{h.name}</span> },
+              {
+                key: "type",
+                label: "Type",
+                render: (h) => <span className={`status-badge ${(h.type || "public").toLowerCase()}`}>{h.type || "PUBLIC"}</span>,
+              },
+              { key: "branchName", label: "Branch", render: (h) => <span style={{ fontWeight: 600, color: "#0f172a" }}>{h.branchName || "-"}</span> },
+              {
+                key: "calendarActive",
+                label: "Status",
+                render: (h) => (
+                  <label className="switch">
+                    <input type="checkbox" checked={Boolean(h.calendarActive)} readOnly />
+                    <span className="slider"></span>
+                  </label>
+                ),
+              },
+              {
+                key: "actions",
+                label: "Actions",
+                align: "right",
+                className: "printz-cell-actions",
+                render: (h) => (
+                  <div className="action-icon-group" style={{ justifyContent: "flex-end" }}>
+                    <button
+                      type="button"
+                      className="icon-btn edit"
+                      title="Edit Holiday"
+                      onClick={() => {
+                        setEditingHoliday(h);
+                        setIsHolidayModalOpen(true);
+                      }}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn delete"
+                      title="Delete Holiday"
+                      onClick={() => handleDeleteHoliday(h.calendarId, h.date)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </>
       )}
 

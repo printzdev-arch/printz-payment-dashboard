@@ -84,7 +84,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
               style={{
                 border: "none",
                 background: template === "thermal" ? "#059669" : "transparent",
-                color: template === "thermal" ? "#ffffff" : "#475569",
+                color: template === "thermal" ? "#ffffff" : "#1e293b",
                 padding: "0.35rem 0.75rem",
                 borderRadius: "6px",
                 fontSize: "0.78rem",
@@ -102,7 +102,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
               style={{
                 border: "none",
                 background: template === "a4" ? "#059669" : "transparent",
-                color: template === "a4" ? "#ffffff" : "#475569",
+                color: template === "a4" ? "#ffffff" : "#1e293b",
                 padding: "0.35rem 0.75rem",
                 borderRadius: "6px",
                 fontSize: "0.78rem",
@@ -169,7 +169,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
                 borderRadius: "7px",
                 border: "1px solid #e2e8f0",
                 background: "#f8fafc",
-                color: "#475569",
+                color: "#1e293b",
                 cursor: "pointer",
                 padding: 0,
               }}
@@ -317,16 +317,16 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
               <div>
                 <img src={logo} alt="PrintZ" style={{ height: "56px", width: "auto", display: "block", marginBottom: "0.4rem" }} />
                 <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#059669", margin: 0 }}>PRINTZ STUDIO</h1>
-                <div style={{ fontSize: "0.85rem", color: "#475569" }}>Digital Printing & Commercial Reprographics</div>
-                <div style={{ fontSize: "0.8rem", color: "#475569" }}>Banaswadi Main Road, Bangalore - 560043</div>
+                <div style={{ fontSize: "0.85rem", color: "#1e293b" }}>Digital Printing & Commercial Reprographics</div>
+                <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>Banaswadi Main Road, Bangalore - 560043</div>
                 <div style={{ fontSize: "0.8rem", fontWeight: 700, marginTop: "0.2rem" }}>GSTIN: 29AABCP1234F1Z8</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0f172a" }}>TAX INVOICE</div>
-                <div style={{ fontSize: "0.85rem", color: "#475569", marginTop: "0.25rem" }}>
+                <div style={{ fontSize: "0.85rem", color: "#1e293b", marginTop: "0.25rem" }}>
                   Invoice No: <strong>{receipt.receiptNo}</strong>
                 </div>
-                <div style={{ fontSize: "0.82rem", color: "#475569" }}>Date: {dateFormatted}</div>
+                <div style={{ fontSize: "0.82rem", color: "#1e293b" }}>Date: {dateFormatted}</div>
                 <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#059669" }}>
                   Payment: {receipt.paymentStatus || "PAID"} ({receipt.paymentMode || "CASH"})
                 </div>
@@ -336,18 +336,18 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
             {/* Bill To */}
             <div style={{ background: "#f8fafc", padding: "0.75rem 1rem", borderRadius: "6px", margin: "1rem 0", display: "flex", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>BILL TO:</div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", textTransform: "uppercase" }}>BILL TO:</div>
                 <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#0f172a" }}>
                   {customer.name || receipt.customerName || "Walk-in Customer"}
                 </div>
                 {(customer.mobile || receipt.customerMobile) && (
-                  <div style={{ fontSize: "0.82rem", color: "#475569" }}>Mobile: {customer.mobile || receipt.customerMobile}</div>
+                  <div style={{ fontSize: "0.82rem", color: "#1e293b" }}>Mobile: {customer.mobile || receipt.customerMobile}</div>
                 )}
                 {customer.gstin && (
                   <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "#059669" }}>GSTIN: {customer.gstin}</div>
                 )}
               </div>
-              <div style={{ textAlign: "right", fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ textAlign: "right", fontSize: "0.8rem", color: "#1e293b" }}>
                 <div>Branch: {receipt.branchName || "Banaswadi"}</div>
                 <div>Status: {receipt.status || "COMPLETED"}</div>
               </div>
@@ -371,7 +371,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
                     <td style={{ padding: "0.55rem" }}>{idx + 1}</td>
                     <td style={{ padding: "0.55rem" }}>
                       <div style={{ fontWeight: 600 }}>{it.productName || it.name}</div>
-                      {it.notes && <div style={{ fontSize: "0.72rem", color: "#475569" }}>{it.notes}</div>}
+                      {it.notes && <div style={{ fontSize: "0.72rem", color: "#1e293b" }}>{it.notes}</div>}
                     </td>
                     <td style={{ padding: "0.55rem", textAlign: "center" }}>{it.quantity}</td>
                     <td style={{ padding: "0.55rem", textAlign: "right" }}>₹{Number(it.unitPrice || 0).toFixed(2)}</td>
@@ -386,7 +386,7 @@ export const ThermalReceiptModal = ({ isOpen, onClose, receipt }) => {
 
             {/* Summary */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ fontSize: "0.75rem", color: "#475569", maxWidth: "320px" }}>
+              <div style={{ fontSize: "0.75rem", color: "#1e293b", maxWidth: "320px" }}>
                 <div><strong>Terms & Conditions:</strong></div>
                 <div>1. Goods once delivered/printed will not be taken back without receipt.</div>
                 <div>2. Disputes subject to Bangalore jurisdiction only.</div>

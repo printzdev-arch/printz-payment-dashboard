@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, LogOut, Clock } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
+import TimeField from "../../../../shared/ui/selects/TimeField";
 
 export default function CheckOutModal({ isOpen, onClose, onCheckOutSuccess, employee, attendanceRecord, branchId, date }) {
   const [time, setTime] = useState("");
@@ -83,8 +84,7 @@ export default function CheckOutModal({ isOpen, onClose, onCheckOutSuccess, empl
 
             <div className="form-field">
               <label>Check-Out Time (HH:mm) <span className="required">*</span></label>
-              <input
-                type="time"
+              <TimeField
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 required

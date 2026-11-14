@@ -29,10 +29,10 @@ export const branchShiftApi = {
   },
 
   // Server-side employee search for the picker (name, code, email or mobile).
-  searchActiveEmployees: async (query = "", limit = 20) => {
+  searchActiveEmployees: async (query = "", limit = 20, branchId = "") => {
     try {
       const res = await api.get("/employees", {
-        params: { status: "ACTIVE", search: query || undefined, limit, page: 1 },
+        params: { status: "ACTIVE", search: query || undefined, filterBranchId: branchId || undefined, limit, page: 1 },
       });
       const body = res.data?.data || res.data || {};
       return body.items || body.employees || (Array.isArray(body) ? body : []);

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal";
 import jobFlowApi from "../api/jobOrdersApi";
@@ -132,7 +132,7 @@ export const JobOrdersPage = () => {
       </div>
 
       {/* Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}
-      <JobFlowDataTable
+      <DataTable renderWithValue
         columns={[
           {
             key: "jobNo",
@@ -248,7 +248,7 @@ export const JobOrdersPage = () => {
         data={jobs}
         loading={loading}
         searchable={false}
-        initialPageSize={10}
+        pageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="No job orders found matching criteria."
         selectedRowId={selectedJob?._id || selectedJob?.id}

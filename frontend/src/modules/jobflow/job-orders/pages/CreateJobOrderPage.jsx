@@ -20,6 +20,7 @@ import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import { useMasterDefaults } from "../../master-settings";
 import jobFlowApi from "../api/jobOrdersApi";
 import { toast } from "react-toastify";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 
 const getManagerBranch = () => {
   try {
@@ -1200,9 +1201,7 @@ export const CreateJobOrderPage = ({ isModal = false, onClose, onSuccess }) => {
               {/* Row 4: Target Due Date & Delivery Method */}
               <div className="jf-form-group">
                 <label className="jf-label jf-label-required">Target Due Date</label>
-                <input
-                  type="date"
-                  className="jf-input"
+                <DateField
                   value={formData.targetDueDate}
                   onChange={(e) => handleInputChange("targetDueDate", e.target.value)}
                   required

@@ -28,14 +28,14 @@ import "react-toastify/dist/ReactToastify.css";
 import jsPDF from "jspdf";
 import autoTable, { applyPlugin } from "jspdf-autotable";
 
+import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
+import { usePopup } from "../../../../../shared/hooks/usePopup";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
+import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
+
 try {
   applyPlugin(jsPDF);
 } catch (e) { }
-
-import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
-import { usePopup } from "../../../../../shared/hooks/usePopup";
-import Pagination from "../../../../../shared/ui/Pagination";
-import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 
 const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) {
@@ -844,183 +844,98 @@ const StockList = () => {
 
           {/* Stock Table */}
           {/* Stock Table */}
-          <div className="stock-table-wrapper">
-            <table className="stock-readings-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "48px", textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={() => handleSelectAll(filteredAndSortedStocks)}
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        accentColor: "#059669",
-                        cursor: "pointer",
-                      }}
-                    />
-                  </th>
-                  <th style={{ width: "60px", textAlign: "center" }}>
-                    S.No
-                  </th>
-                  <th style={{ width: "140px" }}>Item ID</th>
-                  <th style={{ minWidth: "220px" }}>Items</th>
-                  <th style={{ width: "160px", textAlign: "center" }}>
-                    Pages
-                  </th>
-                  <th
-                    style={{
-                      width: "140px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentStocks.length > 0 ? (
-                  currentStocks.map((stock, index) => {
-                    return (
-                      <tr key={stock.id}>
-                        <td style={{ textAlign: "center", width: "48px" }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedItems.includes(stock.id)}
-                            onChange={() => handleSelectItem(stock.id)}
-                            style={{
-                              width: "16px",
-                              height: "16px",
-                              accentColor: "#059669",
-                              cursor: "pointer",
-                            }}
-                          />
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "center",
-                            color: "#475569",
-                            fontWeight: "600",
-                            width: "60px",
-                          }}
-                        >
-                          {indexOfFirstStock + index + 1}
-                        </td>
-                        <td style={{ width: "140px" }}>
-                          <span className="stock-id-tag">
-                            {(stock.stockId || "N/A").toUpperCase()}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              fontSize: "13.5px",
-                              fontWeight: "600",
-                              color: "#0f172a",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {stock.itemName?.toUpperCase()}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "center", width: "160px" }}>
-                          {stock.pageRanges && stock.pageRanges.length > 0 ? (
-                            <span
-                              className="stock-pages-pill tiered"
-                              title={stock.pageRanges
-                                .map(
-                                  (r) =>
-                                    `${r.range}: ${formatCurrency(r.price)}`
-                                )
-                                .join(", ")}
-                            >
-                              <Layers size={13} />
-                              <span>
-                                {stock.pageRanges.length}{" "}
-                                {stock.pageRanges.length === 1
-                                  ? "Tier"
-                                  : "Tiers"}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="stock-pages-pill standard">
-                              Standard
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: "center", width: "140px" }}>
-                          <div
-                            className="stock-actions-cell"
-                            style={{ justifyContent: "center" }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleView(stock)}
-                              className="stock-btn-view"
-                              title="View Details"
-                            >
-                              <Eye size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditModal(stock)}
-                              className="stock-btn-edit"
-                              title="Edit Stock Item"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(stock.id)}
-                              className="stock-btn-delete"
-                              title="Delete Stock Item"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="6"
-                      style={{ textAlign: "center", padding: "36px 16px" }}
+          <DataTable
+            key={`${branchName}-${filteredAndSortedStocks.length}`}
+            searchable={false}
+            data={filteredAndSortedStocks}
+            pageSize={stocksPerPage}
+            emptyMessage="No items found matching the selected branch or search query."
+            columns={[
+              {
+                key: "select",
+                width: "48px",
+                align: "center",
+                label: (
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={() => handleSelectAll(filteredAndSortedStocks)}
+                    style={{ width: "16px", height: "16px", accentColor: "#059669", cursor: "pointer" }}
+                  />
+                ),
+                render: (stock) => (
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.includes(stock.id)}
+                    onChange={() => handleSelectItem(stock.id)}
+                    style={{ width: "16px", height: "16px", accentColor: "#059669", cursor: "pointer" }}
+                  />
+                ),
+              },
+              {
+                key: "sno",
+                label: "S.No",
+                width: "60px",
+                align: "center",
+                render: (stock, index) => <span style={{ color: "#475569", fontWeight: "600" }}>{index + 1}</span>,
+              },
+              {
+                key: "stockId",
+                label: "Item ID",
+                width: "140px",
+                render: (stock) => <span className="stock-id-tag">{(stock.stockId || "N/A").toUpperCase()}</span>,
+              },
+              {
+                key: "itemName",
+                label: "Items",
+                minWidth: "220px",
+                render: (stock) => (
+                  <span style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a", wordBreak: "break-word" }}>
+                    {stock.itemName?.toUpperCase()}
+                  </span>
+                ),
+              },
+              {
+                key: "pages",
+                label: "Pages",
+                width: "160px",
+                align: "center",
+                render: (stock) =>
+                  stock.pageRanges && stock.pageRanges.length > 0 ? (
+                    <span
+                      className="stock-pages-pill tiered"
+                      title={stock.pageRanges.map((r) => `${r.range}: ${formatCurrency(r.price)}`).join(", ")}
                     >
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#475569",
-                          fontSize: "14px",
-                        }}
-                      >
-                        No items found matching the selected branch or search
-                        query.
-                      </p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Footer */}
-          {filteredAndSortedStocks.length > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalItems={filteredAndSortedStocks.length}
-              itemsPerPage={stocksPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(limit) => {
-                setStocksPerPage(limit);
-                setCurrentPage(1);
-              }}
-              pageSizeOptions={[10, 20, 50, 100]}
-              itemLabel="items"
-            />
-          )}
+                      <Layers size={13} />
+                      <span>
+                        {stock.pageRanges.length} {stock.pageRanges.length === 1 ? "Tier" : "Tiers"}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="stock-pages-pill standard">Standard</span>
+                  ),
+              },
+              {
+                key: "actions",
+                label: "Actions",
+                width: "140px",
+                align: "center",
+                render: (stock) => (
+                  <div className="stock-actions-cell" style={{ justifyContent: "center" }}>
+                    <button type="button" onClick={() => handleView(stock)} className="stock-btn-view" title="View Details">
+                      <Eye size={15} />
+                    </button>
+                    <button type="button" onClick={() => handleOpenEditModal(stock)} className="stock-btn-edit" title="Edit Stock Item">
+                      <Pencil size={15} />
+                    </button>
+                    <button type="button" onClick={() => handleDelete(stock.id)} className="stock-btn-delete" title="Delete Stock Item">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : (
         <div className="stock-empty-card">

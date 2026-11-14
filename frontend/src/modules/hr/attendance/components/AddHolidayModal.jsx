@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 
 export default function AddHolidayModal({
   isOpen,
@@ -172,8 +173,7 @@ export default function AddHolidayModal({
                 <label>
                   Date <span className="required">*</span>
                 </label>
-                <input
-                  type="date"
+                <DateField
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   required

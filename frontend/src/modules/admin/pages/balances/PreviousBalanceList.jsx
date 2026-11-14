@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import "../../../../shared/styles/printzTheme.css";
 import "../../../../shared/styles/addAssets.css";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect.jsx";
 
 const PreviousBalanceList = () => {
@@ -190,68 +190,7 @@ const PreviousBalanceList = () => {
   return (
     <div className="add-assets-page-container">
       {/* Header Banner - Clean emerald design, no illustration */}
-      <div
-        className="printz-header-banner-full"
-        style={{
-          width: "100%",
-          background:
-            "linear-gradient(90deg, #E8FAF2 0%, #F0FFF9 50%, #E8FAF2 100%)",
-          border: "1px solid #dcfce7",
-          borderRadius: "16px",
-          padding: "16px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "20px",
-          boxShadow: "0 2px 10px rgba(4, 120, 87, 0.04)",
-          boxSizing: "border-box",
-          flexWrap: "wrap",
-        }}
-      >
-        <div className="printz-header-title-area" style={{ flexShrink: 0 }}>
-          <h1
-            style={{
-              margin: "0 0 4px 0",
-              fontSize: "26px",
-              fontWeight: 700,
-              color: "#111827",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            Previous Balance{" "}
-            <span className="highlight" style={{ color: "#059669" }}>
-              Management
-            </span>
-          </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "#475569" }}>
-            Track and monitor pending branch receivables and collected payments.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #a7f3d0",
-              padding: "8px 16px",
-              borderRadius: "10px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "#065f46",
-              boxShadow: "0 1px 3px rgba(5, 150, 105, 0.08)",
-            }}
-          >
-            <Wallet size={16} color="#059669" />
-            <span>{totalCount.toLocaleString()} Records Found</span>
-          </div>
-        </div>
-      </div>
-
+      
       {/* Main Card */}
       <div className="add-assets-card">
         <div className="add-assets-card-header">
@@ -266,12 +205,7 @@ const PreviousBalanceList = () => {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "12.5px", color: "#475569", fontWeight: 500 }}>
-              Showing {balanceData.length === 0 ? 0 : indexOfFirstItem + 1}–
-              {indexOfLastItem} of {totalCount.toLocaleString()} entries
-            </span>
-          </div>
+          
         </div>
 
         {/* Filter Controls Row */}
@@ -420,132 +354,148 @@ const PreviousBalanceList = () => {
               )}
             </div>
           ) : (
-            <>
-              <div className="add-assets-table-wrap">
-                <table className="add-assets-table balance-directory-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: "65px", textAlign: "center" }}>S.No</th>
-                      <th style={{ minWidth: "200px", textAlign: "left" }}>Branch Name</th>
-                      <th style={{ width: "130px", textAlign: "center" }}>Date</th>
-                      <th style={{ width: "160px", textAlign: "right" }}>Total Balance</th>
-                      <th style={{ width: "170px", textAlign: "right" }}>Payment Collected</th>
-                      <th style={{ width: "190px", textAlign: "right" }}>Payment To Be Collected</th>
-                      <th style={{ width: "130px", textAlign: "center" }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentItems.map((item, index) => {
-                      const isFinished = item.status === "finished";
-                      return (
-                        <tr key={item.id}>
-                          <td style={{ textAlign: "center" }}>
-                            <span
-                              style={{
-                                color: "#475569",
-                                fontWeight: 600,
-                                fontFamily: "'Poppins', sans-serif",
-                                fontSize: "12.5px",
-                              }}
-                            >
-                              {indexOfFirstItem + index + 1}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                              <div
-                                style={{
-                                  width: "28px",
-                                  height: "28px",
-                                  borderRadius: "7px",
-                                  background: "#ecfdf5",
-                                  border: "1px solid #d1fae5",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <Building2 size={14} color="#059669" />
-                              </div>
-                              <span style={{ fontWeight: 600, color: "#0f172a", fontSize: "13.5px" }}>
-                                {item.branchName}
-                              </span>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            <span
-                              className="add-assets-id-badge"
-                              style={{ fontSize: "12px", padding: "4px 9px" }}
-                            >
-                              {formatDate(item.date)}
-                            </span>
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              fontFamily: "'Poppins', sans-serif",
-                              fontWeight: 700,
-                              fontSize: "13.5px",
-                              color: "#0f172a",
-                            }}
-                          >
-                            {formatCurrency(item.balance)}
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              fontFamily: "'Poppins', sans-serif",
-                              fontWeight: 700,
-                              fontSize: "13.5px",
-                              color: "#047857",
-                            }}
-                          >
-                            {formatCurrency(item.paymentCollectedTillNow)}
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              fontFamily: "'Poppins', sans-serif",
-                              fontWeight: 700,
-                              fontSize: "13.5px",
-                              color: item.paymentToBeCollected > 0 ? "#dc2626" : "#64748b",
-                            }}
-                          >
-                            {formatCurrency(item.paymentToBeCollected)}
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            {isFinished ? (
-                              <span className="balance-status-badge finished">
-                                <CheckCircle2 size={12} /> Finished
-                              </span>
-                            ) : (
-                              <span className="balance-status-badge pending">
-                                <Clock size={12} /> Pending
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Standard Pagination Controls */}
-              <Pagination
-                currentPage={currentPage}
-                totalItems={totalCount}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={(size) => {
+            <DataTable
+              searchable={false}
+              data={currentItems}
+              serverPagination={{
+                page: currentPage,
+                pageSize: itemsPerPage,
+                total: totalCount,
+                onPageChange: setCurrentPage,
+                onPageSizeChange: (size) => {
                   setItemsPerPage(size);
                   setCurrentPage(1);
-                }}
-                pageSizeOptions={[10, 20, 50, 100]}
-                itemLabel="records"
-              />
-            </>
+                },
+              }}
+              columns={[
+                {
+                  key: "sno",
+                  label: "S.No",
+                  width: "65px",
+                  align: "center",
+                  render: (item, index) => (
+                    <span
+                      style={{
+                        color: "#475569",
+                        fontWeight: 600,
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "12.5px",
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+                  ),
+                },
+                {
+                  key: "branchName",
+                  label: "Branch Name",
+                  width: "200px",
+                  render: (item) => (
+                    <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                      <div
+                        style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "7px",
+                          background: "#ecfdf5",
+                          border: "1px solid #d1fae5",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Building2 size={14} color="#059669" />
+                      </div>
+                      <span style={{ fontWeight: 600, color: "#0f172a", fontSize: "13.5px" }}>
+                        {item.branchName}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
+                  key: "date",
+                  label: "Date",
+                  width: "130px",
+                  align: "center",
+                  render: (item) => (
+                    <span className="add-assets-id-badge" style={{ fontSize: "12px", padding: "4px 9px" }}>
+                      {formatDate(item.date)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "balance",
+                  label: "Total Balance",
+                  width: "160px",
+                  align: "right",
+                  render: (item) => (
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: 700,
+                        fontSize: "13.5px",
+                        color: "#0f172a",
+                      }}
+                    >
+                      {formatCurrency(item.balance)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "paymentCollectedTillNow",
+                  label: "Payment Collected",
+                  width: "170px",
+                  align: "right",
+                  render: (item) => (
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: 700,
+                        fontSize: "13.5px",
+                        color: "#047857",
+                      }}
+                    >
+                      {formatCurrency(item.paymentCollectedTillNow)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "paymentToBeCollected",
+                  label: "Payment To Be Collected",
+                  width: "190px",
+                  align: "right",
+                  render: (item) => (
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: 700,
+                        fontSize: "13.5px",
+                        color: item.paymentToBeCollected > 0 ? "#dc2626" : "#64748b",
+                      }}
+                    >
+                      {formatCurrency(item.paymentToBeCollected)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  width: "130px",
+                  align: "center",
+                  render: (item) =>
+                    item.status === "finished" ? (
+                      <span className="balance-status-badge finished">
+                        <CheckCircle2 size={12} /> Finished
+                      </span>
+                    ) : (
+                      <span className="balance-status-badge pending">
+                        <Clock size={12} /> Pending
+                      </span>
+                    ),
+                },
+              ]}
+            />
           )}
         </div>
       </div>

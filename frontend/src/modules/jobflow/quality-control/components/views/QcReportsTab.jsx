@@ -9,6 +9,7 @@ import {
   FileDown,
   User,
 } from "lucide-react";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import { toast } from "react-toastify";
 
 export const QcReportsTab = () => {
@@ -64,56 +65,6 @@ export const QcReportsTab = () => {
         </div>
       </div>
 
-      {/* 4 High-Level KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-        <div className="jf-card" style={{ padding: "1.25rem", borderLeft: "4px solid #10b981" }}>
-          <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 700, textTransform: "uppercase" }}>
-            First-Pass Yield (FPY)
-          </div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-            96.4%
-          </div>
-          <div style={{ fontSize: "0.78rem", color: "#16a34a", marginTop: "4px", fontWeight: 600 }}>
-            ↑ 1.2% higher yield this month
-          </div>
-        </div>
-
-        <div className="jf-card" style={{ padding: "1.25rem", borderLeft: "4px solid #f59e0b" }}>
-          <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 700, textTransform: "uppercase" }}>
-            Rework Rate
-          </div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-            3.1% <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#475569" }}>(Target &lt; 4%)</span>
-          </div>
-          <div style={{ fontSize: "0.78rem", color: "#16a34a", marginTop: "4px", fontWeight: 600 }}>
-            Controlled floor rework
-          </div>
-        </div>
-
-        <div className="jf-card" style={{ padding: "1.25rem", borderLeft: "4px solid #dc2626" }}>
-          <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 700, textTransform: "uppercase" }}>
-            Full Scrap Rejection Rate
-          </div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-            0.5%
-          </div>
-          <div style={{ fontSize: "0.78rem", color: "#16a34a", marginTop: "4px", fontWeight: 600 }}>
-            Well below industry 1.5% threshold
-          </div>
-        </div>
-
-        <div className="jf-card" style={{ padding: "1.25rem", borderLeft: "4px solid #6366f1" }}>
-          <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 700, textTransform: "uppercase" }}>
-            Total Batches Inspected
-          </div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-            287 <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#475569" }}>orders</span>
-          </div>
-          <div style={{ fontSize: "0.78rem", color: "#475569", marginTop: "4px" }}>
-            100% physically verified
-          </div>
-        </div>
-      </div>
 
       {/* Defect Categories Pareto Breakdown */}
       <div className="jf-card" style={{ padding: "1.25rem" }}>
@@ -152,41 +103,35 @@ export const QcReportsTab = () => {
           Inspector Workload & First-Pass Yield by Staff
         </h3>
 
-        <div style={{ overflowX: "auto" }}>
-          <table className="jf-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", textAlign: "left", color: "#475569" }}>
-                <th style={{ padding: "0.75rem 1rem" }}>Inspector Name</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Batches Inspected</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Passed First-Pass</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Rework Dispatched</th>
-                <th style={{ padding: "0.75rem 1rem" }}>First-Pass Yield</th>
-              </tr>
-            </thead>
-            <tbody>
-              {INSPECTOR_PERFORMANCE.map((insp, idx) => (
-                <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "0.875rem 1rem", fontWeight: 600, color: "#0f172a" }}>
-                    <User size={13} style={{ display: "inline", marginRight: "6px", color: "#475569" }} />
-                    {insp.name}
-                  </td>
-                  <td style={{ padding: "0.875rem 1rem", color: "#334155" }}>
-                    {insp.totalInspected} batches
-                  </td>
-                  <td style={{ padding: "0.875rem 1rem", color: "#16a34a", fontWeight: 600 }}>
-                    {insp.passedFirstTime} batches
-                  </td>
-                  <td style={{ padding: "0.875rem 1rem", color: "#d97706", fontWeight: 600 }}>
-                    {insp.reworkTriggered} batches
-                  </td>
-                  <td style={{ padding: "0.875rem 1rem", fontWeight: 700, color: "#059669" }}>
-                    {insp.fpy}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          searchable={false}
+          pagination={false}
+          data={INSPECTOR_PERFORMANCE}
+          columns={[
+            {
+              key: "name",
+              label: "Inspector Name",
+              render: (insp) => (
+                <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                  <User size={13} style={{ display: "inline", marginRight: "6px", color: "#475569" }} />
+                  {insp.name}
+                </span>
+              ),
+            },
+            { key: "totalInspected", label: "Batches Inspected", render: (insp) => <span style={{ color: "#334155" }}>{insp.totalInspected} batches</span> },
+            {
+              key: "passedFirstTime",
+              label: "Passed First-Pass",
+              render: (insp) => <span style={{ color: "#16a34a", fontWeight: 600 }}>{insp.passedFirstTime} batches</span>,
+            },
+            {
+              key: "reworkTriggered",
+              label: "Rework Dispatched",
+              render: (insp) => <span style={{ color: "#d97706", fontWeight: 600 }}>{insp.reworkTriggered} batches</span>,
+            },
+            { key: "fpy", label: "First-Pass Yield", render: (insp) => <span style={{ fontWeight: 700, color: "#059669" }}>{insp.fpy}</span> },
+          ]}
+        />
       </div>
     </div>
   );

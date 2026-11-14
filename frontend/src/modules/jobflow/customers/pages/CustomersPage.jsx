@@ -19,7 +19,7 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import CustomerModal from "../components/CustomerModal";
 import CustomerDetailsModal from "../components/CustomerDetailsModal";
 import BranchQrModal from "../components/BranchQrModal";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import jobFlowApi from "../api/customersApi";
 import "../styles/customers.css";
 import { toast } from "react-toastify";
@@ -342,7 +342,7 @@ export const CustomersPage = () => {
       </form>
 
       {/* Customer Directory Table */}
-      <JobFlowDataTable
+      <DataTable renderWithValue
         sortable={false}
         columns={[
           {
@@ -504,7 +504,7 @@ export const CustomersPage = () => {
         data={customers}
         loading={loading}
         searchable={false}
-        initialPageSize={10}
+        pageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage={`No ${activeTab === "walkin" ? "walk-in" : activeTab === "qr" ? "QR" : ""} customers found matching search criteria.`}
         onRowClick={(row) => {

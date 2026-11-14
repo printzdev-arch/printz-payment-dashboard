@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { X, Check, ArrowRight, ChevronRight } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 
 export default function AddLoanModal({
   isOpen,
@@ -168,18 +170,13 @@ export default function AddLoanModal({
               <div className="salary-form-grid">
                 <div className="salary-form-group">
                   <label>Branch</label>
-                  <select
-                    className="salary-form-select"
+                  <BranchSelect
+                    valueKey="id"
+                    branches={branches}
                     value={formData.branchId}
+                    placeholder="Select Branch"
                     onChange={(e) => setFormData({ ...formData, branchId: e.target.value, employeeId: "" })}
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div className="salary-form-group">
                   <label>Employee <span className="req">*</span></label>
@@ -271,9 +268,7 @@ export default function AddLoanModal({
               <div className="salary-form-grid">
                 <div className="salary-form-group">
                   <label>Loan Sanction Date</label>
-                  <input
-                    type="date"
-                    className="salary-form-input"
+                  <DateField
                     value={formData.loanDate}
                     onChange={(e) => setFormData({ ...formData, loanDate: e.target.value })}
                   />

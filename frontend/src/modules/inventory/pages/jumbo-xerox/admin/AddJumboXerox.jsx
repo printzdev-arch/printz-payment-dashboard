@@ -382,19 +382,13 @@ const AddJumboXerox = () => {
                               <>
                                 <td rowSpan={items.length} style={{ verticalAlign: "top", fontWeight: 600 }}>
                                   {isEditing ? (
-                                    <select
+                                    <BranchSelect
                                       name="branch"
+                                      branches={branches}
                                       value={editFormData.branch || ""}
+                                      placeholder="Select Branch"
                                       onChange={handleEditInputChange}
-                                      className="add-assets-table-input"
-                                    >
-                                      <option value="">Select Branch</option>
-                                      {branches.map((b) => (
-                                        <option key={b.id} value={b.name}>
-                                          {b.name}
-                                        </option>
-                                      ))}
-                                    </select>
+                                    />
                                   ) : (
                                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                                       <Building2 size={13} color="#059669" />

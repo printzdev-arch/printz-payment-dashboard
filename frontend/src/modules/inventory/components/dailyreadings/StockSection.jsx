@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { usePopup } from "../../../../shared/hooks/usePopup";
 import Popup from "../../../../shared/ui/Popup/Popup";
+import Pagination from "../../../../shared/ui/Pagination";
 import DailyReadingsSkeleton from "./DailyReadingsSkeleton";
 
 const StockSection = ({
@@ -567,55 +568,13 @@ const StockSection = ({
         </div>
 
         {/* Pagination */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px" }}>
-          <span style={{ fontSize: "12px", color: "#475569" }}>
-            Showing {indexOfFirstStock + 1} to {Math.min(indexOfLastStock, filteredStocks.length)} of {filteredStocks.length} items
-          </span>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              onClick={previousPage}
-              disabled={currentPage === 1}
-              style={{
-                border: "1px solid #e2e8f0",
-                background: "#ffffff",
-                borderRadius: "8px",
-                padding: "6px 12px",
-                cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                opacity: currentPage === 1 ? 0.5 : 1,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-                fontWeight: 600,
-              }}
-            >
-              <ChevronLeft size={14} /> Previous
-            </button>
-            <span style={{ fontSize: "12.5px", fontWeight: 600, color: "#0f172a" }}>
-              {currentPage} / {Math.max(1, Math.ceil(filteredStocks.length / stocksPerPage))}
-            </span>
-            <button
-              onClick={nextPage}
-              disabled={currentPage >= Math.ceil(filteredStocks.length / stocksPerPage)}
-              style={{
-                border: "1px solid #e2e8f0",
-                background: "#ffffff",
-                borderRadius: "8px",
-                padding: "6px 12px",
-                cursor: currentPage >= Math.ceil(filteredStocks.length / stocksPerPage) ? "not-allowed" : "pointer",
-                opacity: currentPage >= Math.ceil(filteredStocks.length / stocksPerPage) ? 0.5 : 1,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-                fontWeight: 600,
-              }}
-            >
-              Next <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredStocks.length}
+          itemsPerPage={stocksPerPage}
+          onPageChange={setCurrentPage}
+          itemLabel="items"
+        />
 
         {/* Navigation Action Bar */}
         <div

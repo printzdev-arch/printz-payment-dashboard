@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 
 export default function RecordRepaymentModal({
   isOpen,
@@ -169,9 +170,7 @@ export default function RecordRepaymentModal({
             <div className="salary-form-grid" style={{ marginBottom: "14px" }}>
               <div className="salary-form-group">
                 <label>Repayment Date <span className="req">*</span></label>
-                <input
-                  type="date"
-                  className="salary-form-input"
+                <DateField
                   value={formData.repaymentDate}
                   onChange={(e) => setFormData({ ...formData, repaymentDate: e.target.value })}
                   required

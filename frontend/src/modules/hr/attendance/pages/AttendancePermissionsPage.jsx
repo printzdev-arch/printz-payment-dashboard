@@ -13,11 +13,13 @@ import {
   Users,
   FileText,
   ArrowUp,
+  AlertCircle,
 } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
 import RecordPermissionModal from "../components/RecordPermissionModal";
-import SearchableBranchSelect from "../components/SearchableBranchSelect";
-import AttendancePagination from "../components/AttendancePagination";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import MonthField from "../../../../shared/ui/selects/MonthField";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import "../styles/attendance.css";
 
 // Color palette for employee avatar initials matching reference image 3
@@ -297,22 +299,29 @@ export default function AttendancePermissionsPage() {
 
       {/* ─── Filters Bar (No Duplicate Branch Dropdown) ────────────────── */}
       <div className="attendance-filter-bar">
-        {/* Month / Year Filter */}
-        <div className="attendance-filter-item">
-          <input
-            type="month"
-            className="attendance-filter-input"
-            value={`${selectedYear}-${String(selectedMonth).padStart(2, "0")}`}
-            onChange={(e) => {
-              const [y, m] = e.target.value.split("-").map(Number);
-              setSelectedYear(y);
-              setSelectedMonth(m);
-            }}
-          />
-        </div>
+        {/* Order: branch, search, month / year, then the action on the far right */}
+        {isBranchLocked ? (
+          <div className="attendance-branch-locked-badge" title="Assigned Branch (Fixed)">
+            <Building2 size={14} />
+            <span>{activeBranch?.name || assignedBranchName || "My Branch"}</span>
+            <span className="attendance-branch-tag">Assigned</span>
+          </div>
+        ) : (
+          <div className="attendance-filter-item">
+            <BranchSelect
+              valueKey="id"
+              allowAll
+              allOptionLabel="All Branches"
+              allOptionValue=""
+              branches={branches}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+            />
+          </div>
+        )}
 
         {/* Search Input */}
-        <div className="attendance-search-box" style={{ flex: "none", width: "260px", minWidth: 0 }}>
+        <div className="attendance-search-box" style={{ flex: "1 1 220px", maxWidth: "320px", minWidth: 0 }}>
           <Search size={16} color="#94a3b8" />
           <input
             type="text"
@@ -322,27 +331,21 @@ export default function AttendancePermissionsPage() {
           />
         </div>
 
-        {/* Branch Search: Uneditable locked badge for Branch Manager, search box for Super Admin */}
-        {isBranchLocked ? (
-          <div className="attendance-branch-locked-badge" title="Assigned Branch (Fixed)">
-            <Building2 size={14} />
-            <span>{activeBranch?.name || assignedBranchName || "My Branch"}</span>
-            <span className="attendance-branch-tag">Assigned</span>
-          </div>
-        ) : (
-          <div style={{ width: "230px" }}>
-            <SearchableBranchSelect
-              value={selectedBranchId}
-              onChange={setSelectedBranchId}
-              branches={branches}
-            />
-          </div>
-        )}
+        {/* Month / Year Filter */}
+        <div className="attendance-filter-item">
+          <MonthField
+            value={`${selectedYear}-${String(selectedMonth).padStart(2, "0")}`}
+            onChange={(e) => {
+              const [y, m] = e.target.value.split("-").map(Number);
+              setSelectedYear(y);
+              setSelectedMonth(m);
+            }}
+          />
+        </div>
 
         <button
           type="button"
-          className="btn-printz-primary"
-          style={{ marginLeft: "auto" }}
+          className="btn-printz-primary attendance-bar-action"
           onClick={() => {
             setEditingPermission(null);
             setIsRecordModalOpen(true);
@@ -353,209 +356,125 @@ export default function AttendancePermissionsPage() {
         </button>
       </div>
 
-      {/* ─── Dashboard UI KPI Cards ─────────────────────────────────── */}
-      <div className="printz-kpi-grid">
-        {/* Total Permissions */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon purple">
-              <Clock size={20} strokeWidth={2.3} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{totalPermissionsCount}</div>
-              <div className="printz-kpi-label">Total Permissions</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Permission Hours */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon blue">
-              <FileText size={20} strokeWidth={2.3} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{totalPermissionHours}h</div>
-              <div className="printz-kpi-label">Logged Hours</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Approved Records */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon green">
-              <CheckCircle2 size={20} strokeWidth={2.4} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{approvedPermissionsCount}</div>
-              <div className="printz-kpi-label">Approved Permissions</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Unique Employees */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon teal">
-              <Users size={20} strokeWidth={2.3} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{uniqueEmployeesWithPermissions}</div>
-              <div className="printz-kpi-label">Staff on Permission</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {error && (
-        <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "10px 18px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
-          {error}
+        <div className="attendance-alert error" role="alert">
+          <AlertCircle size={16} />
+          <span>{error}</span>
         </div>
       )}
 
       {/* ─── Permissions List Table ──────────────────────────────────── */}
-      <div className="attendance-table-card">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th style={{ width: "40px" }}>#</th>
-              <th>Employee</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Duration</th>
-              <th>Reason</th>
-              <th>Allowance</th>
-              <th>Status</th>
-              <th style={{ width: "100px", textAlign: "right" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  Loading permission records...
-                </td>
-              </tr>
-            ) : paginatedPermissions.length === 0 ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  {selectedEmployeeId
-                    ? "No permission records found for this employee in the selected month."
-                    : "No permission records found for the selected filters and month."}
-                </td>
-              </tr>
-            ) : (
-              paginatedPermissions.map((item, idx) => {
-                const emp = item.employeeId || {};
-                const allowanceText =
-                  item.monthlyAllowanceHours !== undefined
-                    ? `${item.usedHours || 0}h / ${item.monthlyAllowanceHours}h`
-                    : "-";
-                const rowNum = (currentPage - 1) * pageSize + idx + 1;
-
-                return (
-                  <tr
-                    key={item._id}
-                    style={{
-                      cursor: "pointer",
-                      backgroundColor:
-                        selectedEmployeeId &&
-                        String(emp._id || item.employeeId) === String(selectedEmployeeId)
-                          ? "#f0fdf4"
-                          : undefined,
-                    }}
-                    title="Click to view this employee's balance and history"
-                    onClick={() => {
-                      const id = String(emp._id || item.employeeId || "");
-                      handleEmployeeChange(id === String(selectedEmployeeId) ? "" : id);
-                    }}
-                  >
-                    <td>{rowNum}</td>
-                    <td>
-                      <div className="attendance-employee-cell">
-                        <div
-                          className="attendance-avatar-circle"
-                          style={{ backgroundColor: getAvatarColor(emp.name) }}
-                        >
-                          {(emp.name || "E").charAt(0).toUpperCase()}
-                        </div>
-                        <div className="attendance-emp-info">
-                          <span className="attendance-emp-code">{emp.employeeCode || "EMP"}</span>
-                          <span className="attendance-emp-name">{emp.name || "Unknown"}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{item.permissionDate}</td>
-                    <td>
-                      {item.startTime} - {item.endTime}
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: "#059669" }}>
-                        {item.durationHours}h
-                      </span>
-                    </td>
-                    <td style={{ maxWidth: "220px", color: "#475569" }}>
-                      <span title={item.reason} style={{ display: "inline-block", maxWidth: "200px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {item.reason}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: "12px", color: "#475569", fontWeight: 500 }}>
-                      {allowanceText}
-                    </td>
-                    <td>
-                      <span className="status-badge permission-allowed">
-                        Allowed
-                      </span>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
-                        <button
-                          type="button"
-                          className="icon-btn edit"
-                          title="Edit Permission"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingPermission(item);
-                            setIsRecordModalOpen(true);
-                          }}
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-btn delete"
-                          title="Delete / Cancel Permission"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeletePermission(item._id);
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-
-        {/* ─── Modern Pagination ─── */}
-        <AttendancePagination
-          currentPage={currentPage}
-          totalItems={filteredPermissions.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
-          pageSizeOptions={[5, 10, 20, 50]}
-          itemName="permissions"
-        />
-      </div>
+      <DataTable
+        mobileCards
+        searchable={false}
+        loading={loading}
+        data={filteredPermissions}
+        pageSize={10}
+        emptyMessage={
+          selectedEmployeeId
+            ? "No permission records found for this employee in the selected month."
+            : "No permission records found for the selected filters and month."
+        }
+        rowClassName={(item) => {
+          const emp = item.employeeId || {};
+          return selectedEmployeeId && String(emp._id || item.employeeId) === String(selectedEmployeeId)
+            ? "printz-row-selected"
+            : "";
+        }}
+        rowTitle={() => "Click to view this employee's balance and history"}
+        onRowClick={(item) => {
+          const emp = item.employeeId || {};
+          const id = String(emp._id || item.employeeId || "");
+          handleEmployeeChange(id === String(selectedEmployeeId) ? "" : id);
+        }}
+        columns={[
+          { key: "sno", label: "#", width: "40px", className: "printz-cell-hide-mobile", render: (item, idx) => idx + 1 },
+          {
+            key: "employee",
+            label: "Employee",
+            className: "printz-cell-lead",
+            render: (item) => {
+              const emp = item.employeeId || {};
+              return (
+                <div className="attendance-employee-cell">
+                  <div className="attendance-emp-info">
+                    <span className="attendance-emp-code">{emp.employeeCode || "EMP"}</span>
+                    <span className="attendance-emp-name">{emp.name || "Unknown"}</span>
+                  </div>
+                </div>
+              );
+            },
+          },
+          { key: "permissionDate", label: "Date", render: (item) => <span style={{ fontWeight: 600 }}>{item.permissionDate}</span> },
+          { key: "time", label: "Time", render: (item) => `${item.startTime} - ${item.endTime}` },
+          {
+            key: "durationHours",
+            label: "Duration",
+            render: (item) => <span style={{ fontWeight: 700, color: "#059669" }}>{item.durationHours}h</span>,
+          },
+          {
+            key: "reason",
+            label: "Reason",
+            render: (item) => (
+              <span
+                title={item.reason}
+                style={{ display: "inline-block", maxWidth: "200px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#1e293b" }}
+              >
+                {item.reason}
+              </span>
+            ),
+          },
+          {
+            key: "allowance",
+            label: "Allowance",
+            render: (item) => (
+              <span style={{ fontSize: "12px", color: "#1e293b", fontWeight: 500 }}>
+                {item.monthlyAllowanceHours !== undefined ? `${item.usedHours || 0}h / ${item.monthlyAllowanceHours}h` : "-"}
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: () => <span className="status-badge permission-allowed">Allowed</span>,
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            width: "100px",
+            align: "right",
+            className: "printz-cell-actions",
+            render: (item) => (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
+                <button
+                  type="button"
+                  className="icon-btn edit"
+                  title="Edit Permission"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingPermission(item);
+                    setIsRecordModalOpen(true);
+                  }}
+                >
+                  <Edit2 size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn delete"
+                  title="Delete / Cancel Permission"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeletePermission(item._id);
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* ─── Bottom Section: 2 Side-by-Side Cards (Image 3) ──────────── */}
       <div className="permissions-bottom-grid">
@@ -671,36 +590,22 @@ export default function AttendancePermissionsPage() {
                 </div>
               )}
 
-              <div style={{ overflowX: "auto" }}>
-                <table className="attendance-table" style={{ fontSize: "12.5px" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ padding: "8px 10px" }}>Date</th>
-                      <th style={{ padding: "8px 10px" }}>Time</th>
-                      <th style={{ padding: "8px 10px" }}>Duration</th>
-                      <th style={{ padding: "8px 10px" }}>Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employeeHistory.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: "center", padding: "20px", color: "#475569" }}>
-                          No permission history for this employee in {selectedMonth}/{selectedYear}.
-                        </td>
-                      </tr>
-                    ) : (
-                      employeeHistory.map((h) => (
-                        <tr key={h._id}>
-                          <td style={{ padding: "8px 10px", fontWeight: 600 }}>{h.permissionDate}</td>
-                          <td style={{ padding: "8px 10px" }}>{h.startTime} - {h.endTime}</td>
-                          <td style={{ padding: "8px 10px", fontWeight: 600, color: "#059669" }}>{h.durationHours}h</td>
-                          <td style={{ padding: "8px 10px", color: "#475569" }}>{h.reason}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                searchable={false}
+                pagination={false}
+                data={employeeHistory}
+                emptyMessage={`No permission history for this employee in ${selectedMonth}/${selectedYear}.`}
+                columns={[
+                  { key: "permissionDate", label: "Date", render: (h) => <span style={{ fontWeight: 600 }}>{h.permissionDate}</span> },
+                  { key: "time", label: "Time", render: (h) => `${h.startTime} - ${h.endTime}` },
+                  {
+                    key: "durationHours",
+                    label: "Duration",
+                    render: (h) => <span style={{ fontWeight: 600, color: "#059669" }}>{h.durationHours}h</span>,
+                  },
+                  { key: "reason", label: "Reason", render: (h) => <span style={{ color: "#1e293b" }}>{h.reason}</span> },
+                ]}
+              />
             </>
           )}
         </div>

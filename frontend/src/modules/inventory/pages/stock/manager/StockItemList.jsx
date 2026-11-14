@@ -3,7 +3,7 @@ import { createStockItem, getStockItems } from '../../../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../../../styles/stockitemlist.css';
-import Pagination from '../../../../../shared/ui/Pagination';
+import DataTable from '../../../../../shared/ui/DataTable/DataTable';
 
 const StockItemList = () => {
   const [stocks, setStocks] = useState([]);
@@ -83,68 +83,44 @@ const StockItemList = () => {
   return (
     <div className="stock-item-list-container">
       <h2>Stock Price List</h2>
-      <table className="stock-table">
-        <thead>
-          <tr>
-            <th>S.No</th>
-            <th>Item Name</th>
-            <th>Unit Price(₹)</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stocks
-            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-            .map((stock, index) => (
-            <tr key={stock.id}>
-              <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-              <td>
-                {editingId === stock.id ? (
-                  <input
-                    type="text"
-                    value={editValues.itemName}
-                    onChange={(e) => handleInputChange('itemName', e.target.value)}
-                  />
-                ) : (
-                  stock.itemName
-                )}
-              </td>
-              <td>
-                {editingId === stock.id ? (
-                  <input
-                    type="number"
-                    value={editValues.amount}
-                    onChange={(e) => handleInputChange('amount', e.target.value)}
-                  />
-                ) : (
-                  `₹${stock.amount}`
-                )}
-              </td>
-              <td>
-                {editingId === stock.id ? (
-                  <button onClick={handleSave}>Save</button>
-                ) : (
-                  <button onClick={() => handleEditClick(stock.id, { itemName: stock.itemName, amount: stock.amount })}>
-                    Edit
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {stocks.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalItems={stocks.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-          pageSizeOptions={[10, 20, 50, 100]}
-          itemLabel="items"
-        />
-      )}
+      <DataTable
+        searchable={false}
+        data={stocks}
+        pageSize={20}
+        columns={[
+          { key: "sno", label: "S.No", render: (stock, index) => index + 1 },
+          {
+            key: "itemName",
+            label: "Item Name",
+            render: (stock) =>
+              editingId === stock.id ? (
+                <input type="text" value={editValues.itemName} onChange={(e) => handleInputChange('itemName', e.target.value)} />
+              ) : (
+                stock.itemName
+              ),
+          },
+          {
+            key: "amount",
+            label: "Unit Price(₹)",
+            render: (stock) =>
+              editingId === stock.id ? (
+                <input type="number" value={editValues.amount} onChange={(e) => handleInputChange('amount', e.target.value)} />
+              ) : (
+                `₹${stock.amount}`
+              ),
+          },
+          {
+            key: "action",
+            label: "Action",
+            render: (stock) =>
+              editingId === stock.id ? (
+                <button onClick={handleSave}>Save</button>
+              ) : (
+                <button onClick={() => handleEditClick(stock.id, { itemName: stock.itemName, amount: stock.amount })}>Edit</button>
+              ),
+          },
+        ]}
+      />
     </div>
   );
 };

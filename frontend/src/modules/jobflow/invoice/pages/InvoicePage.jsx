@@ -22,7 +22,7 @@ import { toast } from "react-toastify";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import invoiceApi from "../api/invoiceApi";
 import InvoiceEditorSection from "../components/InvoiceEditorSection";
@@ -728,7 +728,7 @@ export const InvoicePage = () => {
             onClear={backToList}
           />
         ) : (
-        <JobFlowDataTable
+        <DataTable renderWithValue
           key={`jobs-table-${statusFilter}`}
           columns={pendingColumns}
           data={visibleRows}
@@ -740,7 +740,7 @@ export const InvoicePage = () => {
           searchable={true}
           searchPlaceholder="Search by job no, invoice no, customer, material..."
           searchKeys={["jobNo", "invoiceNumber", "customerName", "customerPhone", "title", "jobType"]}
-          initialPageSize={10}
+          pageSize={10}
           pageSizeOptions={[5, 10, 20, 25, 50, 100]}
           pagination={true}
           emptyMessage={
@@ -752,7 +752,7 @@ export const InvoicePage = () => {
               ? "No settled jobs yet."
               : "No job orders found."
           }
-          customActions={
+          filterComponent={
             <button
               type="button"
               className="jf-btn jf-btn-secondary jf-btn-sm"

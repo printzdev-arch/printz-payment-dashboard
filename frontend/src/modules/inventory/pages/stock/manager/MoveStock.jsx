@@ -24,7 +24,7 @@ import "../../../styles/movestock.css";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
 import Popup from "../../../../../shared/ui/Popup/Popup";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
-import Pagination from "../../../../../shared/ui/Pagination";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 
 const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) {
@@ -736,104 +736,60 @@ const MoveStock = () => {
           </div>
 
           {/* Stock Table */}
-          <div className="move-stock-table-wrapper">
-            <table className="move-stock-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "48px" }} className="center">
+          <DataTable
+            searchable={false}
+            data={filteredItems}
+            pageSize={itemsPerPage}
+            onRowClick={(item) => handleItemSelection(item)}
+            rowClassName={(item) => (selectedItems.some((selected) => selected.id === item.id) ? "printz-row-selected" : "")}
+            emptyMessage="No items found matching the selected branch or search query."
+            columns={[
+              {
+                key: "select",
+                width: "48px",
+                align: "center",
+                label: <input type="checkbox" className="move-stock-checkbox" checked={selectAll} onChange={handleSelectAll} />,
+                render: (item) => (
+                  <span onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       className="move-stock-checkbox"
-                      checked={selectAll}
-                      onChange={handleSelectAll}
+                      checked={selectedItems.some((selected) => selected.id === item.id)}
+                      onChange={() => handleItemSelection(item)}
                     />
-                  </th>
-                  <th>Item ID</th>
-                  <th>Item Name</th>
-                  <th>Category</th>
-                  <th className="center">Available Qty</th>
-                  <th>Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentItems.length > 0 ? (
-                  currentItems.map((item) => {
-                    const isSelected = selectedItems.some(
-                      (selected) => selected.id === item.id
-                    );
-                    const qty = item.qty || 0;
-                    return (
-                      <tr
-                        key={item.id}
-                        className={isSelected ? "selected" : ""}
-                        onClick={() => handleItemSelection(item)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <td
-                          className="center"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            className="move-stock-checkbox"
-                            checked={isSelected}
-                            onChange={() => handleItemSelection(item)}
-                          />
-                        </td>
-                        <td>
-                          <span className="move-stock-id-tag">
-                            {(item.stockId || "N/A").toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="move-stock-name-cell">{item.itemName}</td>
-                        <td>
-                          <span className="move-stock-category-pill">
-                            {item.category || "General"}
-                          </span>
-                        </td>
-                        <td className="center">
-                          <span
-                            className={`move-stock-qty-pill ${
-                              qty === 0
-                                ? "zero-stock"
-                                : qty < 5
-                                ? "low-stock"
-                                : "in-stock"
-                            }`}
-                          >
-                            {qty}
-                          </span>
-                        </td>
-                        <td className="move-stock-price-cell">
-                          {item.pageRanges && item.pageRanges.length > 0
-                            ? formatCurrency(item.pageRanges[0].price)
-                            : formatCurrency(item.amount)}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "36px 16px" }}>
-                      <p style={{ margin: 0, color: "#475569", fontSize: "14px" }}>
-                        No items found matching the selected branch or search query.
-                      </p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredItems.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-            pageSizeOptions={[10, 20, 50, 100]}
-            itemLabel="items"
+                  </span>
+                ),
+              },
+              {
+                key: "stockId",
+                label: "Item ID",
+                render: (item) => <span className="move-stock-id-tag">{(item.stockId || "N/A").toUpperCase()}</span>,
+              },
+              { key: "itemName", label: "Item Name", className: "move-stock-name-cell", render: (item) => item.itemName },
+              {
+                key: "category",
+                label: "Category",
+                render: (item) => <span className="move-stock-category-pill">{item.category || "General"}</span>,
+              },
+              {
+                key: "qty",
+                label: "Available Qty",
+                align: "center",
+                render: (item) => {
+                  const qty = item.qty || 0;
+                  return (
+                    <span className={`move-stock-qty-pill ${qty === 0 ? "zero-stock" : qty < 5 ? "low-stock" : "in-stock"}`}>{qty}</span>
+                  );
+                },
+              },
+              {
+                key: "price",
+                label: "Price",
+                className: "move-stock-price-cell",
+                render: (item) =>
+                  item.pageRanges && item.pageRanges.length > 0 ? formatCurrency(item.pageRanges[0].price) : formatCurrency(item.amount),
+              },
+            ]}
           />
         </div>
       )}
@@ -869,74 +825,61 @@ const MoveStock = () => {
           </div>
 
           {/* Quantities Table */}
-          <div className="move-stock-table-wrapper">
-            <table className="move-stock-table">
-              <thead>
-                <tr>
-                  <th>Item Name</th>
-                  <th>Category</th>
-                  <th className="center">Available Units</th>
-                  <th>Transfer Quantity</th>
-                  <th>Unit Price</th>
-                  <th>Estimated Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedItems.map((item) => {
+          <DataTable
+            searchable={false}
+            pagination={false}
+            data={selectedItems}
+            columns={[
+              { key: "itemName", label: "Item Name", className: "move-stock-name-cell", render: (item) => item.itemName },
+              {
+                key: "category",
+                label: "Category",
+                render: (item) => <span className="move-stock-category-pill">{item.category || "General"}</span>,
+              },
+              {
+                key: "qty",
+                label: "Available Units",
+                align: "center",
+                render: (item) => {
                   const qty = item.qty || 0;
-                  const moveQty = itemQuantities[item.id] || 0;
-                  const unitPrice =
-                    item.pageRanges && item.pageRanges.length > 0
-                      ? Number(item.pageRanges[0].price) || 0
-                      : Number(item.amount) || 0;
-                  const estimatedTotal = unitPrice * moveQty;
-
                   return (
-                    <tr key={item.id}>
-                      <td className="move-stock-name-cell">{item.itemName}</td>
-                      <td>
-                        <span className="move-stock-category-pill">
-                          {item.category || "General"}
-                        </span>
-                      </td>
-                      <td className="center">
-                        <span
-                          className={`move-stock-qty-pill ${
-                            qty === 0
-                              ? "zero-stock"
-                              : qty < 5
-                              ? "low-stock"
-                              : "in-stock"
-                          }`}
-                        >
-                          {qty}
-                        </span>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="1"
-                          className="move-stock-qty-input-box"
-                          value={itemQuantities[item.id] ?? ""}
-                          onChange={(e) =>
-                            handleQuantityChange(item.id, e.target.value)
-                          }
-                          disabled={loading}
-                          placeholder="Quantity"
-                        />
-                      </td>
-                      <td className="move-stock-price-cell">
-                        {formatCurrency(unitPrice)}
-                      </td>
-                      <td style={{ fontWeight: 600, color: "#1e293b" }}>
-                        {formatCurrency(estimatedTotal)}
-                      </td>
-                    </tr>
+                    <span className={`move-stock-qty-pill ${qty === 0 ? "zero-stock" : qty < 5 ? "low-stock" : "in-stock"}`}>{qty}</span>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                key: "transfer",
+                label: "Transfer Quantity",
+                render: (item) => (
+                  <input
+                    type="number"
+                    min="1"
+                    className="move-stock-qty-input-box"
+                    value={itemQuantities[item.id] ?? ""}
+                    onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                    disabled={loading}
+                    placeholder="Quantity"
+                  />
+                ),
+              },
+              {
+                key: "unitPrice",
+                label: "Unit Price",
+                className: "move-stock-price-cell",
+                render: (item) =>
+                  formatCurrency(item.pageRanges && item.pageRanges.length > 0 ? Number(item.pageRanges[0].price) || 0 : Number(item.amount) || 0),
+              },
+              {
+                key: "estimated",
+                label: "Estimated Value",
+                render: (item) => {
+                  const unitPrice =
+                    item.pageRanges && item.pageRanges.length > 0 ? Number(item.pageRanges[0].price) || 0 : Number(item.amount) || 0;
+                  return <span style={{ fontWeight: 600, color: "#1e293b" }}>{formatCurrency(unitPrice * (itemQuantities[item.id] || 0))}</span>;
+                },
+              },
+            ]}
+          />
 
           {/* Warning banner if destination not selected yet */}
           {!toLocation && (

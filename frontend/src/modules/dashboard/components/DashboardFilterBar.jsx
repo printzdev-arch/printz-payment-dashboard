@@ -1,15 +1,19 @@
 import React from "react";
 import { Calendar } from "lucide-react";
+import { DateField } from "../../../shared/ui/selects/CalendarSelect";
 import "../styles/dashboard.css";
 
 const DATA_TYPE_OPTIONS = [
   { value: "overview", label: "Overview" },
-  { value: "revenue", label: "Revenue" },
-  { value: "stocks", label: "Stocks" },
-  { value: "employees", label: "Employees" },
-  { value: "designers", label: "Designers" },
-  { value: "production", label: "Production" },
+  { value: "salesorders", label: "Sales Orders" },
   { value: "joborders", label: "Job Orders" },
+  { value: "production", label: "Production" },
+  { value: "inventory", label: "Inventory" },
+  { value: "attendance", label: "Attendance" },
+  { value: "salary", label: "Salary" },
+  { value: "employees", label: "Employees" },
+  { value: "invoices", label: "Invoices & Revenue" },
+  { value: "qc", label: "Quality Control" },
 ];
 
 // The label shows the real current month (it used to be fixed to "Oct 1 - Oct 31, 2026")
@@ -48,6 +52,7 @@ const DashboardFilterBar = ({
   showCompareWith = false,
   compareWith = "previous_period",
   onChangeCompareWith,
+  hideDateRange = false,
 }) => {
   return (
     <div className="printz-dash-filter-card">
@@ -98,7 +103,8 @@ const DashboardFilterBar = ({
             </select>
           </div>
 
-          {/* 3. Date Range Filter Field */}
+          {/* 3. Date Range Filter Field (hidden for views that show the current state) */}
+          {!hideDateRange && (
           <div className="printz-dash-field-group">
             <label className="printz-dash-label">
               <Calendar size={13} style={{ display: "inline-block", verticalAlign: "middle" }} />
@@ -116,58 +122,28 @@ const DashboardFilterBar = ({
               ))}
             </select>
           </div>
+          )}
         </div>
 
         {/* Custom Range Inputs (if custom chosen) */}
-        {selectedDateRange === "custom" && (
+        {!hideDateRange && selectedDateRange === "custom" && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <input
-              type="date"
+            <DateField
               value={startDate}
               onChange={(e) => onChangeStartDate && onChangeStartDate(e.target.value)}
-              className="printz-dash-date-input"
-              style={{ width: "135px" }}
+              style={{ width: "150px" }}
             />
             <span style={{ fontSize: "12px", color: "#475569" }}>to</span>
-            <input
-              type="date"
+            <DateField
               value={endDate}
               onChange={(e) => onChangeEndDate && onChangeEndDate(e.target.value)}
-              className="printz-dash-date-input"
-              style={{ width: "135px" }}
+              style={{ width: "150px" }}
             />
           </div>
         )}
 
-        {/* Actions: Apply Button & optional Compare With */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-          <div>
-            <button
-              type="button"
-              onClick={onApply}
-              disabled={isLoading}
-              className="printz-dash-btn-apply"
-            >
-              {isLoading ? "Applying..." : "Apply"}
-            </button>
-          </div>
-
-          {showCompareWith && (
-            <div className="printz-dash-field-group">
-              <label className="printz-dash-label">Compare With</label>
-              <select
-                value={compareWith}
-                onChange={(e) => onChangeCompareWith && onChangeCompareWith(e.target.value)}
-                className="printz-dash-select"
-                style={{ width: "150px" }}
-              >
-                <option value="previous_period">Previous Period</option>
-                <option value="previous_year">Previous Year</option>
-                <option value="none">None</option>
-              </select>
-            </div>
-          )}
-        </div>
+    
+      
       </div>
     </div>
   );

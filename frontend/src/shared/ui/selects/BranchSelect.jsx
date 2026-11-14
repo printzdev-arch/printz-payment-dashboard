@@ -1,17 +1,29 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Building2, ChevronDown, Search, X, Check } from "lucide-react";
+import { createPortal } from "react-dom";
+import useFloatingMenu from "../../utils/useFloatingMenu";
+import { Building2, ChevronDown, Search, X, Check, Lock } from "lucide-react";
+import { getLockedBranchId, useBranches } from "../../utils/branchAccess";
 import "../../styles/branchSelect.css";
+
+/**
+ * The branch dropdown used on every page.
+ *  - Pass `branches` to use your own list, or leave it out and the list is loaded for you.
+ *  - valueKey="name" (default) gives the branch name as the value; valueKey="id" gives its id.
+ *  - lockToUserBranch: a non-admin user (for example a manager) sees only their own branch, fixed.
+ */
 
 const BranchSelect = ({
   value = "",
   onChange,
-  branches = [],
+  branches: branchesProp,
+  valueKey = "name",
+  lockToUserBranch = false,
   placeholder = "Select Branch",
   allowAll = false,
   showAllOption = false,
   allOptionLabel = "All Branches",
   allOptionValue = "",
-  disabled = false,
+  disabled: disabledProp = false,
   required = false,
   name,
   id,
@@ -23,9 +35,33 @@ const BranchSelect = ({
   searchable,
   exclude = [],
 }) => {
+  const { branches: loadedBranches } = useBranches(branchesProp === undefined);
+  const lockedId = lockToUserBranch ? getLockedBranchId() : "";
+  const disabled = disabledProp || Boolean(lockedId);
+  const baseBranches = branchesProp !== undefined ? branchesProp : loadedBranches;
+  const branches = useMemo(() => {
+    let list = Array.isArray(baseBranches) ? baseBranches : [];
+    // Fixed to the user's own branch
+    if (lockedId) list = list.filter((b) => b && typeof b === "object" && String(b._id || b.id) === lockedId);
+    // Hand out the id instead of the name when asked
+    if (valueKey === "id") list = list.map((b) => (b && typeof b === "object" ? { ...b, value: String(b._id || b.id || "") } : b));
+    return list;
+  }, [baseBranches, lockedId, valueKey]);
+
+  // A locked user always has their own branch selected
+  const lockedBranch = lockedId ? branches[0] : null;
+  const lockedValue = lockedBranch ? (valueKey === "id" ? lockedId : lockedBranch.value !== undefined ? lockedBranch.value : lockedBranch.name) : "";
+  useEffect(() => {
+    if (lockedValue && value !== lockedValue && onChange) {
+      onChange({ target: { name: name || id || "branch", value: lockedValue }, currentTarget: { name: name || id || "branch", value: lockedValue } }, lockedBranch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedValue]);
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [searchTerm, setSearchTerm] = useState("");
   const containerRef = useRef(null);
+  const menuRef = useRef(null);
 
   // Normalize excluded branches
   const excludedSet = useMemo(() => {
@@ -38,7 +74,7 @@ const BranchSelect = ({
   const normalizedOptions = useMemo(() => {
     const list = [];
 
-    if (allowAll || showAllOption) {
+    if ((allowAll || showAllOption) && !lockedId) {
       list.push({
         id: "__all__",
         name: allOptionLabel,
@@ -76,7 +112,7 @@ const BranchSelect = ({
     }
 
     return list;
-  }, [branches, allowAll, showAllOption, allOptionLabel, allOptionValue, excludedSet]);
+  }, [branches, allowAll, showAllOption, allOptionLabel, allOptionValue, excludedSet, lockedId]);
 
   // Determine current display label
   const selectedOption = useMemo(() => {
@@ -97,10 +133,21 @@ const BranchSelect = ({
     );
   }, [normalizedOptions, searchTerm]);
 
+  // When the list opens or the search changes, highlight the selected row (or the first one)
+  useEffect(() => {
+    if (!isOpen) return;
+    const i = filteredOptions.findIndex((opt) => opt.value === value || opt.name === value);
+    setActiveIndex(i >= 0 ? i : filteredOptions.length ? 0 : -1);
+  }, [isOpen, filteredOptions, value]);
+
   // Click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target) &&
+        !(menuRef.current && menuRef.current.contains(event.target))
+      ) {
         setIsOpen(false);
         setSearchTerm("");
       }
@@ -113,6 +160,8 @@ const BranchSelect = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
+
+  const menuStyle = useFloatingMenu(containerRef, menuRef, isOpen, { minWidth: 200, deps: [filteredOptions.length] });
 
   const handleSelect = (option) => {
     if (disabled) return;
@@ -142,6 +191,34 @@ const BranchSelect = ({
     setSearchTerm("");
   };
 
+  // Keyboard: Enter / Space / Arrow Down opens, Arrow keys move, Enter picks, Escape closes
+  const handleKeyDown = (e) => {
+    if (disabled) return;
+    if (e.key === "Escape") {
+      setIsOpen(false);
+      setSearchTerm("");
+      return;
+    }
+    if (!isOpen) {
+      if (e.target === e.currentTarget.querySelector(".branch-select-trigger") && ["Enter", " ", "ArrowDown"].includes(e.key)) {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, filteredOptions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const option = filteredOptions[activeIndex];
+      if (option) handleSelect(option);
+    }
+  };
+
   const toggleDropdown = () => {
     if (disabled) return;
     setIsOpen((prev) => !prev);
@@ -152,6 +229,7 @@ const BranchSelect = ({
       ref={containerRef}
       className={`branch-select-container ${className}`}
       style={style}
+      onKeyDown={handleKeyDown}
     >
       {/* Hidden input for HTML form validation if required */}
       {required && (
@@ -175,22 +253,14 @@ const BranchSelect = ({
 
       {/* Dropdown Trigger */}
       <div
-        className={`branch-select-trigger ${isOpen ? "open" : ""} ${
-          disabled ? "disabled" : ""
-        }`}
+        className={`branch-select-trigger ${isOpen ? "open" : ""} ${disabled ? "disabled" : ""} ${lockedId ? "locked" : ""}`}
         style={triggerStyle}
         onClick={toggleDropdown}
         tabIndex={disabled ? -1 : 0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            toggleDropdown();
-          } else if (e.key === "Escape") {
-            setIsOpen(false);
-          }
-        }}
+        title={lockedId ? "Your branch is fixed" : undefined}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-disabled={disabled}
       >
         <div className="branch-select-trigger-content">
           {icon && (
@@ -207,13 +277,13 @@ const BranchSelect = ({
           </span>
         </div>
         <span className="branch-select-chevron">
-          <ChevronDown size={16} />
+          {lockedId ? <Lock size={14} /> : <ChevronDown size={16} />}
         </span>
       </div>
 
       {/* Downward Dropdown Menu */}
-      {isOpen && (
-        <div className={`branch-select-dropdown ${dropdownClassName}`} role="listbox">
+      {isOpen && createPortal(
+        <div ref={menuRef} style={menuStyle} className={`branch-select-dropdown ${dropdownClassName}`} role="listbox">
           {isSearchable && (
             <div className="branch-select-search-box">
               <Search size={14} color="#94a3b8" />
@@ -243,16 +313,19 @@ const BranchSelect = ({
           )}
 
           <div className="branch-select-options-list">
-            {filteredOptions.map((opt) => {
+            {filteredOptions.map((opt, index) => {
               const isSelected =
                 opt.value === value || opt.name === value;
+              const isActive = index === activeIndex;
 
               return (
                 <div
                   key={opt.id}
-                  className={`branch-select-option-item ${
-                    isSelected ? "selected" : ""
-                  }`}
+                  className={`branch-select-option-item ${isSelected ? "selected" : ""} ${isActive ? "active" : ""}`}
+                  ref={(el) => {
+                    if (el && isActive) el.scrollIntoView({ block: "nearest" });
+                  }}
+                  onMouseEnter={() => setActiveIndex(index)}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSelect(opt);
@@ -261,10 +334,6 @@ const BranchSelect = ({
                   aria-selected={isSelected}
                 >
                   <div className="branch-select-option-left">
-                    <Building2
-                      size={15}
-                      className="branch-select-option-icon"
-                    />
                     <span>{opt.name}</span>
                   </div>
                   {isSelected && (
@@ -280,7 +349,8 @@ const BranchSelect = ({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

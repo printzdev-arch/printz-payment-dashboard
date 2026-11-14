@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Check, RefreshCw, Undo2, X } from "lucide-react";
 import { toast } from "react-toastify";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import { isAdminUser } from "../../../../shared/utils/deleteRequest";
 import {
   approveDeleteRequest,
@@ -120,100 +120,101 @@ export default function DeleteRequests() {
       </div>
 
       <div className="emp-card">
-        <div className="emp-filters">
-          <select className="emp-select" value={filters.status} onChange={changeFilter("status")} aria-label="Status">
-            <option value="PENDING">Waiting</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="CANCELLED">Withdrawn</option>
-            <option value="">All statuses</option>
-          </select>
-          <select className="emp-select" value={filters.resourceType} onChange={changeFilter("resourceType")} aria-label="Record type">
-            <option value="">All record types</option>
-            {types.map((t) => (
-              <option key={t.key} value={t.key}>{t.label}</option>
-            ))}
-          </select>
-          <button type="button" className="emp-btn" onClick={load} disabled={loading}>
-            <RefreshCw size={14} /> Refresh
-          </button>
-        </div>
-
-        <div className="emp-table-wrap">
-          <table className="emp-table">
-            <thead>
-              <tr>
-                <th>Requested</th>
-                <th>Record</th>
-                <th>Branch</th>
-                <th>Requested by</th>
-                <th>Reason</th>
-                <th>Status</th>
-                <th className="emp-th-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr><td className="emp-empty" colSpan={7}>Loading requests...</td></tr>
-              )}
-              {!loading && rows.length === 0 && (
-                <tr><td className="emp-empty" colSpan={7}>No delete requests.</td></tr>
-              )}
-              {rows.map((r) => (
-                <tr key={r._id}>
-                  <td>{when(r.requestedAt)}</td>
-                  <td>
-                    <div className="emp-cell-name">{r.resourceLabel || "—"}</div>
-                    <div className="emp-cell-sub">{r.resourceTypeLabel}</div>
-                  </td>
-                  <td>{r.branchName || "—"}</td>
-                  <td>{r.requestedByName || "—"}</td>
-                  <td style={{ maxWidth: 280, whiteSpace: "normal" }}>
-                    {r.reason}
-                    {r.decisionNote ? <div className="emp-cell-sub">Admin: {r.decisionNote}</div> : null}
-                    {r.executionError ? <div className="emp-error">Could not delete: {r.executionError}</div> : null}
-                  </td>
-                  <td>
-                    <span className={`emp-badge ${STATUS_CLASS[r.status] || "emp-badge-inactive"}`}>{STATUS_LABEL[r.status] || r.status}</span>
-                    {r.decidedByName && r.status !== "PENDING" ? <div className="emp-cell-sub">{r.decidedByName}</div> : null}
-                  </td>
-                  <td>
-                    <div className="emp-actions">
-                      {r.status === "PENDING" && admin && (
-                        <>
-                          <button type="button" className="emp-btn emp-btn-icon emp-btn-danger" title="Approve and delete" aria-label="Approve and delete" disabled={busyId === r._id} onClick={() => approve(r)}>
-                            <Check size={15} />
-                          </button>
-                          <button type="button" className="emp-btn emp-btn-icon" title="Reject and keep the record" aria-label="Reject" disabled={busyId === r._id} onClick={() => reject(r)}>
-                            <X size={15} />
-                          </button>
-                        </>
-                      )}
-                      {r.status === "PENDING" && !admin && (
-                        <button type="button" className="emp-btn emp-btn-icon" title="Withdraw this request" aria-label="Withdraw" disabled={busyId === r._id} onClick={() => withdraw(r)}>
-                          <Undo2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          variant="compact"
-          currentPage={page}
-          totalItems={total}
-          itemsPerPage={pageSize}
-          onPageChange={(n) => setPage(Math.max(1, n))}
-          onItemsPerPageChange={(n) => {
-            setPageSize(n);
-            setPage(1);
+        <DataTable
+          searchable={false}
+          loading={loading}
+          data={rows}
+          emptyMessage="No delete requests."
+          serverPagination={{
+            page,
+            pageSize,
+            total,
+            onPageChange: (n) => setPage(Math.max(1, n)),
+            onPageSizeChange: (n) => {
+              setPageSize(n);
+              setPage(1);
+            },
           }}
-          pageSizeOptions={[10, 20, 50, 100]}
-          itemLabel="requests"
+          filterComponent={
+            <div className="emp-filters" style={{ margin: 0 }}>
+              <select className="emp-select" value={filters.status} onChange={changeFilter("status")} aria-label="Status">
+                <option value="PENDING">Waiting</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="CANCELLED">Withdrawn</option>
+                <option value="">All statuses</option>
+              </select>
+              <select className="emp-select" value={filters.resourceType} onChange={changeFilter("resourceType")} aria-label="Record type">
+                <option value="">All record types</option>
+                {types.map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
+              </select>
+              <button type="button" className="emp-btn" onClick={load} disabled={loading}>
+                <RefreshCw size={14} /> Refresh
+              </button>
+            </div>
+          }
+          columns={[
+            { key: "requestedAt", label: "Requested", render: (r) => when(r.requestedAt) },
+            {
+              key: "resourceLabel",
+              label: "Record",
+              render: (r) => (
+                <>
+                  <div className="emp-cell-name">{r.resourceLabel || "—"}</div>
+                  <div className="emp-cell-sub">{r.resourceTypeLabel}</div>
+                </>
+              ),
+            },
+            { key: "branchName", label: "Branch", render: (r) => r.branchName || "—" },
+            { key: "requestedByName", label: "Requested by", render: (r) => r.requestedByName || "—" },
+            {
+              key: "reason",
+              label: "Reason",
+              render: (r) => (
+                <div style={{ maxWidth: 280, whiteSpace: "normal" }}>
+                  {r.reason}
+                  {r.decisionNote ? <div className="emp-cell-sub">Admin: {r.decisionNote}</div> : null}
+                  {r.executionError ? <div className="emp-error">Could not delete: {r.executionError}</div> : null}
+                </div>
+              ),
+            },
+            {
+              key: "status",
+              label: "Status",
+              render: (r) => (
+                <>
+                  <span className={`emp-badge ${STATUS_CLASS[r.status] || "emp-badge-inactive"}`}>{STATUS_LABEL[r.status] || r.status}</span>
+                  {r.decidedByName && r.status !== "PENDING" ? <div className="emp-cell-sub">{r.decidedByName}</div> : null}
+                </>
+              ),
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              align: "right",
+              render: (r) => (
+                <div className="emp-actions">
+                  {r.status === "PENDING" && admin && (
+                    <>
+                      <button type="button" className="emp-btn emp-btn-icon emp-btn-danger" title="Approve and delete" aria-label="Approve and delete" disabled={busyId === r._id} onClick={() => approve(r)}>
+                        <Check size={15} />
+                      </button>
+                      <button type="button" className="emp-btn emp-btn-icon" title="Reject and keep the record" aria-label="Reject" disabled={busyId === r._id} onClick={() => reject(r)}>
+                        <X size={15} />
+                      </button>
+                    </>
+                  )}
+                  {r.status === "PENDING" && !admin && (
+                    <button type="button" className="emp-btn emp-btn-icon" title="Withdraw this request" aria-label="Withdraw" disabled={busyId === r._id} onClick={() => withdraw(r)}>
+                      <Undo2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]}
         />
       </div>
     </div>

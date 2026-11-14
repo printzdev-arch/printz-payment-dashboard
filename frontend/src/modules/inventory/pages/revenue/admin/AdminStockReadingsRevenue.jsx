@@ -21,7 +21,7 @@ import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 import CalendarSelect from "../../../../../shared/ui/selects/CalendarSelect.jsx";
 import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
-import Pagination from "../../../../../shared/ui/Pagination.jsx";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 
 const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) return "₹0";
@@ -514,168 +514,74 @@ const AdminStockReadingsRevenue = () => {
     );
   }
 
-  if (isLoadingStocks && branchName) {
-    return (
-      <div className="revenue-page-container">
-        <div className="revenue-loading-box">
-          <div className="revenue-loading-spinner"></div>
-          <p>Loading stock items for {branchName}...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (stocks.length === 0 && branchName) {
-    return (
-      <div className="revenue-page-container">
-        <Popup {...popup} />
-        {/* Header Banner */}
-        <div className="printz-header-banner-full">
-          <div className="printz-header-title-area">
-            <h1>
-              Stock Readings{" "}
-              <span className="highlight" style={{ color: "#059669" }}>
-                Revenue
-              </span>
-            </h1>
-            <p>
-              Track inventory movements, consumption, sales, and total revenue
-              per branch.
-            </p>
-          </div>
-        </div>
-
-        {/* Filter Card */}
-        <div className="revenue-filter-card">
-          <div className="revenue-filter-header">
-            <div className="revenue-filter-header-left">
-              <div className="revenue-filter-icon">
-                <Boxes size={18} color="#059669" />
-              </div>
-              <div>
-                <h3 className="revenue-filter-title">Filter Selection</h3>
-              </div>
-            </div>
-          </div>
-
-          <div className="revenue-filter-grid">
-            <div className="revenue-filter-field">
-              <label htmlFor="branch-select">Select Branch</label>
-              <BranchSelect
-                id="branch-select"
-                value={branchName}
-                onChange={(e) => setBranchName(e.target.value)}
-                branches={branches}
-                placeholder="Select a branch"
-                allowAll={true}
-                allOptionLabel="Select a branch"
-              />
-            </div>
-
-            <div className="revenue-filter-field">
-              <label htmlFor="reading-date">Select Date</label>
-              <CalendarSelect
-                id="reading-date"
-                selected={date ? new Date(date) : null}
-                onChange={handleDateChange}
-                dateFormat="yyyy-MM-dd"
-                required
-                placeholder="Select date (YYYY-MM-DD)"
-                triggerStyle={{ height: "42px" }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="revenue-prompt-state">
-          <Package size={36} color="#94a3b8" />
-          <h3>No Stock Items Found</h3>
-          <p>
-            No stock items have been added for branch: <strong>{branchName}</strong>.
-            Please add stock items first using the Add Stock feature.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading && !stocks.length) {
-    return (
-      <div className="revenue-page-container">
-        <div className="revenue-loading-box">
-          <div className="revenue-loading-spinner"></div>
-          <p>Loading stock data...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="revenue-page-container">
       <Popup {...popup} />
 
-      {/* Header Banner - Full Width Green Gradient Banner (No Illustration) */}
-      <div className="printz-header-banner-full">
-        <div className="printz-header-title-area">
-          <h1>
-            Stock Readings{" "}
-            <span className="highlight" style={{ color: "#059669" }}>
-              Revenue
-            </span>
-          </h1>
-          <p>
-            Track stock consumption, sales, and generated revenue for selected
-            branch and date.
-          </p>
-        </div>
-
-        {date && branchName && (
-          <div>
-            <button
-              type="button"
-              onClick={generatePDF}
-              className="printz-btn-primary"
-              disabled={isLoading}
-              style={{
-                padding: "9px 20px",
-                fontSize: "13.5px",
-                fontWeight: 600,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                borderRadius: "10px",
-                background: isLoading ? "#94a3b8" : "#059669",
-                color: "#ffffff",
-                border: "none",
-                cursor: isLoading ? "not-allowed" : "pointer",
-                boxShadow: isLoading
-                  ? "none"
-                  : "0 4px 12px rgba(5, 150, 105, 0.35)",
-                whiteSpace: "nowrap",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <FileDown size={16} /> Download PDF
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Filter Card */}
-      <div className="revenue-filter-card">
-        <div className="revenue-filter-header">
-          <div className="revenue-filter-header-left">
+      {/* Single Consolidated Section Card */}
+      <div className="revenue-card">
+        {/* Unified Card Header */}
+        <div className="revenue-card-header printz-unified-card-header">
+          <div className="revenue-card-header-left">
             <div className="revenue-filter-icon">
               <Boxes size={18} color="#059669" />
             </div>
             <div>
-              <h3 className="revenue-filter-title">Filter Selection</h3>
+              <h1 className="revenue-unified-title">
+                Stock Readings{" "}
+                <span className="highlight" style={{ color: "#059669" }}>
+                  Revenue
+                </span>
+                {branchName && (
+                  <span className="revenue-branch-subtitle-tag">
+                    — {branchName}
+                  </span>
+                )}
+              </h1>
             </div>
+          </div>
+
+          <div className="revenue-card-header-right">
+            {isExistingDoc && (
+              <span className="revenue-badge-available">
+                <CheckCircle2 size={13} /> Revenue Data Available
+              </span>
+            )}
+
+            {date && branchName && (
+              <button
+                type="button"
+                onClick={generatePDF}
+                className="printz-btn-primary"
+                disabled={isLoading}
+                style={{
+                  padding: "9px 18px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  borderRadius: "10px",
+                  background: isLoading ? "#94a3b8" : "#059669",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  boxShadow: isLoading
+                    ? "none"
+                    : "0 4px 12px rgba(5, 150, 105, 0.3)",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <FileDown size={15} /> Download PDF
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="revenue-filter-grid">
-          <div className="revenue-filter-field">
+        {/* Unified Filter & Search Bar */}
+        <div className="revenue-unified-toolbar">
+          <div className="revenue-unified-filter-field">
             <label htmlFor="branch-select-monthly">Select Branch</label>
             <BranchSelect
               id="branch-select-monthly"
@@ -688,7 +594,7 @@ const AdminStockReadingsRevenue = () => {
             />
           </div>
 
-          <div className="revenue-filter-field">
+          <div className="revenue-unified-filter-field">
             <label htmlFor="reading-date-monthly">Select Date</label>
             <CalendarSelect
               id="reading-date-monthly"
@@ -700,372 +606,232 @@ const AdminStockReadingsRevenue = () => {
               triggerStyle={{ height: "42px" }}
             />
           </div>
-        </div>
-      </div>
 
-      {/* Data Content View */}
-      {date && branchName ? (
-        <div className="revenue-card">
-          <div className="revenue-card-header">
-            <div className="revenue-card-header-left">
-              <Package size={18} color="#059669" />
-              <h3 className="revenue-card-title" style={{ color: "#059669" }}>
-                Stock Items — {branchName}
-              </h3>
+          {date && branchName && stocks.length > 0 && (
+            <div className="revenue-unified-search-field">
+              <label>Search Items</label>
+              <div className="revenue-unified-search-wrap">
+                <Search size={16} className="revenue-unified-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search by item, stock ID, or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="revenue-unified-search-input"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="revenue-unified-search-clear"
+                    title="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
             </div>
+          )}
+        </div>
 
-            <div className="revenue-card-search-wrap">
-              <Search size={15} className="revenue-search-icon" />
-              <input
-                type="text"
-                placeholder="Search by item, stock ID, or category..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="revenue-search-input"
-              />
-              {searchQuery && (
+        {/* Content Area */}
+        {isLoadingStocks && branchName ? (
+          <div className="revenue-loading-box" style={{ padding: "48px 20px" }}>
+            <div className="revenue-loading-spinner"></div>
+            <p>Loading stock items for {branchName}...</p>
+          </div>
+        ) : isLoading ? (
+          <div className="revenue-loading-box" style={{ padding: "48px 20px" }}>
+            <div className="revenue-loading-spinner"></div>
+            <p>Loading stock data...</p>
+          </div>
+        ) : !date || !branchName ? (
+          <div className="revenue-prompt-state" style={{ padding: "52px 20px" }}>
+            <Calendar size={36} color="#94a3b8" />
+            <h3>Select Branch & Date</h3>
+            <p>
+              Please choose a branch and date above to view stock consumption,
+              sales, and revenue calculations.
+            </p>
+          </div>
+        ) : stocks.length === 0 ? (
+          <div className="revenue-prompt-state" style={{ padding: "48px 20px" }}>
+            <Package size={36} color="#94a3b8" />
+            <h3>No Stock Items Found</h3>
+            <p>
+              No stock items have been added for branch: <strong>{branchName}</strong>.
+              Please add stock items first using the Add Stock feature.
+            </p>
+          </div>
+        ) : (
+          <DataTable
+            searchable={false}
+            data={filteredStocks}
+            pageSize={stocksPerPage}
+            pageSizeOptions={[10, 20, 50, 100]}
+            emptyMessage={
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                <Search size={26} color="#94a3b8" />
+                <span style={{ fontWeight: 600, fontSize: "14px", color: "#334155" }}>No stock items match "{searchQuery}"</span>
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="revenue-search-clear"
-                  title="Clear search"
+                  style={{
+                    padding: "5px 14px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    borderRadius: "6px",
+                    border: "1px solid #d1fae5",
+                    background: "#ecfdf5",
+                    color: "#047857",
+                    cursor: "pointer",
+                    marginTop: "4px",
+                  }}
                 >
-                  <X size={13} />
+                  Clear Search
                 </button>
-              )}
-            </div>
-
-            <div className="revenue-card-header-right">
-              {isExistingDoc && (
-                <span className="revenue-badge-available">
-                  <CheckCircle2 size={13} /> Revenue Data Available
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="revenue-table-wrapper">
-            <table className="revenue-modern-table revenue-stock-table">
-              <thead>
-                <tr>
-                  <th rowSpan="2" className="center th-sno">
-                    S.No
-                  </th>
-                  <th rowSpan="2" className="th-item">
-                    Items
-                  </th>
-                  <th rowSpan="2" className="center th-category">
-                    Category
-                  </th>
-                  <th rowSpan="2" className="center th-stock">
-                    Opening Stock
-                  </th>
-                  <th rowSpan="2" className="center th-stock">
-                    Added Stock
-                  </th>
-                  <th rowSpan="2" className="center th-stock">
-                    Closing Stock
-                  </th>
-                  <th colSpan="2" className="center th-sold-group">
-                    Sold
-                  </th>
-                  <th rowSpan="2" className="right th-price">
-                    Unit Price (₹)
-                  </th>
-                  <th rowSpan="2" className="right th-amount">
-                    Amount (₹)
-                  </th>
-                </tr>
-                <tr>
-                  <th className="center th-sub-header">Pages</th>
-                  <th className="center th-sub-header">Qty</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentStocks.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="10"
-                      className="center"
-                      style={{ padding: "36px 16px", color: "#475569" }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <Search size={26} color="#94a3b8" />
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            fontSize: "14px",
-                            color: "#334155",
-                          }}
-                        >
-                          No stock items match "{searchQuery}"
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setSearchQuery("")}
-                          style={{
-                            padding: "5px 14px",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            borderRadius: "6px",
-                            border: "1px solid #d1fae5",
-                            background: "#ecfdf5",
-                            color: "#047857",
-                            cursor: "pointer",
-                            marginTop: "4px",
-                          }}
-                        >
-                          Clear Search
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  currentStocks.map((stock, index) => {
-                    const hasPageRanges = Boolean(
-                      stock.pageRanges && stock.pageRanges.length > 0
-                    );
-                    const rowSpan = hasPageRanges ? stock.pageRanges.length : 1;
+              </div>
+            }
+            summaryRow={{
+              itemName: "Grand Total Revenue:",
+              soldQty: <span className="total-sold-pill">{totalUnitsSold} units</span>,
+              amount: formatCurrency(totalAmount),
+            }}
+            columns={(() => {
+              const tiers = (stock) => (stock.pageRanges && stock.pageRanges.length > 0 ? stock.pageRanges : null);
+              const stackStyle = { display: "flex", flexDirection: "column", gap: "6px" };
+              return [
+                { key: "sno", label: "S.No", align: "center", className: "td-sno", render: (stock, index) => index + 1 },
+                {
+                  key: "itemName",
+                  label: "Items",
+                  className: "td-item",
+                  render: (stock) => (
+                    <div className="revenue-stock-item-info">
+                      <span className="revenue-stock-item-name">{stock.itemName}</span>
+                      {stock.stockId && stock.stockId !== stock.itemName && <span className="revenue-stock-id-tag">{stock.stockId}</span>}
+                    </div>
+                  ),
+                },
+                {
+                  key: "category",
+                  label: "Category",
+                  align: "center",
+                  className: "td-category",
+                  render: (stock) => <span className="revenue-category-chip">{stock.category || "General"}</span>,
+                },
+                {
+                  key: "openingStock",
+                  label: "Opening Stock",
+                  align: "center",
+                  className: "td-num",
+                  render: (stock) => (
+                    <span className={!stock.openingStock || Number(stock.openingStock) === 0 ? "revenue-num-muted" : "revenue-num-val"}>
+                      {stock.openingStock !== "" && stock.openingStock !== null && stock.openingStock !== undefined ? stock.openingStock : "—"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "addedStock",
+                  label: "Added Stock",
+                  align: "center",
+                  className: "td-num",
+                  render: (stock) => (
+                    <span className={!stock.addedStock || Number(stock.addedStock) === 0 ? "revenue-num-muted" : "revenue-num-val"}>
+                      {stock.addedStock !== "" && stock.addedStock !== null && stock.addedStock !== undefined ? stock.addedStock : "—"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "closingStock",
+                  label: "Closing Stock",
+                  align: "center",
+                  className: "td-stock-badge",
+                  render: (stock) => {
                     const closingStockNum = Number(stock.closingStock);
                     const hasClosingVal =
-                      stock.closingStock !== "" &&
-                      stock.closingStock !== null &&
-                      stock.closingStock !== undefined &&
-                      !isNaN(closingStockNum);
-                    const closingBadgeClass = !hasClosingVal
-                      ? ""
-                      : closingStockNum === 0
-                        ? "zero-stock"
-                        : closingStockNum <= 5
-                          ? "low-stock"
-                          : "in-stock";
-
-                    const firstRange = hasPageRanges
-                      ? stock.pageRanges[0]
-                      : null;
-                    const firstSoldQty = hasPageRanges
-                      ? Number(firstRange?.sold) || 0
-                      : Number(stock.sold) || 0;
-                    const firstUnitPrice = hasPageRanges
-                      ? Number(firstRange?.price) || 0
-                      : Number(stock.amount) || 0;
-                    const firstAmount = firstSoldQty * firstUnitPrice;
-
-                    return (
-                      <React.Fragment key={stock.id || index}>
-                        <tr>
-                          <td rowSpan={rowSpan} className="center td-sno">
-                            {indexOfFirstStock + index + 1}
-                          </td>
-                          <td rowSpan={rowSpan} className="td-item">
-                            <div className="revenue-stock-item-info">
-                              <span className="revenue-stock-item-name">
-                                {stock.itemName}
-                              </span>
-                              {stock.stockId &&
-                                stock.stockId !== stock.itemName && (
-                                  <span className="revenue-stock-id-tag">
-                                    {stock.stockId}
-                                  </span>
-                                )}
-                            </div>
-                          </td>
-                          <td rowSpan={rowSpan} className="center td-category">
-                            <span className="revenue-category-chip">
-                              {stock.category || "General"}
-                            </span>
-                          </td>
-                          <td rowSpan={rowSpan} className="center td-num">
-                            <span
-                              className={
-                                !stock.openingStock ||
-                                  Number(stock.openingStock) === 0
-                                  ? "revenue-num-muted"
-                                  : "revenue-num-val"
-                              }
-                            >
-                              {stock.openingStock !== "" &&
-                                stock.openingStock !== null &&
-                                stock.openingStock !== undefined
-                                ? stock.openingStock
-                                : "—"}
-                            </span>
-                          </td>
-                          <td rowSpan={rowSpan} className="center td-num">
-                            <span
-                              className={
-                                !stock.addedStock ||
-                                  Number(stock.addedStock) === 0
-                                  ? "revenue-num-muted"
-                                  : "revenue-num-val"
-                              }
-                            >
-                              {stock.addedStock !== "" &&
-                                stock.addedStock !== null &&
-                                stock.addedStock !== undefined
-                                ? stock.addedStock
-                                : "—"}
-                            </span>
-                          </td>
-                          <td
-                            rowSpan={rowSpan}
-                            className="center td-stock-badge"
-                          >
-                            {hasClosingVal ? (
-                              <span
-                                className={`stock-qty-badge ${closingBadgeClass}`}
-                              >
-                                {stock.closingStock}
-                              </span>
-                            ) : (
-                              <span className="revenue-num-muted">—</span>
-                            )}
-                          </td>
-
-                          {/* Sold Pages */}
-                          <td className="center td-pages">
-                            {hasPageRanges ? (
-                              <span className="stock-pages-text">
-                                {firstRange.range}
-                              </span>
-                            ) : (
-                              <span className="stock-pages-dash">—</span>
-                            )}
-                          </td>
-
-                          {/* Sold Qty */}
-                          <td className="center td-sold-qty">
-                            <span
-                              className={
-                                firstSoldQty > 0
-                                  ? "revenue-sold-positive"
-                                  : "revenue-sold-zero"
-                              }
-                            >
-                              {firstSoldQty}
-                            </span>
-                          </td>
-
-                          {/* Unit Price */}
-                          <td className="right td-price">
-                            {formatCurrency(firstUnitPrice)}
-                          </td>
-
-                          {/* Amount */}
-                          <td className="right td-amount">
-                            <span
-                              className={
-                                firstAmount > 0
-                                  ? "revenue-amount-positive"
-                                  : "revenue-amount-zero"
-                              }
-                            >
-                              {formatCurrency(firstAmount)}
-                            </span>
-                          </td>
-                        </tr>
-
-                        {/* Subsequent page ranges */}
-                        {hasPageRanges &&
-                          stock.pageRanges
-                            .slice(1)
-                            .map((range, rangeIndex) => {
-                              const rangeQty = Number(range.sold) || 0;
-                              const rangePrice = Number(range.price) || 0;
-                              const rangeAmount = rangeQty * rangePrice;
-
-                              return (
-                                <tr
-                                  key={`${stock.id || index}-${rangeIndex + 1}`}
-                                >
-                                  <td className="center td-pages">
-                                    <span className="stock-pages-text">
-                                      {range.range}
-                                    </span>
-                                  </td>
-                                  <td className="center td-sold-qty">
-                                    <span
-                                      className={
-                                        rangeQty > 0
-                                          ? "revenue-sold-positive"
-                                          : "revenue-sold-zero"
-                                      }
-                                    >
-                                      {rangeQty}
-                                    </span>
-                                  </td>
-                                  <td className="right td-price">
-                                    {formatCurrency(rangePrice)}
-                                  </td>
-                                  <td className="right td-amount">
-                                    <span
-                                      className={
-                                        rangeAmount > 0
-                                          ? "revenue-amount-positive"
-                                          : "revenue-amount-zero"
-                                      }
-                                    >
-                                      {formatCurrency(rangeAmount)}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                      </React.Fragment>
+                      stock.closingStock !== "" && stock.closingStock !== null && stock.closingStock !== undefined && !isNaN(closingStockNum);
+                    const closingBadgeClass = !hasClosingVal ? "" : closingStockNum === 0 ? "zero-stock" : closingStockNum <= 5 ? "low-stock" : "in-stock";
+                    return hasClosingVal ? (
+                      <span className={`stock-qty-badge ${closingBadgeClass}`}>{stock.closingStock}</span>
+                    ) : (
+                      <span className="revenue-num-muted">—</span>
                     );
-                  })
-                )}
-
-                {/* Grand Total Row */}
-                <tr className="revenue-table-total-row">
-                  <td colSpan="7" className="total-label-cell">
-                    Grand Total Revenue:
-                  </td>
-                  <td className="center total-qty-cell">
-                    <span className="total-sold-pill">
-                      {totalUnitsSold} units
-                    </span>
-                  </td>
-                  <td></td>
-                  <td className="right total-amount-cell">
-                    {formatCurrency(totalAmount)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Standard Pagination Bar */}
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredStocks.length}
-            itemsPerPage={stocksPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(val) => {
-              setStocksPerPage(val);
-              setCurrentPage(1);
-            }}
-            pageSizeOptions={[10, 20, 50, 100]}
-            itemLabel="items"
+                  },
+                },
+                {
+                  key: "pages",
+                  label: "Pages",
+                  group: "Sold",
+                  align: "center",
+                  className: "td-pages",
+                  render: (stock) =>
+                    tiers(stock) ? (
+                      <div style={stackStyle}>
+                        {tiers(stock).map((range, i) => (
+                          <span key={i} className="stock-pages-text">{range.range}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="stock-pages-dash">—</span>
+                    ),
+                },
+                {
+                  key: "soldQty",
+                  label: "Qty",
+                  group: "Sold",
+                  align: "center",
+                  className: "td-sold-qty",
+                  render: (stock) => {
+                    const qtys = tiers(stock) ? tiers(stock).map((r) => Number(r.sold) || 0) : [Number(stock.sold) || 0];
+                    return (
+                      <div style={stackStyle}>
+                        {qtys.map((q, i) => (
+                          <span key={i} className={q > 0 ? "revenue-sold-positive" : "revenue-sold-zero"}>{q}</span>
+                        ))}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "unitPrice",
+                  label: "Unit Price (₹)",
+                  align: "right",
+                  className: "td-price",
+                  render: (stock) => {
+                    const prices = tiers(stock) ? tiers(stock).map((r) => Number(r.price) || 0) : [Number(stock.amount) || 0];
+                    return (
+                      <div style={stackStyle}>
+                        {prices.map((p, i) => (
+                          <span key={i}>{formatCurrency(p)}</span>
+                        ))}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "amount",
+                  label: "Amount (₹)",
+                  align: "right",
+                  className: "td-amount",
+                  render: (stock) => {
+                    const amounts = tiers(stock)
+                      ? tiers(stock).map((r) => (Number(r.sold) || 0) * (Number(r.price) || 0))
+                      : [(Number(stock.sold) || 0) * (Number(stock.amount) || 0)];
+                    return (
+                      <div style={stackStyle}>
+                        {amounts.map((a, i) => (
+                          <span key={i} className={a > 0 ? "revenue-amount-positive" : "revenue-amount-zero"}>{formatCurrency(a)}</span>
+                        ))}
+                      </div>
+                    );
+                  },
+                },
+              ];
+            })()}
           />
-        </div>
-      ) : (
-        <div className="revenue-prompt-state">
-          <Calendar size={36} color="#94a3b8" />
-          <h3>Select Branch & Date</h3>
-          <p>
-            Please choose a branch and date above to view stock consumption,
-            sales, and revenue calculations.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

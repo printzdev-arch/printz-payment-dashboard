@@ -31,7 +31,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import noDataImage from "../../../../../shared/assets/nodata.png";
 import logo from "../../../../../shared/assets/logo.png";
-import Pagination from "../../../../../shared/ui/Pagination";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 
 const formatCurrency = (amount) => {
@@ -389,124 +389,91 @@ const PrinterList = () => {
             </div>
           ) : filteredPrinters.length > 0 ? (
             <>
-              <div className="printer-table-scroll">
-                <table className="printer-modern-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: "160px" }}>Printer ID</th>
-                      <th style={{ minWidth: "180px" }}>Printer Name</th>
-                      <th style={{ minWidth: "150px" }}>Branch</th>
-                      <th style={{ width: "120px", textAlign: "center" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentPrinters.map((printer) => (
-                      <tr
-                        key={printer.id}
-                        className={
-                          !printer.printerId || printer.printerId === ""
-                            ? "row-needs-id"
-                            : ""
-                        }
-                      >
-                        <td style={{ verticalAlign: "top" }}>
-                          {editingPrinterId === printer.id ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <input
-                                type="text"
-                                value={editingValue}
-                                onChange={(e) =>
-                                  setEditingValue(e.target.value)
-                                }
-                                placeholder="Enter ID"
-                                className="printer-table-edit-input"
-                                style={{ maxWidth: "130px", textTransform: "uppercase" }}
-                                autoFocus
-                              />
-                            </div>
+              <DataTable
+                key={selectedBranch}
+                searchable={false}
+                data={filteredPrinters}
+                pageSize={10}
+                rowClassName={(printer) => (!printer.printerId ? "printz-row-warning" : "")}
+                columns={[
+                  {
+                    key: "printerId",
+                    label: "Printer ID",
+                    width: "160px",
+                    render: (printer) =>
+                      editingPrinterId === printer.id ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <input
+                            type="text"
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            placeholder="Enter ID"
+                            className="printer-table-edit-input"
+                            style={{ maxWidth: "130px", textTransform: "uppercase" }}
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          {printer.printerId ? (
+                            <span className="printer-id-badge">{printer.printerId}</span>
                           ) : (
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              {printer.printerId ? (
-                                <span className="printer-id-badge">{printer.printerId}</span>
-                              ) : (
-                                <span className="printer-id-missing-badge">
-                                  <AlertTriangle size={12} /> ID Required
-                                </span>
-                              )}
-                              {printer.needsPrinterIdUpdate && (
-                                <span style={{ fontSize: "11px", color: "#c2410c", background: "#fff7ed", padding: "2px 6px", borderRadius: "4px", fontWeight: "600" }}>
-                                  Cloned
-                                </span>
-                              )}
-                            </div>
+                            <span className="printer-id-missing-badge">
+                              <AlertTriangle size={12} /> ID Required
+                            </span>
                           )}
-                        </td>
-                        <td style={{ verticalAlign: "top", fontWeight: "600", color: "#0f172a" }}>
-                          {printer.printerName}
-                        </td>
-                        <td style={{ verticalAlign: "top", color: "#475569" }}>
-                          {printer.branchName}
-                        </td>
-                        <td style={{ verticalAlign: "top", textAlign: "center" }}>
-                          {editingPrinterId === printer.id ? (
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                              <button
-                                type="button"
-                                onClick={() => handleSavePrinterId(printer)}
-                                className="printer-btn-edit"
-                                title="Save Printer ID"
-                              >
-                                <Save size={15} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleCancelEdit}
-                                className="printer-btn-delete"
-                                title="Cancel Edit"
-                              >
-                                <X size={15} />
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  navigate("/add-printer-manager", {
-                                    state: { printer },
-                                  })
-                                }
-                                className="printer-btn-view"
-                                title="View Details in Add Printer"
-                              >
-                                <Eye size={15} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEditPrinterId(printer)}
-                                className="printer-btn-edit"
-                                title="Edit Printer ID"
-                              >
-                                <Pencil size={15} />
-                              </button>
-                            </div>
+                          {printer.needsPrinterIdUpdate && (
+                            <span style={{ fontSize: "11px", color: "#c2410c", background: "#fff7ed", padding: "2px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                              Cloned
+                            </span>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Standard Pagination */}
-              <Pagination
-                currentPage={currentPage}
-                totalItems={filteredPrinters.length}
-                itemsPerPage={printersPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setPrintersPerPage}
-                pageSizeOptions={[10, 20, 50, 100]}
-                itemLabel="printers"
+                        </div>
+                      ),
+                  },
+                  {
+                    key: "printerName",
+                    label: "Printer Name",
+                    minWidth: "180px",
+                    render: (printer) => <span style={{ fontWeight: "600", color: "#0f172a" }}>{printer.printerName}</span>,
+                  },
+                  {
+                    key: "branchName",
+                    label: "Branch",
+                    minWidth: "150px",
+                    render: (printer) => <span style={{ color: "#475569" }}>{printer.branchName}</span>,
+                  },
+                  {
+                    key: "actions",
+                    label: "Actions",
+                    width: "120px",
+                    align: "center",
+                    render: (printer) =>
+                      editingPrinterId === printer.id ? (
+                        <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                          <button type="button" onClick={() => handleSavePrinterId(printer)} className="printer-btn-edit" title="Save Printer ID">
+                            <Save size={15} />
+                          </button>
+                          <button type="button" onClick={handleCancelEdit} className="printer-btn-delete" title="Cancel Edit">
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => navigate("/add-printer-manager", { state: { printer } })}
+                            className="printer-btn-view"
+                            title="View Details in Add Printer"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button type="button" onClick={() => handleEditPrinterId(printer)} className="printer-btn-edit" title="Edit Printer ID">
+                            <Pencil size={15} />
+                          </button>
+                        </div>
+                      ),
+                  },
+                ]}
               />
             </>
           ) : (

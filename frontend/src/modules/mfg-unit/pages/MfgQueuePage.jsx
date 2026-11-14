@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Eye, Hand, Hourglass, ListChecks, RefreshCw, Search, UserCheck } from "lucide-react";
 import mfgApi from "../api/mfgApi";
+import DataTable from "../../../shared/ui/DataTable/DataTable";
 import PageBanner from "../components/PageBanner";
-import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
 import { stageInfo, takenByLabel, waitingText } from "../utils/mfgStages";
 import { PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
 import { errorMessage, formatDate, formatDateTime, initialsOf } from "../../sale-order/utils/format";
@@ -89,19 +89,18 @@ export default function MfgQueuePage() {
         }
       />
 
-      <PrintzKpiGrid minWidth="190px">
+      <div className="so-filters" style={{ flexWrap: "wrap" }}>
         {TABS.map((t) => (
-          <PrintzKpiCard
+          <button
             key={t.key}
-            icon={<t.icon size={20} />}
-            color={t.color}
-            value={counts[t.key]}
-            title={t.label}
-            active={tab === t.key}
+            type="button"
+            className={`so-btn ${tab === t.key ? "primary" : "secondary"}`}
             onClick={() => setTab(t.key)}
-          />
+          >
+            {t.label} ({counts[t.key]})
+          </button>
         ))}
-      </PrintzKpiGrid>
+      </div>
 
       <div className="so-filters">
         <div className="so-search">
@@ -112,92 +111,96 @@ export default function MfgQueuePage() {
 
       <div className="so-card spaced">
         {error && <div className="so-error-bar">{error}</div>}
-        <div className="so-table-wrap">
-          <table className="so-table">
-            <thead>
-              <tr>
-                <th style={{ width: 44 }}>#</th>
-                <th>Order No.</th>
-                <th>Customer</th>
-                <th>Priority</th>
-                <th>Deliver By</th>
-                <th>Current Stage</th>
-                <th>Taken By</th>
-                <th className="right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} className="so-loading">Loading orders...</td></tr>
-              ) : visible.length === 0 ? (
-                <tr>
-                  <td colSpan={8}>
-                    <div className="so-empty">
-                      <Hourglass size={34} />
-                      <strong>Nothing here</strong>
-                      {search ? "No order matches your search." : tab === "waiting" ? "Every order has been taken." : "New orders appear here as soon as a branch places them."}
+        <DataTable
+          searchable={false}
+          loading={loading}
+          data={visible}
+          onRowClick={(o) => navigate(`/mfg/orders/${o._id}`)}
+          emptyMessage={
+            <div className="so-empty">
+              <Hourglass size={34} />
+              <strong>Nothing here</strong>
+              {search ? "No order matches your search." : tab === "waiting" ? "Every order has been taken." : "New orders appear here as soon as a branch places them."}
+            </div>
+          }
+          columns={[
+            { key: "sno", label: "#", width: "44px", render: (o, i) => i + 1 },
+            { key: "orderNo", label: "Order No.", render: (o) => <span className="strong">{o.orderNo}</span> },
+            {
+              key: "customer",
+              label: "Customer",
+              render: (o) => (
+                <>
+                  {o.customerSnapshot?.name}
+                  <div className="muted">{o.customerSnapshot?.mobile}</div>
+                </>
+              ),
+            },
+            { key: "priority", label: "Priority", render: (o) => <PriorityTag priority={o.priority} /> },
+            { key: "expectedDeliveryDate", label: "Deliver By", render: (o) => formatDate(o.expectedDeliveryDate) },
+            {
+              key: "stage",
+              label: "Current Stage",
+              render: (o) => {
+                const stage = stageInfo(o);
+                return (
+                  <>
+                    <span className={`so-badge ${stage.tone}`}>{stage.label}</span>
+                    {o.currentDesignVersion ? <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>Design v{o.currentDesignVersion}</div> : null}
+                  </>
+                );
+              },
+            },
+            {
+              key: "takenBy",
+              label: "Taken By",
+              render: (o) => {
+                const by = takenByLabel(o);
+                return o.isQueued ? (
+                  <>
+                    <span className="muted">Not taken yet</span>
+                    <div style={{ fontSize: 12, marginTop: 2, color: o.minutesWaiting > 60 ? "#b45309" : "#64748b", fontWeight: 600 }}>
+                      Waiting {waitingText(o.minutesWaiting)}
                     </div>
-                  </td>
-                </tr>
-              ) : (
-                visible.map((o, i) => {
-                  const by = takenByLabel(o);
-                  const stage = stageInfo(o);
-                  return (
-                    <tr key={o._id} className="clickable" onClick={() => navigate(`/mfg/orders/${o._id}`)}>
-                      <td>{i + 1}</td>
-                      <td className="strong">{o.orderNo}</td>
-                      <td>{o.customerSnapshot?.name}<div className="muted">{o.customerSnapshot?.mobile}</div></td>
-                      <td><PriorityTag priority={o.priority} /></td>
-                      <td>{formatDate(o.expectedDeliveryDate)}</td>
-                      <td>
-                        <span className={`so-badge ${stage.tone}`}>{stage.label}</span>
-                        {o.currentDesignVersion ? <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>Design v{o.currentDesignVersion}</div> : null}
-                      </td>
-                      <td>
-                        {o.isQueued ? (
-                          <>
-                            <span className="muted">Not taken yet</span>
-                            <div style={{ fontSize: 12, marginTop: 2, color: o.minutesWaiting > 60 ? "#b45309" : "#64748b", fontWeight: 600 }}>
-                              Waiting {waitingText(o.minutesWaiting)}
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span className="so-avatar" style={{ width: 32, height: 32, fontSize: 12 }}>{initialsOf(by)}</span>
-                            <div>
-                              <strong>{by || "—"}</strong>
-                              {o.currentAssignment?.assignedAt && (
-                                <div className="muted" style={{ fontSize: 12 }}>Taken {formatDateTime(o.currentAssignment.assignedAt)}</div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="right">
-                        {o.isQueued ? (
-                          <button
-                            type="button"
-                            className="so-btn primary sm"
-                            disabled={Boolean(takingId)}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              take(o);
-                            }}
-                          >
-                            <Hand size={13} /> {takingId === o._id ? "Taking..." : "Take order"}
-                          </button>
-                        ) : (
-                          <button type="button" className="so-icon-btn" title="Open order"><Eye size={16} /></button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="so-avatar" style={{ width: 32, height: 32, fontSize: 12 }}>{initialsOf(by)}</span>
+                    <div>
+                      <strong>{by || "—"}</strong>
+                      {o.currentAssignment?.assignedAt && (
+                        <div className="muted" style={{ fontSize: 12 }}>Taken {formatDateTime(o.currentAssignment.assignedAt)}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              },
+            },
+            {
+              key: "action",
+              label: "Action",
+              align: "right",
+              render: (o) =>
+                o.isQueued ? (
+                  <button
+                    type="button"
+                    className="so-btn primary sm"
+                    disabled={Boolean(takingId)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      take(o);
+                    }}
+                  >
+                    <Hand size={13} /> {takingId === o._id ? "Taking..." : "Take order"}
+                  </button>
+                ) : (
+                  <button type="button" className="so-icon-btn" title="Open order">
+                    <Eye size={16} />
+                  </button>
+                ),
+            },
+          ]}
+        />
       </div>
     </div>
   );

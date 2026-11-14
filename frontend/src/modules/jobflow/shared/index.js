@@ -1,5 +1,4 @@
 export { JobFlowLayout } from "../../../layouts/JobFlowLayout/JobFlowLayout";
-export { JobFlowDataTable } from "./components/JobFlowDataTable";
 export { StatusBadge } from "./components/StatusBadge";
 export { Stepper } from "./components/Stepper";
 export { jobFlowApi } from "./api/jobFlowApiClient";

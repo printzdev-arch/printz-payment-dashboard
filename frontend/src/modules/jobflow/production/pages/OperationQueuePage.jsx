@@ -38,7 +38,7 @@ import OperationSkipModal from "../components/OperationSkipModal";
 import OperationPauseModal from "../components/OperationPauseModal";
 import "../styles/operation-queue.css";
 import "../styles/production-theme.css";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants                                                                  */
@@ -283,130 +283,93 @@ function rowButton(row) {
     oq-col-md  → hidden below 1024px (Customer, shown under the product instead)
     ≤ 768px    → every row becomes a card and all fields come back
 */
-function QueueTable({ rows, loading, error, onOpen, onReset, onRetry, children }) {
+function QueueTable({ rows, loading, error, onOpen, onReset, onRetry, page, total, pageSize, onPageChange, onPageSizeChange }) {
   return (
     <section className="oq-card oq-card--flush">
-      <div className="oq-table-wrap">
-        <table className="oq-table">
-          <thead>
-            <tr>
-              <th>Job Order No</th>
-              <th className="oq-col-md">Customer</th>
-              <th>Product</th>
-              <th>Operation</th>
-              <th className="oq-td-center">Required Qty</th>
-              <th>Machine</th>
-              <th className="oq-col-lg">Operator</th>
-              <th className="oq-td-center">Priority</th>
-              <th className="oq-td-center">Status</th>
-              <th className="oq-td-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={10} className="oq-empty-cell">
-                  Loading operations...
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={10} className="oq-empty-cell">
-                  <div>{error}</div>
-                  <button type="button" className="oq-btn oq-btn--reset oq-btn--row" onClick={onRetry}>
-                    <RefreshCw size={13} /> Try again
+      <DataTable
+        searchable={false}
+        mobileCards
+        loading={loading}
+        data={error ? [] : rows}
+        onRowClick={onOpen}
+        pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+        serverPagination={{ page, pageSize, total, onPageChange, onPageSizeChange }}
+        emptyMessage={
+          error ? (
+            <>
+              <div>{error}</div>
+              <button type="button" className="oq-btn oq-btn--reset oq-btn--row" onClick={onRetry}>
+                <RefreshCw size={13} /> Try again
+              </button>
+            </>
+          ) : (
+            <>
+              <div>No operations match the selected filters.</div>
+              <button type="button" className="oq-btn oq-btn--reset oq-btn--row" onClick={onReset}>
+                <RotateCcw size={13} /> Reset filters
+              </button>
+            </>
+          )
+        }
+        columns={[
+          {
+            key: "jobNo",
+            label: "Job Order No",
+            className: "oq-td-job",
+            render: (row) => <span className="oq-strong">{row.jobNo || "—"}</span>,
+          },
+          { key: "customerName", label: "Customer", className: "oq-col-md", render: (row) => row.customerName || "—" },
+          {
+            key: "productName",
+            label: "Product",
+            className: "oq-td-product",
+            render: (row) => (
+              <>
+                {row.productName || "—"}
+                <span className="oq-sub oq-show-md">{row.customerName || "—"}</span>
+              </>
+            ),
+          },
+          {
+            key: "operation",
+            label: "Operation",
+            render: (row) => (
+              <span className="oq-op">
+                {row.operationName || row.operationCode}
+                {row.isRework && <span className="oq2-tag">Rework</span>}
+                {row.isReprint && <span className="oq2-tag">Reprint</span>}
+              </span>
+            ),
+          },
+          { key: "plannedQty", label: "Required Qty", className: "oq-td-center", render: (row) => num(row.plannedQty) },
+          { key: "machine", label: "Machine", render: (row) => row.machine || "—" },
+          { key: "operator", label: "Operator", className: "oq-col-lg", render: (row) => row.operator || "—" },
+          { key: "priority", label: "Priority", className: "oq-td-center", render: (row) => <PriorityBadge priority={row.priority} /> },
+          {
+            key: "availabilityStatus",
+            label: "Status",
+            className: "oq-td-center oq-td-status",
+            render: (row) => <StatusBadge status={row.availabilityStatus} />,
+          },
+          {
+            key: "action",
+            label: "Action",
+            className: "oq-td-center oq-td-action",
+            render: (row) => {
+              const btn = rowButton(row);
+              return (
+                <span onClick={(e) => e.stopPropagation()}>
+                  <button type="button" className={`oq-btn oq-btn--row ${btn.variant}`} onClick={() => onOpen(row)}>
+                    {btn.label === "View" && <Eye size={14} />}
+                    {btn.label}
                   </button>
-                </td>
-              </tr>
-            ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="oq-empty-cell">
-                  <div>No operations match the selected filters.</div>
-                  <button type="button" className="oq-btn oq-btn--reset oq-btn--row" onClick={onReset}>
-                    <RotateCcw size={13} /> Reset filters
-                  </button>
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => {
-                const btn = rowButton(row);
-                return (
-                  <tr
-                    key={row.id}
-                    tabIndex={0}
-                    onClick={() => onOpen(row)}
-                    onKeyDown={(e) => {
-                      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-                        e.preventDefault();
-                        onOpen(row);
-                      }
-                    }}
-                  >
-                    <td className="oq-td-job" data-label="Job Order No">
-                      <span className="oq-strong">{row.jobNo || "—"}</span>
-                    </td>
-                    <td className="oq-col-md" data-label="Customer">
-                      {row.customerName || "—"}
-                    </td>
-                    <td className="oq-td-product" data-label="Product">
-                      {row.productName || "—"}
-                      <span className="oq-sub oq-show-md">{row.customerName || "—"}</span>
-                    </td>
-                    <td data-label="Operation">
-                      <span className="oq-op">
-                        {row.operationName || row.operationCode}
-                        {row.isRework && <span className="oq2-tag">Rework</span>}
-                        {row.isReprint && <span className="oq2-tag">Reprint</span>}
-                      </span>
-                    </td>
-                    <td data-label="Required Qty" className="oq-td-center">
-                      {num(row.plannedQty)}
-                    </td>
-                    <td data-label="Machine">{row.machine || "—"}</td>
-                    <td className="oq-col-lg" data-label="Operator">
-                      {row.operator || "—"}
-                    </td>
-                    <td data-label="Priority" className="oq-td-center">
-                      <PriorityBadge priority={row.priority} />
-                    </td>
-                    <td data-label="Status" className="oq-td-center oq-td-status">
-                      <StatusBadge status={row.availabilityStatus} />
-                    </td>
-                    <td className="oq-td-center oq-td-action" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className={`oq-btn oq-btn--row ${btn.variant}`}
-                        onClick={() => onOpen(row)}
-                      >
-                        {btn.label === "View" && <Eye size={14} />}
-                        {btn.label}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-      {children}
+                </span>
+              );
+            },
+          },
+        ]}
+      />
     </section>
-  );
-}
-
-function Pager({ page, total, onChange, pageSize, onPageSizeChange }) {
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  return (
-    <Pagination
-      variant="compact"
-      currentPage={Math.min(page, pages)}
-      totalItems={total}
-      itemsPerPage={pageSize}
-      onPageChange={(n) => onChange(Math.min(Math.max(1, n), pages))}
-      onItemsPerPageChange={onPageSizeChange}
-      pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-      itemLabel="operations"
-    />
   );
 }
 
@@ -891,9 +854,12 @@ export default function OperationQueuePage() {
         onOpen={openRow}
         onReset={resetFilters}
         onRetry={refreshAll}
-      >
-        <Pager page={page} total={total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
-      </QueueTable>
+        page={page}
+        total={total}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
       {modals}
     </div>
   );

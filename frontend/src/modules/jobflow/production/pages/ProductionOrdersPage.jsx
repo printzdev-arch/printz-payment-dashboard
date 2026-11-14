@@ -27,7 +27,9 @@ import ProductionOrderActionsModal from "../components/ProductionOrderActionsMod
 import "../styles/production-orders.css";
 import "../styles/production-theme.css";
 
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 /* ---------- helpers ---------- */
 
 // Database value -> label shown to users
@@ -474,14 +476,15 @@ export default function ProductionOrdersPage() {
         {branches.length > 1 && (
           <label className="po-field">
             <span>Branch</span>
-            <select value={branchFilter} onChange={withReset(setBranchFilter)}>
-              <option value="ALL">All Branches</option>
-              {branches.map((b) => (
-                <option key={b._id || b.id} value={b._id || b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
+            <BranchSelect
+              valueKey="id"
+              allowAll
+              allOptionLabel="All Branches"
+              allOptionValue="ALL"
+              branches={branches}
+              value={branchFilter}
+              onChange={withReset(setBranchFilter)}
+            />
           </label>
         )}
 
@@ -508,8 +511,7 @@ export default function ProductionOrdersPage() {
             <div className="po-date-pop">
               <label>
                 From
-                <input
-                  type="date"
+                <DateField
                   value={dateFrom}
                   max={dateTo || undefined}
                   onChange={(e) => {
@@ -520,8 +522,7 @@ export default function ProductionOrdersPage() {
               </label>
               <label>
                 To
-                <input
-                  type="date"
+                <DateField
                   value={dateTo}
                   min={dateFrom || undefined}
                   onChange={(e) => {
@@ -559,136 +560,97 @@ export default function ProductionOrdersPage() {
          
         </div>
 
-        <div className="po-table-wrap">
-          <table className="po-table">
-            <thead>
-              <tr>
-                <th>Job Order No</th>
-                <th>Customer</th>
-                <th>Product</th>
-                <th className="num">Order Qty</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Planned</th>
-                <th className="col-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr className="po-empty-row">
-                  <td colSpan="8">Loading production orders…</td>
-                </tr>
-              ) : orders.length === 0 ? (
-                <tr className="po-empty-row">
-                  <td colSpan="8">
-                    {loadError ? "Could not load production orders." : "No production orders match the current filters."}
-                  </td>
-                </tr>
-              ) : (
-                orders.map((o, i) => {
-                  const id = rowId(o);
-                  const can = actionsFor(o.status);
-                  return (
-                    <tr key={id}>
-                      <td data-label="Job Order No" className="po-number">
-                        {o.jobNo || o.jobOrderNo || "—"}
-                      </td>
-                      <td data-label="Customer">{o.customerName || "—"}</td>
-                      <td data-label="Product">{o.productName || "—"}</td>
-                      <td data-label="Order Qty" className="num">
-                        {fmtNum(o.quantity ?? o.plannedQty)}
-                      </td>
-                      <td data-label="Status">
-                        {o.status === "UNASSIGNED" && o.planningStatus === "DRAFT" ? (
-                          <span className="po-pill pill-status-draft">Draft</span>
-                        ) : (
-                          <span className={`po-pill ${pillClass(o.status)}`}>
-                            {STATUS_LABELS[o.status] || o.status}
-                          </span>
-                        )}
-                      </td>
-                      <td data-label="Priority">
-                        <PriorityBadge priority={o.priority} />
-                      </td>
-                      <td data-label="Planned">
-                        {o.plannedStart || o.plannedEnd ? `${fmtDate(o.plannedStart)} – ${fmtDate(o.plannedEnd)}` : "—"}
-                      </td>
-                      <td className="col-actions" data-label="">
-                        <div className="po-actions">
-                          {o.nextAction === "PLAN" ? (
-                            <button type="button" className="po-btn po-btn-sm po-btn-primary" onClick={() => handlePrimary(o)}>
-                              {o.planningStatus === "DRAFT" ? "Continue" : "Plan"}
-                            </button>
-                          ) : (
-                            <button type="button" className="po-icon-btn" title="View" aria-label="View" onClick={() => handlePrimary(o)}>
-                              <Eye size={15} />
-                            </button>
-                          )}
-                          {["PLANNED", "IN_PROGRESS"].includes(o.status) && (
-                            <button
-                              type="button"
-                              className="po-icon-btn"
-                              title="Revise plan"
-                              aria-label="Revise plan"
-                              onClick={() =>
-                                navigate("/production/planning", { state: { jobNo: o.jobNo || o.jobOrderNo, productionOrderId: rowId(o) } })
-                              }
-                            >
-                              <Pencil size={14} />
-                            </button>
-                          )}
-                          {can.hold && (
-                            <button
-                              type="button"
-                              className="po-icon-btn"
-                              title="Put on hold"
-                              aria-label="Put on hold"
-                              onClick={() => openAction(o, "HOLD")}
-                            >
-                              <Pause size={14} />
-                            </button>
-                          )}
-                          {can.resume && (
-                            <button
-                              type="button"
-                              className="po-icon-btn"
-                              title="Resume"
-                              aria-label="Resume"
-                              onClick={() => openAction(o, "RESUME")}
-                            >
-                              <Play size={14} />
-                            </button>
-                          )}
-                          {can.cancel && (
-                            <button
-                              type="button"
-                              className="po-icon-btn po-icon-btn--danger"
-                              title="Cancel order"
-                              aria-label="Cancel order"
-                              onClick={() => openAction(o, "CANCEL")}
-                            >
-                              <Ban size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          variant="compact"
-          currentPage={currentPage}
-          totalItems={total}
-          itemsPerPage={rowsPerPage}
-          onPageChange={(n) => setPage(Math.min(Math.max(1, n), totalPages))}
-          onItemsPerPageChange={(n) => setRowsPerPage(n)}
+        <DataTable
+          searchable={false}
+          mobileCards
+          loading={loading}
+          data={orders}
           pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-          itemLabel="records"
+          emptyMessage={loadError ? "Could not load production orders." : "No production orders match the current filters."}
+          serverPagination={{
+            page: currentPage,
+            pageSize: rowsPerPage,
+            total,
+            onPageChange: (n) => setPage(Math.min(Math.max(1, n), totalPages)),
+            onPageSizeChange: (n) => setRowsPerPage(n),
+          }}
+          columns={[
+            { key: "jobNo", label: "Job Order No", className: "po-number", render: (o) => o.jobNo || o.jobOrderNo || "—" },
+            { key: "customerName", label: "Customer", render: (o) => o.customerName || "—" },
+            { key: "productName", label: "Product", render: (o) => o.productName || "—" },
+            { key: "quantity", label: "Order Qty", className: "num", render: (o) => fmtNum(o.quantity ?? o.plannedQty) },
+            {
+              key: "status",
+              label: "Status",
+              render: (o) =>
+                o.status === "UNASSIGNED" && o.planningStatus === "DRAFT" ? (
+                  <span className="po-pill pill-status-draft">Draft</span>
+                ) : (
+                  <span className={`po-pill ${pillClass(o.status)}`}>{STATUS_LABELS[o.status] || o.status}</span>
+                ),
+            },
+            { key: "priority", label: "Priority", render: (o) => <PriorityBadge priority={o.priority} /> },
+            {
+              key: "planned",
+              label: "Planned",
+              render: (o) => (o.plannedStart || o.plannedEnd ? `${fmtDate(o.plannedStart)} – ${fmtDate(o.plannedEnd)}` : "—"),
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              className: "col-actions printz-cell-actions",
+              render: (o) => {
+                const can = actionsFor(o.status);
+                return (
+                  <div className="po-actions">
+                    {o.nextAction === "PLAN" ? (
+                      <button type="button" className="po-btn po-btn-sm po-btn-primary" onClick={() => handlePrimary(o)}>
+                        {o.planningStatus === "DRAFT" ? "Continue" : "Plan"}
+                      </button>
+                    ) : (
+                      <button type="button" className="po-icon-btn" title="View" aria-label="View" onClick={() => handlePrimary(o)}>
+                        <Eye size={15} />
+                      </button>
+                    )}
+                    {["PLANNED", "IN_PROGRESS"].includes(o.status) && (
+                      <button
+                        type="button"
+                        className="po-icon-btn"
+                        title="Revise plan"
+                        aria-label="Revise plan"
+                        onClick={() =>
+                          navigate("/production/planning", { state: { jobNo: o.jobNo || o.jobOrderNo, productionOrderId: rowId(o) } })
+                        }
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
+                    {can.hold && (
+                      <button type="button" className="po-icon-btn" title="Put on hold" aria-label="Put on hold" onClick={() => openAction(o, "HOLD")}>
+                        <Pause size={14} />
+                      </button>
+                    )}
+                    {can.resume && (
+                      <button type="button" className="po-icon-btn" title="Resume" aria-label="Resume" onClick={() => openAction(o, "RESUME")}>
+                        <Play size={14} />
+                      </button>
+                    )}
+                    {can.cancel && (
+                      <button
+                        type="button"
+                        className="po-icon-btn po-icon-btn--danger"
+                        title="Cancel order"
+                        aria-label="Cancel order"
+                        onClick={() => openAction(o, "CANCEL")}
+                      >
+                        <Ban size={14} />
+                      </button>
+                    )}
+                  </div>
+                );
+              },
+            },
+          ]}
         />
       </section>
 

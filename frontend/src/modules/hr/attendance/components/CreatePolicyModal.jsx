@@ -11,6 +11,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import TimeField from "../../../../shared/ui/selects/TimeField";
 
 const SECTIONS = [
   { id: "basic", label: "Basic Details", icon: Users },
@@ -262,14 +264,14 @@ export default function CreatePolicyModal({ isOpen, onClose, onSave, branches = 
                   <label>
                     Branch <span className="required">*</span>
                   </label>
-                  <select name="branchId" value={formData.branchId} onChange={handleChange}>
-                    <option value="">Select branch...</option>
-                    {branches.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name} ({b.code})
-                      </option>
-                    ))}
-                  </select>
+                  <BranchSelect
+                    name="branchId"
+                    valueKey="id"
+                    branches={branches.map((b) => ({ ...b, name: b.code ? `${b.name} (${b.code})` : b.name }))}
+                    value={formData.branchId}
+                    placeholder="Select branch..."
+                    onChange={handleChange}
+                  />
                 </div>
 
                 <div className="form-field">
@@ -290,8 +292,7 @@ export default function CreatePolicyModal({ isOpen, onClose, onSave, branches = 
                 <div className="form-group-row">
                   <div className="form-field">
                     <label>Shift Start Time (HH:mm) <span className="required">*</span></label>
-                    <input
-                      type="time"
+                    <TimeField
                       name="shiftStartTime"
                       value={formData.shiftStartTime}
                       onChange={handleChange}
@@ -299,8 +300,7 @@ export default function CreatePolicyModal({ isOpen, onClose, onSave, branches = 
                   </div>
                   <div className="form-field">
                     <label>Shift End Time (HH:mm) <span className="required">*</span></label>
-                    <input
-                      type="time"
+                    <TimeField
                       name="shiftEndTime"
                       value={formData.shiftEndTime}
                       onChange={handleChange}

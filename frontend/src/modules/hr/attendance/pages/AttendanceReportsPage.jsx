@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   FileText,
   Download,
@@ -10,10 +11,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowUp,
+  AlertCircle,
 } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
-import AttendancePagination from "../components/AttendancePagination";
-import SearchableBranchSelect from "../components/SearchableBranchSelect";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import MonthField from "../../../../shared/ui/selects/MonthField";
 import "../styles/attendance.css";
 
 export default function AttendanceReportsPage() {
@@ -123,9 +126,7 @@ export default function AttendanceReportsPage() {
       {/* Filter Bar */}
       <div className="attendance-filter-bar">
         <div className="attendance-filter-item">
-          <input
-            type="month"
-            className="attendance-filter-input"
+          <MonthField
             value={`${selectedYear}-${String(selectedMonth).padStart(2, "0")}`}
             onChange={(e) => {
               const [y, m] = e.target.value.split("-").map(Number);
@@ -135,15 +136,19 @@ export default function AttendanceReportsPage() {
           />
         </div>
 
-        <div style={{ width: "230px" }}>
-          <SearchableBranchSelect
-            value={selectedBranchId}
-            onChange={setSelectedBranchId}
+        <div className="attendance-filter-item">
+          <BranchSelect
+            valueKey="id"
+            allowAll
+            allOptionLabel="All Branches"
+            allOptionValue=""
             branches={branches}
+            value={selectedBranchId}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
           />
         </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="attendance-bar-actions">
           <button type="button" className="btn-printz-outline" onClick={handleExportCSV}>
             <Download size={15} />
             <span>Export CSV</span>
@@ -156,145 +161,106 @@ export default function AttendanceReportsPage() {
       </div>
 
       {error && (
-        <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "10px 18px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
-          {error}
+        <div className="attendance-alert error" role="alert">
+          <AlertCircle size={16} />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* ─── Dashboard UI KPI Cards ─────────────────────────────────── */}
-      {summary && (
-        <div className="printz-kpi-grid">
-          {/* Calendar Days */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon blue">
-                <Calendar size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{summary.calendarDays || 0}</div>
-                <div className="printz-kpi-label">Calendar Days</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total Worked Hours */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon green">
-                <Clock size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{summary.totalWorkingHours || 0}h</div>
-                <div className="printz-kpi-label">Total Worked</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Late Arrivals */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon orange">
-                <AlertTriangle size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{summary.lateArrivalCount || 0}</div>
-                <div className="printz-kpi-label">Late Arrivals</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Approved Permissions */}
-          <div className="printz-kpi-card">
-            <div className="printz-kpi-top">
-              <div className="printz-summary-icon purple">
-                <Users size={20} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <div className="printz-kpi-values">
-                <div className="printz-kpi-number">{summary.totalPermissionHours || 0}h</div>
-                <div className="printz-kpi-label">Permission Hours</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Report Records Table */}
-      <div className="attendance-table-card">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th style={{ width: "40px" }}>#</th>
-              <th>Employee</th>
-              <th>Date</th>
-              <th>Check In</th>
-              <th>Check Out</th>
-              <th>Worked Hours</th>
-              <th>Late / Early</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      <DataTable
+        mobileCards
+        searchable={false}
+        loading={loading}
+        data={records}
+        pageSize={10}
+        emptyMessage="No attendance records found for this period."
+        columns={[
+          { key: "sno", label: "#", width: "40px", className: "printz-cell-hide-mobile", render: (r, idx) => idx + 1 },
+          {
+            key: "employee",
+            label: "Employee",
+            className: "printz-cell-lead",
+            render: (r) => (
+              <>
+                <div style={{ fontWeight: 600, color: "#0f172a" }}>{r.employeeId?.name || "Employee"}</div>
+                <div style={{ fontSize: "11px", color: "#1e293b" }}>{r.employeeId?.employeeCode}</div>
+              </>
+            ),
+          },
+          { key: "attendanceDate", label: "Date", render: (r) => <span style={{ fontWeight: 600 }}>{r.attendanceDate}</span> },
+          { key: "checkIn", label: "Check In", render: (r) => r.checkIn || "-" },
+          { key: "checkOut", label: "Check Out", render: (r) => r.checkOut || "-" },
+          {
+            key: "workingHoursPerDay",
+            label: "Worked Hours",
+            render: (r) => <span style={{ fontWeight: 600, color: "#059669" }}>{r.workingHoursPerDay || 0}h</span>,
+          },
+          {
+            key: "lateEarly",
+            label: "Late / Early",
+            render: (r) =>
+              r.lateArrival ? (
+                <span style={{ color: "#d97706", fontSize: "12px", fontWeight: 600 }}>Late: {r.lateMinutes || 0}m</span>
+              ) : r.earlyCheckout ? (
+                <span style={{ color: "#d97706", fontSize: "12px", fontWeight: 600 }}>Early: {r.earlyCheckoutMinutes || 0}m</span>
+              ) : (
+                <span style={{ color: "#1e293b", fontSize: "12px" }}>-</span>
+              ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (r) => (
+              <span className={`status-badge ${(r.status || "present").toLowerCase().replace("_", "-")}`}>{r.status}</span>
+            ),
+          },
+        ]}
+      />
+      {/* Printable copy: all records of the month, shown only when printing */}
+      {createPortal(
+        <div className="attendance-print-root">
+          <h1>Attendance Report</h1>
+          <p className="attendance-print-meta">
+            {new Date(selectedYear, selectedMonth - 1, 1).toLocaleString("en-GB", { month: "long", year: "numeric" })} ·{" "}
+            {selectedBranchId ? branches.find((b) => String(b._id) === String(selectedBranchId))?.name || "Branch" : "All Branches"} ·{" "}
+            {records.length} record{records.length === 1 ? "" : "s"}
+          </p>
+          <table>
+            <thead>
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  Generating attendance report...
-                </td>
+                <th>#</th>
+                <th>Employee</th>
+                <th>Date</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Worked</th>
+                <th>Late / Early</th>
+                <th>Status</th>
               </tr>
-            ) : paginatedRecords.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  No attendance records found for this period.
-                </td>
-              </tr>
-            ) : (
-              paginatedRecords.map((r, idx) => {
-                const rowNum = (currentPage - 1) * pageSize + idx + 1;
-                return (
-                  <tr key={r._id}>
-                    <td>{rowNum}</td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: "#0f172a" }}>{r.employeeId?.name || "Employee"}</div>
-                      <div style={{ fontSize: "11px", color: "#475569" }}>{r.employeeId?.employeeCode}</div>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{r.attendanceDate}</td>
-                    <td>{r.checkIn || "-"}</td>
-                    <td>{r.checkOut || "-"}</td>
-                    <td style={{ fontWeight: 600, color: "#059669" }}>{r.workingHoursPerDay || 0}h</td>
-                    <td>
-                      {r.lateArrival ? (
-                        <span style={{ color: "#d97706", fontSize: "12px", fontWeight: 600 }}>Late: {r.lateMinutes || 0}m</span>
-                      ) : r.earlyCheckout ? (
-                        <span style={{ color: "#d97706", fontSize: "12px", fontWeight: 600 }}>Early: {r.earlyCheckoutMinutes || 0}m</span>
-                      ) : (
-                        <span style={{ color: "#475569", fontSize: "12px" }}>-</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`status-badge ${(r.status || "present").toLowerCase().replace("_", "-")}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-
-        {/* ─── Modern Pagination ─── */}
-        <AttendancePagination
-          currentPage={currentPage}
-          totalItems={records.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
-          pageSizeOptions={[5, 10, 20, 50]}
-          itemName="records"
-        />
-      </div>
+            </thead>
+            <tbody>
+              {records.map((r, i) => (
+                <tr key={r._id || i}>
+                  <td>{i + 1}</td>
+                  <td>
+                    {r.employeeId?.name || "Employee"}
+                    <small>{r.employeeId?.employeeCode}</small>
+                  </td>
+                  <td>{r.attendanceDate}</td>
+                  <td>{r.checkIn || "-"}</td>
+                  <td>{r.checkOut || "-"}</td>
+                  <td>{r.workingHoursPerDay || 0}h</td>
+                  <td>{r.lateArrival ? `Late ${r.lateMinutes || 0}m` : r.earlyCheckout ? `Early ${r.earlyCheckoutMinutes || 0}m` : "-"}</td>
+                  <td>{r.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

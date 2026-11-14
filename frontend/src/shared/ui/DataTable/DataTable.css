@@ -1,6 +1,6 @@
 /* PrintZ Modern Reusable DataTable Styles — refreshed green theme (CSS only, same class names) */
 
-.printz-table-card {
+.printz-dt-card {
   --pz-green-50: #f0fdf6;
   --pz-green-100: #dcfce9;
   --pz-green-200: #bbf7d3;
@@ -218,7 +218,7 @@
 }
 
 .printz-modern-table thead {
-  background: var(--pz-green-50);
+  background: var(--pz-green-800);
 }
 
 .printz-modern-table th {
@@ -226,11 +226,11 @@
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.06em;
-  color: var(--pz-green-800);
+  color: #ffffff;
   text-transform: uppercase;
   border: none;
-  border-bottom: 1px solid var(--pz-green-100);
-  background: var(--pz-green-50) !important;
+  border-bottom: 1px solid var(--pz-green-800);
+  background: var(--pz-green-800) !important;
   text-align: left;
   user-select: none;
   white-space: nowrap;
@@ -242,8 +242,8 @@
 }
 
 .printz-modern-table th.sortable:hover {
-  background: var(--pz-green-100) !important;
-  color: var(--pz-green-700);
+  background: var(--pz-green-700) !important;
+  color: #ffffff;
 }
 
 .printz-th-content {
@@ -253,7 +253,7 @@
 }
 
 .printz-sort-arrows {
-  color: var(--pz-green-600);
+  color: #ffffff;
   font-size: 12px;
   opacity: 0.45;
   transition: opacity 0.15s ease;
@@ -523,4 +523,144 @@
   .printz-modern-table td {
     padding: 9px 12px;
   }
+}
+/* Row that needs attention (e.g. a record with a missing ID) */
+.printz-modern-table tbody tr.printz-row-warning {
+  background-color: #fffbfb;
+  border-left: 3.5px solid #ef4444;
+}
+
+.printz-modern-table tbody tr.printz-row-clickable {
+  cursor: pointer;
+}
+
+/* ---------- Phone card layout (opt in with mobileCards) ---------- */
+@media (max-width: 768px) {
+  .printz-dt-cards { min-width: 0; display: block; }
+  .printz-dt-cards thead { display: none; }
+  .printz-dt-cards tbody { display: block; }
+  .printz-dt-cards tbody tr {
+    display: block;
+    margin: 10px 12px;
+    padding: 4px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .printz-dt-cards tbody tr:first-child { margin-top: 12px; }
+  .printz-dt-cards tbody tr:last-child { margin-bottom: 12px; }
+  .printz-dt-cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: normal;
+    text-align: right !important;
+    overflow-wrap: anywhere;
+  }
+  .printz-dt-cards td:last-child { border-bottom: 0; }
+  .printz-dt-cards td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #065f46;
+    text-align: left;
+  }
+  .printz-dt-cards td.printz-cell-lead { display: block; text-align: left !important; padding-top: 12px; }
+  .printz-dt-cards td.printz-cell-lead::before { content: none; }
+  .printz-dt-cards td.printz-cell-actions { display: block; text-align: left !important; padding: 10px 0 12px; }
+  .printz-dt-cards td.printz-cell-actions::before { content: none; }
+  .printz-dt-cards td.printz-cell-hide-mobile { display: none; }
+  .printz-dt-cards td.printz-table-empty { display: block; text-align: center !important; padding: 28px 8px; border-bottom: 0; }
+}
+
+/* Row shown dimmed (e.g. an inactive record) */
+.printz-modern-table tbody tr.printz-row-muted td {
+  opacity: 0.6;
+}
+
+/* Row picked by the user (e.g. the employee whose history is shown) */
+.printz-modern-table tbody tr.printz-row-selected td {
+  background-color: #f0fdf4;
+}
+
+.printz-table-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--pz-line-soft);
+}
+
+/* Empty result block (icon + message) */
+.printz-empty-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+}
+
+.printz-empty-block svg {
+  color: #64748b;
+}
+
+.printz-empty-block p {
+  margin: 0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.printz-empty-clear {
+  margin-top: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--pz-line-soft, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+/* Row to draw attention to (e.g. the default option) */
+.printz-modern-table tbody tr.printz-row-highlight td {
+  background-color: rgba(254, 243, 199, 0.35);
+}
+
+/* ---------- Header colours ----------
+   printzUnified.css paints every table header light green with !important.
+   These rules are more specific so the DataTable header keeps its own look. */
+.printz-dt-card .printz-modern-table thead,
+.printz-dt-card .printz-modern-table thead tr {
+  background: var(--pz-green-800) !important;
+}
+
+.printz-dt-card .printz-modern-table thead th {
+  background: var(--pz-green-800) !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid var(--pz-green-800) !important;
+}
+
+.printz-dt-card .printz-modern-table thead th.sortable:hover {
+  background: var(--pz-green-700) !important;
+}
+
+/* Merged heading over a group of columns (e.g. SOLD over Pages / Qty) */
+.printz-dt-card .printz-modern-table thead th.printz-th-group {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Totals row */
+.printz-dt-card .printz-modern-table tfoot td {
+  background: #eaf7ee !important;
+  border-top: 2px solid #a7f3d0 !important;
+  border-bottom: none !important;
+  color: #047857;
+  font-weight: 800;
+  white-space: nowrap;
 }

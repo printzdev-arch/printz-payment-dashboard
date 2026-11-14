@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Search, Plus, Eye, Ban, CalendarX, ArrowRight } from "lucide-react";
+import { Search, Plus, Eye, Ban, CalendarX, ArrowRight, AlertCircle } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
 import branchShiftApi from "../api/branchShiftApi";
-import SearchableBranchSelect from "../components/SearchableBranchSelect";
-import AttendancePagination from "../components/AttendancePagination";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import SelectField from "../../../../shared/ui/selects/SelectField";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import {
   BranchShiftCreateModal,
   BranchShiftViewModal,
   BranchShiftActionModal,
 } from "../components/employeeShift";
 import {
-  getAvatarColor,
   formatShiftDate,
   shiftDayCount,
   getShiftStatus,
@@ -112,162 +112,139 @@ export default function BranchShiftsPage() {
         </div>
 
         <div className="attendance-filter-item">
-          <select
-            className="attendance-filter-select"
+          <SelectField
+            searchable={false}
             value={statusFilter}
+            options={STATUS_OPTIONS}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <div className="attendance-filter-item">
-          <SearchableBranchSelect
+          <BranchSelect
+            valueKey="id"
+            allowAll
+            allOptionLabel="All Branches"
+            allOptionValue=""
+            branches={branches}
             value={branchFilter}
-            onChange={(id) => {
-              setBranchFilter(id);
+            onChange={(e) => {
+              setBranchFilter(e.target.value);
               setPage(1);
             }}
-            branches={branches}
-            placeholder="Filter by branch..."
-            style={{ width: "220px", minWidth: 0 }}
           />
         </div>
       </div>
 
       {error && (
-        <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "10px 18px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
-          {error}
+        <div className="attendance-alert error" role="alert">
+          <AlertCircle size={16} />
+          <span>{error}</span>
         </div>
       )}
 
       {/* ─── Shifts Table ────────────────────────────────────────────── */}
-      <div className="attendance-table-card">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th style={{ width: "40px" }}>#</th>
-              <th>Employee</th>
-              <th>Shift Route</th>
-              <th>Shift Period</th>
-              <th>Reason</th>
-              <th>Status</th>
-              <th style={{ width: "200px" }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  Loading branch shifts...
-                </td>
-              </tr>
-            ) : shifts.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  No branch shifts found.
-                </td>
-              </tr>
-            ) : (
-              shifts.map((s, idx) => {
-                const emp = s.employeeId || {};
-                const status = getShiftStatus(s);
-                const days = shiftDayCount(s.fromDate, s.toDate);
-                return (
-                  <tr key={s._id}>
-                    <td>{(page - 1) * pageSize + idx + 1}</td>
-                    <td>
-                      <div className="attendance-employee-cell">
-                        <div
-                          className="attendance-avatar-circle"
-                          style={{ backgroundColor: getAvatarColor(emp.name) }}
-                        >
-                          {(emp.name || "E").charAt(0).toUpperCase()}
-                        </div>
-                        <div className="attendance-emp-info">
-                          <span className="attendance-emp-code">{emp.employeeCode}</span>
-                          <span className="attendance-emp-name">{emp.name}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="shift-route-cell">
-                        <span>{s.sourceBranchId?.name || "-"}</span>
-                        <ArrowRight size={14} color="#94a3b8" />
-                        <strong>{s.branchId?.name || "-"}</strong>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="shift-period-cell">
-                        <span>
-                          {formatShiftDate(s.fromDate)} – {formatShiftDate(s.toDate)}
-                        </span>
-                        <span className="attendance-desig-sub">
-                          {days} day{days === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="shift-reason-cell" title={s.remarks || ""}>
-                      {s.remarks || "-"}
-                    </td>
-                    <td>
-                      <span className={`status-badge shift-${status.toLowerCase()}`}>{status}</span>
-                    </td>
-                    <td>
-                      <div className="action-icon-group">
-                        <button type="button" className="action-btn-view" onClick={() => setViewShift(s)}>
-                          <Eye size={13} strokeWidth={2.4} />
-                          <span>View</span>
-                        </button>
-                        {status === "SCHEDULED" && (
-                          <button
-                            type="button"
-                            className="action-btn-danger"
-                            onClick={() => setActionState({ shift: s, type: "cancel" })}
-                          >
-                            <Ban size={13} strokeWidth={2.4} />
-                            <span>Cancel</span>
-                          </button>
-                        )}
-                        {status === "ACTIVE" && (
-                          <button
-                            type="button"
-                            className="action-btn-warn"
-                            onClick={() => setActionState({ shift: s, type: "end" })}
-                          >
-                            <CalendarX size={13} strokeWidth={2.4} />
-                            <span>End Early</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-
-        <AttendancePagination
-          currentPage={page}
-          totalItems={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          pageSizeOptions={[5, 10, 20, 50]}
-          itemName="shifts"
-        />
-      </div>
+      <DataTable
+        mobileCards
+        searchable={false}
+        loading={loading}
+        data={shifts}
+        emptyMessage="No branch shifts found."
+        serverPagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: (size) => { setPageSize(size); setPage(1); } }}
+        columns={[
+          { key: "sno", label: "#", width: "40px", className: "printz-cell-hide-mobile", render: (s, idx) => idx + 1 },
+          {
+            key: "employee",
+            label: "Employee",
+            className: "printz-cell-lead",
+            render: (s) => {
+              const emp = s.employeeId || {};
+              return (
+                <div className="attendance-employee-cell">
+                  <div className="attendance-emp-info">
+                    <span className="attendance-emp-code">{emp.employeeCode}</span>
+                    <span className="attendance-emp-name">{emp.name}</span>
+                  </div>
+                </div>
+              );
+            },
+          },
+          {
+            key: "route",
+            label: "Shift Route",
+            render: (s) => (
+              <div className="shift-route-cell">
+                <span>{s.sourceBranchId?.name || "-"}</span>
+                <ArrowRight size={14} color="#94a3b8" />
+                <strong>{s.branchId?.name || "-"}</strong>
+              </div>
+            ),
+          },
+          {
+            key: "period",
+            label: "Shift Period",
+            render: (s) => {
+              const days = shiftDayCount(s.fromDate, s.toDate);
+              return (
+                <div className="shift-period-cell">
+                  <span>
+                    {formatShiftDate(s.fromDate)} – {formatShiftDate(s.toDate)}
+                  </span>
+                  <span className="attendance-desig-sub">
+                    {days} day{days === 1 ? "" : "s"}
+                  </span>
+                </div>
+              );
+            },
+          },
+          {
+            key: "remarks",
+            label: "Reason",
+            className: "shift-reason-cell",
+            render: (s) => <span title={s.remarks || ""}>{s.remarks || "-"}</span>,
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (s) => {
+              const status = getShiftStatus(s);
+              return <span className={`status-badge shift-${status.toLowerCase()}`}>{status}</span>;
+            },
+          },
+          {
+            key: "action",
+            label: "Action",
+            width: "200px",
+            className: "printz-cell-actions",
+            render: (s) => {
+              const status = getShiftStatus(s);
+              return (
+                <div className="action-icon-group">
+                  <button type="button" className="action-btn-view" onClick={() => setViewShift(s)}>
+                    <Eye size={13} strokeWidth={2.4} />
+                    <span>View</span>
+                  </button>
+                  {status === "SCHEDULED" && (
+                    <button type="button" className="action-btn-danger" onClick={() => setActionState({ shift: s, type: "cancel" })}>
+                      <Ban size={13} strokeWidth={2.4} />
+                      <span>Cancel</span>
+                    </button>
+                  )}
+                  {status === "ACTIVE" && (
+                    <button type="button" className="action-btn-warn" onClick={() => setActionState({ shift: s, type: "end" })}>
+                      <CalendarX size={13} strokeWidth={2.4} />
+                      <span>End Early</span>
+                    </button>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]}
+      />
 
       {/* ─── Modals ─────────────────────────────────────────────────── */}
       <BranchShiftCreateModal
