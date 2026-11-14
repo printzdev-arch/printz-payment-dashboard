@@ -230,10 +230,8 @@ const ExportData = () => {
       });
       exportReadings.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
-      // 2. Fetch expenses
-      const resExpenses = await getExpenses({
-        params: { branchName: selectedBranch || undefined },
-      });
+      // 2. Expenses: the /expenses endpoint no longer exists on the backend, so there are none to add
+      const resExpenses = { data: [] };
       const expenseRecords = resExpenses.data?.data || (Array.isArray(resExpenses.data) ? resExpenses.data : []);
       let exportExpenses = [];
       expenseRecords.forEach((docData) => {

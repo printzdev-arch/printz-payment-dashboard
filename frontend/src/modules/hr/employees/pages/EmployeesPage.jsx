@@ -5,10 +5,12 @@ import { Plus, ShieldCheck, UserCog } from "lucide-react";
 import { toast } from "react-toastify";
 import employeesApi from "../api/employeesApi";
 import EmployeeFilters from "../components/EmployeeFilters";
+import AccessControlNav from "../components/AccessControlNav";
 import EmployeeTable from "../components/EmployeeTable";
 import EmployeeForm from "../components/EmployeeForm";
 import EmployeeDetailsModal from "../components/EmployeeDetailsModal";
 import "../styles/employees.css";
+import canDo from "../../../../shared/utils/permissions";
 
 /**
  * Employees: the one place people are added, edited and deactivated.
@@ -175,19 +177,12 @@ export default function EmployeesPage() {
           
         </div>
         <div className="emp-header-actions">
-          {canManageRoles && (
-            <button type="button" className="emp-btn" onClick={() => navigate("/employees/roles")}>
-              <ShieldCheck size={15} /> Role Management
+          {canManageRoles && <AccessControlNav />}
+          {canDo("employees", "create") && (
+            <button type="button" className="emp-btn emp-btn-primary" onClick={() => setFormState({ employee: null, startWithLogin: false })}>
+              <Plus size={15} /> Add employee
             </button>
           )}
-          {canManageRoles && (
-            <button type="button" className="emp-btn" onClick={() => navigate("/employees/role-setup")}>
-              <UserCog size={15} /> Role Setup
-            </button>
-          )}
-          <button type="button" className="emp-btn emp-btn-primary" onClick={() => setFormState({ employee: null, startWithLogin: false })}>
-            <Plus size={15} /> Add employee
-          </button>
         </div>
       </div>
 

@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-toastify";
 import employeesApi from "../api/employeesApi";
-import CapabilityGrid from "../components/CapabilityGrid";
-import { allLeafKeys, expandKeys, labelMap } from "../components/capabilityUtils";
+import PermissionMatrix from "../components/PermissionMatrix";
+import AccessControlNav from "../components/AccessControlNav";
+import { allLeafKeys, expandKeys, labelMap, availableActionsMap, sameActions } from "../components/capabilityUtils";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import SelectField from "../../../../shared/ui/selects/SelectField";
 import "../styles/employees.css";
@@ -32,6 +33,7 @@ export default function RoleSetupPage() {
   const [selectedId, setSelectedId] = useState("");
   const [roleId, setRoleId] = useState(""); // the role chosen for the selected employee
   const [pages, setPages] = useState([]); // role pages plus any extras
+  const [actions, setActions] = useState({}); // what this person can do on each page ({ key: ["view", "edit", ...] })
   const [dirty, setDirty] = useState(false);
   const [extraReason, setExtraReason] = useState(""); // why this person has pages beyond the role's
   // A person on a no-login role can still be given a login, with a reason on record
@@ -82,6 +84,8 @@ export default function RoleSetupPage() {
     const own = Array.isArray(employee.pageAccess) ? expandKeys(employee.pageAccess, catalog) : [];
     setRoleId(rid);
     setPages([...new Set([...pagesOfRole(r), ...own])]);
+    // Their own actions when they have their own list, otherwise the role's
+    setActions(Array.isArray(employee.pageAccess) ? { ...(employee.pageActions || {}) } : { ...((r && r.pageActions) || {}) });
     setExtraReason(employee.extraPages?.reason || "");
     setException(employee.loginException?.reason || "");
     setAskingReason(false);
@@ -141,6 +145,7 @@ export default function RoleSetupPage() {
     const next = roleById(value);
     // The new role's pages replace the old ones; extras and exceptions start again
     setPages(pagesOfRole(next && next.requiresLogin !== false ? next : null));
+    setActions({ ...((next && next.pageActions) || {}) });
     setExtraReason("");
     setException("");
     setAskingReason(false);
@@ -148,12 +153,10 @@ export default function RoleSetupPage() {
     setDirty(true);
   };
 
-  // Role pages are locked; only extras can be ticked. A menu ticks or unticks all of its sub-pages
-  const toggleMany = (keys) => {
-    const free = keys.filter((k) => !rolePages.includes(k));
-    if (free.length === 0) return;
-    const all = free.every((k) => pages.includes(k));
-    setPages(all ? pages.filter((k) => !free.includes(k)) : [...new Set([...pages, ...free])]);
+  // The matrix changes pages and actions together; a role's own pages stay open
+  const changeMatrix = (nextPages, nextActions) => {
+    setPages([...new Set([...rolePages, ...nextPages])]);
+    setActions(nextActions);
     setDirty(true);
   };
   const addAll = () => {
@@ -162,6 +165,7 @@ export default function RoleSetupPage() {
   };
   const removeExtras = () => {
     setPages(rolePages);
+    setActions({ ...((role && role.pageActions) || {}) });
     setExtraReason("");
     setDirty(true);
   };
@@ -191,13 +195,17 @@ export default function RoleSetupPage() {
     let body;
     if (roleNoLogin) {
       if (exception && pages.length === 0) return toast.error("Tick at least one page for this person, or remove the exception.");
-      body = { pageAccess: exception ? pages : null, loginException: exception ? { reason: exception } : null, extraPages: null };
+      body = { pageAccess: exception ? pages : null, ...(exception ? { pageActions: actions } : {}), loginException: exception ? { reason: exception } : null, extraPages: null };
     } else if (roleHasList || legacyRole) {
       if (extras.length > 0 && extraReason.trim().length < 5) return toast.error("Enter a reason for the extra pages.");
+      // Different actions from the role's count as the person's own setting, like extra pages do
+      const actionsDiffer = !sameActions(pages, actions, (role && role.pageActions) || {}, availableActionsMap(catalog));
       body =
         extras.length > 0
-          ? { pageAccess: pages, extraPages: { reason: extraReason.trim() }, loginException: null }
-          : { pageAccess: null, extraPages: null, loginException: null }; // follows the role
+          ? { pageAccess: pages, pageActions: actions, extraPages: { reason: extraReason.trim() }, loginException: null }
+          : actionsDiffer
+            ? { pageAccess: pages, pageActions: actions, extraPages: null, loginException: null }
+            : { pageAccess: null, extraPages: null, loginException: null }; // follows the role
     } else {
       body = { pageAccess: null, extraPages: null, loginException: null };
     }
@@ -268,9 +276,7 @@ export default function RoleSetupPage() {
           <h1>Role Setup</h1>
         </div>
         <div className="emp-header-actions">
-          <button type="button" className="emp-btn" onClick={() => navigate("/employees")}>
-            <ArrowLeft size={15} /> Employees
-          </button>
+          <AccessControlNav />
         </div>
       </div>
 
@@ -397,10 +403,9 @@ export default function RoleSetupPage() {
                     )}
                   </div>
                 </div>
-                {roleHasList && <p className="emp-hint">Pages from the {role.name} role are locked. Tick any extra pages this person needs.</p>}
-                {roleNoLogin && pages.length === 0 && <p className="emp-hint emp-hint-warn">Tick at least one page for this person.</p>}
+               
 
-                <CapabilityGrid catalog={catalog} selected={pages} onToggleKeys={toggleMany} lockedKeys={rolePages} />
+                <PermissionMatrix catalog={catalog} pages={pages} actions={actions} onChange={changeMatrix} lockedKeys={rolePages} />
 
                 {(roleHasList || legacyRole) && extras.length > 0 && (
                   <div className="emp-login-note" style={{ flexDirection: "column", alignItems: "flex-start" }}>

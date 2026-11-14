@@ -23,6 +23,7 @@ import jobFlowApi from "../api/jobOrdersApi";
 import "../styles/job-orders.css";
 import { toast } from "react-toastify";
 import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
+import canDo from "../../../../shared/utils/permissions";
 
 export const JobOrdersPage = () => {
   const { id: routeJobId } = useParams();
@@ -125,9 +126,11 @@ export const JobOrdersPage = () => {
           <option value="COMPLETED">Completed</option>
         </StyledSelect>
 
-        <Link to="/jobflow/jobs/new" className="jf-btn jf-btn-primary jo-create-btn">
-          <Plus size={16} /> Create Job Order
-        </Link>
+        {canDo("job-orders", "create") && (
+          <Link to="/jobflow/jobs/new" className="jf-btn jf-btn-primary jo-create-btn">
+            <Plus size={16} /> Create Job Order
+          </Link>
+        )}
       </div>
 
       {/* Jobs DataTable with Search, Sorting, Rows Per Page & Pagination */}

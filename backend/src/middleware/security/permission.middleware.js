@@ -4,6 +4,7 @@ const Permission = require("../../modules/auth/models/Permission");
 const { permissionPrefixesFor } = require("../../modules/auth/constants/pageCatalog");
 const ScopeHelper = require("../../utils/helpers/scopeHelper");
 const { roleCache } = require("../../utils/helpers/authCache");
+const { isActionBlocked, methodAction } = require("./pageActions");
 
 /**
  * Roles (with their permission grants) for a user. The same few roles are read on every request, so the
@@ -201,6 +202,13 @@ const requirePermission = (permissionCode, options = {}) => {
       if (!hasPermission) {
         return next(
           ErrorHelper.forbidden(`Permission denied: You do not have '${permissionCode}'.`)
+        );
+      }
+
+      // An admin may have limited what this person can do on the page (view / create / edit / delete)
+      if (isActionBlocked(user, permissionCode, methodAction(req.method))) {
+        return next(
+          ErrorHelper.forbidden(`Permission denied: your role cannot ${methodAction(req.method)} here. Ask an admin to change your access.`)
         );
       }
 
@@ -429,6 +437,12 @@ const authorizePermission = (resource, action = "read") => {
       if (!hasPermission) {
         return next(
           ErrorHelper.forbidden(`Permission denied: You do not have '${action}' permission for '${resource}'.`)
+        );
+      }
+
+      if (!allowedScopes.includes("ALL") && isActionBlocked(user, resource, action)) {
+        return next(
+          ErrorHelper.forbidden(`Permission denied: your role cannot ${action} ${resource}. Ask an admin to change your access.`)
         );
       }
 

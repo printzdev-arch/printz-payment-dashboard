@@ -225,6 +225,7 @@ class EmployeeService {
         code,
         name: item.name,
         pageAccess: Array.isArray(role.pageAccess) ? role.pageAccess : null,
+        pageActions: role.pageActions || null,
         loginAllowed: typeof role.loginAllowed === "boolean" ? role.loginAllowed : null,
         requiresLogin:
           typeof role.loginAllowed === "boolean"
@@ -247,6 +248,7 @@ class EmployeeService {
         code: role.code,
         name: role.name,
         pageAccess: role.pageAccess,
+        pageActions: role.pageActions || null,
         loginAllowed: typeof role.loginAllowed === "boolean" ? role.loginAllowed : null,
         requiresLogin: (typeof role.loginAllowed === "boolean" ? role.loginAllowed : true) && role.pageAccess.length > 0,
       });
@@ -508,7 +510,7 @@ class EmployeeService {
   }
 
   async updateEmployee(id, dto, modifiedByUserId, authContext = {}) {
-    if (dto.pageAccess !== undefined && !this._isSuperAdmin(authContext)) {
+    if ((dto.pageAccess !== undefined || dto.pageActions !== undefined) && !this._isSuperAdmin(authContext)) {
       throw ApiError.forbidden("Only an admin can choose an employee's pages.");
     }
     const existing = await this.getEmployeeById(id, authContext);
@@ -612,9 +614,16 @@ class EmployeeService {
 
       if (!employee) return null;
 
-      const { branchId, roleId, pageAccess, loginException, extraPages, ...otherFields } = dto;
-      if (pageAccess === null) employee.pageAccess = undefined;
-      else if (pageAccess !== undefined) employee.pageAccess = pageAccess;
+      const { branchId, roleId, pageAccess, pageActions, loginException, extraPages, ...otherFields } = dto;
+      if (pageAccess === null) {
+        employee.pageAccess = undefined;
+        employee.pageActions = undefined; // back on the role: its actions apply too
+      } else if (pageAccess !== undefined) employee.pageAccess = pageAccess;
+      if (pageActions === null) employee.pageActions = undefined;
+      else if (pageActions !== undefined) {
+        const { sanitizePageActions: keepKnownActions } = require("../../auth/constants/pageCatalog");
+        employee.pageActions = keepKnownActions(pageActions, Array.isArray(employee.pageAccess) ? employee.pageAccess : null) || {};
+      }
       if (extraPages === null) {
         employee.extraPages = undefined;
       } else if (extraPages && extraPages.reason) {
@@ -704,6 +713,32 @@ class EmployeeService {
     }
 
     await this._syncOperatorProfile(updated);
+
+    // Keep a record whenever this person's own pages or actions are changed
+    if (dto.pageAccess !== undefined || dto.pageActions !== undefined) {
+      try {
+        const permissionAudit = require("../../auth/services/permissionAudit.service");
+        const { PAGE_ITEMS } = require("../../auth/constants/pageCatalog");
+        const roleRef = (existing.roleId && (existing.roleId._id || existing.roleId)) || updated.roleId;
+        const roleDoc = roleRef && mongoose.Types.ObjectId.isValid(String(roleRef)) ? await Role.findById(roleRef).select("pageAccess pageActions").lean() : null;
+        const all = PAGE_ITEMS.map((i) => i.key);
+        const stateOf = (emp) =>
+          Array.isArray(emp.pageAccess)
+            ? { pages: emp.pageAccess, actions: emp.pageActions || null }
+            : { pages: Array.isArray(roleDoc && roleDoc.pageAccess) ? roleDoc.pageAccess : all, actions: (roleDoc && roleDoc.pageActions) || null };
+        const actor = (await User.findById(modifiedByUserId).select("name email").lean().catch(() => null)) || { _id: modifiedByUserId };
+        await permissionAudit.record({
+          targetType: "EMPLOYEE",
+          targetId: updated._id,
+          targetName: `${updated.name || existing.name || "Employee"}${updated.employeeCode ? ` (${updated.employeeCode})` : ""}`,
+          actor,
+          before: stateOf(existing),
+          after: stateOf(updated),
+        });
+      } catch (_) {
+        // the audit must never undo a saved change
+      }
+    }
 
     return updated;
   }

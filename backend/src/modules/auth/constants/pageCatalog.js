@@ -249,6 +249,39 @@ const expandKeys = (keys) => {
  */
 const MFG_PAGE_KEYS = expandKeys(["mfg"]);
 
+/**
+ * What a person can do on a page. "view" opens the page; the rest change data.
+ * Pages that only show information have "view" alone.
+ */
+const ACTIONS = ["view", "create", "edit", "delete"];
+const VIEW_ONLY_PAGES = new Set([
+  "dashboard", "designer-dashboard", "mfg-dashboard", "pdf-report", "export-data",
+  "revenue-daily", "revenue-stock", "revenue-totals", "previous-balance",
+  "production-reports", "qc-history", "attendance-reports", "salary-records", "printer-readings", "search-stock", "inventory-tracking",
+]);
+const actionsForPage = (key) => (VIEW_ONLY_PAGES.has(key) ? ["view"] : ACTIONS.slice());
+
+/**
+ * Per-page action lists ({ pageKey: ["view", "edit", ...] }). Only known pages, only actions that page has,
+ * and "view" is always kept (the page is only in the map because it can be opened). Anything else is dropped.
+ */
+const sanitizePageActions = (map, pageKeys = null) => {
+  if (!map || typeof map !== "object" || Array.isArray(map)) return undefined;
+  const allowed = pageKeys ? new Set(pageKeys) : null;
+  const out = {};
+  Object.entries(map).forEach(([rawKey, list]) => {
+    const key = LEGACY_KEY_MAP[String(rawKey).trim()] || String(rawKey).trim();
+    if (!PAGE_KEYS.has(key)) return;
+    if (allowed && !allowed.has(key)) return;
+    if (!Array.isArray(list)) return;
+    const own = new Set(actionsForPage(key));
+    const picked = new Set(list.map((a) => String(a).toLowerCase().trim()).filter((a) => own.has(a)));
+    picked.add("view");
+    out[key] = ACTIONS.filter((a) => picked.has(a));
+  });
+  return out;
+};
+
 /** Keep only known keys, as pages, once each. Anything else is dropped so a typo can never grant access. */
 const sanitizePageAccess = (keys) => expandKeys((Array.isArray(keys) ? keys : []).filter((k) => VALID_KEYS.has(String(k).trim())));
 
@@ -281,8 +314,8 @@ const publicCatalog = () =>
     group: g.group,
     items: g.items.map((i) =>
       i.children
-        ? { key: i.key, label: i.label, children: i.children.map(({ key, label }) => ({ key, label: ADMIN_ONLY.has(key) ? `${label} (admin only)` : label })) }
-        : { key: i.key, label: ADMIN_ONLY.has(i.key) ? `${i.label} (admin only)` : i.label }
+        ? { key: i.key, label: i.label, children: i.children.map(({ key, label }) => ({ key, label: ADMIN_ONLY.has(key) ? `${label} (admin only)` : label, actions: actionsForPage(key) })) }
+        : { key: i.key, label: ADMIN_ONLY.has(i.key) ? `${i.label} (admin only)` : i.label, actions: actionsForPage(i.key) }
     ),
   }));
 
@@ -293,6 +326,9 @@ module.exports = {
   MFG_PAGE_KEYS,
   expandKeys,
   sanitizePageAccess,
+  sanitizePageActions,
+  actionsForPage,
+  ACTIONS,
   pathsFor,
   permissionPrefixesFor,
   linksFor,

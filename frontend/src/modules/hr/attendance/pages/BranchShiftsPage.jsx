@@ -16,6 +16,7 @@ import {
   getShiftStatus,
 } from "../components/employeeShift/shiftUtils";
 import "../styles/attendance.css";
+import canDo from "../../../../shared/utils/permissions";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Status" },
@@ -92,10 +93,12 @@ export default function BranchShiftsPage() {
           
         </div>
         <div className="attendance-header-actions">
-          <button type="button" className="btn-printz-primary" onClick={() => setIsCreateOpen(true)}>
-            <Plus size={16} strokeWidth={2.5} />
-            Create Branch Shift
-          </button>
+          {canDo("attendance-shifts", "create") && (
+            <button type="button" className="btn-printz-primary" onClick={() => setIsCreateOpen(true)}>
+              <Plus size={16} strokeWidth={2.5} />
+              Create Branch Shift
+            </button>
+          )}
         </div>
       </div>
 

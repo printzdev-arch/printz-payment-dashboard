@@ -25,6 +25,7 @@ import { flagIfMaintenance, useSalaryMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
 import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
+import canDo from "../../../../shared/utils/permissions";
 
 export default function LoansAdjustmentsPage() {
   const maintenance = useSalaryMaintenance();
@@ -438,39 +439,45 @@ export default function LoansAdjustmentsPage() {
           />
 
           {activeTab === "loans" && canConfigure && (
-            <button
-              type="button"
-              className="btn-salary-primary"
-              disabled={maintenance}
-              onClick={() => setIsAddLoanModalOpen(true)}
-            >
-              <Plus size={16} /> Add Loan
-            </button>
+            canDo("salary-loans", "create") && (
+              <button
+                type="button"
+                className="btn-salary-primary"
+                disabled={maintenance}
+                onClick={() => setIsAddLoanModalOpen(true)}
+              >
+                <Plus size={16} /> Add Loan
+              </button>
+            )
           )}
 
           {activeTab === "repayments" && canProcess && (
-            <button
-              type="button"
-              className="btn-salary-primary"
-              disabled={maintenance}
-              onClick={() => {
-                setSelectedLoanForRepayment(null);
-                setIsRepaymentModalOpen(true);
-              }}
-            >
-              <Plus size={16} /> Record Repayment
-            </button>
+            canDo("salary-loans", "create") && (
+              <button
+                type="button"
+                className="btn-salary-primary"
+                disabled={maintenance}
+                onClick={() => {
+                  setSelectedLoanForRepayment(null);
+                  setIsRepaymentModalOpen(true);
+                }}
+              >
+                <Plus size={16} /> Record Repayment
+              </button>
+            )
           )}
 
           {activeTab === "adjustments" && canConfigure && (
-            <button
-              type="button"
-              className="btn-salary-primary"
-              disabled={maintenance}
-              onClick={() => setIsAdjustmentModalOpen(true)}
-            >
-              <Plus size={16} /> Add Adjustment
-            </button>
+            canDo("salary-loans", "create") && (
+              <button
+                type="button"
+                className="btn-salary-primary"
+                disabled={maintenance}
+                onClick={() => setIsAdjustmentModalOpen(true)}
+              >
+                <Plus size={16} /> Add Adjustment
+              </button>
+            )
           )}
         </div>
       </div>

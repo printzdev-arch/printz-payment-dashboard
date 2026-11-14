@@ -106,6 +106,8 @@ export const employeesApi = {
         requiresLogin: r.requiresLogin !== false,
         // The pages the role gives by default (null = the role has no page list yet and can open everything)
         pageAccess: Array.isArray(r.pageAccess) ? r.pageAccess : null,
+        // What the role may do on each page (null = every action on every page it has)
+        pageActions: r.pageActions && typeof r.pageActions === "object" ? r.pageActions : null,
       }));
     } catch {
       return [];
@@ -135,19 +137,26 @@ export const employeesApi = {
     return pickArray(res.data, "roles");
   },
 
-  createRole: async ({ name, description, pageAccess, loginAllowed }) => {
+  createRole: async ({ name, description, pageAccess, pageActions, loginAllowed }) => {
     const code = String(name || "")
       .trim()
       .toUpperCase()
       .replace(/[^A-Z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "");
-    const res = await api.post("/roles", { code, name, description, pageAccess, loginAllowed });
+    const res = await api.post("/roles", { code, name, description, pageAccess, pageActions, loginAllowed });
     return res.data?.data || res.data;
   },
 
-  updateRole: async (id, { name, description, pageAccess, loginAllowed }) => {
-    const res = await api.put(`/roles/${id}`, { name, description, pageAccess, loginAllowed });
+  updateRole: async (id, { name, description, pageAccess, pageActions, loginAllowed }) => {
+    const res = await api.put(`/roles/${id}`, { name, description, pageAccess, pageActions, loginAllowed });
     return res.data?.data || res.data;
+  },
+
+  /** The saved history of permission changes, newest first: { items, total, page, limit }. */
+  getPermissionAudit: async (params = {}) => {
+    const res = await api.get("/roles/audit", { params });
+    const body = res.data?.data || res.data || {};
+    return { items: body.items || [], total: body.total || 0, page: body.page || 1, limit: body.limit || 25 };
   },
 
   deleteRole: async (id) => {

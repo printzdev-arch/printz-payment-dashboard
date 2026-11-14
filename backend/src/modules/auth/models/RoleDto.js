@@ -1,4 +1,4 @@
-const { sanitizePageAccess } = require("../constants/pageCatalog");
+const { sanitizePageAccess, sanitizePageActions } = require("../constants/pageCatalog");
 
 class CreateRoleDto {
   constructor(data) {
@@ -6,6 +6,7 @@ class CreateRoleDto {
     this.name = data.name ? data.name.trim() : "";
     this.description = data.description || "";
     this.pageAccess = sanitizePageAccess(data.pageAccess);
+    if (data.pageActions && typeof data.pageActions === "object") this.pageActions = sanitizePageActions(data.pageActions, this.pageAccess);
     const rawGrants = Array.isArray(data.grants) ? data.grants : Array.isArray(data.permissions) ? data.permissions : [];
     this.grants = rawGrants.map((g) => ({
       permissionCode: g.permissionCode || g.permissionId || (typeof g === "string" ? g : ""),
@@ -23,6 +24,8 @@ class UpdateRoleDto {
     if (data.name !== undefined) this.name = data.name.trim();
     if (data.description !== undefined) this.description = data.description;
     if (data.pageAccess !== undefined) this.pageAccess = sanitizePageAccess(data.pageAccess);
+    if (data.pageActions === null) this.pageActions = null;
+    else if (data.pageActions !== undefined) this.pageActions = sanitizePageActions(data.pageActions) || {};
     const rawGrants = Array.isArray(data.grants) ? data.grants : Array.isArray(data.permissions) ? data.permissions : null;
     if (rawGrants !== null) {
       this.grants = rawGrants.map((g) => ({

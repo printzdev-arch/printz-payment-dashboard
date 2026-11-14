@@ -22,6 +22,7 @@ import { useSalaryMaintenance } from "../utils/salaryGuards";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
 import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
+import canDo from "../../../../shared/utils/permissions";
 
 export default function SalarySetupPage() {
   const maintenance = useSalaryMaintenance();
@@ -253,30 +254,34 @@ export default function SalarySetupPage() {
           />
 
           {!canConfigure ? null : activeTab === "structures" ? (
-            <button
-              type="button"
-              className="btn-salary-primary"
-              disabled={maintenance}
-              onClick={() => {
-                setAssignEmployeeId("");
-                setAssignSalary("");
-                setIsAssignModalOpen(true);
-              }}
-            >
-              <Plus size={16} /> Assign Salary Structure
-            </button>
+            canDo("salary-setup", "create") && (
+              <button
+                type="button"
+                className="btn-salary-primary"
+                disabled={maintenance}
+                onClick={() => {
+                  setAssignEmployeeId("");
+                  setAssignSalary("");
+                  setIsAssignModalOpen(true);
+                }}
+              >
+                <Plus size={16} /> Assign Salary Structure
+              </button>
+            )
           ) : (
-            <button
-              type="button"
-              className="btn-salary-primary"
-              disabled={maintenance}
-              onClick={() => {
-                setEditingComponent(null);
-                setIsComponentModalOpen(true);
-              }}
-            >
-              <Plus size={16} /> Add Component
-            </button>
+            canDo("salary-setup", "create") && (
+              <button
+                type="button"
+                className="btn-salary-primary"
+                disabled={maintenance}
+                onClick={() => {
+                  setEditingComponent(null);
+                  setIsComponentModalOpen(true);
+                }}
+              >
+                <Plus size={16} /> Add Component
+              </button>
+            )
           )}
         </div>
       </div>
@@ -431,29 +436,33 @@ export default function SalarySetupPage() {
                   const unassigned = Boolean(s.noStructure);
                   return (
                     <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
-                      <button
-                        type="button"
-                        className="salary-icon-btn primary"
-                        title={unassigned ? "Assign a salary structure" : "Edit: save a revised structure with a new effective date"}
-                        disabled={maintenance || !canConfigure}
-                        onClick={() => {
-                          setAssignEmployeeId(String(emp._id || emp.id || s.employeeId || ""));
-                          setAssignSalary(unassigned ? "" : String(s.monthlySalary || ""));
-                          setIsAssignModalOpen(true);
-                        }}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      {!unassigned && (
+                      {canDo("salary-setup", "edit") && (
                         <button
                           type="button"
-                          className="salary-icon-btn danger"
-                          title="Delete this salary structure"
+                          className="salary-icon-btn primary"
+                          title={unassigned ? "Assign a salary structure" : "Edit: save a revised structure with a new effective date"}
                           disabled={maintenance || !canConfigure}
-                          onClick={() => handleDeleteStructure(s)}
+                          onClick={() => {
+                            setAssignEmployeeId(String(emp._id || emp.id || s.employeeId || ""));
+                            setAssignSalary(unassigned ? "" : String(s.monthlySalary || ""));
+                            setIsAssignModalOpen(true);
+                          }}
                         >
-                          <Trash2 size={15} />
+                          <Pencil size={15} />
                         </button>
+                      )}
+                      {!unassigned && (
+                        canDo("salary-setup", "delete") && (
+                          <button
+                            type="button"
+                            className="salary-icon-btn danger"
+                            title="Delete this salary structure"
+                            disabled={maintenance || !canConfigure}
+                            onClick={() => handleDeleteStructure(s)}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )
                       )}
                     </div>
                   );
@@ -516,27 +525,31 @@ export default function SalarySetupPage() {
                 className: "printz-cell-actions",
                 render: (c) => (
                   <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
-                    <button
-                      type="button"
-                      className="salary-icon-btn primary"
-                      title="Edit component"
-                      disabled={maintenance || !canConfigure}
-                      onClick={() => {
-                        setEditingComponent(c);
-                        setIsComponentModalOpen(true);
-                      }}
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="salary-icon-btn danger"
-                      title="Delete component"
-                      disabled={maintenance || !canConfigure}
-                      onClick={() => handleDeleteComponent(c)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {canDo("salary-setup", "edit") && (
+                      <button
+                        type="button"
+                        className="salary-icon-btn primary"
+                        title="Edit component"
+                        disabled={maintenance || !canConfigure}
+                        onClick={() => {
+                          setEditingComponent(c);
+                          setIsComponentModalOpen(true);
+                        }}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {canDo("salary-setup", "delete") && (
+                      <button
+                        type="button"
+                        className="salary-icon-btn danger"
+                        title="Delete component"
+                        disabled={maintenance || !canConfigure}
+                        onClick={() => handleDeleteComponent(c)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 ),
               },

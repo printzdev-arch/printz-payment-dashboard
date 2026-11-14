@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const deliveryOrderController = require("../controllers/deliveryOrder.controller");
 const { authenticate } = require("../../../middleware/security/auth.middleware");
-const { authorizeRoles } = require("../../../middleware/security/role.middleware");
 const { authorizePermission } = require("../../../middleware/security/permission.middleware");
 const {
   idParamValidator,
@@ -22,13 +21,13 @@ router.use(authenticate);
 // ── STEP 1: Manager Reviews Job (READY_FOR_DELIVERY — MANAGER ONLY) ──
 router.get(
   "/ready-jobs",
-  authorizeRoles("admin", "manager", "SUPER_ADMIN", "ADMIN", "MANAGER"),
+  authorizePermission("delivery", "read"),
   deliveryOrderController.getReadyJobsForDelivery
 );
 
 router.post(
   "/review-job/:jobOrderId",
-  authorizeRoles("admin", "manager", "SUPER_ADMIN", "ADMIN", "MANAGER"),
+  authorizePermission("delivery", "update"),
   reviewJobValidator,
   deliveryOrderController.reviewJob
 );

@@ -12,6 +12,7 @@ import BranchSelect from "../../../shared/ui/selects/BranchSelect";
 import { DateField } from "../../../shared/ui/selects/CalendarSelect";
 import SelectField from "../../../shared/ui/selects/SelectField";
 import "../styles/sale-order.css";
+import canDo from "../../../shared/utils/permissions";
 
 const IN_PROGRESS = "PLACED,WAITING_FOR_DESIGNER,ASSIGNED,IN_DESIGN,CHANGES_REQUESTED";
 const APPROVED_ONWARDS = "APPROVED,PRINTING,DISPATCHED,RECEIVED_AT_BRANCH,DELIVERED";
@@ -103,9 +104,11 @@ export default function SaleOrdersListPage() {
               style={{ minWidth: "200px" }}
             />
           )}
-          <button type="button" className="btn-printz-primary so-btn primary" onClick={() => navigate("/sale-orders/new")}>
-            <Plus size={16} /> New Sale Order
-          </button>
+          {canDo("sale-orders", "create") && (
+            <button type="button" className="btn-printz-primary so-btn primary" onClick={() => navigate("/sale-orders/new")}>
+              <Plus size={16} /> New Sale Order
+            </button>
+          )}
         </div>
       </div>
 

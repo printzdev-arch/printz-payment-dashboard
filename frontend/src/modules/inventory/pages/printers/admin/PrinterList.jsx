@@ -26,6 +26,7 @@ import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
 import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
+import canDo from "../../../../../shared/utils/permissions";
 
 const PrinterList = () => {
   const navigate = useNavigate();
@@ -890,23 +891,27 @@ const PrinterList = () => {
                       >
                         <Eye size={15} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(asset)}
-                        className="printz-btn-action-edit"
-                        title="Edit Details"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRequestDelete(asset)}
-                        className="printz-btn-action-delete"
-                        disabled={editingJumboService !== null}
-                        title={showInactivePrinters ? "Permanently Delete" : "Deactivate"}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {canDo("printer-list", "edit") && (
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(asset)}
+                          className="printz-btn-action-edit"
+                          title="Edit Details"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
+                      {canDo("printer-list", "delete") && (
+                        <button
+                          type="button"
+                          onClick={() => handleRequestDelete(asset)}
+                          className="printz-btn-action-delete"
+                          disabled={editingJumboService !== null}
+                          title={showInactivePrinters ? "Permanently Delete" : "Deactivate"}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </>
                   )
                 }

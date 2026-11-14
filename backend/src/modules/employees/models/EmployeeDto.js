@@ -1,4 +1,4 @@
-const { sanitizePageAccess } = require("../../auth/constants/pageCatalog");
+const { sanitizePageAccess, sanitizePageActions } = require("../../auth/constants/pageCatalog");
 
 class CreateEmployeeDto {
   constructor(data) {
@@ -15,6 +15,7 @@ class CreateEmployeeDto {
     this.bankDetails = data.bankDetails || null;
     if (data.leavingDate) this.leavingDate = data.leavingDate;
     if (data.pageAccess !== undefined && data.pageAccess !== null) this.pageAccess = sanitizePageAccess(data.pageAccess);
+    if (data.pageActions && typeof data.pageActions === "object") this.pageActions = sanitizePageActions(data.pageActions);
   }
 
   static fromRequest(req) {
@@ -46,6 +47,9 @@ class UpdateEmployeeDto {
     // null puts the employee back on their role's pages
     if (data.pageAccess === null) this.pageAccess = null;
     else if (data.pageAccess !== undefined) this.pageAccess = sanitizePageAccess(data.pageAccess);
+    // null removes this person's own actions (their role's apply again)
+    if (data.pageActions === null) this.pageActions = null;
+    else if (data.pageActions !== undefined) this.pageActions = sanitizePageActions(data.pageActions) || {};
   }
 
   static fromRequest(req) {

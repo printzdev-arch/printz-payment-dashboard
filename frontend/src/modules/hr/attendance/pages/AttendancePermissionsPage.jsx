@@ -21,6 +21,7 @@ import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import MonthField from "../../../../shared/ui/selects/MonthField";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import "../styles/attendance.css";
+import canDo from "../../../../shared/utils/permissions";
 
 // Color palette for employee avatar initials matching reference image 3
 const AVATAR_COLORS = [
@@ -343,17 +344,19 @@ export default function AttendancePermissionsPage() {
           />
         </div>
 
-        <button
-          type="button"
-          className="btn-printz-primary attendance-bar-action"
-          onClick={() => {
-            setEditingPermission(null);
-            setIsRecordModalOpen(true);
-          }}
-        >
-          <Plus size={16} />
-          <span>Record Permission</span>
-        </button>
+        {canDo("attendance-permissions", "create") && (
+          <button
+            type="button"
+            className="btn-printz-primary attendance-bar-action"
+            onClick={() => {
+              setEditingPermission(null);
+              setIsRecordModalOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            <span>Record Permission</span>
+          </button>
+        )}
       </div>
 
 
@@ -447,29 +450,33 @@ export default function AttendancePermissionsPage() {
             className: "printz-cell-actions",
             render: (item) => (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
-                <button
-                  type="button"
-                  className="icon-btn edit"
-                  title="Edit Permission"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingPermission(item);
-                    setIsRecordModalOpen(true);
-                  }}
-                >
-                  <Edit2 size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn delete"
-                  title="Delete / Cancel Permission"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeletePermission(item._id);
-                  }}
-                >
-                  <Trash2 size={15} />
-                </button>
+                {canDo("attendance-permissions", "edit") && (
+                  <button
+                    type="button"
+                    className="icon-btn edit"
+                    title="Edit Permission"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingPermission(item);
+                      setIsRecordModalOpen(true);
+                    }}
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                )}
+                {canDo("attendance-permissions", "delete") && (
+                  <button
+                    type="button"
+                    className="icon-btn delete"
+                    title="Delete / Cancel Permission"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePermission(item._id);
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
             ),
           },

@@ -45,3 +45,34 @@ export const namedPages = (catalog, keys) => {
   );
   return names;
 };
+
+/** key -> the actions that page has ("view" first), from the server's catalog. Pages with no list get all four. */
+export const availableActionsMap = (catalog) => {
+  const map = {};
+  const put = (item) => {
+    map[item.key] = Array.isArray(item.actions) && item.actions.length > 0 ? item.actions : ["view", "create", "edit", "delete"];
+  };
+  catalog.forEach((g) =>
+    g.items.forEach((i) => {
+      if (i.children) i.children.forEach(put);
+      else put(i);
+    })
+  );
+  return map;
+};
+
+/** What a person can do on a page now: nothing if the page is not ticked; every action unless the page has its own list. */
+export const allowedActionsOf = (key, pages, actions, available) => {
+  if (!pages.includes(key)) return [];
+  const listed = actions && Array.isArray(actions[key]) ? actions[key] : null;
+  return available.filter((a) => a === "view" || !listed || listed.includes(a));
+};
+
+/** True when two action maps give the same result for these pages. */
+export const sameActions = (pages, a, b, availableMap) =>
+  pages.every((key) => {
+    const avail = availableMap[key] || ["view"];
+    const x = allowedActionsOf(key, pages, a, avail).join(",");
+    const y = allowedActionsOf(key, pages, b, avail).join(",");
+    return x === y;
+  });
