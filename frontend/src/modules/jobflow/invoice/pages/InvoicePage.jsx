@@ -641,6 +641,7 @@ export const InvoicePage = () => {
     <JobFlowLayout
       title="Commercial Invoices"
       activeStep={6}
+      fitViewport={view !== "create"}
     >
       <div className="invoice-feature-container">
 
