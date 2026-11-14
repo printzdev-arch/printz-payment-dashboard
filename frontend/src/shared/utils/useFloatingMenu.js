@@ -7,7 +7,7 @@ import { useLayoutEffect, useState } from "react";
  *
  * Returns an inline style for the menu; spread it onto the menu element. Until the position is known the menu is hidden.
  */
-export default function useFloatingMenu(anchorRef, menuRef, isOpen, { preferUp = false, minWidth = 0, deps = [] } = {}) {
+export default function useFloatingMenu(anchorRef, menuRef, isOpen, { preferUp = false, alignRight = false, minWidth = 0, deps = [] } = {}) {
   const [pos, setPos] = useState(null);
 
   useLayoutEffect(() => {
@@ -23,7 +23,8 @@ export default function useFloatingMenu(anchorRef, menuRef, isOpen, { preferUp =
       const m = menu.getBoundingClientRect();
       const margin = 8;
       const gap = 4;
-      const left = Math.max(margin, Math.min(t.left, window.innerWidth - m.width - margin));
+      const wanted = alignRight ? t.right - m.width : t.left;
+      const left = Math.max(margin, Math.min(wanted, window.innerWidth - m.width - margin));
       const roomBelow = window.innerHeight - t.bottom - margin;
       const roomAbove = t.top - margin;
       let up = preferUp ? roomAbove >= Math.min(m.height, 160) || roomAbove > roomBelow : m.height > roomBelow && roomAbove > roomBelow;
@@ -46,7 +47,7 @@ export default function useFloatingMenu(anchorRef, menuRef, isOpen, { preferUp =
       window.removeEventListener("scroll", onScroll, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, preferUp, ...deps]);
+  }, [isOpen, preferUp, alignRight, ...deps]);
 
   return {
     position: "fixed",

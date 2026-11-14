@@ -16,6 +16,7 @@ import jobFlowApi from "../api/customersApi";
 import { toast } from "react-toastify";
 import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import logo from "../../../../shared/assets/logo.png";
+import "../styles/qr-form.css";
 
 const getManagerBranchInfo = () => {
   try {
@@ -293,90 +294,44 @@ export const BranchQrCustomerForm = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#062817", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
+    <div className="qr-page">
       {managerInfo.isManager && (
-        <div style={{ width: "100%", maxWidth: "640px", marginBottom: "0.85rem", display: "flex", justifyContent: "flex-start" }}>
-          <button
-            type="button"
-            onClick={() => navigate("/customers")}
-            style={{
-              background: "rgba(255, 255, 255, 0.12)",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
-              color: "#ffffff",
-              padding: "0.45rem 0.9rem",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: "0.45rem",
-              transition: "all 0.18s ease",
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)")}
-            onMouseOut={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)")}
-          >
+        <div className="qr-back-row">
+          <button type="button" className="qr-back-btn" onClick={() => navigate("/customers")}>
             <ArrowLeft size={16} />
-            <span>← Back to Customer Directory</span>
+            <span>Back to Customer Directory</span>
           </button>
         </div>
       )}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          maxWidth: "640px",
-          width: "100%",
-          backgroundColor: "#ffffff",
-          borderRadius: "16px",
-          overflow: "hidden",
-          boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
-        }}
-      >
+      <div className="qr-card">
         {/* Brand header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1.25rem 2.5rem",
-            borderBottom: "1px solid #e2e8f0",
-            background: "#ffffff",
-          }}
-        >
-          <img src={logo} alt="PrintZ Shop" style={{ height: "56px", width: "auto", display: "block" }} />
+        <div className="qr-brand">
+          <img src={logo} alt="PrintZ Shop" />
         </div>
 
-        {/* Right Form Column */}
-        <div style={{ padding: "1.75rem 2.5rem 2.25rem" }}>
+        <div className="qr-body">
           {!submitted ? (
             <form onSubmit={handleSubmit}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
+              <div className="qr-head">
                 <div>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.2rem 0.5rem", borderRadius: "4px", backgroundColor: "#ecfdf5", color: "#065f46", fontSize: "0.75rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                  <div className="qr-chip">
                     <QrCode size={14} /> Branch QR Self-Service
                   </div>
-                  <h2 style={{ fontSize: "1.35rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+                  <h2 className="qr-title">
                     Customer Registration
                   </h2>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "#1e293b", fontWeight: 600 }}>Branch:</span>
+                <div className="qr-branch">
+                  <span>Branch</span>
                   <StyledSelect
                     name="branchCode"
                     value={formData.branchCode}
                     onChange={handleBranchChange}
                     disabled={managerInfo.isLocked}
+                    alignRight
                     className="jf-select"
-                    style={{
-                      padding: "0.25rem 0.5rem",
-                      fontSize: "0.8125rem",
-                      backgroundColor: managerInfo.isLocked ? "#f8fafc" : "#ffffff",
-                      cursor: managerInfo.isLocked ? "default" : "pointer",
-                      fontWeight: 600,
-                      color: "#0f172a",
-                    }}
+                    style={{ width: "100%" }}
                     title={managerInfo.isLocked ? `Locked to Manager's Branch: ${formData.branchName}` : "Select branch"}
                   >
                     {branches && branches.length > 0 ? (
@@ -415,7 +370,7 @@ export const BranchQrCustomerForm = () => {
                   <div style={{ flex: 1, fontSize: "0.85rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.35rem" }}>
                       <strong style={{ color: "#991b1b", fontSize: "0.95rem" }}>
-                        Registration Not Allowed: Customer Already Exists!
+                        This customer is already registered
                       </strong>
                       <span
                         style={{
@@ -447,15 +402,15 @@ export const BranchQrCustomerForm = () => {
                       {matchInfo.customer.email ? ` • Email: ${matchInfo.customer.email}` : ""}
                       {matchInfo.customer.branchId?.name ? ` • Branch: ${matchInfo.customer.branchId.name}` : ""}).
                       <br />
-                      <strong>New registration is not allowed for existing customers.</strong> Please use their existing customer profile for new job orders.
+                      Please use the existing profile for new job orders.
                     </div>
                   </div>
                 </div>
               ) : null}
 
               {/* Customer Information Header */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 0.65rem 0" }}>
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+              <div className="qr-subhead">
+                <h3>
                   Customer Identification
                 </h3>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
@@ -466,15 +421,15 @@ export const BranchQrCustomerForm = () => {
                   )}
                   {!checkingCustomer && !matchInfo && (formData.name || formData.phone) && (
                     <span style={{ fontSize: "0.725rem", color: "#059669", fontWeight: 600 }}>
-                      ✓ Unique / New Customer
+                      New customer
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Customer Source Selector */}
-              <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.825rem", cursor: "pointer", fontWeight: 600, color: formData.customerSource === "INDIVIDUAL" ? "#065f46" : "#64748b" }}>
+              <div className="qr-radios">
+                <label className={`qr-radio ${formData.customerSource === "INDIVIDUAL" ? "on" : ""}`}>
                   <input
                     type="radio"
                     name="customerSource"
@@ -484,7 +439,7 @@ export const BranchQrCustomerForm = () => {
                   />
                   <User size={15} /> Individual Customer
                 </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.825rem", cursor: "pointer", fontWeight: 600, color: formData.customerSource === "COMPANY" ? "#065f46" : "#64748b" }}>
+                <label className={`qr-radio ${formData.customerSource === "COMPANY" ? "on" : ""}`}>
                   <input
                     type="radio"
                     name="customerSource"
@@ -497,12 +452,12 @@ export const BranchQrCustomerForm = () => {
               </div>
 
               {/* Form Inputs Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
+              <div className="qr-grid">
                 <div className="jf-form-group">
-                  <label className="jf-label jf-label-required" style={{ display: "flex", justifyContent: "space-between" }}>
+                  <label className="jf-label jf-label-required qr-label-row">
                     <span>Full Name</span>
                     {matchInfo?.matchType === "Name" && (
-                      <span style={{ color: "#dc2626", fontSize: "0.725rem", fontWeight: 700 }}>⚠️ Name Already Registered</span>
+                      <span className="qr-warn">Name already registered</span>
                     )}
                   </label>
                   <input
@@ -520,10 +475,10 @@ export const BranchQrCustomerForm = () => {
                   />
                 </div>
                 <div className="jf-form-group">
-                  <label className="jf-label jf-label-required" style={{ display: "flex", justifyContent: "space-between" }}>
+                  <label className="jf-label jf-label-required qr-label-row">
                     <span>Phone / Mobile</span>
                     {matchInfo?.matchType === "Phone" && (
-                      <span style={{ color: "#dc2626", fontSize: "0.725rem", fontWeight: 700 }}>⚠️ Phone Already Registered</span>
+                      <span className="qr-warn">Phone already registered</span>
                     )}
                   </label>
                   <input
@@ -541,10 +496,10 @@ export const BranchQrCustomerForm = () => {
                   />
                 </div>
                 <div className="jf-form-group">
-                  <label className="jf-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                  <label className="jf-label qr-label-row">
                     <span>Email ID</span>
                     {matchInfo?.matchType === "Email" && (
-                      <span style={{ color: "#dc2626", fontSize: "0.725rem", fontWeight: 700 }}>⚠️ Email Already Registered</span>
+                      <span className="qr-warn">Email already registered</span>
                     )}
                   </label>
                   <input
@@ -571,7 +526,7 @@ export const BranchQrCustomerForm = () => {
                     className="jf-input"
                   />
                 </div>
-                <div className="jf-form-group" style={{ gridColumn: "span 2" }}>
+                <div className="jf-form-group qr-span2">
                   <label className="jf-label">Tax ID / GSTIN (optional)</label>
                   <input
                     type="text"
@@ -587,22 +542,7 @@ export const BranchQrCustomerForm = () => {
               <button
                 type="submit"
                 className={`jf-btn ${matchInfo ? "jf-btn-secondary" : "jf-btn-primary"}`}
-                style={{
-                  width: "100%",
-                  marginTop: "1.75rem",
-                  padding: "0.85rem",
-                  fontSize: "0.95rem",
-                  fontWeight: 700,
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                  backgroundColor: matchInfo ? "#f1f5f9" : undefined,
-                  color: matchInfo ? "#94a3b8" : undefined,
-                  borderColor: matchInfo ? "#cbd5e1" : undefined,
-                  cursor: matchInfo ? "not-allowed" : "pointer",
-                }}
+                data-blocked={matchInfo ? "true" : undefined}
                 disabled={loading || Boolean(matchInfo)}
                 title={matchInfo ? "Customer already exists. Registration is not allowed." : "Register Customer"}
               >
@@ -611,7 +551,7 @@ export const BranchQrCustomerForm = () => {
                     <Loader2 size={16} className="animate-spin" /> Registering...
                   </>
                 ) : matchInfo ? (
-                  "Customer Already Registered — Not Allowed to Register"
+                  "Customer already registered"
                 ) : (
                   "Register Customer"
                 )}
@@ -667,7 +607,7 @@ export const BranchQrCustomerForm = () => {
               </div>
 
               <div style={{ backgroundColor: "#f0fdf4", border: "1px dashed #86efac", borderRadius: "8px", padding: "0.75rem 1rem", maxWidth: "440px", margin: "0 auto 1.5rem auto", fontSize: "0.775rem", color: "#166534", textAlign: "left" }}>
-                ℹ️ <strong>Next Step:</strong> Shift this enquiry to a <strong>Job Order</strong> via the dashboard to configure specific print requirements, finishing options, and artwork files.
+                <strong>Next step:</strong> Shift this enquiry to a <strong>Job Order</strong> via the dashboard to configure specific print requirements, finishing options, and artwork files.
               </div>
 
               <button

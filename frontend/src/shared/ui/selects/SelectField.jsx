@@ -10,6 +10,7 @@ import "../../styles/branchSelect.css";
  * `options` can also be plain strings. onChange receives { target: { name, value } }.
  */
 export default function SelectField({
+  alignRight = false,
   value = "",
   onChange,
   options = [],
@@ -55,7 +56,7 @@ export default function SelectField({
     return () => document.removeEventListener("mousedown", close);
   }, [isOpen]);
 
-  const menuStyle = useFloatingMenu(ref, menuRef, isOpen, { preferUp: dropUp, minWidth: compact ? 0 : 160, deps: [shown.length] });
+  const menuStyle = useFloatingMenu(ref, menuRef, isOpen, { preferUp: dropUp, alignRight, minWidth: compact ? 0 : 160, deps: [shown.length] });
 
   const pick = (o) => {
     if (onChange) onChange({ target: { name: name || "", value: o.value }, currentTarget: { name: name || "", value: o.value } }, o);

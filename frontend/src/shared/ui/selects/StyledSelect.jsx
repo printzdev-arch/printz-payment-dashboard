@@ -39,7 +39,7 @@ const isSmall = (style) => {
  * Drop-in for a native <select>: same props (value, onChange, disabled, name) and the same <option> children,
  * drawn with the shared dropdown. Layout bits of `style` go on the outer box; `className` is ignored.
  */
-export default function StyledSelect({ children, value, onChange, disabled, name, style, searchable, placeholder, compact }) {
+export default function StyledSelect({ children, value, onChange, disabled, name, style, searchable, placeholder, compact, alignRight }) {
   const options = collectOptions(children).filter((o) => !o.disabled || String(o.value) === String(value));
   const blank = options.find((o) => String(o.value) === "");
   return (
@@ -51,6 +51,7 @@ export default function StyledSelect({ children, value, onChange, disabled, name
       name={name}
       style={boxStyle(style)}
       searchable={searchable}
+      alignRight={alignRight}
       compact={compact !== undefined ? compact : isSmall(style)}
       placeholder={placeholder || (blank ? blank.label : "Select")}
     />
