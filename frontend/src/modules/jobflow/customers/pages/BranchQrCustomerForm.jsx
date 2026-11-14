@@ -295,7 +295,7 @@ export const BranchQrCustomerForm = () => {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#062817", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
       {managerInfo.isManager && (
-        <div style={{ width: "100%", maxWidth: "960px", marginBottom: "0.85rem", display: "flex", justifyContent: "flex-start" }}>
+        <div style={{ width: "100%", maxWidth: "640px", marginBottom: "0.85rem", display: "flex", justifyContent: "flex-start" }}>
           <button
             type="button"
             onClick={() => navigate("/customers")}
@@ -324,8 +324,8 @@ export const BranchQrCustomerForm = () => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "300px 1fr",
-          maxWidth: "960px",
+          gridTemplateColumns: "1fr",
+          maxWidth: "640px",
           width: "100%",
           backgroundColor: "#ffffff",
           borderRadius: "16px",
@@ -333,37 +333,22 @@ export const BranchQrCustomerForm = () => {
           boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
         }}
       >
-        {/* Left Branding Column */}
+        {/* Brand header */}
         <div
           style={{
-            background: "linear-gradient(180deg, #064e3b 0%, #062817 100%)",
-            color: "#ffffff",
-            padding: "2.5rem 1.75rem",
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
             justifyContent: "center",
+            padding: "1.25rem 2.5rem",
+            borderBottom: "1px solid #e2e8f0",
+            background: "#ffffff",
           }}
         >
-          <div>
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "14px",
-                padding: "0.85rem 1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 8px 20px -8px rgba(0, 0, 0, 0.45)",
-              }}
-            >
-              <img src={logo} alt="PrintZ Shop" style={{ width: "100%", maxWidth: "190px", height: "auto", display: "block" }} />
-            </div>
-          </div>
-
+          <img src={logo} alt="PrintZ Shop" style={{ height: "56px", width: "auto", display: "block" }} />
         </div>
 
         {/* Right Form Column */}
-        <div style={{ padding: "2.5rem" }}>
+        <div style={{ padding: "1.75rem 2.5rem 2.25rem" }}>
           {!submitted ? (
             <form onSubmit={handleSubmit}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
