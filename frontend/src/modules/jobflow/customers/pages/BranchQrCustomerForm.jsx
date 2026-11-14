@@ -2,9 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   QrCode,
   CheckCircle,
-  Clock,
-  ShieldCheck,
-  UserCheck,
   AlertCircle,
   AlertOctagon,
   Loader2,
@@ -12,7 +9,6 @@ import {
   User,
   Phone,
   Mail,
-  FileText,
   ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -345,7 +341,7 @@ export const BranchQrCustomerForm = () => {
             padding: "2.5rem 1.75rem",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
+            justifyContent: "center",
           }}
         >
           <div>
@@ -364,35 +360,6 @@ export const BranchQrCustomerForm = () => {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <UserCheck size={24} style={{ color: "#34d399" }} />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: "0.875rem" }}>Centralized Profiles</div>
-                <div style={{ fontSize: "0.75rem", color: "#a7f3d0" }}>Auto-deduplicated by Phone & Email</div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <Clock size={24} style={{ color: "#34d399" }} />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: "0.875rem" }}>Fast Counter Intake</div>
-                <div style={{ fontSize: "0.75rem", color: "#a7f3d0" }}>Instant registration via QR scan</div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <ShieldCheck size={24} style={{ color: "#34d399" }} />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: "0.875rem" }}>Safe & Secure</div>
-                <div style={{ fontSize: "0.75rem", color: "#a7f3d0" }}>Enterprise multi-branch directory</div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ fontSize: "0.75rem", color: "#6ee7b7" }}>
-            Scan QR Code at branch counter to register new customers or stage walk-in requests.
-          </div>
         </div>
 
         {/* Right Form Column */}
@@ -407,9 +374,6 @@ export const BranchQrCustomerForm = () => {
                   <h2 style={{ fontSize: "1.35rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
                     Customer Registration
                   </h2>
-                  <p style={{ fontSize: "0.875rem", color: "#1e293b", margin: "4px 0 0 0" }}>
-                    Checks existing records across all branches; auto-links matching profiles or generates a new Customer Code.
-                  </p>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -635,32 +599,12 @@ export const BranchQrCustomerForm = () => {
                 </div>
               </div>
 
-              {/* Informative Callout: Print Request happens during Job Order shift */}
-              <div
-                style={{
-                  backgroundColor: "#f8fafc",
-                  border: "1px dashed #cbd5e1",
-                  borderRadius: "8px",
-                  padding: "0.85rem 1rem",
-                  marginBottom: "1.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  fontSize: "0.8125rem",
-                  color: "#1e293b",
-                }}
-              >
-                <FileText size={18} style={{ color: "#059669", flexShrink: 0 }} />
-                <div>
-                  <strong>Print Request Notice:</strong> Specific print products, quantities, paper specs, and artwork will be entered when shifting this staged enquiry into an active <strong>Job Order</strong> from the dashboard.
-                </div>
-              </div>
-
               <button
                 type="submit"
                 className={`jf-btn ${matchInfo ? "jf-btn-secondary" : "jf-btn-primary"}`}
                 style={{
                   width: "100%",
+                  marginTop: "1.75rem",
                   padding: "0.85rem",
                   fontSize: "0.95rem",
                   fontWeight: 700,
