@@ -238,7 +238,7 @@
 .qc-table .printz-search-box { flex: 1 1 280px; max-width: 420px; height: 38px; padding: 0 12px; box-sizing: border-box; border-radius: 10px; }
 .qc-table .printz-search-box input.printz-search-input { height: 100% !important; font-size: 13px !important; }
 .qc-table .printz-search-box input.printz-search-input::placeholder { color: #475569; }
-.qc-table .printz-table-scroll { background: #ffffff; border-radius: 12px; overflow: hidden; }
+.qc-table .printz-table-scroll { background: #ffffff; border-radius: 12px; overflow: auto; }
 
 /* Search sits to the left of the tab buttons */
 .qc-search {

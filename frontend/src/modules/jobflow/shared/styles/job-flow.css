@@ -1064,3 +1064,36 @@
 /* Job flow tables: no border or shadow ring (tables inside popups keep theirs) */
 .jf-container .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }
 .jf-modal .printz-dt-card, .jf-modal-overlay .printz-dt-card { border: 1px solid #e6ece9; }
+
+/* ---------- Fit-to-window list pages (JobFlowLayout fitViewport) ----------
+   The page itself does not scroll: header and toolbar stay put, the table card takes the rest of
+   the window and only its rows scroll (heading row and paging stay in view). Wide screens only. */
+@media (min-width: 900px) and (min-height: 560px) {
+  .jf-container.jf-fit {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .jf-container.jf-fit > .jf-header { flex-shrink: 0; }
+  .jf-container.jf-fit > .jf-content-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .jf-container.jf-fit > .jf-content-area > * { flex: 1 1 auto; min-height: 0; }
+  .jf-container.jf-fit .jf-content-area .printz-dt-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .jf-container.jf-fit .jf-content-area .printz-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+  }
+}

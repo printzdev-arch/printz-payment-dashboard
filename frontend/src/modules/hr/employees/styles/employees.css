@@ -439,11 +439,11 @@
 .dr-filters .branch-select-trigger { height: 38px; }
 .dr-refresh { margin-left: auto; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; color: #0f172a; cursor: pointer; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
 .dr-refresh:hover { background: #f1f5f9; }
-.dr-table .printz-table-scroll { background: #ffffff; border-radius: 12px; overflow: hidden; }
+.dr-table .printz-table-scroll { background: #ffffff; border-radius: 12px; overflow: auto; }
 @media (max-width: 640px) { .dr-filters { flex-wrap: wrap; } .dr-filters .branch-select-container { flex: 1 1 100%; width: 100%; } }
 
 /* Permission matrix: pages with View / Create / Edit / Delete */
-.emp-mx-wrap { border: 1px solid #e6ece9; border-radius: 12px; overflow: hidden; background: #ffffff; }
+.emp-mx-wrap { border: 1px solid #e6ece9; border-radius: 12px; overflow: auto; background: #ffffff; }
 .emp-mx { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; table-layout: fixed; }
 .emp-mx thead th { background: #065f46; color: #ffffff; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 6px; text-align: center; position: sticky; top: 0; z-index: 1; }
 .emp-mx thead th:first-child { text-align: left; padding-left: 14px; width: 42%; }

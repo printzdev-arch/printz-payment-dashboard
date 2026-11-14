@@ -1,0 +1,113 @@
+/* ==========================================================================
+   Tables: the heading row stays in place, only the rows scroll.
+
+   Every table wrapper below gets a height limit (about one screen) and scrolls inside itself,
+   and its heading cells stick to the top of that box. Tables inside pop-ups are left alone.
+   ========================================================================== */
+
+:is(
+  .printz-table-scroll,
+  .revenue-table-wrapper,
+  .jf-table-wrap,
+  .jf-table-wrapper,
+  .stock-table-wrapper,
+  .display-readings-table-wrap,
+  .add-stock-table-wrap,
+  .add-assets-table-wrap,
+  .jumbo-table-content,
+  .total-amount-content,
+  .po2-table-wrap,
+  .pp-table-wrap,
+  .salary-table-responsive,
+  .sales-history-container
+):not(:is(.jf-modal, [class*="modal"], [role="dialog"]) *) {
+  max-height: calc(100vh - 300px);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+:is(
+  .printz-table-scroll,
+  .revenue-table-wrapper,
+  .jf-table-wrap,
+  .jf-table-wrapper,
+  .stock-table-wrapper,
+  .display-readings-table-wrap,
+  .add-stock-table-wrap,
+  .add-assets-table-wrap,
+  .jumbo-table-content,
+  .total-amount-content,
+  .po2-table-wrap,
+  .pp-table-wrap,
+  .salary-table-responsive,
+  .sales-history-container
+):not(:is(.jf-modal, [class*="modal"], [role="dialog"]) *) thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-clip: padding-box;
+}
+
+/* A heading that has no colour of its own gets a solid one, so rows never show through it.
+   (:where adds no weight, so any colour a table already sets still wins.) */
+:where(
+  .printz-table-scroll,
+  .revenue-table-wrapper,
+  .jf-table-wrap,
+  .jf-table-wrapper,
+  .stock-table-wrapper,
+  .display-readings-table-wrap,
+  .add-stock-table-wrap,
+  .add-assets-table-wrap,
+  .jumbo-table-content,
+  .total-amount-content,
+  .po2-table-wrap,
+  .pp-table-wrap,
+  .salary-table-responsive,
+  .sales-history-container
+) thead {
+  background: #ffffff;
+}
+
+:where(
+  .printz-table-scroll,
+  .revenue-table-wrapper,
+  .jf-table-wrap,
+  .jf-table-wrapper,
+  .stock-table-wrapper,
+  .display-readings-table-wrap,
+  .add-stock-table-wrap,
+  .add-assets-table-wrap,
+  .jumbo-table-content,
+  .total-amount-content,
+  .po2-table-wrap,
+  .pp-table-wrap,
+  .salary-table-responsive,
+  .sales-history-container
+) thead :is(tr, th) {
+  background-color: inherit;
+}
+
+/* Printing shows the whole table, not a scroll box */
+@media print {
+  :is(
+    .printz-table-scroll,
+    .revenue-table-wrapper,
+    .jf-table-wrap,
+    .jf-table-wrapper,
+    .stock-table-wrapper,
+    .display-readings-table-wrap,
+    .add-stock-table-wrap,
+    .add-assets-table-wrap,
+    .jumbo-table-content,
+    .total-amount-content,
+    .po2-table-wrap,
+    .pp-table-wrap,
+    .salary-table-responsive,
+    .sales-history-container
+  ) {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}

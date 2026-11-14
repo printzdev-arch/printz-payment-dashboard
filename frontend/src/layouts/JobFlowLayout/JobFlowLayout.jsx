@@ -32,7 +32,8 @@ const tabs = [
   { path: "/jobflow/qr-request", label: "Branch QR Form", icon: QrCode },
 ];
 
-export const JobFlowLayout = ({ children, title, subtitle, actions, hideHeader = false }) => {
+// fitViewport: the page keeps its height to the window (no page scroll); a list table inside it scrolls its own rows.
+export const JobFlowLayout = ({ children, title, subtitle, actions, hideHeader = false, fitViewport = false }) => {
   const location = useLocation();
 
   const isTabActive = (tab) => {
@@ -43,7 +44,7 @@ export const JobFlowLayout = ({ children, title, subtitle, actions, hideHeader =
   };
 
   return (
-    <div className="jf-container">
+    <div className={`jf-container${fitViewport ? " jf-fit" : ""}`}>
       {/* Top Header */}
       {(!hideHeader || actions) && (
         <div className="jf-header">
