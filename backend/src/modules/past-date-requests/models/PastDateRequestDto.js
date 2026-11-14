@@ -40,7 +40,9 @@ class CreatePastDateRequestDto {
     const body = req.body || {};
     let requestedBy = body.requestedBy;
     if (!requestedBy && req.user) {
-      requestedBy = req.user.id || req.user._id || req.user.email || "Admin";
+      requestedBy = req.user.name
+        ? `${req.user.name}${req.user.email ? ` (${req.user.email})` : ""}`
+        : req.user.email || req.user.id || req.user._id || "Admin";
     }
 
     const branchNameStr = body.requestedBranch || body.requestedBranchName || body.branch || null;

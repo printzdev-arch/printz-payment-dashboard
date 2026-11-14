@@ -95,7 +95,7 @@ class ProductionStateService {
    *   1. checks the transition map (throws 409 when not allowed)
    *   2. appends to order.statusHistory
    *   3. saves the order
-   *   4. writes an audit entry (previous status, new status, reason, user)
+   *   (the status history on the order records who changed it, when, and why)
    *
    * Other field changes made on `order` before calling this are saved in the same write.
    */
@@ -105,16 +105,6 @@ class ProductionStateService {
 
     order.transitionTo(newStatus, { reason, userId: user ? user._id : null });
     await order.save();
-
-    await this.logStatusChange({
-      resource: "ProductionOrder",
-      resourceId: order._id,
-      from,
-      to: newStatus,
-      reason,
-      user,
-      branchId: order.branchId,
-    });
 
     return order;
   }
