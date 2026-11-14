@@ -33,6 +33,7 @@ import { usePopup } from "../../../../../shared/hooks/usePopup";
 import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 import StyledSelect from "../../../../../shared/ui/selects/StyledSelect";
+import canDo from "../../../../../shared/utils/permissions";
 
 try {
   applyPlugin(jsPDF);
@@ -905,12 +906,16 @@ const StockList = () => {
                     <button type="button" onClick={() => handleView(stock)} className="stock-btn-view" title="View Details">
                       <Eye size={15} />
                     </button>
-                    <button type="button" onClick={() => handleOpenEditModal(stock)} className="stock-btn-edit" title="Edit Stock Item">
-                      <Pencil size={15} />
-                    </button>
-                    <button type="button" onClick={() => handleDelete(stock.id)} className="stock-btn-delete" title="Delete Stock Item">
-                      <Trash2 size={15} />
-                    </button>
+                    {canDo("stock-list", "edit") && (
+                      <button type="button" onClick={() => handleOpenEditModal(stock)} className="stock-btn-edit" title="Edit Stock Item">
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {canDo("stock-list", "delete") && (
+                      <button type="button" onClick={() => handleDelete(stock.id)} className="stock-btn-delete" title="Delete Stock Item">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 ),
               },

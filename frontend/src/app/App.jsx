@@ -103,7 +103,7 @@ import {
   SalaryRecordsPage,
 } from "../modules/hr/salary";
 
-import { EmployeesPage, RoleManagementPage, RoleSetupPage } from "../modules/hr/employees";
+import { EmployeesPage, RoleManagementPage, RoleSetupPage, AuditTrailPage } from "../modules/hr/employees";
 
 import {
   SaleOrdersListPage,
@@ -194,6 +194,7 @@ const pageTitleMapping = {
   "/employees": "Employees",
   "/employees/roles": "Role Management",
   "/employees/role-setup": "Role Setup",
+  "/employees/audit": "Audit trail",
   "/attendance": "Daily Attendance",
   "/attendance/setup": "Attendance Setup",
   "/attendance/daily": "Daily Attendance",
@@ -1614,6 +1615,19 @@ const AppContent = () => {
               component={() => (
                 <LayoutWrapper>
                   <RoleSetupPage />
+                </LayoutWrapper>
+              )}
+            />
+          }
+        />
+        <Route
+          path="/employees/audit"
+          element={
+            <PrivateRoute
+              roles={["admin", "super_admin"]}
+              component={() => (
+                <LayoutWrapper>
+                  <AuditTrailPage />
                 </LayoutWrapper>
               )}
             />

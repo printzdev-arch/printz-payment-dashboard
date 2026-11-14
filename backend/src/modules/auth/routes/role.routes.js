@@ -15,6 +15,12 @@ router.get(
 );
 
 router.get(
+  "/audit",
+  requirePermission(PERMISSIONS.ADMIN.ROLE_VIEW, "ALL"),
+  roleController.getPermissionAudit
+);
+
+router.get(
   "/page-catalog",
   requirePermission(PERMISSIONS.ADMIN.ROLE_VIEW, "ALL"),
   roleController.getPageCatalog

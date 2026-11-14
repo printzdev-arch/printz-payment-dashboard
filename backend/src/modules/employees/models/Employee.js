@@ -78,6 +78,9 @@ const EmployeeSchema = new mongoose.Schema(
     // Menu items (keys from auth/constants/pageCatalog.js) this person may open. Left unset, the role's pages apply;
     // a list (even an empty one) replaces them. An empty list means no pages, so no login.
     pageAccess: { type: [String], default: undefined },
+    // This person's own actions per page ({ pageKey: ["view", ...] }). Used together with pageAccess: when the person has
+    // their own page list, these actions apply; otherwise the role's actions do.
+    pageActions: { type: mongoose.Schema.Types.Mixed, default: undefined },
     // Set when an admin lets this person sign in although their role does not (for example an Operator who needs a login).
     // The reason is required and is kept here so anyone can see why.
     // Why this person has pages beyond their role's. Required whenever the saved list goes past the role's pages.

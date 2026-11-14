@@ -174,6 +174,7 @@ class UserResponseDto {
       effectiveScopes: raw.effectiveScopes || undefined,
       roleCode: raw.roleCode,
       pageAccess: raw.pageAccess,
+      pageActions: raw.pageActions,
       allowedPaths: raw.allowedPaths,
       pageLinks: raw.pageLinks,
       isMfgUnit: raw.isMfgUnit || undefined,

@@ -13,6 +13,7 @@ import SaleOrderInvoiceModal from "../components/common/SaleOrderInvoiceModal";
 import { OrderStatusBadge, PriorityTag } from "../components/common/OrderStatusBadge";
 import { errorMessage, formatMoney } from "../utils/format";
 import "../styles/sale-order.css";
+import canDo from "../../../shared/utils/permissions";
 
 const CANCELLABLE = [
   "DRAFT", "PLACED", "WAITING_FOR_DESIGNER", "ASSIGNED", "IN_DESIGN",
@@ -137,7 +138,7 @@ export default function SaleOrderDetailPage() {
           )}
           {isDraft && (
             <>
-              <button type="button" className="so-btn secondary" onClick={() => navigate(`/sale-orders/${order._id}/edit`)}>
+              <button type="button" className="so-btn secondary" disabled={!canDo("sale-orders", "edit")} onClick={() => navigate(`/sale-orders/${order._id}/edit`)}>
                 <Pencil size={14} /> Edit Draft
               </button>
               <button type="button" className="so-btn primary" onClick={() => setShowPlace(true)}>
@@ -160,7 +161,7 @@ export default function SaleOrderDetailPage() {
               <HandCoins size={15} /> {Number(order.balanceDue) > 0 ? "Collect Balance & Deliver" : "Deliver to Customer"}
             </button>
           )}
-          {canCancel && (
+          {canCancel && canDo("sale-orders", "delete") && (
             <button type="button" className="so-btn danger" onClick={() => setModal("cancel")}>
               <XCircle size={15} /> Cancel Order
             </button>

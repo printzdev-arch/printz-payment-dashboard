@@ -2,7 +2,14 @@ const mongoose = require("mongoose");
 const Role = require("../models/Role");
 const Permission = require("../models/Permission");
 const PERMISSIONS = require("../../../utils/constants/permissions");
-const { publicCatalog, sanitizePageAccess } = require("../constants/pageCatalog");
+const { publicCatalog, sanitizePageAccess, sanitizePageActions, PAGE_ITEMS } = require("../constants/pageCatalog");
+const permissionAudit = require("../services/permissionAudit.service");
+
+// The pages and actions a role has now. A role with no page list is not limited, so it counts as every page.
+const roleState = (role) => ({
+  pages: Array.isArray(role.pageAccess) ? [...role.pageAccess] : PAGE_ITEMS.map((i) => i.key),
+  actions: role.pageActions ? JSON.parse(JSON.stringify(role.pageActions)) : null,
+});
 const { asyncHandler, ResponseHelper, ErrorHelper } = require("../../../utils");
 
 /**
@@ -236,12 +243,24 @@ const createRole = asyncHandler(async (req, res) => {
     description: dto.description || "",
     grants: dto.grants || [],
     pageAccess,
+    ...(dto.pageActions ? { pageActions: sanitizePageActions(dto.pageActions, pageAccess) } : {}),
     ...(loginAllowed === undefined ? {} : { loginAllowed }),
     isSystem: Boolean(dto.isSystem),
     isActive: true,
   });
 
   await role.save();
+
+  await permissionAudit.record({
+    targetType: "ROLE",
+    targetId: role._id,
+    targetName: role.name,
+    event: "CREATED",
+    actor: actingUser,
+    before: { pages: [], actions: null },
+    after: roleState(role),
+    ip: requestContext.ip,
+  });
 
   return ResponseHelper.created(res, role, "Role created successfully.");
 });
@@ -267,6 +286,7 @@ const updateRole = asyncHandler(async (req, res) => {
   if (role.isSystem && dto.code && dto.code !== role.code) {
     throw ErrorHelper.forbidden("Built-in system role codes cannot be modified.");
   }
+  const auditBefore = roleState(role);
 
   if (dto.grants && Array.isArray(dto.grants)) {
     await validateGrantDelegation(actingUser, dto.grants);
@@ -296,13 +316,44 @@ const updateRole = asyncHandler(async (req, res) => {
     if (role.code === "ADMIN" && !pages.includes("employees")) pages.push("employees");
     role.pageAccess = pages;
   }
+  // What the role may do on each page. Only pages the role can open keep an entry.
+  if (dto.pageActions !== undefined || dto.pageAccess !== undefined) {
+    if (role.code === "SUPER_ADMIN") {
+      throw ErrorHelper.forbidden("Super Admin always has every action and cannot be limited.");
+    }
+    if (dto.pageActions === null) {
+      role.pageActions = undefined;
+    } else {
+      const source = dto.pageActions !== undefined ? dto.pageActions : role.pageActions;
+      const kept = sanitizePageActions(source, Array.isArray(role.pageAccess) ? role.pageAccess : null);
+      role.pageActions = kept && Object.keys(kept).length > 0 ? kept : dto.pageActions !== undefined ? {} : undefined;
+    }
+    role.markModified("pageActions");
+  }
   if (dto.name !== undefined) role.name = dto.name.trim();
   if (dto.description !== undefined) role.description = dto.description;
   if (dto.isActive !== undefined) role.isActive = Boolean(dto.isActive);
 
   await role.save();
 
+  await permissionAudit.record({
+    targetType: "ROLE",
+    targetId: role._id,
+    targetName: role.name,
+    actor: actingUser,
+    before: auditBefore,
+    after: roleState(role),
+    ip: requestContext.ip,
+  });
+
   return ResponseHelper.success(res, role, "Role updated successfully.");
+});
+
+// GET /roles/audit: the saved history of permission changes (newest first)
+const getPermissionAudit = asyncHandler(async (req, res) => {
+  const { targetType, search, from, to, page, limit } = req.query || {};
+  const result = await permissionAudit.list({ targetType, search, from, to, page, limit });
+  return ResponseHelper.success(res, result, "Permission history retrieved.");
 });
 
 const deleteRole = asyncHandler(async (req, res) => {
@@ -331,6 +382,16 @@ const deleteRole = asyncHandler(async (req, res) => {
   }
 
   await Role.findByIdAndDelete(id);
+  await permissionAudit.record({
+    targetType: "ROLE",
+    targetId: role._id,
+    targetName: role.name,
+    event: "DELETED",
+    actor: req.user,
+    before: roleState(role),
+    after: { pages: [], actions: null },
+    ip: req.ip,
+  });
 
   // Employee role options are built from the "employeeRoles" master defaults, and any code listed
   // there without a role record is re-created on the next load. Remove the entry too so the
@@ -369,6 +430,7 @@ module.exports = {
   getRoles,
   getRolesMatrix,
   getPageCatalog,
+  getPermissionAudit,
   getPermissionsCatalogue,
   getRoleById,
   createRole,

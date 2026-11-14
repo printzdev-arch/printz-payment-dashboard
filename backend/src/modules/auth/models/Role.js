@@ -39,6 +39,9 @@ const RoleSchema = new mongoose.Schema(
     // Menu items (keys from constants/pageCatalog.js) this role may open. Left unset on older roles, which
     // means "no page restriction"; an empty list means the role has no pages and so cannot sign in.
     pageAccess: { type: [String], default: undefined },
+    // What the role may do on each page ({ pageKey: ["view", "create", "edit", "delete"] }). A page that is not listed
+    // here keeps every action, so older roles are unchanged until someone sets their actions.
+    pageActions: { type: mongoose.Schema.Types.Mixed, default: undefined },
     // Can people with this role have a login? Left unset on older roles, where it is worked out from pageAccess
     // (and the Operator rule). When false, the role has no pages and its people cannot sign in.
     loginAllowed: { type: Boolean, default: undefined },

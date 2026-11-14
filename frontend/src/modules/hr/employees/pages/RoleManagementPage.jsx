@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import employeesApi from "../api/employeesApi";
-import CapabilityGrid from "../components/CapabilityGrid";
+import PermissionMatrix from "../components/PermissionMatrix";
+import AccessControlNav from "../components/AccessControlNav";
 import { allLeafKeys, expandKeys } from "../components/capabilityUtils";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import "../styles/employees.css";
@@ -18,7 +19,7 @@ const errorMessage = (e, fallback) => e?.response?.data?.message || e?.message |
 const ADMIN_CODES = ["SUPER_ADMIN", "ADMIN"];
 // Super Admin always has every page and cannot be limited
 const isSuper = (role) => role.code === "SUPER_ADMIN";
-const EMPTY = { id: null, code: "", name: "", description: "", pageAccess: [], loginAllowed: true, locked: false, legacy: false, readOnly: false };
+const EMPTY = { id: null, code: "", name: "", description: "", pageAccess: [], pageActions: {}, loginAllowed: true, locked: false, legacy: false, readOnly: false };
 
 const loginLabel = (role, requiresLogin = {}) => {
   if (ADMIN_CODES.includes(role.code)) return { text: "Can sign in", on: true };
@@ -70,6 +71,7 @@ export default function RoleManagementPage() {
       description: role.description || "",
       // An Admin role with no list yet can open everything, so editing starts from every page ticked
       pageAccess: isSuper(role) ? allKeys : Array.isArray(role.pageAccess) ? expandKeys(role.pageAccess, catalog) : ADMIN_CODES.includes(role.code) ? allKeys : [],
+      pageActions: role.pageActions && typeof role.pageActions === "object" ? { ...role.pageActions } : {},
       // Admin roles always sign in; other roles use their own setting, or what was worked out for older roles
       loginAllowed: ADMIN_CODES.includes(role.code)
         ? true
@@ -93,12 +95,9 @@ export default function RoleManagementPage() {
   const setLoginAllowed = (allowed) =>
     setDraft((d) => ({ ...d, legacy: false, loginAllowed: allowed, pageAccess: allowed ? d.pageAccess : [] }));
 
-  // Ticks or unticks a page or a whole menu: if every key is ticked they are all unticked, otherwise all are ticked
-  const toggleMany = (keys) => {
-    if (keys.length === 0) return;
-    const all = keys.every((k) => draft.pageAccess.includes(k));
-    setPages(all ? draft.pageAccess.filter((k) => !keys.includes(k)) : [...new Set([...draft.pageAccess, ...keys])]);
-  };
+  // The matrix changes pages (a ticked View) and what can be done on each page together
+  const changeMatrix = (pageAccess, pageActions) =>
+    setDraft((d) => ({ ...d, legacy: false, pageAccess: d.locked ? [...new Set([...pageAccess, "employees"])] : pageAccess, pageActions }));
 
   const confirmDelete = async () => {
     setDeleteBusy(true);
@@ -122,6 +121,7 @@ export default function RoleManagementPage() {
     setSaving(true);
     try {
       const payload = { name: draft.name.trim(), description: draft.description, pageAccess: draft.pageAccess };
+      if (!draft.readOnly) payload.pageActions = draft.pageActions || {};
       if (!draft.locked) payload.loginAllowed = draft.loginAllowed;
       if (draft.id) await employeesApi.updateRole(draft.id, payload);
       else await employeesApi.createRole(payload);
@@ -217,10 +217,11 @@ export default function RoleManagementPage() {
           )}
           {noPages && <p className="emp-hint emp-hint-warn">No page ticked, so this role cannot sign in.</p>}
 
-          <CapabilityGrid
+          <PermissionMatrix
             catalog={catalog}
-            selected={draft.pageAccess}
-            onToggleKeys={toggleMany}
+            pages={draft.pageAccess}
+            actions={draft.pageActions || {}}
+            onChange={changeMatrix}
             lockedKeys={draft.locked ? ["employees"] : []}
             disabled={frozen}
           />
@@ -249,9 +250,7 @@ export default function RoleManagementPage() {
           
         </div>
         <div className="emp-header-actions">
-          <button type="button" className="emp-btn" onClick={() => navigate("/employees")}>
-            <ArrowLeft size={15} /> Employees
-          </button>
+          <AccessControlNav />
           <button type="button" className="emp-btn emp-btn-primary" onClick={() => setDraft({ ...EMPTY })}>
             <Plus size={15} /> New role
           </button>

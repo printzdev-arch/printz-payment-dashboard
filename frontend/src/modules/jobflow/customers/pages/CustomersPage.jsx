@@ -25,6 +25,7 @@ import StyledSelect from "../../../../shared/ui/selects/StyledSelect";
 import "../styles/customers.css";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import canDo from "../../../../shared/utils/permissions";
 
 export const CustomersPage = () => {
   const navigate = useNavigate();
@@ -265,17 +266,19 @@ export const CustomersPage = () => {
             >
               <ExternalLink size={16} /> Open QR Form
             </button>
-            <button
-              type="button"
-              className="jf-btn jf-btn-primary"
-              onClick={() => {
-                setSelectedCustomer(null);
-                setIsAddModalOpen(true);
-              }}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <Plus size={16} /> Add Customer
-            </button>
+            {canDo("customer-directory", "create") && (
+              <button
+                type="button"
+                className="jf-btn jf-btn-primary"
+                onClick={() => {
+                  setSelectedCustomer(null);
+                  setIsAddModalOpen(true);
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <Plus size={16} /> Add Customer
+              </button>
+            )}
           </div>
       </div>
 
@@ -470,33 +473,37 @@ export const CustomersPage = () => {
                 >
                   <Eye size={15} />
                 </button>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedCustomer(row);
-                    setIsAddModalOpen(true);
-                  }}
-                  title="Edit Customer"
-                  aria-label="Edit Customer"
-                  style={{ padding: "0.35rem 0.5rem" }}
-                >
-                  <Edit2 size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-danger-outline jf-btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteCustomer(row);
-                  }}
-                  title="Delete Customer"
-                  aria-label="Delete Customer"
-                  style={{ padding: "0.35rem 0.5rem" }}
-                >
-                  <Trash2 size={15} />
-                </button>
+                {canDo("customer-directory", "edit") && (
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-secondary jf-btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCustomer(row);
+                      setIsAddModalOpen(true);
+                    }}
+                    title="Edit Customer"
+                    aria-label="Edit Customer"
+                    style={{ padding: "0.35rem 0.5rem" }}
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                )}
+                {canDo("customer-directory", "delete") && (
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-danger-outline jf-btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCustomer(row);
+                    }}
+                    title="Delete Customer"
+                    aria-label="Delete Customer"
+                    style={{ padding: "0.35rem 0.5rem" }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
             ),
           },

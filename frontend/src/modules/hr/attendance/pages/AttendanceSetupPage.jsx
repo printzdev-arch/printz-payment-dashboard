@@ -19,6 +19,7 @@ import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import SelectField from "../../../../shared/ui/selects/SelectField";
 import "../styles/attendance.css";
+import canDo from "../../../../shared/utils/permissions";
 
 export default function AttendanceSetupPage() {
   const [activeTab, setActiveTab] = useState("policies"); // "policies" | "calendars"
@@ -242,29 +243,33 @@ export default function AttendanceSetupPage() {
           </div>
 
           {activeTab === "policies" ? (
-            <button
-              type="button"
-              className="btn-printz-primary"
-              onClick={() => {
-                setEditingPolicy(null);
-                setIsPolicyModalOpen(true);
-              }}
-            >
-              <Plus size={16} />
-              <span>Create Policy</span>
-            </button>
+            canDo("attendance-setup", "create") && (
+              <button
+                type="button"
+                className="btn-printz-primary"
+                onClick={() => {
+                  setEditingPolicy(null);
+                  setIsPolicyModalOpen(true);
+                }}
+              >
+                <Plus size={16} />
+                <span>Create Policy</span>
+              </button>
+            )
           ) : (
-            <button
-              type="button"
-              className="btn-printz-primary"
-              onClick={() => {
-                setEditingHoliday(null);
-                setIsHolidayModalOpen(true);
-              }}
-            >
-              <Plus size={16} />
-              <span>Add Holiday</span>
-            </button>
+            canDo("attendance-setup", "create") && (
+              <button
+                type="button"
+                className="btn-printz-primary"
+                onClick={() => {
+                  setEditingHoliday(null);
+                  setIsHolidayModalOpen(true);
+                }}
+              >
+                <Plus size={16} />
+                <span>Add Holiday</span>
+              </button>
+            )
           )}
         </div>
       </div>
@@ -354,25 +359,29 @@ export default function AttendanceSetupPage() {
                   >
                     <Eye size={15} />
                   </button>
-                  <button
-                    type="button"
-                    className="icon-btn edit"
-                    title="Edit Policy"
-                    onClick={() => {
-                      setEditingPolicy(p);
-                      setIsPolicyModalOpen(true);
-                    }}
-                  >
-                    <Edit2 size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn delete"
-                    title="Delete Policy"
-                    onClick={() => handleDeletePolicy(p._id)}
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {canDo("attendance-setup", "edit") && (
+                    <button
+                      type="button"
+                      className="icon-btn edit"
+                      title="Edit Policy"
+                      onClick={() => {
+                        setEditingPolicy(p);
+                        setIsPolicyModalOpen(true);
+                      }}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                  )}
+                  {canDo("attendance-setup", "delete") && (
+                    <button
+                      type="button"
+                      className="icon-btn delete"
+                      title="Delete Policy"
+                      onClick={() => handleDeletePolicy(p._id)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               ),
             },
@@ -418,25 +427,29 @@ export default function AttendanceSetupPage() {
                 className: "printz-cell-actions",
                 render: (h) => (
                   <div className="action-icon-group" style={{ justifyContent: "flex-end" }}>
-                    <button
-                      type="button"
-                      className="icon-btn edit"
-                      title="Edit Holiday"
-                      onClick={() => {
-                        setEditingHoliday(h);
-                        setIsHolidayModalOpen(true);
-                      }}
-                    >
-                      <Edit2 size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn delete"
-                      title="Delete Holiday"
-                      onClick={() => handleDeleteHoliday(h.calendarId, h.date)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {canDo("attendance-setup", "edit") && (
+                      <button
+                        type="button"
+                        className="icon-btn edit"
+                        title="Edit Holiday"
+                        onClick={() => {
+                          setEditingHoliday(h);
+                          setIsHolidayModalOpen(true);
+                        }}
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                    )}
+                    {canDo("attendance-setup", "delete") && (
+                      <button
+                        type="button"
+                        className="icon-btn delete"
+                        title="Delete Holiday"
+                        onClick={() => handleDeleteHoliday(h.calendarId, h.date)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 ),
               },

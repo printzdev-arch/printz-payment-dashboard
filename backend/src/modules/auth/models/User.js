@@ -207,7 +207,7 @@ userSchema.statics.enrichUser = async function (user) {
   if (userObj.employeeId) {
     const Employee = require("../../employees/models/Employee");
     const employee = await Employee.findById(userObj.employeeId)
-      .populate("roleId", "code name grants pageAccess")
+      .populate("roleId", "code name grants pageAccess pageActions")
       .populate("branchId", "name code location branchType")
       .lean();
 
@@ -257,6 +257,9 @@ userSchema.statics.enrichUser = async function (user) {
           const isManagerRole = ["MANAGER", "BRANCH_MANAGER", "BRANCH_MANAGER1"].includes(String(roleDoc.code || "").toUpperCase());
           const shownPages = isManagerRole ? effectivePages.filter((k) => k !== "employees") : effectivePages;
           userObj.pageAccess = effectivePages;
+          // Actions follow the same rule as pages: the person's own list wins, otherwise the role's
+          const effectiveActions = Array.isArray(employee.pageAccess) ? employee.pageActions : roleDoc.pageActions;
+          if (effectiveActions && typeof effectiveActions === "object") userObj.pageActions = effectiveActions;
           userObj.allowedPaths = pathsFor(shownPages, { admin: isAdminRole });
           userObj.pageLinks = linksFor(shownPages, { admin: isAdminRole });
         }
