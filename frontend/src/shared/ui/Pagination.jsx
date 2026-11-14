@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import SelectField from "./selects/SelectField";
 import "../styles/printzTheme.css";
 
 /**
@@ -14,8 +15,9 @@ import "../styles/printzTheme.css";
  * - itemsPerPage: number (items visible per page)
  * - onPageChange: (page: number) => void
  * - onItemsPerPageChange?: (limit: number) => void
- * - pageSizeOptions?: number[] (default: [10, 20, 50, 100])
+ * - pageSizeOptions?: number[] (default: [5, 10, 20, 50, 100]; 5 is always offered)
  * - itemLabel?: string (default: "items")
+ * - variant?: "compact" | "default" (default: "compact", the standard look used by every table)
  */
 const Pagination = ({
   currentPage = 1,
@@ -23,10 +25,12 @@ const Pagination = ({
   itemsPerPage = 10,
   onPageChange,
   onItemsPerPageChange,
-  pageSizeOptions = [10, 20, 50, 100],
+  pageSizeOptions: pageSizeOptionsProp = [5, 10, 20, 50, 100],
   itemLabel = "items",
-  variant = "default", // "default" | "compact" (job flow style: "Showing 1 to 5 of 40", Rows select, 3 page numbers + …)
+  variant = "compact", // "compact" (default: "Showing 1 to 5 of 40", Rows select, 3 page numbers + …) | "default" (older numbered style)
 }) => {
+  // Every table offers 5 rows per page, whatever list the page passes; keep the current size in the list too
+  const pageSizeOptions = Array.from(new Set([5, ...pageSizeOptionsProp, itemsPerPage])).sort((a, b) => a - b);
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   // Compute 1-indexed item start and end ranges
@@ -82,32 +86,20 @@ const Pagination = ({
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           {onItemsPerPageChange && (
-            <label style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              Rows:
-              <select
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <span>Rows:</span>
+              <SelectField
+                compact
+                dropUp
+                searchable={false}
                 value={itemsPerPage}
+                options={pageSizeOptions}
                 onChange={(e) => {
                   onItemsPerPageChange(Number(e.target.value));
                   if (onPageChange) onPageChange(1);
                 }}
-                title="Rows per page"
-                style={{
-                  height: "34px",
-                  padding: "0 8px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  fontSize: "14px",
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                }}
-              >
-                {pageSizeOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
           )}
           <button
             type="button"

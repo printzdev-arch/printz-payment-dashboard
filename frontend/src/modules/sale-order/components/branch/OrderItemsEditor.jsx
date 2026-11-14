@@ -1,5 +1,6 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
+import SelectField from "../../../../shared/ui/selects/SelectField";
 import { PRODUCT_TYPES, UNITS, typeLabel } from "../../utils/saleOrderStatus";
 import { emptyItem, lineAmount } from "../../utils/totals";
 import { formatMoney } from "../../utils/format";
@@ -52,11 +53,13 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
           <div className="so-item-grid">
             <div className="so-field c4">
               <label>Product</label>
-              <select className="so-select" value={it.productType} onChange={(e) => setField(idx, "productType", e.target.value)} disabled={disabled}>
-                {PRODUCT_TYPES.map((p) => (
-                  <option key={p} value={p}>{typeLabel(p)}</option>
-                ))}
-              </select>
+              <SelectField
+                searchable={false}
+                value={it.productType}
+                onChange={(e) => setField(idx, "productType", e.target.value)}
+                disabled={disabled}
+                options={PRODUCT_TYPES.map((p) => ({ value: p, label: typeLabel(p) }))}
+              />
             </div>
             <div className="so-field c6">
               <label>What to make <span className="req">*</span></label>
@@ -72,12 +75,14 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
             {SPEC_SELECTS.map((s) => (
               <div className={`so-field ${s.col}`} key={s.key}>
                 <label>{s.label} <span className="req">*</span></label>
-                <select className="so-select" value={it[s.key] || ""} onChange={(e) => setField(idx, s.key, e.target.value)} disabled={disabled}>
-                  <option value="">Select {s.label}</option>
-                  {optionsFor(s, it[s.key]).map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
+                <SelectField
+                  searchable={false}
+                  value={it[s.key] || ""}
+                  onChange={(e) => setField(idx, s.key, e.target.value)}
+                  disabled={disabled}
+                  placeholder={`Select ${s.label}`}
+                  options={optionsFor(s, it[s.key])}
+                />
               </div>
             ))}
 
@@ -87,11 +92,13 @@ export default function OrderItemsEditor({ items, onChange, disabled = false }) 
             </div>
             <div className="so-field c2">
               <label>Unit</label>
-              <select className="so-select" value={it.unit} onChange={(e) => setField(idx, "unit", e.target.value)} disabled={disabled}>
-                {UNITS.map((u) => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
+              <SelectField
+                searchable={false}
+                value={it.unit}
+                onChange={(e) => setField(idx, "unit", e.target.value)}
+                disabled={disabled}
+                options={UNITS}
+              />
             </div>
             <div className="so-field c2">
               <label>Rate (₹) <span className="req">*</span></label>

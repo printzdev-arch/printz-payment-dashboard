@@ -23,7 +23,7 @@ import OperationPauseModal from "../components/OperationPauseModal";
 import "../styles/reprint-batches.css";
 import "../styles/production-theme.css";
 
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants and helpers                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -85,22 +85,6 @@ const modalOrder = (row) => ({ jobNo: row.jobNo, plannedQty: row.plannedQty });
 
 function Pill({ tone, children }) {
   return <span className={`status-pill rb-pill rb-${tone}`}>{children}</span>;
-}
-
-function Pager({ page, total, onChange, pageSize, onPageSizeChange }) {
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  return (
-    <Pagination
-      variant="compact"
-      currentPage={Math.min(page, pages)}
-      totalItems={total}
-      itemsPerPage={pageSize}
-      onPageChange={(n) => onChange(Math.min(Math.max(1, n), pages))}
-      onItemsPerPageChange={onPageSizeChange}
-      pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-      itemLabel="records"
-    />
-  );
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -365,115 +349,81 @@ function ReprintTab({ onChanged }) {
         </div>
       </div>
 
-      <div className="reprint-table-card">
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Request </th>
-                <th>Job NO</th>
-                <th>Customer & Product</th>
-                <th>Reprint Qty</th>
-                <th>Defect Reason</th>
-                <th>Requested By</th>
-                <th>Requested On</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    Loading reprint requests…
-                  </td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    <div>{error}</div>
-                    <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={load}>
-                      Try again
+      <DataTable
+        searchable={false}
+        loading={loading}
+        data={error ? [] : rows}
+        pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+        serverPagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: setPageSize }}
+        emptyMessage={
+          error ? (
+            <>
+              <div>{error}</div>
+              <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={load}>
+                Try again
+              </button>
+            </>
+          ) : (
+            "No reprint requests found."
+          )
+        }
+        columns={[
+          { key: "requestNo", label: "Request", render: (r) => <b className="rb-request-no">{r.requestNo || "—"}</b> },
+          { key: "jobNo", label: "Job NO", render: (r) => <b>{r.jobNo || "—"}</b> },
+          {
+            key: "customer",
+            label: "Customer & Product",
+            render: (r) => (
+              <>
+                <b>{r.customerName || "—"}</b>
+                <div className="rb-muted">{r.productName || "—"}</div>
+              </>
+            ),
+          },
+          { key: "qty", label: "Reprint Qty", render: (r) => <span className="rb-qty-pill">{num(r.requestedQty ?? r.quantity)} pcs</span> },
+          {
+            key: "reason",
+            label: "Defect Reason",
+            className: "rb-col-defect",
+            render: (r) => (
+              <div className="rb-defect-box">
+                <div>{r.reason || "QC defect recorded"}</div>
+                <div className="rb-muted rb-defect-subtitle">
+                  {r.defectType ? `${r.defectType} · ` : ""}Restart: {r.restartFromOperationCode || "PRINT"}
+                </div>
+              </div>
+            ),
+          },
+          { key: "requestedByName", label: "Requested By", render: (r) => r.requestedByName || "—" },
+          { key: "createdAt", label: "Requested On", render: (r) => fmtDateTime(r.createdAt) },
+          {
+            key: "status",
+            label: "Status",
+            render: (r) => <Pill tone={String(r.status).toLowerCase()}>{REPRINT_STATUS_LABEL[r.status] || r.status}</Pill>,
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (r) => (
+              <div className="rb-actions-group">
+                {r.status === "REQUESTED" && (
+                  <>
+                    <button type="button" className="btn btn-small btn-success" onClick={() => setDecision({ request: r, type: "APPROVE" })}>
+                      Approve
                     </button>
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    No reprint requests found.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((r) => {
-                  const id = r._id || r.id;
-                  return (
-                    <tr key={id}>
-                      <td>
-                        <b className="rb-request-no">{r.requestNo || "—"}</b>
-                      </td>
-                      <td>
-                        <b>{r.jobNo || "—"}</b>
-                      </td>
-                      <td>
-                        <b>{r.customerName || "—"}</b>
-                        <div className="rb-muted">{r.productName || "—"}</div>
-                      </td>
-                      <td>
-                        <span className="rb-qty-pill">{num(r.requestedQty ?? r.quantity)} pcs</span>
-                      </td>
-                      <td className="rb-col-defect">
-                        <div className="rb-defect-box">
-                          <div>{r.reason || "QC defect recorded"}</div>
-                          <div className="rb-muted rb-defect-subtitle">
-                            {r.defectType ? `${r.defectType} · ` : ""}Restart: {r.restartFromOperationCode || "PRINT"}
-                          </div>
-                        </div>
-                      </td>
-                      <td>{r.requestedByName || "—"}</td>
-                      <td>{fmtDateTime(r.createdAt)}</td>
-                      <td>
-                        <Pill tone={String(r.status).toLowerCase()}>{REPRINT_STATUS_LABEL[r.status] || r.status}</Pill>
-                      </td>
-                      <td>
-                        <div className="rb-actions-group">
-                          {r.status === "REQUESTED" && (
-                            <>
-                              <button
-                                type="button"
-                                className="btn btn-small btn-success"
-                                onClick={() => setDecision({ request: r, type: "APPROVE" })}
-                              >
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-small btn-danger"
-                                onClick={() => setDecision({ request: r, type: "REJECT" })}
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                          <button
-                            type="button"
-                            className="btn btn-small btn-secondary"
-                            onClick={() => setDetails(r)}
-                            aria-label="View details"
-                          >
-                            <Eye size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <Pager page={page} total={total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
+                    <button type="button" className="btn btn-small btn-danger" onClick={() => setDecision({ request: r, type: "REJECT" })}>
+                      Reject
+                    </button>
+                  </>
+                )}
+                <button type="button" className="btn btn-small btn-secondary" onClick={() => setDetails(r)} aria-label="View details">
+                  <Eye size={13} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {details && <ReprintDetailsModal request={details} onClose={() => setDetails(null)} />}
 
@@ -621,136 +571,139 @@ function ReworkTab({ onChanged }) {
         </div>
       </div>
 
-      <div className="reprint-table-card">
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Job No</th>
-                <th>Customer & Product</th>
-                <th>Rework Operation</th>
-                <th>Defect / Instructions</th>
-                <th>Affected Qty</th>
-                <th>Machine / Operator</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    Loading rework tasks…
-                  </td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    <div>{error}</div>
-                    <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={load}>
-                      Try again
+      <DataTable
+        searchable={false}
+        loading={loading}
+        data={error ? [] : rows}
+        pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+        serverPagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: setPageSize }}
+        emptyMessage={
+          error ? (
+            <>
+              <div>{error}</div>
+              <button type="button" className="jf-btn jf-btn-secondary jf-btn-sm" onClick={load}>
+                Try again
+              </button>
+            </>
+          ) : (
+            <>
+              <RotateCcw size={30} className="rb-empty-icon" />
+              <div className="rb-empty-title">No rework tasks</div>
+              <div className="rb-muted">When QC sends an order back for rework, its tasks appear here.</div>
+            </>
+          )
+        }
+        columns={[
+          { key: "jobNo", label: "Job No", render: (row) => <b>{row.jobNo || "—"}</b> },
+          {
+            key: "customer",
+            label: "Customer & Product",
+            render: (row) => (
+              <>
+                <b>{row.customerName || "—"}</b>
+                <div className="rb-muted">{row.productName || "—"}</div>
+              </>
+            ),
+          },
+          {
+            key: "operation",
+            label: "Rework Operation",
+            render: (row) => (
+              <>
+                <b>{row.operationName || row.operationCode}</b>
+                <div className="rb-muted">Step #{row.sequenceNo}</div>
+              </>
+            ),
+          },
+          {
+            key: "defect",
+            label: "Defect / Instructions",
+            className: "rb-col-defect",
+            render: (row) => (
+              <div className="rb-defect-box">
+                <div>{row.remarks || row.failureReason || "Sent back by QC"}</div>
+                {row.instructions && <div className="rb-muted rb-defect-subtitle">{row.instructions}</div>}
+              </div>
+            ),
+          },
+          { key: "plannedQty", label: "Affected Qty", render: (row) => <span className="rb-qty-pill">{num(row.plannedQty)} pcs</span> },
+          {
+            key: "machine",
+            label: "Machine / Operator",
+            render: (row) => (
+              <>
+                {row.machine || "—"}
+                <div className="rb-muted">{row.operator || "Unassigned"}</div>
+              </>
+            ),
+          },
+          {
+            key: "priority",
+            label: "Priority",
+            render: (row) => {
+              const urgent = ["URGENT", "HIGH", "RUSH"].includes(String(row.priority || "").toUpperCase());
+              return <Pill tone={urgent ? "rejected" : "completed"}>{urgent ? "Urgent" : "Normal"}</Pill>;
+            },
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (row) => {
+              const s = row.availabilityStatus;
+              return <Pill tone={`op-${String(s).toLowerCase()}`}>{REWORK_STATUS_LABEL[s] || s}</Pill>;
+            },
+          },
+          {
+            key: "action",
+            label: "Action",
+            render: (row) => {
+              const s = row.availabilityStatus;
+              const busy = busyId === row.id;
+              const canSkip = !isEssential(row) && ["READY", "BLOCKED", "PAUSED", "FAILED"].includes(s);
+              return (
+                <div className="rb-actions-group">
+                  {s === "READY" && (
+                    <button type="button" className="btn btn-small btn-success" onClick={() => setModal({ type: "START", row })}>
+                      <Play size={12} /> Start
                     </button>
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    <RotateCcw size={30} className="rb-empty-icon" />
-                    <div className="rb-empty-title">No rework tasks</div>
-                    <div className="rb-muted">When QC sends an order back for rework, its tasks appear here.</div>
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => {
-                  const s = row.availabilityStatus;
-                  const busy = busyId === row.id;
-                  const urgent = ["URGENT", "HIGH", "RUSH"].includes(String(row.priority || "").toUpperCase());
-                  const canSkip = !isEssential(row) && ["READY", "BLOCKED", "PAUSED", "FAILED"].includes(s);
-                  return (
-                    <tr key={row.id}>
-                      <td>
-                        <b>{row.jobNo || "—"}</b>
-                      </td>
-                      <td>
-                        <b>{row.customerName || "—"}</b>
-                        <div className="rb-muted">{row.productName || "—"}</div>
-                      </td>
-                      <td>
-                        <b>{row.operationName || row.operationCode}</b>
-                        <div className="rb-muted">Step #{row.sequenceNo}</div>
-                      </td>
-                      <td className="rb-col-defect">
-                        <div className="rb-defect-box">
-                          <div>{row.remarks || row.failureReason || "Sent back by QC"}</div>
-                          {row.instructions && <div className="rb-muted rb-defect-subtitle">{row.instructions}</div>}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="rb-qty-pill">{num(row.plannedQty)} pcs</span>
-                      </td>
-                      <td>
-                        {row.machine || "—"}
-                        <div className="rb-muted">{row.operator || "Unassigned"}</div>
-                      </td>
-                      <td>
-                        <Pill tone={urgent ? "rejected" : "completed"}>{urgent ? "Urgent" : "Normal"}</Pill>
-                      </td>
-                      <td>
-                        <Pill tone={`op-${String(s).toLowerCase()}`}>{REWORK_STATUS_LABEL[s] || s}</Pill>
-                      </td>
-                      <td>
-                        <div className="rb-actions-group">
-                          {s === "READY" && (
-                            <button type="button" className="btn btn-small btn-success" onClick={() => setModal({ type: "START", row })}>
-                              <Play size={12} /> Start
-                            </button>
-                          )}
-                          {s === "IN_PROGRESS" && (
-                            <>
-                              <button type="button" className="btn btn-small btn-success" onClick={() => setModal({ type: "COMPLETE", row })}>
-                                <Check size={12} /> Complete
-                              </button>
-                              <button type="button" className="btn btn-small btn-secondary" onClick={() => setModal({ type: "PAUSE", row })}>
-                                <Pause size={12} /> Pause
-                              </button>
-                            </>
-                          )}
-                          {s === "PAUSED" && (
-                            <button type="button" className="btn btn-small btn-success" disabled={busy} onClick={() => direct("RESUME", row)}>
-                              <Play size={12} /> Resume
-                            </button>
-                          )}
-                          {s === "FAILED" && (
-                            <button type="button" className="btn btn-small btn-success" disabled={busy} onClick={() => direct("RETRY", row)}>
-                              <RotateCcw size={12} /> Retry
-                            </button>
-                          )}
-                          {(s === "IN_PROGRESS" || s === "PAUSED") && (
-                            <button type="button" className="btn btn-small btn-danger" onClick={() => setModal({ type: "FAIL", row })}>
-                              <XCircle size={12} /> Fail
-                            </button>
-                          )}
-                          {canSkip && (
-                            <button type="button" className="btn btn-small btn-secondary" onClick={() => setModal({ type: "SKIP", row })}>
-                              <SkipForward size={12} /> Skip
-                            </button>
-                          )}
-                          {["COMPLETED", "SKIPPED", "BLOCKED", "ON_HOLD"].includes(s) && !canSkip && (
-                            <span className="rb-muted">—</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <Pager page={page} total={total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
+                  )}
+                  {s === "IN_PROGRESS" && (
+                    <>
+                      <button type="button" className="btn btn-small btn-success" onClick={() => setModal({ type: "COMPLETE", row })}>
+                        <Check size={12} /> Complete
+                      </button>
+                      <button type="button" className="btn btn-small btn-secondary" onClick={() => setModal({ type: "PAUSE", row })}>
+                        <Pause size={12} /> Pause
+                      </button>
+                    </>
+                  )}
+                  {s === "PAUSED" && (
+                    <button type="button" className="btn btn-small btn-success" disabled={busy} onClick={() => direct("RESUME", row)}>
+                      <Play size={12} /> Resume
+                    </button>
+                  )}
+                  {s === "FAILED" && (
+                    <button type="button" className="btn btn-small btn-success" disabled={busy} onClick={() => direct("RETRY", row)}>
+                      <RotateCcw size={12} /> Retry
+                    </button>
+                  )}
+                  {(s === "IN_PROGRESS" || s === "PAUSED") && (
+                    <button type="button" className="btn btn-small btn-danger" onClick={() => setModal({ type: "FAIL", row })}>
+                      <XCircle size={12} /> Fail
+                    </button>
+                  )}
+                  {canSkip && (
+                    <button type="button" className="btn btn-small btn-secondary" onClick={() => setModal({ type: "SKIP", row })}>
+                      <SkipForward size={12} /> Skip
+                    </button>
+                  )}
+                  {["COMPLETED", "SKIPPED", "BLOCKED", "ON_HOLD"].includes(s) && !canSkip && <span className="rb-muted">—</span>}
+                </div>
+              );
+            },
+          },
+        ]}
+      />
 
       {modalProps && (
         <>

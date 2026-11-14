@@ -39,9 +39,23 @@
 .so-title-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
+.so-title-row h1 { margin: 0; line-height: 1.2; }
+
+/* Customer · branch → manufacturing unit, as small tidy pills */
+.so-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.so-meta-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 999px;
+  padding: 4px 11px; font-size: 12.5px; font-weight: 500; color: #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.so-meta-item svg { color: #059669; flex-shrink: 0; }
+.so-meta-arrow { color: #94a3b8; flex-shrink: 0; }
+.so-meta-sep { display: none; }
 
 .so-back-link {
   display: inline-flex;
@@ -63,6 +77,13 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+/* BranchSelect is 100% wide by default; keep it beside the button */
+.so-header-actions .branch-select-container { width: 220px; flex: 0 0 220px; }
+.so-header-actions .so-btn { height: 42px; white-space: nowrap; }
+@media (max-width: 520px) {
+  .so-header-actions { width: 100%; }
+  .so-header-actions .branch-select-container { flex: 1 1 100%; width: 100%; }
 }
 
 /* ─── Buttons (Attendance & Modern Dashboard UI Styling) ───────────────── */
@@ -240,6 +261,143 @@
 
 .so-filters .so-select { width: auto; min-width: 160px; font-weight: 500; cursor: pointer; }
 .so-filters .so-input.date { width: auto; }
+/* No outer box around the filter row */
+.so-filters { background: transparent; border: none; box-shadow: none; padding: 0; }
+/* Darker text on the list page */
+.so-filters .so-select,
+.so-filters .so-input { color: #0f172a; }
+.so-filters .so-input::placeholder { color: #475569; }
+.so-search svg { color: #475569; }
+.so-page .printz-dt-card tbody td { color: #0f172a; font-weight: 600; }
+.so-filters .calendar-select-trigger-text.placeholder,
+.so-filters .so-input::placeholder { color: #1e293b; }
+.so-filters .so-select,
+.so-filters .so-input,
+.so-filters .calendar-select-trigger-text { font-weight: 500; }
+.so-page .printz-dt-card tbody td .muted,
+.so-page .printz-dt-card tbody td .sub { color: #334155; }
+.so-page .printz-dt-card .printz-dt-footer,
+.so-page .printz-dt-card [class*="info"] { color: #334155; }
+/* Date pickers are 100% wide by default; keep them compact so the filters sit in one row */
+.so-filters .calendar-select-container { width: 170px; flex: 0 0 170px; }
+.so-filters .branch-select-container { width: 190px; flex: 0 0 190px; }
+.so-filters .branch-select-dropdown { min-width: 230px; }
+/* Dropdown options: smaller and comfortable */
+.so-filters .branch-select-option-item { color: #1e293b; font-weight: 500; font-size: 12.5px; padding: 7px 10px; }
+.so-filters .branch-select-option-item.selected { color: #047857; font-weight: 600; }
+.so-filters .branch-select-trigger-text { color: #0f172a; font-weight: 500; font-size: 13px; }
+.so-filters .branch-select-dropdown { padding: 5px; }
+/* Invoice popup on phones */
+@media (max-width: 640px) {
+  .so-modal-overlay:has(.so-modal[aria-label="Invoice"]) { padding: 8px; align-items: flex-start; }
+  .so-modal[aria-label="Invoice"] { width: 100% !important; max-height: calc(100vh - 16px) !important; border-radius: 12px !important; }
+  .so-modal[aria-label="Invoice"] .so-modal-head { padding: 12px 14px !important; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .so-modal[aria-label="Invoice"] .so-modal-head h3 { font-size: 15px !important; }
+  .so-modal[aria-label="Invoice"] .so-modal-body { padding: 12px !important; }
+  .so-modal[aria-label="Invoice"] .so-modal-foot { padding: 10px 12px !important; }
+  /* Document: less padding, details stack in one column */
+  .so-modal[aria-label="Invoice"] .so-modal-body > div > div[style*="padding: 28px"],
+  .so-modal[aria-label="Invoice"] .so-modal-body div[style*="padding: 28px"] { padding: 14px !important; }
+  .so-modal[aria-label="Invoice"] div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+  /* Items table scrolls sideways instead of squeezing */
+  .so-modal[aria-label="Invoice"] div[style*="overflow: hidden"][style*="margin-bottom: 22px"] { overflow-x: auto !important; }
+  .so-modal[aria-label="Invoice"] div[style*="overflow: hidden"][style*="margin-bottom: 22px"] table { min-width: 520px; }
+  /* Totals box fills the width */
+  .so-modal[aria-label="Invoice"] div[style*="width: 350px"] { width: 100% !important; }
+}
+
+/* Header branch dropdown: small menu under the field */
+.so-header-actions .branch-select-trigger-text { color: #0f172a; font-weight: 500; font-size: 13px; }
+.so-header-actions .branch-select-option-item { color: #1e293b; font-weight: 500; font-size: 12.5px; padding: 7px 10px; }
+.so-header-actions .branch-select-option-item.selected { color: #047857; font-weight: 600; }
+.so-header-actions .branch-select-dropdown { padding: 5px; }
+@media (max-width: 640px) {
+  .so-header-actions .branch-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    bottom: auto;
+    min-width: 0;
+    max-height: 260px;
+    padding: 4px;
+    border-radius: 10px;
+    animation: branchDropdownAnim 0.14s ease-out;
+  }
+  .so-header-actions .branch-select-options-list { max-height: 200px; }
+  .so-header-actions .branch-select-search-input { font-size: 13px !important; }
+}
+
+/* Form pages: same compact dropdown and calendar */
+.so-field .branch-select-container { width: 100%; }
+.so-field .branch-select-trigger-text { color: #0f172a; font-weight: 500; font-size: 13px; }
+.so-field .branch-select-option-item { color: #1e293b; font-weight: 500; font-size: 12.5px; padding: 7px 10px; }
+.so-field .branch-select-option-item.selected { color: #047857; font-weight: 600; }
+.so-field .branch-select-dropdown { padding: 5px; }
+@media (max-width: 640px) {
+  .so-field { position: relative; }
+  .so-field .branch-select-container,
+  .so-field .calendar-select-container { position: static; }
+  .so-field .branch-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    bottom: auto;
+    width: auto;
+    min-width: 0;
+    max-height: 240px;
+    padding: 4px;
+    border-radius: 10px;
+    animation: branchDropdownAnim 0.14s ease-out;
+  }
+  .so-field .branch-select-options-list { max-height: 228px; }
+  .so-field .calendar-select-dropdown:not(.inline),
+  .so-field .calendar-select-dropdown.align-right:not(.inline) {
+    left: 0;
+    right: auto;
+    top: calc(100% + 4px);
+    max-width: 100%;
+  }
+}
+
+/* Small menu under the field on phones too (not the full-width bottom sheet) */
+@media (max-width: 640px) {
+  /* Calendars are placed against the filter row, so they can never run off the screen */
+  .so-filters { position: relative; }
+  .so-filters .calendar-select-container { position: static; }
+  .so-filters .calendar-select-dropdown:not(.inline),
+  .so-filters .calendar-select-dropdown.align-right:not(.inline) {
+    left: 0;
+    right: auto;
+    top: auto;
+    margin-top: 6px;
+    max-width: 100%;
+  }
+  .so-filters .branch-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: auto;
+    bottom: auto;
+    width: max-content;
+    min-width: 100%;
+    max-width: calc(100vw - 48px);
+    max-height: 240px;
+    padding: 4px;
+    border-radius: 10px;
+    animation: branchDropdownAnim 0.14s ease-out;
+  }
+  .so-filters .branch-select-options-list { max-height: 228px; }
+  .so-filters .branch-select-option-item { font-size: 12.5px; padding: 7px 10px; }
+}
+.so-filters .so-select { height: 42px; }
+@media (max-width: 720px) {
+  .so-filters .calendar-select-container,
+  .so-filters .branch-select-container,
+  .so-filters .so-select { flex: 1 1 calc(50% - 6px); width: auto; min-width: 140px; }
+  .so-search { flex: 1 1 100%; }
+}
 
 .so-search { position: relative; flex: 1; min-width: 240px; }
 .so-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
@@ -460,6 +618,8 @@
   overflow: hidden;
 }
 .so-card.spaced { margin-bottom: 18px; }
+/* The table card already has its own border, so drop the outer outline around it */
+.so-card:has(> .printz-dt-card) { background: transparent; border: none; box-shadow: none; border-radius: 0; overflow: visible; }
 
 .so-table-wrap { width: 100%; overflow-x: auto; }
 
@@ -548,7 +708,8 @@
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   margin-bottom: 18px;
-  overflow: hidden;
+  /* visible so dropdowns and the calendar can open past the card edge */
+  overflow: visible;
 }
 .so-section-head {
   display: flex;
@@ -557,6 +718,7 @@
   padding: 14px 22px;
   border-bottom: 1px solid #f1f5f9;
   background: #fcfdfd;
+  border-radius: 12px 12px 0 0;
 }
 .so-section-icon {
   width: 36px;
@@ -669,6 +831,26 @@
 .so-alert.info { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
 .so-alert.success { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 .so-alert strong { font-weight: 700; }
+/* Alert with an icon and a title + detail line */
+.so-alert-rich { align-items: center; gap: 12px; padding: 12px 16px; }
+.so-alert-rich .so-alert-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #dcfce7; color: #15803d;
+}
+.so-alert-rich .so-alert-icon svg { margin: 0; }
+.so-alert-rich .so-alert-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.so-alert-rich .so-alert-text strong { font-size: 14px; }
+.so-alert-rich .so-alert-text span { font-size: 12.5px; opacity: 0.9; }
+
+/* Order detail header: tidy on phones */
+@media (max-width: 640px) {
+  .so-header .so-title-row { flex-wrap: wrap; gap: 8px; }
+  .so-header .so-title h1 { font-size: 20px; }
+  .so-header .so-header-actions { width: 100%; }
+  .so-header .so-header-actions .so-btn { flex: 1 1 calc(50% - 5px); justify-content: center; min-height: 42px; }
+  .so-header .so-header-actions .so-btn.primary { flex-basis: 100%; }
+}
 
 /* ─── Items editor (one roomy card per item) ─────────────────────────────── */
 .so-item-list { display: flex; flex-direction: column; gap: 14px; }

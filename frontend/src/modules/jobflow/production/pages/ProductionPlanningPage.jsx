@@ -36,6 +36,7 @@ import "../styles/production-planning.css";
 import "../styles/production-theme.css";
 
 import Pagination from "../../../../shared/ui/Pagination";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Constants                                                                  */
 /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
@@ -908,12 +909,10 @@ function PlanProductionView({ job, onBack, onDone }) {
 
           <div className="pp-form-grid pp-form-grid--3">
             <Field label="Planned Start Date" required>
-              <input type="date" className="pp-input" value={schedule.startDate} onChange={(e) => updateSchedule("startDate", e.target.value)} />
+              <DateField value={schedule.startDate} onChange={(e) => updateSchedule("startDate", e.target.value)} />
             </Field>
             <Field label="Planned End Date" required>
-              <input
-                type="date"
-                className={`pp-input ${scheduleDatesInvalid ? "pp-input--error" : ""}`}
+              <DateField error={scheduleDatesInvalid}
                 value={schedule.endDate}
                 min={schedule.startDate || undefined}
                 onChange={(e) => updateSchedule("endDate", e.target.value)}

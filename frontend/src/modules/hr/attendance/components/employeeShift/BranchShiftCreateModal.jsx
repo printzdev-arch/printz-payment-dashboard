@@ -3,10 +3,13 @@ import { X, ArrowLeftRight } from "lucide-react";
 import branchShiftApi from "../../api/branchShiftApi";
 import ShiftEmployeePicker from "./ShiftEmployeePicker";
 import { todayKey } from "./shiftUtils";
+import BranchSelect from "../../../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../../../shared/ui/selects/CalendarSelect";
 
 const idOf = (v) => String(v?._id || v || "");
 
 export default function BranchShiftCreateModal({ isOpen, onClose, onSuccess, branches = [] }) {
+  const [fromBranchId, setFromBranchId] = useState("");
   const [employee, setEmployee] = useState(null);
   const [branchId, setBranchId] = useState("");
   const [fromDate, setFromDate] = useState(todayKey());
@@ -18,6 +21,7 @@ export default function BranchShiftCreateModal({ isOpen, onClose, onSuccess, bra
   // Start every opening with a clean form
   useEffect(() => {
     if (!isOpen) return;
+    setFromBranchId("");
     setEmployee(null);
     setBranchId("");
     setFromDate(todayKey());
@@ -44,6 +48,8 @@ export default function BranchShiftCreateModal({ isOpen, onClose, onSuccess, bra
 
   const handleEmployeeChange = (emp) => {
     setEmployee(emp);
+    // Picking an employee fills in their home branch
+    if (emp && idOf(emp.branchId)) setFromBranchId(idOf(emp.branchId));
     if (emp && idOf(emp.branchId) === branchId) setBranchId("");
     setError("");
   };
@@ -98,14 +104,35 @@ export default function BranchShiftCreateModal({ isOpen, onClose, onSuccess, bra
         </div>
 
         <form onSubmit={handleSubmit}>
-          {error && <div className="shift-modal-error">{error}</div>}
+          {error && <div className="attendance-alert error" role="alert" style={{ margin: "0 24px 4px" }}><span>{error}</span></div>}
 
           <div className="shift-modal-body">
+            <div className="form-field">
+              <label>From Branch </label>
+              <BranchSelect
+                valueKey="id"
+                allowAll
+                allOptionLabel="All branches"
+                allOptionValue=""
+                branches={branches}
+                value={fromBranchId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setFromBranchId(id);
+                  // Keep the chosen employee only if they belong to this branch
+                  if (employee && id && idOf(employee.branchId) !== id) {
+                    setEmployee(null);
+                    setBranchId("");
+                  }
+                }}
+              />
+            </div>
+
             <div className="form-field">
               <label>
                 Employee <span className="required">*</span>
               </label>
-              <ShiftEmployeePicker value={employee} onChange={handleEmployeeChange} />
+              <ShiftEmployeePicker value={employee} onChange={handleEmployeeChange} branchId={fromBranchId} />
               {homeBranchName && <span className="shift-hint">Home branch: {homeBranchName}</span>}
             </div>
 
@@ -113,47 +140,42 @@ export default function BranchShiftCreateModal({ isOpen, onClose, onSuccess, bra
               <label>
                 Destination Branch <span className="required">*</span>
               </label>
-              <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={!employee}>
-                <option value="">{employee ? "Select branch..." : "Select an employee first"}</option>
-                {destinationBranches.map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.name}
-                    {b.code ? ` (${b.code})` : ""}
-                  </option>
-                ))}
-              </select>
+              <BranchSelect
+                valueKey="id"
+                branches={destinationBranches.map((b) => ({ ...b, name: b.code ? `${b.name} (${b.code})` : b.name }))}
+                value={branchId}
+                placeholder={employee ? "Select branch..." : "Select an employee first"}
+                disabled={!employee}
+                onChange={(e) => setBranchId(e.target.value)}
+              />
             </div>
 
             <div className="form-group-row">
               <div className="form-field">
                 <label>
-                  From Date <span className="required">*</span>
+                  From <span className="required">*</span>
                 </label>
-                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                <DateField value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               </div>
               <div className="form-field">
                 <label>
-                  To Date <span className="required">*</span>
+                  To <span className="required">*</span>
                 </label>
-                <input type="date" value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} />
+                <DateField value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
             </div>
 
             <div className="form-field">
-              <label>Reason</label>
+              <label>Reason <span className="optional">(optional)</span></label>
               <textarea
-                rows={3}
+                rows={2}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                placeholder="e.g. Machine operator support for large order volume"
+                placeholder="e.g. Support for large order volume"
               />
             </div>
 
-            <div className="shift-note">
-              The employee's home branch and payroll stay unchanged. During these dates they appear in the
-              destination branch's attendance list, and return to the home branch automatically after the end
-              date.
-            </div>
+            <p className="shift-footnote">Home branch and payroll stay unchanged. The employee returns to their home branch automatically after the end date.</p>
           </div>
 
           <div className="modal-footer">

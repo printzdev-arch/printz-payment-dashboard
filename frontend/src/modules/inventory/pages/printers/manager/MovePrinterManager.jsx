@@ -3,7 +3,7 @@ import { createInventoryMovement, createJumboXeroxMachine, createPrinter, create
 import "../../../styles/moveprinter.css";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
 import Popup from "../../../../../shared/ui/Popup/Popup";
-import Pagination from "../../../../../shared/ui/Pagination.jsx";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 import {
   ArrowRight,
@@ -1310,124 +1310,85 @@ const MovePrinterManager = () => {
               </div>
             </div>
 
-            <div className="move-printer-table-wrapper">
-              <table className="move-printer-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "50px", textAlign: "center" }}>Select</th>
-                    <th>Printer ID</th>
-                    <th>Printer Name</th>
-                    <th>Type</th>
-                    <th>Services & Pricing</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {printers
-                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .map((printer, index) => {
-                    const isSelected = selectedPrinters.some(
-                      (selected) => selected.printerId === printer.printerId
-                    );
+            <DataTable
+              searchable={false}
+              data={printers}
+              pageSize={itemsPerPage}
+              onRowClick={(printer) => handlePrinterSelection(printer)}
+              rowClassName={(printer) =>
+                selectedPrinters.some((selected) => selected.printerId === printer.printerId) ? "printz-row-selected" : ""
+              }
+              columns={[
+                {
+                  key: "select",
+                  label: "Select",
+                  width: "50px",
+                  align: "center",
+                  render: (printer) => (
+                    <div className="mp-checkbox-wrap" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPrinters.some((selected) => selected.printerId === printer.printerId)}
+                        onChange={() => handlePrinterSelection(printer)}
+                        className="mp-checkbox-input"
+                      />
+                    </div>
+                  ),
+                },
+                { key: "printerId", label: "Printer ID", render: (printer) => <span className="mp-id-badge">{printer.printerId}</span> },
+                {
+                  key: "printerName",
+                  label: "Printer Name",
+                  render: (printer) => (
+                    <div className="mp-name-cell">
+                      <span className="mp-name-title">{printer.printerName}</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: "printerType",
+                  label: "Type",
+                  render: (printer) => {
                     const typeClass =
-                      printer.printerType === "LFP"
-                        ? "type-lfp"
-                        : printer.printerType === "SFP"
-                        ? "type-sfp"
-                        : "type-mfp";
-
-                    return (
-                      <tr
-                        key={printer.id || index}
-                        className={isSelected ? "row-selected" : ""}
-                        onClick={() => handlePrinterSelection(printer)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <td
-                          style={{ textAlign: "center" }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="mp-checkbox-wrap">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handlePrinterSelection(printer)}
-                              className="mp-checkbox-input"
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <span className="mp-id-badge">{printer.printerId}</span>
-                        </td>
-                        <td>
-                          <div className="mp-name-cell">
-                            <span className="mp-name-title">{printer.printerName}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`mp-type-pill ${typeClass}`}>
-                            {printer.printerType || "MFP"}
+                      printer.printerType === "LFP" ? "type-lfp" : printer.printerType === "SFP" ? "type-sfp" : "type-mfp";
+                    return <span className={`mp-type-pill ${typeClass}`}>{printer.printerType || "MFP"}</span>;
+                  },
+                },
+                {
+                  key: "services",
+                  label: "Services & Pricing",
+                  render: (printer) => (
+                    <div className="mp-services-list">
+                      {printer.prices &&
+                        printer.prices.length > 0 &&
+                        printer.prices.map((priceObj, priceIndex) => (
+                          <span key={priceIndex} className="mp-service-tag">
+                            <span className="service-size">{priceObj.size}</span>
+                            <span className="service-price">₹{priceObj.price}</span>
                           </span>
-                        </td>
-                        <td>
-                          <div className="mp-services-list">
-                            {printer.prices && printer.prices.length > 0 && (
-                              printer.prices.map((priceObj, priceIndex) => (
-                                <span key={priceIndex} className="mp-service-tag">
-                                  <span className="service-size">{priceObj.size}</span>
-                                  <span className="service-price">₹{priceObj.price}</span>
-                                </span>
-                              ))
-                            )}
+                        ))}
 
-                            {printer.printerType === "LFP" &&
-                              printer.jumboServices &&
-                              printer.jumboServices.length > 0 && (
-                                printer.jumboServices.map(
-                                  (jumboService, jumboIndex) => (
-                                    <span
-                                      key={`jumbo-${jumboIndex}`}
-                                      className="mp-service-tag jumbo-tag"
-                                    >
-                                      <span className="service-size">
-                                        {jumboService.type} - {jumboService.size}
-                                      </span>
-                                      <span className="service-price">
-                                        ₹{jumboService.unitPrice}
-                                      </span>
-                                    </span>
-                                  )
-                                )
-                              )}
+                      {printer.printerType === "LFP" &&
+                        printer.jumboServices &&
+                        printer.jumboServices.length > 0 &&
+                        printer.jumboServices.map((jumboService, jumboIndex) => (
+                          <span key={`jumbo-${jumboIndex}`} className="mp-service-tag jumbo-tag">
+                            <span className="service-size">
+                              {jumboService.type} - {jumboService.size}
+                            </span>
+                            <span className="service-price">₹{jumboService.unitPrice}</span>
+                          </span>
+                        ))}
 
-                            {(!printer.prices || printer.prices.length === 0) &&
-                              (printer.printerType !== "LFP" ||
-                                !printer.jumboServices ||
-                                printer.jumboServices.length === 0) && (
-                                <span className="mp-no-services">
-                                  No services configured
-                                </span>
-                              )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Standard Pagination */}
-            {printers.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalItems={printers.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
-                pageSizeOptions={[10, 20, 50, 100]}
-                itemLabel="printers"
-              />
-            )}
+                      {(!printer.prices || printer.prices.length === 0) &&
+                        (printer.printerType !== "LFP" || !printer.jumboServices || printer.jumboServices.length === 0) && (
+                          <span className="mp-no-services">No services configured</span>
+                        )}
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         ) : (
           <div className="printer-section-card move-printer-table-card">

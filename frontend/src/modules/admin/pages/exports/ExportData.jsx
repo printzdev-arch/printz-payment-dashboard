@@ -26,6 +26,7 @@ import "../../../../shared/styles/addAssets.css";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect.jsx";
 import Popup from "../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../shared/hooks/usePopup";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 
 const ExportData = () => {
   const { popup, showSuccess, showError, showInfo } = usePopup();
@@ -1013,104 +1014,6 @@ const ExportData = () => {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Financial Summary Cards */}
-            <div className="export-kpis-grid">
-              {[
-                {
-                  label: "Total Business",
-                  value: totals.totalBusiness || 0,
-                  icon: TrendingUp,
-                  iconBg: "#ecfdf5",
-                  iconColor: "#059669",
-                  textColor: "#0f172a",
-                },
-                {
-                  label: "Discount",
-                  value: totals.discount || 0,
-                  icon: Percent,
-                  iconBg: "#f1f5f9",
-                  iconColor: "#64748b",
-                  textColor: "#475569",
-                },
-                {
-                  label: "UPI & Card",
-                  value: totals.upiCard || 0,
-                  icon: CreditCard,
-                  iconBg: "#f0f9ff",
-                  iconColor: "#0284c7",
-                  textColor: "#0369a1",
-                },
-                {
-                  label: "Cash Accounts",
-                  value: totals.cashAsPerAccounts || 0,
-                  icon: Building2,
-                  iconBg: "#eef2ff",
-                  iconColor: "#6366f1",
-                  textColor: "#4338ca",
-                },
-                {
-                  label: "Cash in Hand",
-                  value: totals.cashInHand || 0,
-                  icon: Wallet,
-                  iconBg: "#ecfeff",
-                  iconColor: "#0891b2",
-                  textColor: "#0e7490",
-                },
-                {
-                  label: "Total Expenses",
-                  value: totals.totalExpenses || 0,
-                  icon: Receipt,
-                  iconBg: "#fffbeb",
-                  iconColor: "#d97706",
-                  textColor: "#b45309",
-                },
-                {
-                  label: "Balance",
-                  value: totals.balance || 0,
-                  icon: AlertCircle,
-                  iconBg: (totals.balance || 0) > 0 ? "#fef2f2" : "#ecfdf5",
-                  iconColor: (totals.balance || 0) > 0 ? "#dc2626" : "#059669",
-                  textColor: (totals.balance || 0) > 0 ? "#dc2626" : "#059669",
-                },
-                {
-                  label: "Clear Balance",
-                  value: totals.clearBalance || 0,
-                  icon: CheckCircle2,
-                  iconBg: "#ecfdf5",
-                  iconColor: "#059669",
-                  textColor: "#047857",
-                },
-                {
-                  label: "Balance Amount",
-                  value: totals.balanceAmount || 0,
-                  icon: Calculator,
-                  iconBg: (totals.balanceAmount || 0) > 0 ? "#fff1f2" : "#ecfdf5",
-                  iconColor: (totals.balanceAmount || 0) > 0 ? "#e11d48" : "#059669",
-                  textColor: (totals.balanceAmount || 0) > 0 ? "#e11d48" : "#059669",
-                },
-              ].map((card) => {
-                const IconComponent = card.icon;
-                return (
-                  <div key={card.label} className="export-kpi-card">
-                    <div
-                      className="export-kpi-icon-wrap"
-                      style={{ background: card.iconBg, color: card.iconColor }}
-                    >
-                      <IconComponent size={20} />
-                    </div>
-                    <div className="export-kpi-body">
-                      <div className="export-kpi-label">{card.label}</div>
-                      <div
-                        className="export-kpi-value"
-                        style={{ color: card.textColor }}
-                      >
-                        ₹{Number(card.value).toLocaleString("en-IN")}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
 
             {/* Financial Readings Table Card */}
             <div className="add-assets-card">
@@ -1169,28 +1072,12 @@ const ExportData = () => {
                 </div>
               </div>
 
-              <div className="add-assets-table-wrap export-financial-table-wrap">
-                <table className="add-assets-table balance-directory-table export-financial-table">
-                  <thead>
-                    <tr>
-                      {!selectedBranch && (
-                        <th style={{ textAlign: "center", whiteSpace: "nowrap" }}>Branch</th>
-                      )}
-                      <th style={{ textAlign: "center", whiteSpace: "nowrap" }}>Date</th>
-                      <th style={{ textAlign: "center", whiteSpace: "nowrap" }}>Clear Date</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Total Business</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Discount</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>UPI & Card</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Cash (Accounts)</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Cash in Hand</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Balance</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Clear Balance</th>
-                      <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Balance Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(readingSearch.trim()
-                      ? data.filter((item) => {
+              <DataTable
+                searchable={false}
+                pagination={false}
+                data={
+                  readingSearch.trim()
+                    ? data.filter((item) => {
                         const q = readingSearch.toLowerCase().trim();
                         return (
                           (item.branchName || "").toLowerCase().includes(q) ||
@@ -1201,183 +1088,111 @@ const ExportData = () => {
                           (item.upiCard || "").toString().includes(q)
                         );
                       })
-                      : data
-                    ).map((item, index) => (
-                      <tr key={index}>
-                        {!selectedBranch && (
-                          <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                            <span
-                              className="add-assets-id-badge"
-                              style={{
-                                fontSize: "11px",
-                                background: "#f8fafc",
-                                padding: "2px 6px",
-                              }}
-                            >
+                    : data
+                }
+                summaryRow={{
+                  date: "TOTAL",
+                  totalBusiness: `₹${(totals.totalBusiness || 0).toLocaleString("en-IN")}`,
+                  discount: `₹${(totals.discount || 0).toLocaleString("en-IN")}`,
+                  upiCard: `₹${(totals.upiCard || 0).toLocaleString("en-IN")}`,
+                  cashAsPerAccounts: `₹${(totals.cashAsPerAccounts || 0).toLocaleString("en-IN")}`,
+                  cashInHand: `₹${(totals.cashInHand || 0).toLocaleString("en-IN")}`,
+                  balance: <span style={{ color: (totals.balance || 0) > 0 ? "#dc2626" : "#047857" }}>₹{(totals.balance || 0).toLocaleString("en-IN")}</span>,
+                  clearBalance: `₹${(totals.clearBalance || 0).toLocaleString("en-IN")}`,
+                  balanceAmount: <span style={{ color: (totals.balanceAmount || 0) > 0 ? "#dc2626" : "#047857" }}>₹{(totals.balanceAmount || 0).toLocaleString("en-IN")}</span>,
+                }}
+                columns={[
+                  ...(!selectedBranch
+                    ? [
+                        {
+                          key: "branchName",
+                          label: "Branch",
+                          align: "center",
+                          render: (item) => (
+                            <span className="add-assets-id-badge" style={{ fontSize: "11px", background: "#f8fafc", padding: "2px 6px" }}>
                               {item.branchName || "—"}
                             </span>
-                          </td>
-                        )}
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                          <span
-                            className="add-assets-id-badge"
-                            style={{
-                              fontFamily: "'Poppins', sans-serif",
-                              fontSize: "11.5px",
-                              padding: "2px 6px",
-                            }}
-                          >
-                            {item.date}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "center", color: "#475569", fontSize: "11.5px", whiteSpace: "nowrap" }}>
-                          {item.clearDate ? (
-                            <span className="add-assets-id-badge" style={{ fontSize: "11px", padding: "2px 5px" }}>
-                              {item.clearDate}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 700,
-                            fontSize: "12px",
-                            color: "#0f172a",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.totalBusiness.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 500,
-                            fontSize: "12px",
-                            color: "#475569",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.discount.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 600,
-                            fontSize: "12px",
-                            color: "#0284c7",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.upiCard.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 500,
-                            fontSize: "12px",
-                            color: "#334155",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.cashAsPerAccounts.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 500,
-                            fontSize: "12px",
-                            color: "#334155",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.cashInHand.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 700,
-                            fontSize: "12px",
-                            color: item.balance > 0 ? "#dc2626" : "#64748b",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.balance.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 700,
-                            fontSize: "12px",
-                            color: "#059669",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{item.clearBalance.toLocaleString("en-IN")}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontFamily: "'Poppins', sans-serif",
-                            fontWeight: 700,
-                            fontSize: "12px",
-                            color: (item.balance - item.clearBalance) > 0 ? "#dc2626" : "#059669",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          ₹{(item.balance - item.clearBalance).toLocaleString("en-IN")}
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Totals Row */}
-                    <tr
-                      style={{
-                        background: "#eaf7ee",
-                        borderTop: "2px solid #a7f3d0",
-                        borderBottom: "2px solid #a7f3d0",
-                      }}
-                    >
-                      {!selectedBranch && <td style={{ textAlign: "center" }}></td>}
-                      <td style={{ textAlign: "center", fontWeight: 800, color: "#047857", fontSize: "11.5px", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                        TOTAL
-                      </td>
-                      <td style={{ textAlign: "center" }}></td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.totalBusiness || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.discount || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.upiCard || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.cashAsPerAccounts || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.cashInHand || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: (totals.balance || 0) > 0 ? "#dc2626" : "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.balance || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.clearBalance || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 800, color: (totals.balanceAmount || 0) > 0 ? "#dc2626" : "#047857", fontFamily: "'Poppins', sans-serif", fontSize: "12.5px", whiteSpace: "nowrap" }}>
-                        ₹{(totals.balanceAmount || 0).toLocaleString("en-IN")}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: "date",
+                    label: "Date",
+                    align: "center",
+                    render: (item) => (
+                      <span className="add-assets-id-badge" style={{ fontFamily: "'Poppins', sans-serif", fontSize: "11.5px", padding: "2px 6px" }}>
+                        {item.date}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "clearDate",
+                    label: "Clear Date",
+                    align: "center",
+                    render: (item) =>
+                      item.clearDate ? (
+                        <span className="add-assets-id-badge" style={{ fontSize: "11px", padding: "2px 5px" }}>
+                          {item.clearDate}
+                        </span>
+                      ) : (
+                        "—"
+                      ),
+                  },
+                  {
+                    key: "totalBusiness",
+                    label: "Total Business",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "12px", color: "#0f172a" }}>₹{item.totalBusiness.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "discount",
+                    label: "Discount",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: "12px", color: "#475569" }}>₹{item.discount.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "upiCard",
+                    label: "UPI & Card",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: "12px", color: "#0284c7" }}>₹{item.upiCard.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "cashAsPerAccounts",
+                    label: "Cash (Accounts)",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: "12px", color: "#334155" }}>₹{item.cashAsPerAccounts.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "cashInHand",
+                    label: "Cash in Hand",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: "12px", color: "#334155" }}>₹{item.cashInHand.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "balance",
+                    label: "Balance",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "12px", color: item.balance > 0 ? "#dc2626" : "#64748b" }}>₹{item.balance.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "clearBalance",
+                    label: "Clear Balance",
+                    align: "right",
+                    render: (item) => <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "12px", color: "#059669" }}>₹{item.clearBalance.toLocaleString("en-IN")}</span>,
+                  },
+                  {
+                    key: "balanceAmount",
+                    label: "Balance Amount",
+                    align: "right",
+                    render: (item) => (
+                      <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "12px", color: item.balance - item.clearBalance > 0 ? "#dc2626" : "#059669" }}>
+                        ₹{(item.balance - item.clearBalance).toLocaleString("en-IN")}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
             </div>
 
             {/* Monthly Expenses Table Card (if any) */}
@@ -1412,61 +1227,60 @@ const ExportData = () => {
                   </div>
                 </div>
 
-                <div className="add-assets-table-wrap">
-                  <table className="add-assets-table balance-directory-table">
-                    <thead>
-                      <tr>
-                        {!selectedBranch && (
-                          <th style={{ width: "140px", textAlign: "center" }}>Branch</th>
-                        )}
-                        <th style={{ width: "140px", textAlign: "center" }}>Date</th>
-                        <th style={{ minWidth: "220px", textAlign: "left" }}>Description</th>
-                        <th style={{ width: "160px", textAlign: "right" }}>Amount (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {expenseData.map((item, index) => (
-                        <tr key={index}>
-                          {!selectedBranch && (
-                            <td style={{ textAlign: "center" }}>
+                <DataTable
+                  searchable={false}
+                  pagination={false}
+                  data={expenseData}
+                  summaryRow={{
+                    description: "Total Expenses",
+                    amount: `₹${expenseData.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString("en-IN")}`,
+                  }}
+                  columns={[
+                    ...(!selectedBranch
+                      ? [
+                          {
+                            key: "branchName",
+                            label: "Branch",
+                            width: "140px",
+                            align: "center",
+                            render: (item) => (
                               <span className="add-assets-id-badge" style={{ fontSize: "11px", background: "#f8fafc" }}>
                                 {item.branchName || "—"}
                               </span>
-                            </td>
-                          )}
-                          <td style={{ textAlign: "center" }}>
-                            <span className="add-assets-id-badge" style={{ fontFamily: "'Poppins', sans-serif", fontSize: "12px" }}>
-                              {item.date}
-                            </span>
-                          </td>
-                          <td style={{ fontWeight: 600, color: "#0f172a" }}>
-                            {item.description || item.name || "—"}
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              fontWeight: 700,
-                              color: "#059669",
-                              fontFamily: "'Poppins', sans-serif",
-                              fontSize: "13px",
-                            }}
-                          >
-                            ₹{Number(item.amount || 0).toLocaleString("en-IN")}
-                          </td>
-                        </tr>
-                      ))}
-                      {/* Total Expenses Row */}
-                      <tr style={{ background: "#fffbeb", borderTop: "2px solid #fde68a" }}>
-                        <td colSpan={!selectedBranch ? 3 : 2} style={{ fontWeight: 800, color: "#b45309", fontSize: "13px", textAlign: "right", paddingRight: "12px" }}>
-                          Total Expenses
-                        </td>
-                        <td style={{ textAlign: "right", fontWeight: 800, color: "#b45309", fontFamily: "'Poppins', sans-serif", fontSize: "13.5px" }}>
-                          ₹{expenseData.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString("en-IN")}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                            ),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "date",
+                      label: "Date",
+                      width: "140px",
+                      align: "center",
+                      render: (item) => (
+                        <span className="add-assets-id-badge" style={{ fontFamily: "'Poppins', sans-serif", fontSize: "12px" }}>
+                          {item.date}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "description",
+                      label: "Description",
+                      minWidth: "220px",
+                      render: (item) => <span style={{ fontWeight: 600, color: "#0f172a" }}>{item.description || item.name || "—"}</span>,
+                    },
+                    {
+                      key: "amount",
+                      label: "Amount (₹)",
+                      width: "160px",
+                      align: "right",
+                      render: (item) => (
+                        <span style={{ fontWeight: 700, color: "#059669", fontFamily: "'Poppins', sans-serif", fontSize: "13px" }}>
+                          ₹{Number(item.amount || 0).toLocaleString("en-IN")}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
               </div>
             )}
           </div>

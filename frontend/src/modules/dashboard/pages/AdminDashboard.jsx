@@ -37,6 +37,7 @@ import {
 import DashboardHeader from "../components/DashboardHeader";
 import DashboardFilterBar from "../components/DashboardFilterBar";
 import KpiCardsRow from "../components/KpiCardsRow";
+import ModuleDashboard from "../components/ModuleDashboard";
 import GraphsRow from "../components/GraphsRow";
 import AdminTablesGrid from "../components/AdminTablesGrid";
 import dashboardService from "../api/dashboardApi";
@@ -66,6 +67,11 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+  // The picked module (sales orders, job orders, ...) has its own KPIs, graphs and table
+  const [moduleData, setModuleData] = useState(null);
+  const isModuleView = selectedDataType !== "overview";
+  // Inventory and Employees show how things stand now, so the date range is not needed there
+  const hideDateRange = selectedDataType === "inventory" || selectedDataType === "employees";
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJobModal, setSelectedJobModal] = useState(null);
   const [compareWith, setCompareWith] = useState("previous_period");
@@ -108,14 +114,17 @@ const AdminDashboard = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await dashboardService.getAdminDashboard({
+      const filters = {
         branchId: selectedBranch !== "ALL" ? selectedBranch : undefined,
-        dataType: selectedDataType,
         dateType,
         startDate: dateType === "custom" ? startDate : undefined,
         endDate: dateType === "custom" ? endDate : undefined,
-      });
-      setData(res);
+      };
+      if (selectedDataType !== "overview") {
+        setModuleData(await dashboardService.getAdminModule({ ...filters, module: selectedDataType }));
+      } else {
+        setData(await dashboardService.getAdminDashboard({ ...filters, dataType: "overview" }));
+      }
     } catch (err) {
       console.error("Admin dashboard load failed:", err);
       setError(
@@ -328,7 +337,8 @@ const AdminDashboard = () => {
           onApply={handleApply}
           isLoading={isLoading}
           isBranchLocked={false}
-          showCompareWith={true}
+          showCompareWith={!isModuleView}
+          hideDateRange={hideDateRange}
           compareWith={compareWith}
           onChangeCompareWith={setCompareWith}
         />
@@ -349,105 +359,112 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Important KPI Cards with old-model vibrant vertical gradient icons (7 cards for Admin overview) */}
-        <KpiCardsRow
-          kpis={data?.kpis || {}}
-          dataType={selectedDataType}
-          isAdmin={true}
-          selectedBranch={selectedBranch}
-          branchName={currentBranchName}
-        />
+        {isModuleView ? (
+          <ModuleDashboard data={moduleData && moduleData.module === selectedDataType ? moduleData : null} isLoading={isLoading} />
+        ) : (
+          <>
+          {/* Important KPI Cards with old-model vibrant vertical gradient icons (7 cards for Admin overview) */}
+          <KpiCardsRow
+            kpis={data?.kpis || {}}
+            dataType={selectedDataType}
+            isAdmin={true}
+            selectedBranch={selectedBranch}
+            branchName={currentBranchName}
+          />
 
-        {/* 3 Main Graphs (Revenue Trend, Branch-wise Revenue/Category Sales, Job Order Status) */}
-        <GraphsRow
-          charts={data?.charts || {}}
-          dataType={selectedDataType}
-          isAdmin={true}
-          selectedBranch={selectedBranch}
-          branchName={currentBranchName}
-        />
+          {/* 3 Main Graphs (Revenue Trend, Branch-wise Revenue/Category Sales, Job Order Status) */}
+          <GraphsRow
+            charts={data?.charts || {}}
+            dataType={selectedDataType}
+            isAdmin={true}
+            selectedBranch={selectedBranch}
+            branchName={currentBranchName}
+          />
 
-        {/* Admin 2-Row Tables & Alerts Grid */}
-        <AdminTablesGrid
-          branchPerformance={data?.branchPerformance || []}
-          topBranches={data?.topBranches || []}
-          recentJobOrders={data?.recentJobOrders || []}
-          lowStockItems={data?.lowStockItems || []}
-          alerts={data?.alerts || []}
-          onViewJobOrder={(job) => setSelectedJobModal(job)}
-          selectedBranch={selectedBranch}
-          selectedBranchName={currentBranchName}
-        />
+          {/* Admin 2-Row Tables & Alerts Grid */}
+          <AdminTablesGrid
+            branchPerformance={data?.branchPerformance || []}
+            topBranches={data?.topBranches || []}
+            recentJobOrders={data?.recentJobOrders || []}
+            lowStockItems={data?.lowStockItems || []}
+            alerts={data?.alerts || []}
+            onViewJobOrder={(job) => setSelectedJobModal(job)}
+            selectedBranch={selectedBranch}
+            selectedBranchName={currentBranchName}
+          />
 
-        {/* Domain-specific Master Table when a specific category is selected */}
-        {selectedDataType !== "overview" && filteredTableData.length > 0 && (
-          <div className="printz-table-card" style={{ marginTop: "24px" }}>
-            <div className="printz-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-              <div>
-                <h3 className="printz-card-title" style={{ textTransform: "capitalize" }}>
-                  {selectedDataType} Master Records
-                </h3>
-                <span className="printz-card-subtitle">
-                  Showing {filteredTableData.length} records matching active filters
-                </span>
+          {/* Domain-specific Master Table when a specific category is selected */}
+          {selectedDataType !== "overview" && filteredTableData.length > 0 && (
+            <div className="printz-table-card" style={{ marginTop: "24px" }}>
+              <div className="printz-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                <div>
+                  <h3 className="printz-card-title" style={{ textTransform: "capitalize" }}>
+                    {selectedDataType} Master Records
+                  </h3>
+                  <span className="printz-card-subtitle">
+                    Showing {filteredTableData.length} records matching active filters
+                  </span>
+                </div>
+                <div style={{ position: "relative" }}>
+                  <Search style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", width: "14px", height: "14px", color: "#475569" }} />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={`Search ${selectedDataType}...`}
+                    style={{
+                      height: "36px",
+                      paddingLeft: "32px",
+                      paddingRight: "12px",
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      outline: "none",
+                      minWidth: "200px"
+                    }}
+                  />
+                </div>
               </div>
-              <div style={{ position: "relative" }}>
-                <Search style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", width: "14px", height: "14px", color: "#475569" }} />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={`Search ${selectedDataType}...`}
-                  style={{
-                    height: "36px",
-                    paddingLeft: "32px",
-                    paddingRight: "12px",
-                    fontSize: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    outline: "none",
-                    minWidth: "200px"
-                  }}
-                />
-              </div>
-            </div>
 
-            <div className="printz-table-wrap">
-              <table className="printz-data-table">
-                <thead>
-                  <tr>
-                    {Object.keys(filteredTableData[0] || {})
-                      .filter((k) => k !== "_id" && k !== "id")
-                      .slice(0, 6)
-                      .map((col) => (
-                        <th key={col}>{col.replace(/([A-Z])/g, " $1")}</th>
-                      ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTableData.slice(0, 10).map((row, idx) => (
-                    <tr key={row._id || row.id || idx}>
+              <div className="printz-table-wrap">
+                <table className="printz-data-table">
+                  <thead>
+                    <tr>
                       {Object.keys(filteredTableData[0] || {})
                         .filter((k) => k !== "_id" && k !== "id")
                         .slice(0, 6)
                         .map((col) => (
-                          <td key={col}>
-                            {typeof row[col] === "number" &&
-                            (col.toLowerCase().includes("amount") ||
-                              col.toLowerCase().includes("price") ||
-                              col.toLowerCase().includes("total") ||
-                              col.toLowerCase().includes("val"))
-                              ? formatCurrency(row[col])
-                              : String(row[col] ?? "-")}
-                          </td>
+                          <th key={col}>{col.replace(/([A-Z])/g, " $1")}</th>
                         ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredTableData.slice(0, 10).map((row, idx) => (
+                      <tr key={row._id || row.id || idx}>
+                        {Object.keys(filteredTableData[0] || {})
+                          .filter((k) => k !== "_id" && k !== "id")
+                          .slice(0, 6)
+                          .map((col) => (
+                            <td key={col}>
+                              {typeof row[col] === "number" &&
+                              (col.toLowerCase().includes("amount") ||
+                                col.toLowerCase().includes("price") ||
+                                col.toLowerCase().includes("total") ||
+                                col.toLowerCase().includes("val"))
+                                ? formatCurrency(row[col])
+                                : String(row[col] ?? "-")}
+                            </td>
+                          ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
+
+          </>
         )}
 
         {/* Quick View Job Modal */}

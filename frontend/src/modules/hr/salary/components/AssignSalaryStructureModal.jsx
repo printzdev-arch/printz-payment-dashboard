@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { X, Check, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 
 export default function AssignSalaryStructureModal({
   isOpen,
@@ -235,18 +237,13 @@ export default function AssignSalaryStructureModal({
               <div className="salary-form-grid">
                 <div className="salary-form-group">
                   <label>Branch</label>
-                  <select
-                    className="salary-form-select"
+                  <BranchSelect
+                    valueKey="id"
+                    branches={branches}
                     value={formData.branchId}
+                    placeholder="Select Branch"
                     onChange={(e) => setFormData({ ...formData, branchId: e.target.value, employeeId: "" })}
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                  <div className="salary-form-group">
                   <label>
@@ -278,9 +275,7 @@ export default function AssignSalaryStructureModal({
                   <label>
                     Effective From <span className="req">*</span>
                   </label>
-                  <input
-                    type="date"
-                    className="salary-form-input"
+                  <DateField
                     value={formData.effectiveFrom}
                     onChange={(e) => setFormData({ ...formData, effectiveFrom: e.target.value })}
                   />

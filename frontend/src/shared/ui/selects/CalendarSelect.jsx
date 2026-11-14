@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -6,6 +6,8 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
+import SelectField from "./SelectField";
 import "../../styles/calendarSelect.css";
 
 const MONTH_NAMES = [
@@ -77,6 +79,12 @@ const isSameDay = (d1, d2) => {
   );
 };
 
+/**
+ * The date picker used on every page.
+ *  - <CalendarSelect selected={date} onChange={(date, text, event) => ...} />  (react-datepicker style)
+ *  - <DateField value="2026-11-13" onChange={(e) => set(e.target.value)} min max />  (works like <input type="date">:
+ *    the value is "YYYY-MM-DD", and "" when cleared)
+ */
 const CalendarSelect = ({
   selected,
   value,
@@ -104,9 +112,13 @@ const CalendarSelect = ({
   shouldCloseOnSelect = true,
   dayClassName,
   showFooter = true,
+  title,
+  error = false,
 }) => {
   const [isOpen, setIsOpen] = useState(inline);
   const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const [pos, setPos] = useState(null);
 
   // Normalize selected date
   const parsedDate = useMemo(() => {
@@ -132,7 +144,8 @@ const CalendarSelect = ({
     const handleClickOutside = (event) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target)
+        !containerRef.current.contains(event.target) &&
+        !(dropdownRef.current && dropdownRef.current.contains(event.target))
       ) {
         setIsOpen(false);
       }
@@ -145,6 +158,34 @@ const CalendarSelect = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, inline]);
+
+  // The calendar is drawn on top of the page (in <body>), so no card or popup can clip it.
+  // It sits under the field, flips above it when there is no room below, and stays on screen.
+  useLayoutEffect(() => {
+    if (!isOpen || inline) return undefined;
+    const place = () => {
+      const trigger = containerRef.current;
+      const menu = dropdownRef.current;
+      if (!trigger || !menu) return;
+      const t = trigger.getBoundingClientRect();
+      const m = menu.getBoundingClientRect();
+      const margin = 8;
+      const left = Math.max(margin, Math.min(t.left, window.innerWidth - m.width - margin));
+      const roomBelow = window.innerHeight - t.bottom - margin;
+      const roomAbove = t.top - margin;
+      let top = t.bottom + 6;
+      if (m.height > roomBelow && roomAbove > roomBelow) top = Math.max(margin, t.top - m.height - 6);
+      else if (m.height > roomBelow) top = Math.max(margin, window.innerHeight - m.height - margin);
+      setPos({ top, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [isOpen, inline, viewDate]);
 
   const minDateObj = useMemo(() => toDateObject(minDate), [minDate]);
   const maxDateObj = useMemo(() => toDateObject(maxDate), [maxDate]);
@@ -329,6 +370,9 @@ const CalendarSelect = ({
     return years;
   }, []);
 
+  // Dropdown calendars are drawn in <body> so nothing can clip them; inline ones stay in place
+  const wrapMenu = (node) => (inline ? node : createPortal(node, document.body));
+
   const displayString = parsedDate ? formatDate(parsedDate, dateFormat) : "";
   const placeholderDisplay = placeholderText || placeholder;
 
@@ -337,6 +381,7 @@ const CalendarSelect = ({
       ref={containerRef}
       className={`calendar-select-container ${className}`}
       style={style}
+      title={title}
     >
       {/* Hidden input for standard HTML form validation */}
       {required && (
@@ -361,9 +406,7 @@ const CalendarSelect = ({
       {/* Trigger Box - Only for dropdown mode */}
       {!inline && (
         <div
-          className={`calendar-select-trigger ${isOpen ? "open" : ""} ${
-            disabled ? "disabled" : ""
-          }`}
+          className={`calendar-select-trigger ${isOpen ? "open" : ""} ${disabled ? "disabled" : ""} ${error ? "error" : ""}`}
           style={triggerStyle}
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           tabIndex={disabled ? -1 : 0}
@@ -412,40 +455,31 @@ const CalendarSelect = ({
       )}
 
       {/* Dropdown Calendar - ALWAYS DOWNWARD (or inline) */}
-      {(inline || isOpen) && (
+      {(inline || isOpen) && wrapMenu(
         <div
-          className={`calendar-select-dropdown ${
-            inline ? "inline" : ""
-          } ${dropdownClassName}`}
+          ref={dropdownRef}
+          className={`calendar-select-dropdown ${inline ? "inline" : ""} ${dropdownClassName}`}
+          style={inline ? undefined : { position: "fixed", top: pos ? pos.top : 0, left: pos ? pos.left : 0, right: "auto", bottom: "auto", visibility: pos ? "visible" : "hidden" }}
         >
           {/* Header */}
           <div className="calendar-header">
             <div className="calendar-header-title">
-              <select
-                className="calendar-month-select"
+              <SelectField
+                compact
+                searchable={false}
+                className="calendar-month-pick"
                 value={viewDate.getMonth()}
+                options={MONTH_NAMES.map((m, idx) => ({ value: idx, label: m }))}
                 onChange={(e) => handleMonthSelect(Number(e.target.value))}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {MONTH_NAMES.map((m, idx) => (
-                  <option key={m} value={idx}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="calendar-year-select"
+              />
+              <SelectField
+                compact
+                searchable={false}
+                className="calendar-year-pick"
                 value={viewDate.getFullYear()}
+                options={yearOptions}
                 onChange={(e) => handleYearSelect(Number(e.target.value))}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="calendar-nav-btns">
@@ -542,5 +576,18 @@ const CalendarSelect = ({
     </div>
   );
 };
+
+/**
+ * Drop-in for <input type="date">: same value ("YYYY-MM-DD"), same onChange(event), min / max as strings.
+ */
+export const DateField = ({ value, onChange, min, max, ...rest }) => (
+  <CalendarSelect
+    {...rest}
+    value={value || ""}
+    minDate={min || undefined}
+    maxDate={max || undefined}
+    onChange={(date, text, event) => onChange && onChange(event)}
+  />
+);
 
 export default CalendarSelect;

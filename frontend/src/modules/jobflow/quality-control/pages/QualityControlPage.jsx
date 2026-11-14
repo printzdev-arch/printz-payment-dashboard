@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { ClipboardCheck, FileDown, RefreshCw } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import PriorityBadge from "../../shared/components/PriorityBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import EnhancedQCModal from "../components/EnhancedQCModal";
 import qcApi from "../api/qcApi";
 import "../styles/quality-control.css";
@@ -324,7 +324,7 @@ export const QualityControlPage = ({ embedded = false }) => {
       </div>
 
       {tab === "queue" && (
-        <JobFlowDataTable
+        <DataTable renderWithValue
           columns={queueColumns}
           data={pending}
           loading={loading}
@@ -352,7 +352,7 @@ export const QualityControlPage = ({ embedded = false }) => {
           </div>
 
           {historyView !== "REPORTS" ? (
-            <JobFlowDataTable
+            <DataTable renderWithValue
               key={`history-${historyView}`}
               columns={historyColumns}
               data={historyRows}
@@ -384,28 +384,23 @@ export const QualityControlPage = ({ embedded = false }) => {
                 {report.defectRows.length === 0 ? (
                   <p style={{ margin: 0, color: "#64748b" }}>No defects were logged in this period.</p>
                 ) : (
-                  <div style={{ overflowX: "auto" }}>
-                    <table className="jf-table">
-                      <thead>
-                        <tr>
-                          <th>Defect</th>
-                          <th style={{ textAlign: "right" }}>Times logged</th>
-                          <th style={{ textAlign: "right" }}>Pieces affected</th>
-                          <th style={{ textAlign: "right" }}>Share</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {report.defectRows.map((r) => (
-                          <tr key={r.type}>
-                            <td style={{ fontWeight: 600, color: "#0f172a" }}>{r.type}</td>
-                            <td style={{ textAlign: "right" }}>{r.count}</td>
-                            <td style={{ textAlign: "right" }}>{r.affected.toLocaleString()}</td>
-                            <td style={{ textAlign: "right" }}>{report.defectTotal > 0 ? `${Math.round((r.count / report.defectTotal) * 100)}%` : "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataTable
+                    searchable={false}
+                    pagination={false}
+                    data={report.defectRows}
+                    rowKey="type"
+                    columns={[
+                      { key: "type", label: "Defect", render: (r) => <span style={{ fontWeight: 600, color: "#0f172a" }}>{r.type}</span> },
+                      { key: "count", label: "Times logged", align: "right", render: (r) => r.count },
+                      { key: "affected", label: "Pieces affected", align: "right", render: (r) => r.affected.toLocaleString() },
+                      {
+                        key: "share",
+                        label: "Share",
+                        align: "right",
+                        render: (r) => (report.defectTotal > 0 ? `${Math.round((r.count / report.defectTotal) * 100)}%` : "—"),
+                      },
+                    ]}
+                  />
                 )}
               </div>
 
@@ -414,30 +409,19 @@ export const QualityControlPage = ({ embedded = false }) => {
                 {report.inspectorRows.length === 0 ? (
                   <p style={{ margin: 0, color: "#64748b" }}>No inspections in this period.</p>
                 ) : (
-                  <div style={{ overflowX: "auto" }}>
-                    <table className="jf-table">
-                      <thead>
-                        <tr>
-                          <th>Inspector</th>
-                          <th style={{ textAlign: "right" }}>Inspections</th>
-                          <th style={{ textAlign: "right" }}>Passed</th>
-                          <th style={{ textAlign: "right" }}>Issues</th>
-                          <th style={{ textAlign: "right" }}>Pass rate</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {report.inspectorRows.map((r) => (
-                          <tr key={r.name}>
-                            <td style={{ fontWeight: 600, color: "#0f172a" }}>{r.name}</td>
-                            <td style={{ textAlign: "right" }}>{r.total}</td>
-                            <td style={{ textAlign: "right" }}>{r.passed}</td>
-                            <td style={{ textAlign: "right" }}>{r.issues}</td>
-                            <td style={{ textAlign: "right" }}>{Math.round((r.passed / r.total) * 100)}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataTable
+                    searchable={false}
+                    pagination={false}
+                    data={report.inspectorRows}
+                    rowKey="name"
+                    columns={[
+                      { key: "name", label: "Inspector", render: (r) => <span style={{ fontWeight: 600, color: "#0f172a" }}>{r.name}</span> },
+                      { key: "total", label: "Inspections", align: "right", render: (r) => r.total },
+                      { key: "passed", label: "Passed", align: "right", render: (r) => r.passed },
+                      { key: "issues", label: "Issues", align: "right", render: (r) => r.issues },
+                      { key: "passRate", label: "Pass rate", align: "right", render: (r) => `${Math.round((r.passed / r.total) * 100)}%` },
+                    ]}
+                  />
                 )}
               </div>
             </div>

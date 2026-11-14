@@ -37,7 +37,7 @@ export const VoidSaleModal = ({ isOpen, onClose, receipt, onVoided }) => {
             <AlertTriangle size={20} style={{ color: "#dc2626" }} />
             <div>
               <h2 className="jf-modal-title" style={{ color: "#991b1b" }}>Void Sale Receipt</h2>
-              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+              <div style={{ fontSize: "0.8rem", color: "#1e293b" }}>
                 Receipt: <strong>{receipt.receiptNo}</strong> (₹{Number(receipt.grandTotal || 0).toFixed(2)})
               </div>
             </div>

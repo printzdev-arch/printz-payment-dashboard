@@ -10,6 +10,7 @@ import {
   Eye,
   ShieldAlert,
 } from "lucide-react";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import { toast } from "react-toastify";
 
 const INITIAL_FAILED_RECORDS = [
@@ -175,174 +176,166 @@ export const FailedInspectionsTab = ({
       {/* List */}
       {/* Failed Inspections Data Table */}
       <div className="jf-card" style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table className="jf-table" style={{ margin: 0, width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                <th style={{ width: "150px", padding: "12px 14px" }}>Job Order No</th>
-                <th style={{ minWidth: "180px", padding: "12px 14px" }}>Customer & Product</th>
-                <th style={{ minWidth: "240px", padding: "12px 14px" }}>Defect Summary</th>
-                <th style={{ width: "120px", padding: "12px 14px", textAlign: "center" }}>Defective Qty</th>
-                <th style={{ width: "100px", padding: "12px 14px", textAlign: "center" }}>Severity</th>
-                <th style={{ minWidth: "150px", padding: "12px 14px" }}>Fault Attribution</th>
-                <th style={{ minWidth: "150px", padding: "12px 14px" }}>Responsible Operation</th>
-                <th style={{ width: "120px", padding: "12px 14px", textAlign: "center" }}>Routed Ref</th>
-                <th style={{ width: "160px", padding: "12px 14px", textAlign: "right" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: "3rem", color: "#475569" }}>
-                    <ShieldAlert size={36} style={{ strokeWidth: 1.2, marginBottom: "0.5rem" }} />
-                    <div style={{ fontWeight: 600, color: "#475569" }}>No Defect Records Found</div>
-                    <div style={{ fontSize: "0.8rem", color: "#475569" }}>
-                      Clear of failed inspections matching the specified criteria.
+        <DataTable
+          searchable={false}
+          data={filtered}
+          emptyMessage={
+            <>
+              <ShieldAlert size={36} style={{ strokeWidth: 1.2, marginBottom: "0.5rem" }} />
+              <div style={{ fontWeight: 600, color: "#475569" }}>No Defect Records Found</div>
+              <div style={{ fontSize: "0.8rem", color: "#475569" }}>
+                Clear of failed inspections matching the specified criteria.
+              </div>
+            </>
+          }
+          columns={[
+            {
+              key: "jobNo",
+              label: "Job Order No",
+              width: "150px",
+              render: (item) => <strong style={{ color: "#0f172a", fontSize: "0.875rem", display: "block" }}>{item.jobNo}</strong>,
+            },
+            {
+              key: "customerName",
+              label: "Customer & Product",
+              minWidth: "180px",
+              render: (item) => (
+                <>
+                  <strong style={{ color: "#1e293b", fontSize: "0.85rem", display: "block" }}>{item.customerName}</strong>
+                  <span style={{ fontSize: "0.75rem", color: "#475569" }}>{item.productType}</span>
+                </>
+              ),
+            },
+            {
+              key: "defectType",
+              label: "Defect Summary",
+              minWidth: "240px",
+              render: (item) => {
+                const isCritical = item.severity === "CRITICAL";
+                return (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                    <AlertTriangle size={14} color={isCritical ? "#dc2626" : "#d97706"} style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <div>
+                      <span style={{ fontWeight: 600, color: isCritical ? "#b91c1c" : "#92400e", fontSize: "0.8125rem" }}>{item.defectType}</span>
+                      <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "2px" }}>{item.defectDetails}</div>
                     </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((item) => {
-                  const isCritical = item.severity === "CRITICAL";
-
-                  return (
-                    <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      {/* 1. Job Order No */}
-                      <td style={{ verticalAlign: "middle", padding: "12px 14px" }}>
-                        <strong style={{ color: "#0f172a", fontSize: "0.875rem", display: "block" }}>
-                          {item.jobNo}
-                        </strong>
-                      </td>
-
-                      {/* 2. Customer & Product */}
-                      <td style={{ verticalAlign: "middle", padding: "12px 14px" }}>
-                        <strong style={{ color: "#1e293b", fontSize: "0.85rem", display: "block" }}>
-                          {item.customerName}
-                        </strong>
-                        <span style={{ fontSize: "0.75rem", color: "#475569" }}>
-                          {item.productType}
-                        </span>
-                      </td>
-
-                      {/* 3. Defect Summary */}
-                      <td style={{ verticalAlign: "middle", padding: "12px 14px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                          <AlertTriangle size={14} color={isCritical ? "#dc2626" : "#d97706"} style={{ flexShrink: 0, marginTop: "2px" }} />
-                          <div>
-                            <span style={{ fontWeight: 600, color: isCritical ? "#b91c1c" : "#92400e", fontSize: "0.8125rem" }}>
-                              {item.defectType}
-                            </span>
-                            <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "2px" }}>
-                              {item.defectDetails}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 4. Defective Qty */}
-                      <td style={{ verticalAlign: "middle", textAlign: "center", padding: "12px 14px" }}>
-                        <span
-                          className="jf-badge"
-                          style={{
-                            background: "#fee2e2",
-                            color: "#b91c1c",
-                            fontWeight: 750,
-                            padding: "3px 8px",
-                            borderRadius: "6px",
-                          }}
-                        >
-                          {item.affectedQty} / {item.totalQty}
-                        </span>
-                      </td>
-
-                      {/* 5. Severity */}
-                      <td style={{ verticalAlign: "middle", textAlign: "center", padding: "12px 14px" }}>
-                        <span
-                          style={{
-                            background: isCritical ? "#fee2e2" : "#fef3c7",
-                            color: isCritical ? "#b91c1c" : "#92400e",
-                            padding: "2px 8px",
-                            borderRadius: "6px",
-                            fontSize: "0.75rem",
-                            fontWeight: 750,
-                          }}
-                        >
-                          {item.severity}
-                        </span>
-                      </td>
-
-                      {/* 6. Fault Attribution */}
-                      <td style={{ verticalAlign: "middle", padding: "12px 14px" }}>
-                        <span
-                          style={{
-                            background: item.attribution === "INTERNAL_FAULT" ? "#f1f5f9" : "#e0f2fe",
-                            color: item.attribution === "INTERNAL_FAULT" ? "#475569" : "#0369a1",
-                            padding: "2px 8px",
-                            borderRadius: "6px",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {item.attribution === "INTERNAL_FAULT" ? "Internal Shop Defect" : "Client File Error"}
-                        </span>
-                      </td>
-
-                      {/* 7. Responsible Operation */}
-                      <td style={{ verticalAlign: "middle", padding: "12px 14px" }}>
-                        <strong style={{ color: "#334155", fontSize: "0.8125rem" }}>
-                          {item.responsibleOp}
-                        </strong>
-                        <div style={{ fontSize: "0.72rem", color: "#475569" }}>
-                          By {item.inspector}
-                        </div>
-                      </td>
-
-                      {/* 8. Routed Ref */}
-                      <td style={{ verticalAlign: "middle", textAlign: "center", padding: "12px 14px" }}>
-                        <span
-                          style={{
-                            background: "#f8fafc",
-                            padding: "3px 8px",
-                            borderRadius: "6px",
-                            border: "1px solid #e2e8f0",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {item.reworkRef}
-                        </span>
-                      </td>
-
-                      {/* 9. Action */}
-                      <td style={{ verticalAlign: "middle", textAlign: "right", padding: "12px 14px" }}>
-                        {isCritical ? (
-                          <button
-                            type="button"
-                            className="jf-btn jf-btn-danger jf-btn-sm"
-                            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-                            onClick={() => toast.info(`Viewing Manager Approval for Reprint ${item.reworkRef}.`)}
-                          >
-                            <Printer size={13} /> Reprint Approval
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="jf-btn jf-btn-secondary jf-btn-sm"
-                            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-                            onClick={() => toast.info(`Viewing Floor Rework Task ${item.reworkRef}.`)}
-                          >
-                            <RotateCcw size={13} /> Rework Queue
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                );
+              },
+            },
+            {
+              key: "affectedQty",
+              label: "Defective Qty",
+              width: "120px",
+              align: "center",
+              render: (item) => (
+                <span className="jf-badge" style={{ background: "#fee2e2", color: "#b91c1c", fontWeight: 750, padding: "3px 8px", borderRadius: "6px" }}>
+                  {item.affectedQty} / {item.totalQty}
+                </span>
+              ),
+            },
+            {
+              key: "severity",
+              label: "Severity",
+              width: "100px",
+              align: "center",
+              render: (item) => {
+                const isCritical = item.severity === "CRITICAL";
+                return (
+                  <span
+                    style={{
+                      background: isCritical ? "#fee2e2" : "#fef3c7",
+                      color: isCritical ? "#b91c1c" : "#92400e",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontSize: "0.75rem",
+                      fontWeight: 750,
+                    }}
+                  >
+                    {item.severity}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "attribution",
+              label: "Fault Attribution",
+              minWidth: "150px",
+              render: (item) => (
+                <span
+                  style={{
+                    background: item.attribution === "INTERNAL_FAULT" ? "#f1f5f9" : "#e0f2fe",
+                    color: item.attribution === "INTERNAL_FAULT" ? "#475569" : "#0369a1",
+                    padding: "2px 8px",
+                    borderRadius: "6px",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {item.attribution === "INTERNAL_FAULT" ? "Internal Shop Defect" : "Client File Error"}
+                </span>
+              ),
+            },
+            {
+              key: "responsibleOp",
+              label: "Responsible Operation",
+              minWidth: "150px",
+              render: (item) => (
+                <>
+                  <strong style={{ color: "#334155", fontSize: "0.8125rem" }}>{item.responsibleOp}</strong>
+                  <div style={{ fontSize: "0.72rem", color: "#475569" }}>By {item.inspector}</div>
+                </>
+              ),
+            },
+            {
+              key: "reworkRef",
+              label: "Routed Ref",
+              width: "120px",
+              align: "center",
+              render: (item) => (
+                <span
+                  style={{
+                    background: "#f8fafc",
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                  }}
+                >
+                  {item.reworkRef}
+                </span>
+              ),
+            },
+            {
+              key: "action",
+              label: "Action",
+              width: "160px",
+              align: "right",
+              render: (item) =>
+                item.severity === "CRITICAL" ? (
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-danger jf-btn-sm"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                    onClick={() => toast.info(`Viewing Manager Approval for Reprint ${item.reworkRef}.`)}
+                  >
+                    <Printer size={13} /> Reprint Approval
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-secondary jf-btn-sm"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                    onClick={() => toast.info(`Viewing Floor Rework Task ${item.reworkRef}.`)}
+                  >
+                    <RotateCcw size={13} /> Rework Queue
+                  </button>
+                ),
+            },
+          ]}
+        />
       </div>
     </div>
   );

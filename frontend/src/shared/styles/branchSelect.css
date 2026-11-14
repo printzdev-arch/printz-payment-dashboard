@@ -1,5 +1,7 @@
 /* ==========================================================================
-   PRINTZ UNIFIED BRANCH SELECT - DOWNWARD OPENING DROPDOWN
+   PRINTZ BRANCH SELECT
+   One look for every branch dropdown: clean trigger, soft menu, keyboard
+   highlight, locked state, and a bottom sheet on phones.
    ========================================================================== */
 
 .branch-select-container {
@@ -9,64 +11,70 @@
   font-family: 'Poppins', sans-serif;
 }
 
+/* ---------- Trigger ---------- */
 .branch-select-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   width: 100%;
-  max-width: 400px;
+  min-height: 40px;
   height: 42px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid #dbe3ea;
+  border-radius: 10px;
   padding: 0 12px;
   font-size: 13.5px;
   color: #0f172a;
   cursor: pointer;
-  transition: all 0.2s ease;
   user-select: none;
   box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .branch-select-trigger:hover:not(.disabled) {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: #b8c4cf;
 }
 
 .branch-select-trigger.open,
 .branch-select-trigger:focus-visible {
   border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
-  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14);
   outline: none;
 }
 
 .branch-select-trigger.disabled {
   background: #f8fafc;
-  border-color: #e2e8f0;
   color: #475569;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* A manager's own branch: fixed, so it reads as information, not a control */
+.branch-select-trigger.locked {
+  background: #f1f8f5;
+  border-color: #cfe9de;
+  cursor: default;
 }
 
 .branch-select-trigger-content {
   display: flex;
   align-items: center;
-  gap: 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 9px;
+  min-width: 0;
   flex: 1;
 }
 
 .branch-select-trigger-icon {
   display: flex;
   align-items: center;
-  color: #475569;
+  color: #059669;
   flex-shrink: 0;
 }
 
-.branch-select-trigger.open .branch-select-trigger-icon {
-  color: #059669;
+.branch-select-trigger.disabled:not(.locked) .branch-select-trigger-icon {
+  color: #94a3b8;
 }
 
 .branch-select-trigger-text {
@@ -76,20 +84,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .branch-select-trigger-text.placeholder {
-  color: #475569;
+  color: #64748b;
   font-weight: 400;
 }
 
 .branch-select-chevron {
   display: flex;
   align-items: center;
-  color: #475569;
-  margin-left: 8px;
+  color: #64748b;
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform 0.18s ease, color 0.18s ease;
 }
 
 .branch-select-trigger.open .branch-select-chevron {
@@ -97,31 +105,34 @@
   color: #059669;
 }
 
-/* Dropdown Menu - ALWAYS DOWNWARD */
+.branch-select-trigger.locked .branch-select-chevron {
+  color: #059669;
+}
+
+/* ---------- Menu ---------- */
 .branch-select-dropdown {
   position: absolute;
-  top: calc(100% + 5px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
-  min-width: 100%;
-  max-width: 100vw;
+  min-width: 220px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.2), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   z-index: 9999;
-  animation: branchDropdownAnim 0.16s ease-out;
+  animation: branchDropdownAnim 0.14s ease-out;
   box-sizing: border-box;
 }
 
 @keyframes branchDropdownAnim {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
@@ -129,6 +140,7 @@
   }
 }
 
+/* ---------- Search ---------- */
 .branch-select-search-box {
   display: flex;
   align-items: center;
@@ -136,9 +148,13 @@
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 4px;
+  padding: 7px 10px;
   box-sizing: border-box;
+}
+
+.branch-select-search-box:focus-within {
+  border-color: #059669;
+  background: #ffffff;
 }
 
 .branch-select-search-input {
@@ -148,11 +164,12 @@
   font-size: 13px;
   color: #0f172a;
   width: 100%;
+  min-width: 0;
   font-family: 'Poppins', sans-serif;
 }
 
 .branch-select-search-input::placeholder {
-  color: #475569;
+  color: #64748b;
 }
 
 .branch-select-clear-btn {
@@ -175,13 +192,14 @@
   color: #0f172a;
 }
 
+/* ---------- Options ---------- */
 .branch-select-options-list {
-  max-height: 240px;
+  max-height: 248px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-right: 2px;
+  overscroll-behavior: contain;
 }
 
 .branch-select-options-list::-webkit-scrollbar {
@@ -193,52 +211,52 @@
   border-radius: 4px;
 }
 
-.branch-select-options-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
 .branch-select-option-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 9px 12px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
   font-size: 13px;
   font-weight: 500;
   color: #334155;
   user-select: none;
-  gap: 8px;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
-.branch-select-option-item:hover {
+/* Hover and keyboard highlight look the same */
+.branch-select-option-item:hover,
+.branch-select-option-item.active {
   background: #f1f5f9;
   color: #0f172a;
 }
 
 .branch-select-option-item.selected {
   background: #ecfdf5;
-  color: #059669;
+  color: #047857;
   font-weight: 600;
+}
+
+.branch-select-option-item.selected.active,
+.branch-select-option-item.selected:hover {
+  background: #d9f5e8;
 }
 
 .branch-select-option-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.branch-select-option-icon {
-  color: #475569;
-  flex-shrink: 0;
-}
-
-.branch-select-option-item.selected .branch-select-option-icon {
-  color: #059669;
+.branch-select-option-left span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .branch-select-check-icon {
@@ -250,6 +268,84 @@
   padding: 16px;
   text-align: center;
   font-size: 12.5px;
-  color: #475569;
-  font-style: italic;
+  color: #64748b;
+}
+
+/* ---------- Phones: the menu becomes a bottom sheet ---------- */
+@media (max-width: 640px) {
+  .branch-select-trigger {
+    min-height: 44px;
+  }
+
+  .branch-select-dropdown {
+    position: fixed;
+    top: auto;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    min-width: 0;
+    max-height: 70vh;
+    border-radius: 16px;
+    padding: 10px;
+    animation: branchSheetAnim 0.18s ease-out;
+  }
+
+  .branch-select-options-list {
+    max-height: calc(70vh - 80px);
+  }
+
+  .branch-select-option-item {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  /* 16px keeps iPhones from zooming into the field */
+  .branch-select-search-input {
+    font-size: 16px;
+  }
+}
+
+@keyframes branchSheetAnim {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Compact variant (e.g. "Rows" in pagination) and open-upwards ---------- */
+.branch-select-container.select-compact { width: auto; min-width: 72px; display: inline-block; }
+.select-compact .branch-select-trigger { height: 34px; min-height: 34px; padding: 0 10px; border-radius: 8px; gap: 8px; }
+.select-compact .branch-select-trigger-text { font-size: 13px; font-weight: 600; }
+.select-compact .branch-select-dropdown { right: auto; min-width: 100%; width: max-content; padding: 4px; }
+.select-compact .branch-select-option-item { font-size: 12.5px; padding: 6px 10px; gap: 14px; }
+.branch-select-container.drop-up .branch-select-dropdown { top: auto; bottom: calc(100% + 6px); animation: branchDropUpAnim 0.14s ease-out; }
+@keyframes branchDropUpAnim { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 640px) {
+  .select-compact .branch-select-trigger { min-height: 34px; }
+  .select-compact .branch-select-dropdown {
+    position: absolute; left: auto; right: 0; bottom: calc(100% + 6px); top: auto; min-width: 100%; max-height: 200px; border-radius: 10px; padding: 4px;
+  }
+  .select-compact .branch-select-option-item { font-size: 12.5px; padding: 6px 10px; }
+}
+
+/* ==========================================================================
+   Menus are drawn in <body> (so no popup can clip them) and placed next to the
+   field by script. Same small, comfortable size on every screen.
+   ========================================================================== */
+.branch-select-dropdown { width: max-content; max-width: calc(100vw - 16px); max-height: 260px; padding: 5px; border-radius: 10px; animation: branchDropdownAnim 0.14s ease-out; }
+.branch-select-options-list { max-height: 210px; }
+.branch-select-option-item { font-size: 12.5px; font-weight: 500; padding: 7px 10px; color: #1e293b; }
+.branch-select-option-item.selected { font-weight: 600; color: #047857; }
+.branch-select-search-input { font-size: 13px; }
+.branch-select-dropdown.select-compact-menu { padding: 4px; }
+.branch-select-dropdown.select-compact-menu .branch-select-option-item { padding: 6px 10px; gap: 14px; }
+@media (max-width: 640px) {
+  .branch-select-dropdown { max-width: calc(100vw - 16px); max-height: 240px; padding: 4px; border-radius: 10px; animation: branchDropdownAnim 0.14s ease-out; }
+  .branch-select-options-list { max-height: 196px; }
+  .branch-select-option-item { font-size: 12.5px; padding: 8px 10px; }
+  .branch-select-search-input { font-size: 13px !important; }
 }

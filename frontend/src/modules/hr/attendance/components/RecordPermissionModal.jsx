@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { X, Clock, AlertCircle } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
 import SearchableEmployeeSelect from "./SearchableEmployeeSelect";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import TimeField from "../../../../shared/ui/selects/TimeField";
 
 export default function RecordPermissionModal({
   isOpen,
@@ -17,6 +20,8 @@ export default function RecordPermissionModal({
   const [error, setError] = useState("");
   const [balance, setBalance] = useState(null);
 
+  const [branchId, setBranchId] = useState("");
+  const [modalEmployees, setModalEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState("");
   const [permissionDate, setPermissionDate] = useState("");
   const [startTime, setStartTime] = useState("10:00");
@@ -25,23 +30,50 @@ export default function RecordPermissionModal({
   const [reason, setReason] = useState("");
 
   const empList = useMemo(() => {
-    const list = Array.isArray(employees)
+    const source = modalEmployees.length
+      ? modalEmployees
+      : Array.isArray(employees)
       ? employees
       : Array.isArray(employees?.items)
       ? employees.items
       : [];
-    if (!selectedBranchId) return list;
-    return list.filter((emp) => {
+    if (!branchId) return source;
+    return source.filter((emp) => {
       const bId = emp.branchId?._id || emp.branchId;
-      return !bId || String(bId) === String(selectedBranchId);
+      return String(bId || "") === String(branchId);
     });
-  }, [employees, selectedBranchId]);
+  }, [employees, modalEmployees, branchId]);
+
+  // The popup loads the employees of the chosen branch itself
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    attendanceApi
+      .getEmployees({ status: "ACTIVE", limit: 100, ...(branchId ? { filterBranchId: branchId } : {}) })
+      .then((data) => {
+        if (!cancelled) setModalEmployees(Array.isArray(data) ? data : data?.items || []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, branchId]);
 
   useEffect(() => {
     if (isOpen) {
       if (editingPermission) {
         const empId = editingPermission.employeeId?._id || editingPermission.employeeId || "";
         setEmployeeId(empId);
+        setBranchId(
+          String(
+            editingPermission.branchId?._id ||
+              editingPermission.branchId ||
+              editingPermission.employeeId?.branchId?._id ||
+              editingPermission.employeeId?.branchId ||
+              selectedBranchId ||
+              ""
+          )
+        );
         setPermissionDate(editingPermission.permissionDate || "");
         setStartTime(editingPermission.startTime || "10:00");
         setEndTime(editingPermission.endTime || "12:00");
@@ -49,19 +81,20 @@ export default function RecordPermissionModal({
         setReason(editingPermission.reason || "");
         if (empId) fetchBalance(empId);
       } else {
-        const defaultEmp = empList[0]?._id || "";
         const todayStr = new Date().toISOString().split("T")[0];
-        setEmployeeId(defaultEmp);
+        setBranchId(String(selectedBranchId || ""));
+        setEmployeeId("");
+        setBalance(null);
         setPermissionDate(todayStr);
         setStartTime("10:00");
         setEndTime("12:00");
         setDurationHours(2);
         setReason("");
-        if (defaultEmp) fetchBalance(defaultEmp);
       }
       setError("");
     }
-  }, [isOpen, editingPermission, empList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingPermission]);
 
   // Recalculate duration whenever start or end time changes
   useEffect(() => {
@@ -104,6 +137,10 @@ export default function RecordPermissionModal({
     e.preventDefault();
     setError("");
 
+    if (!branchId) {
+      setError("Please select a branch.");
+      return;
+    }
     if (!employeeId) {
       setError("Please select an employee.");
       return;
@@ -136,7 +173,7 @@ export default function RecordPermissionModal({
       setLoading(true);
       const payload = {
         employeeId,
-        branchId: selectedBranchId || undefined,
+        branchId: branchId || selectedBranchId || undefined,
         permissionDate,
         startTime,
         endTime,
@@ -183,6 +220,26 @@ export default function RecordPermissionModal({
         <form onSubmit={handleSubmit}>
           <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
             <div className="form-field">
+              <label>Branch <span className="required">*</span></label>
+              <BranchSelect
+                valueKey="id"
+                lockToUserBranch
+                branches={branches}
+                value={branchId}
+                placeholder="Select branch"
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setBranchId(id);
+                  // A different branch means a different list of employees
+                  if (id !== branchId) {
+                    setEmployeeId("");
+                    setBalance(null);
+                  }
+                }}
+              />
+            </div>
+
+            <div className="form-field">
               <label>Employee <span className="required">*</span></label>
               <SearchableEmployeeSelect
                 value={employeeId}
@@ -192,7 +249,8 @@ export default function RecordPermissionModal({
                 }}
                 employees={empList}
                 branches={branches}
-                placeholder="Search employee by name, code, or branch..."
+                placeholder={branchId ? "Search employee by name or code..." : "Select a branch first"}
+                disabled={!branchId}
                 required
               />
             </div>
@@ -218,8 +276,7 @@ export default function RecordPermissionModal({
             <div className="form-group-row">
               <div className="form-field">
                 <label>Date <span className="required">*</span></label>
-                <input
-                  type="date"
+                <DateField
                   value={permissionDate}
                   onChange={(e) => setPermissionDate(e.target.value)}
                   required
@@ -240,8 +297,7 @@ export default function RecordPermissionModal({
             <div className="form-group-row">
               <div className="form-field">
                 <label>Start Time (HH:mm) <span className="required">*</span></label>
-                <input
-                  type="time"
+                <TimeField
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   required
@@ -250,8 +306,7 @@ export default function RecordPermissionModal({
 
               <div className="form-field">
                 <label>End Time (HH:mm) <span className="required">*</span></label>
-                <input
-                  type="time"
+                <TimeField
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   required

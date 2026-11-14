@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { Pencil, Power, RefreshCw, Search } from "lucide-react";
 import productionApi from "../api/productionApi";
 import employeesApi from "../../../hr/employees/api/employeesApi";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 
 /**
  * Production operators: add, edit and manage availability.
@@ -139,129 +139,108 @@ export default function OperatorsPage() {
         </div>
       </div>
 
-      <div className="jf-card" style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", padding: "0.875rem 1rem", flexWrap: "wrap", borderBottom: "1px solid #eef3f0" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: "220px", maxWidth: "380px" }}>
-            <Search size={16} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
-            <input
-              className="jf-input"
-              style={{ paddingLeft: "2.25rem" }}
-              placeholder="Search by name, phone or skill"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
+      <DataTable
+        loading={loading}
+        data={items}
+        searchKeys={["name", "phone", "role"]}
+        searchPlaceholder="Search by name, phone or skill"
+        pageSize={10}
+        pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+        emptyMessage={items.length === 0 ? "No operators yet. Add an employee with the Operator role in Employees." : "No operators match your search."}
+        rowClassName={(o) => (o.isActive !== false ? "" : "printz-row-muted")}
+        filterComponent={
           <button type="button" className="jf-btn jf-btn-secondary" onClick={load} disabled={loading} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
             <RefreshCw size={14} /> {loading ? "Loading..." : "Refresh"}
           </button>
-        </div>
-
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
-            <thead>
-              <tr>
-                <th style={th}>Name</th>
-                <th style={th}>Phone</th>
-                <th style={th}>Skill</th>
-                <th style={th}>Status</th>
-                <th style={th}>Current Task</th>
-                <th style={{ ...th, textAlign: "center" }}>Queued</th>
-                <th style={{ ...th, textAlign: "center" }}>Done Today</th>
-                <th style={{ ...th, textAlign: "center" }}>Total Done</th>
-                <th style={{ ...th, textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td style={{ ...td, textAlign: "center", color: "#64748b" }} colSpan={9}>Loading operators...</td></tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td style={{ ...td, textAlign: "center", color: "#64748b", padding: "2rem" }} colSpan={9}>
-                    {items.length === 0 ? "No operators yet. Add an employee with the Operator role in Employees." : "No operators match your search."}
-                  </td>
-                </tr>
-              ) : (
-                rows.map((o) => {
-                  const st = STATUS_STYLE[o.status] || STATUS_STYLE.AVAILABLE;
-                  const available = o.isActive !== false;
-                  return (
-                    <tr key={o.id} style={{ opacity: available ? 1 : 0.7 }}>
-                      <td style={{ ...td, fontWeight: 700, color: "#0f172a" }}>
-                        {o.name}
-                        {!o.employeeId && (
-                          <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "#b45309" }} title="Not linked to an employee, so not in attendance or salary">
-                            Not linked to an employee
-                          </div>
-                        )}
-                      </td>
-                      <td style={td}>{o.phone || "—"}</td>
-                      <td style={td}>{o.role || "—"}</td>
-                      <td style={td}>
-                        <span style={{ background: st.bg, color: st.color, padding: "0.2rem 0.6rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
-                          {st.label}
-                        </span>
-                      </td>
-                      <td style={td}>
-                        {o.currentTask ? `${o.currentTask.jobNo || ""}${o.currentTask.operationName ? ` · ${o.currentTask.operationName}` : ""}` : "—"}
-                      </td>
-                      <td style={{ ...td, textAlign: "center" }}>{o.queued ?? 0}</td>
-                      <td style={{ ...td, textAlign: "center" }}>{o.completedToday ?? 0}</td>
-                      <td style={{ ...td, textAlign: "center" }}>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{(o.totalCompletedOps ?? 0).toLocaleString()} steps</div>
-                        <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{(o.totalCompletedQty ?? 0).toLocaleString()} pcs</div>
-                      </td>
-                      <td style={{ ...td, textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "6px" }}>
-                          <button
-                            type="button"
-                            className="jf-btn jf-btn-secondary jf-btn-sm"
-                            style={{ padding: "0.3rem 0.5rem" }}
-                            title="Edit operator"
-                            aria-label="Edit operator"
-                            onClick={() => setForm({ id: o.id, employeeId: o.employeeId || "", name: o.name || "", phone: o.phone || "", skill: o.role || "", notes: o.notes || "" })}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="jf-btn jf-btn-sm"
-                            disabled={busyId === o.id}
-                            style={{
-                              padding: "0.3rem 0.5rem",
-                              background: available ? "#fee2e2" : "#dcfce7",
-                              color: available ? "#b91c1c" : "#15803d",
-                              border: `1px solid ${available ? "#fecaca" : "#bbf7d0"}`,
-                            }}
-                            title={available ? "Make unavailable" : "Make available"}
-                            aria-label={available ? "Make unavailable" : "Make available"}
-                            onClick={() => toggleAvailability(o)}
-                          >
-                            <Power size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          variant="compact"
-          currentPage={currentPage}
-          totalItems={filtered.length}
-          itemsPerPage={pageSize}
-          onPageChange={(n) => setPage(Math.min(Math.max(1, n), totalPages))}
-          onItemsPerPageChange={(n) => setPageSize(n)}
-          pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-          itemLabel="operators"
-        />
-      </div>
+        }
+        columns={[
+          {
+            key: "name",
+            label: "Name",
+            render: (o) => (
+              <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                {o.name}
+                {!o.employeeId && (
+                  <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "#b45309" }} title="Not linked to an employee, so not in attendance or salary">
+                    Not linked to an employee
+                  </div>
+                )}
+              </span>
+            ),
+          },
+          { key: "phone", label: "Phone", render: (o) => o.phone || "—" },
+          { key: "role", label: "Skill", render: (o) => o.role || "—" },
+          {
+            key: "status",
+            label: "Status",
+            render: (o) => {
+              const st = STATUS_STYLE[o.status] || STATUS_STYLE.AVAILABLE;
+              return (
+                <span style={{ background: st.bg, color: st.color, padding: "0.2rem 0.6rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
+                  {st.label}
+                </span>
+              );
+            },
+          },
+          {
+            key: "currentTask",
+            label: "Current Task",
+            render: (o) =>
+              o.currentTask ? `${o.currentTask.jobNo || ""}${o.currentTask.operationName ? ` · ${o.currentTask.operationName}` : ""}` : "—",
+          },
+          { key: "queued", label: "Queued", align: "center", render: (o) => o.queued ?? 0 },
+          { key: "completedToday", label: "Done Today", align: "center", render: (o) => o.completedToday ?? 0 },
+          {
+            key: "totalDone",
+            label: "Total Done",
+            align: "center",
+            render: (o) => (
+              <>
+                <div style={{ fontWeight: 700, color: "#0f172a" }}>{(o.totalCompletedOps ?? 0).toLocaleString()} steps</div>
+                <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{(o.totalCompletedQty ?? 0).toLocaleString()} pcs</div>
+              </>
+            ),
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            align: "right",
+            render: (o) => {
+              const available = o.isActive !== false;
+              return (
+                <div style={{ display: "inline-flex", gap: "6px" }}>
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-secondary jf-btn-sm"
+                    style={{ padding: "0.3rem 0.5rem" }}
+                    title="Edit operator"
+                    aria-label="Edit operator"
+                    onClick={() => setForm({ id: o.id, employeeId: o.employeeId || "", name: o.name || "", phone: o.phone || "", skill: o.role || "", notes: o.notes || "" })}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-sm"
+                    disabled={busyId === o.id}
+                    style={{
+                      padding: "0.3rem 0.5rem",
+                      background: available ? "#fee2e2" : "#dcfce7",
+                      color: available ? "#b91c1c" : "#15803d",
+                      border: `1px solid ${available ? "#fecaca" : "#bbf7d0"}`,
+                    }}
+                    title={available ? "Make unavailable" : "Make available"}
+                    aria-label={available ? "Make unavailable" : "Make available"}
+                    onClick={() => toggleAvailability(o)}
+                  >
+                    <Power size={14} />
+                  </button>
+                </div>
+              );
+            },
+          },
+        ]}
+      />
 
       {form && (
         <div className="jf-modal-overlay" onClick={() => !saving && setForm(null)}>

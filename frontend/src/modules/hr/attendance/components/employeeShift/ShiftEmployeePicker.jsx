@@ -4,7 +4,7 @@ import branchShiftApi from "../../api/branchShiftApi";
 
 // Employee picker that searches on the server as the admin types,
 // so it keeps working with a large employee base.
-export default function ShiftEmployeePicker({ value, onChange, placeholder = "Search employee by name or code..." }) {
+export default function ShiftEmployeePicker({ value, onChange, branchId = "", placeholder = "Search employee by name or code..." }) {
   const [text, setText] = useState("");
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +16,7 @@ export default function ShiftEmployeePicker({ value, onChange, placeholder = "Se
     let cancelled = false;
     setLoading(true);
     const timer = setTimeout(async () => {
-      const rows = await branchShiftApi.searchActiveEmployees(text.trim());
+      const rows = await branchShiftApi.searchActiveEmployees(text.trim(), branchId ? 50 : 20, branchId);
       if (!cancelled) {
         setResults(rows);
         setLoading(false);
@@ -26,7 +26,13 @@ export default function ShiftEmployeePicker({ value, onChange, placeholder = "Se
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [text, isOpen]);
+  }, [text, isOpen, branchId]);
+
+  // Picking another branch with no employee chosen starts the search afresh
+  useEffect(() => {
+    if (!value) setText("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId]);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {

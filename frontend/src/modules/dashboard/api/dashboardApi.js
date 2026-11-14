@@ -10,6 +10,15 @@ export const dashboardApi = {
   },
 
   /**
+   * Fetch one module of the Admin dashboard (salesorders, joborders, production, inventory, attendance,
+   * salary, employees, invoices, design, branches, qc) for the picked branch and dates
+   */
+  async getAdminModule(params = {}) {
+    const response = await api.get("/dashboards/admin/module", { params });
+    return response.data?.data || response.data;
+  },
+
+  /**
    * Fetch branch-scoped Manager dashboard
    */
   async getManagerDashboard(params = {}) {

@@ -4,7 +4,7 @@ import "../../../../shared/styles/printzTheme.css";
 import "../../../../shared/styles/addAssets.css";
 import { usePopup } from "../../../../shared/hooks/usePopup";
 import Popup from "../../../../shared/ui/Popup/Popup.jsx";
-import Pagination from "../../../../shared/ui/Pagination.jsx";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../shared/ui/selects/BranchSelect.jsx";
 import CalendarSelect from "../../../../shared/ui/selects/CalendarSelect.jsx";
 import { toast } from "react-toastify";
@@ -551,212 +551,228 @@ const PastDateRequests = () => {
               )}
             </div>
           ) : (
-            <>
-              <div className="add-assets-table-wrap" style={{ overflowX: "auto" }}>
-                <table className="add-assets-table balance-directory-table" style={{ width: "100%", tableLayout: "auto" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: "45px", textAlign: "center", whiteSpace: "nowrap" }}>S.No</th>
-                      <th style={{ textAlign: "left", whiteSpace: "nowrap" }}>Requested By</th>
-                      <th style={{ width: "110px", textAlign: "center", whiteSpace: "nowrap" }}>Date</th>
-                      <th style={{ width: "85px", textAlign: "center", whiteSpace: "nowrap" }}>Time</th>
-                      <th style={{ width: "130px", textAlign: "left", whiteSpace: "nowrap" }}>Branch</th>
-                      <th style={{ width: "115px", textAlign: "center", whiteSpace: "nowrap" }}>Type</th>
-                      <th style={{ width: "105px", textAlign: "center", whiteSpace: "nowrap" }}>Status</th>
-                      <th style={{ width: "155px", textAlign: "center", whiteSpace: "nowrap" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentRequests.map((request, index) => {
-                      const status = request.status || "Pending";
-                      const datePart = request.requestedDate ? request.requestedDate.split(" ")[0] : "N/A";
-                      const timePart = request.requestedDate ? request.requestedDate.split(" ")[1] : "N/A";
-                      const emailMatch =
-                        request.requestedBy && request.requestedBy.includes("(")
-                          ? request.requestedBy.split("(")[1]?.replace(")", "").trim()
-                          : "";
-                      const nameDisplay =
-                        request.requestedByName ||
-                        (request.requestedBy && request.requestedBy.includes("(")
-                          ? request.requestedBy.split("(")[0].trim()
-                          : request.requestedBy || "Unknown User");
-                      const emailDisplay = request.requestedByEmail || emailMatch || "";
-
-                      return (
-                        <tr key={request.id}>
-                          <td style={{ textAlign: "center", color: "#475569", fontWeight: 600 }}>
-                            {startIndex + index + 1}
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                              <div
-                                style={{
-                                  width: "30px",
-                                  height: "30px",
-                                  borderRadius: "50%",
-                                  background: "#ecfdf5",
-                                  color: "#059669",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                  border: "1px solid #d1fae5",
-                                }}
-                              >
-                                <User size={15} />
-                              </div>
-                              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                                <span
-                                  style={{
-                                    fontWeight: 600,
-                                    color: "#0f172a",
-                                    fontSize: "13px",
-                                    lineHeight: "1.3",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                  }}
-                                  title={nameDisplay}
-                                >
-                                  {nameDisplay}
-                                </span>
-                                {emailDisplay && emailDisplay !== nameDisplay ? (
-                                  <span
-                                    style={{
-                                      fontSize: "11.5px",
-                                      color: "#475569",
-                                      lineHeight: "1.2",
-                                      whiteSpace: "nowrap",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                    }}
-                                    title={emailDisplay}
-                                  >
-                                    {emailDisplay}
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            <span className="add-assets-id-badge" style={{ fontWeight: 600 }}>
-                              {request.requestedDate ? request.requestedDate.split(" ")[0] : "N/A"}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "center", color: "#475569", fontSize: "12.5px", fontWeight: 500 }}>
-                            {request.requestedDate ? request.requestedDate.split(" ")[1] : "N/A"}
-                          </td>
-                          <td>
+            <DataTable
+              searchable={false}
+              data={currentRequests}
+              serverPagination={{
+                page: currentPage,
+                pageSize: itemsPerPage,
+                total: totalCount,
+                onPageChange: handlePageChange,
+                onPageSizeChange: (size) => {
+                  setItemsPerPage(size);
+                  setCurrentPage(1);
+                },
+              }}
+              columns={[
+                {
+                  key: "sno",
+                  label: "S.No",
+                  width: "45px",
+                  align: "center",
+                  render: (request, index) => (
+                    <span style={{ color: "#475569", fontWeight: 600 }}>{index + 1}</span>
+                  ),
+                },
+                {
+                  key: "requestedBy",
+                  label: "Requested By",
+                  render: (request) => {
+                    const emailMatch =
+                      request.requestedBy && request.requestedBy.includes("(")
+                        ? request.requestedBy.split("(")[1]?.replace(")", "").trim()
+                        : "";
+                    const nameDisplay =
+                      request.requestedByName ||
+                      (request.requestedBy && request.requestedBy.includes("(")
+                        ? request.requestedBy.split("(")[0].trim()
+                        : request.requestedBy || "Unknown User");
+                    const emailDisplay = request.requestedByEmail || emailMatch || "";
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                        <div
+                          style={{
+                            width: "30px",
+                            height: "30px",
+                            borderRadius: "50%",
+                            background: "#ecfdf5",
+                            color: "#059669",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            border: "1px solid #d1fae5",
+                          }}
+                        >
+                          <User size={15} />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                          <span
+                            style={{
+                              fontWeight: 600,
+                              color: "#0f172a",
+                              fontSize: "13px",
+                              lineHeight: "1.3",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                            title={nameDisplay}
+                          >
+                            {nameDisplay}
+                          </span>
+                          {emailDisplay && emailDisplay !== nameDisplay ? (
                             <span
                               style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                fontWeight: 600,
-                                color: "#1e293b",
-                                fontSize: "13px",
+                                fontSize: "11.5px",
+                                color: "#475569",
+                                lineHeight: "1.2",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
                               }}
+                              title={emailDisplay}
                             >
-                              <Building2 size={14} color="#059669" />
-                              {request.requestedBranch}
+                              {emailDisplay}
                             </span>
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            <span
-                              style={{
-                                fontSize: "12px",
-                                background: "#f1f5f9",
-                                padding: "3px 9px",
-                                borderRadius: "6px",
-                                color: "#334155",
-                                fontWeight: 500,
-                                display: "inline-block",
-                              }}
-                            >
-                              {request.type}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            {status === "Approved" ? (
-                              <span className="balance-status-badge approved">
-                                <Check size={11} /> Approved
-                              </span>
-                            ) : status === "Rejected" ? (
-                              <span className="balance-status-badge rejected">
-                                <X size={11} /> Rejected
-                              </span>
-                            ) : (
-                              <span className="balance-status-badge pending">
-                                <Clock size={11} /> Pending
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "6px",
-                              }}
-                            >
-                              {status !== "Rejected" && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleApprove(request.id)}
-                                  disabled={status === "Approved"}
-                                  className="add-assets-action-btn-sm add-assets-action-btn-save"
-                                  style={{
-                                    opacity: status === "Approved" ? 0.6 : 1,
-                                    cursor: status === "Approved" ? "default" : "pointer",
-                                  }}
-                                  title={status === "Approved" ? "Already approved" : "Approve request"}
-                                >
-                                  <Check size={12} />
-                                  <span>{status === "Approved" ? "Approved" : "Approve"}</span>
-                                </button>
-                              )}
-                              {status !== "Approved" && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleReject(request.id)}
-                                  disabled={status === "Rejected"}
-                                  className="add-assets-action-btn-sm add-assets-action-btn-delete"
-                                  style={{
-                                    opacity: status === "Rejected" ? 0.6 : 1,
-                                    cursor: status === "Rejected" ? "default" : "pointer",
-                                  }}
-                                  title={status === "Rejected" ? "Already rejected" : "Reject request"}
-                                >
-                                  <X size={12} />
-                                  <span>{status === "Rejected" ? "Rejected" : "Reject"}</span>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination Controls */}
-              {totalCount > 0 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalItems={totalCount}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={handlePageChange}
-                  onItemsPerPageChange={(size) => {
-                    setItemsPerPage(size);
-                    setCurrentPage(1);
-                  }}
-                  pageSizeOptions={[10, 20, 50, 100]}
-                  itemLabel="requests"
-                />
-              )}
-            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "requestedDate",
+                  label: "Date",
+                  width: "110px",
+                  align: "center",
+                  render: (request) => (
+                    <span className="add-assets-id-badge" style={{ fontWeight: 600 }}>
+                      {request.requestedDate ? request.requestedDate.split(" ")[0] : "N/A"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "time",
+                  label: "Time",
+                  width: "85px",
+                  align: "center",
+                  render: (request) => (
+                    <span style={{ color: "#475569", fontSize: "12.5px", fontWeight: 500 }}>
+                      {request.requestedDate ? request.requestedDate.split(" ")[1] : "N/A"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "requestedBranch",
+                  label: "Branch",
+                  width: "130px",
+                  render: (request) => (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontWeight: 600,
+                        color: "#1e293b",
+                        fontSize: "13px",
+                      }}
+                    >
+                      <Building2 size={14} color="#059669" />
+                      {request.requestedBranch}
+                    </span>
+                  ),
+                },
+                {
+                  key: "type",
+                  label: "Type",
+                  width: "115px",
+                  align: "center",
+                  render: (request) => (
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        background: "#f1f5f9",
+                        padding: "3px 9px",
+                        borderRadius: "6px",
+                        color: "#334155",
+                        fontWeight: 500,
+                        display: "inline-block",
+                      }}
+                    >
+                      {request.type}
+                    </span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  width: "105px",
+                  align: "center",
+                  render: (request) => {
+                    const status = request.status || "Pending";
+                    return status === "Approved" ? (
+                      <span className="balance-status-badge approved">
+                        <Check size={11} /> Approved
+                      </span>
+                    ) : status === "Rejected" ? (
+                      <span className="balance-status-badge rejected">
+                        <X size={11} /> Rejected
+                      </span>
+                    ) : (
+                      <span className="balance-status-badge pending">
+                        <Clock size={11} /> Pending
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "actions",
+                  label: "Actions",
+                  width: "155px",
+                  align: "center",
+                  render: (request) => {
+                    const status = request.status || "Pending";
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                        {status !== "Rejected" && (
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(request.id)}
+                            disabled={status === "Approved"}
+                            className="add-assets-action-btn-sm add-assets-action-btn-save"
+                            style={{
+                              opacity: status === "Approved" ? 0.6 : 1,
+                              cursor: status === "Approved" ? "default" : "pointer",
+                            }}
+                            title={status === "Approved" ? "Already approved" : "Approve request"}
+                          >
+                            <Check size={12} />
+                            <span>{status === "Approved" ? "Approved" : "Approve"}</span>
+                          </button>
+                        )}
+                        {status !== "Approved" && (
+                          <button
+                            type="button"
+                            onClick={() => handleReject(request.id)}
+                            disabled={status === "Rejected"}
+                            className="add-assets-action-btn-sm add-assets-action-btn-delete"
+                            style={{
+                              opacity: status === "Rejected" ? 0.6 : 1,
+                              cursor: status === "Rejected" ? "default" : "pointer",
+                            }}
+                            title={status === "Rejected" ? "Already rejected" : "Reject request"}
+                          >
+                            <X size={12} />
+                            <span>{status === "Rejected" ? "Rejected" : "Reject"}</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+              ]}
+            />
           )}
         </div>
       </div>

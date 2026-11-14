@@ -37,8 +37,9 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { JobFlowLayout } from "../../../layouts/JobFlowLayout/JobFlowLayout";
-import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
+import DataTable from "../../../shared/ui/DataTable/DataTable";
 import posApi from "../api/posApi";
+import SelectField from "../../../shared/ui/selects/SelectField";
 import ThermalReceiptModal from "../components/ThermalReceiptModal";
 import VoidSaleModal from "../components/VoidSaleModal";
 import "../styles/pos.css";
@@ -163,7 +164,7 @@ export const PosBillingPage = () => {
     try {
       const storedBills = JSON.parse(localStorage.getItem("printz_held_bills") || "[]");
       setHeldBills(storedBills);
-    } catch (_) {}
+    } catch (_) { }
 
     loadCatalog();
     loadCustomers();
@@ -187,7 +188,7 @@ export const PosBillingPage = () => {
     try {
       const custs = await posApi.getCustomers();
       setExistingCustomers(custs);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const loadHistory = async () => {
@@ -643,23 +644,23 @@ export const PosBillingPage = () => {
         items: cart.map((it, i) =>
           it.isService
             ? {
-                // Print service: priced on the server from the selection, no stock movement
-                printService: it.printService,
-                quantity: it.quantity,
-                discount: lineDiscounts[i],
-                taxRate: Number(gstRate) || 0,
-              }
+              // Print service: priced on the server from the selection, no stock movement
+              printService: it.printService,
+              quantity: it.quantity,
+              discount: lineDiscounts[i],
+              taxRate: Number(gstRate) || 0,
+            }
             : {
-                productId: it.productId,
-                quantity: it.quantity,
-                unitPrice: it.unitPrice,
-                discount: lineDiscounts[i],
-                // The selected GST rate always applies, including 0%
-                taxRate: Number(gstRate) || 0,
-                wastageQuantity: Number(it.wastageQuantity || 0),
-                wastageReason: it.wastageReason || undefined,
-                notes: it.wastageNote || undefined,
-              }
+              productId: it.productId,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              discount: lineDiscounts[i],
+              // The selected GST rate always applies, including 0%
+              taxRate: Number(gstRate) || 0,
+              wastageQuantity: Number(it.wastageQuantity || 0),
+              wastageReason: it.wastageReason || undefined,
+              notes: it.wastageNote || undefined,
+            }
         ),
         paymentMode,
         splitPayments: splitList,
@@ -737,7 +738,7 @@ export const PosBillingPage = () => {
 
   return (
     <JobFlowLayout
-      title="POS Counter Billing & Sales Receipts"
+      title="POS & Sales Receipts"
       subtitle={`Fast retail checkout, itemized thermal slips, and stock deduction • Branch: ${currentBranchName}`}
       actions={
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -760,7 +761,7 @@ export const PosBillingPage = () => {
             onClick={() => handleTabChange("BILLING")}
             style={{
               background: activeTab === "BILLING" ? "#059669" : "#f1f5f9",
-              color: activeTab === "BILLING" ? "#fff" : "#475569",
+              color: activeTab === "BILLING" ? "#fff" : "#1e293b",
             }}
           >
             <ShoppingCart size={16} /> New Counter Sale
@@ -771,7 +772,7 @@ export const PosBillingPage = () => {
             onClick={() => handleTabChange("HISTORY")}
             style={{
               background: activeTab === "HISTORY" ? "#059669" : "#f1f5f9",
-              color: activeTab === "HISTORY" ? "#fff" : "#475569",
+              color: activeTab === "HISTORY" ? "#fff" : "#1e293b",
             }}
           >
             <Receipt size={16} /> Receipts History
@@ -822,12 +823,12 @@ export const PosBillingPage = () => {
 
               {/* Products & Stocks Grid */}
               {loadingProducts ? (
-                <div style={{ textAlign: "center", padding: "3rem", color: "#475569" }}>
+                <div style={{ textAlign: "center", padding: "3rem", color: "#1e293b" }}>
                   <RefreshCw size={24} className="jf-spin" style={{ margin: "0 auto 0.5rem" }} />
                   <div>Loading catalog & stock items...</div>
                 </div>
               ) : filteredProducts.length === 0 && visiblePrintServices.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "3rem", color: "#475569" }}>
+                <div style={{ textAlign: "center", padding: "3rem", color: "#1e293b" }}>
                   <Package size={32} style={{ margin: "0 auto 0.5rem", opacity: 0.5 }} />
                   <div>No products match your search or filter.</div>
                 </div>
@@ -891,9 +892,8 @@ export const PosBillingPage = () => {
                           <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem" }}>
                             {/* Stock Indicator Badge */}
                             <span
-                              className={`pos-stock-tag ${
-                                isOutOfStock ? "out-stock" : isLowStock ? "low-stock" : "in-stock"
-                              }`}
+                              className={`pos-stock-tag ${isOutOfStock ? "out-stock" : isLowStock ? "low-stock" : "in-stock"
+                                }`}
                             >
                               <span
                                 style={{
@@ -972,7 +972,7 @@ export const PosBillingPage = () => {
                     Walk-in
                   </button>
                   <button
-                    
+
                     type="button"
                     className={`pos-cust-btn ${customerType === "REGISTERED" ? "active" : ""}`}
                     onClick={() => setCustomerType("REGISTERED")}
@@ -1057,7 +1057,7 @@ export const PosBillingPage = () => {
                         {showCustDropdown && (
                           <div className="pos-cust-dropdown">
                             {filteredCustomers.length === 0 ? (
-                              <div style={{ padding: "0.5rem", fontSize: "0.75rem", color: "#475569" }}>
+                              <div style={{ padding: "0.5rem", fontSize: "0.75rem", color: "#1e293b" }}>
                                 No matching customers found.
                               </div>
                             ) : (
@@ -1077,13 +1077,13 @@ export const PosBillingPage = () => {
                                 >
                                   <div>
                                     <div style={{ fontWeight: 600 }}>{c.name}</div>
-                                    <div style={{ fontSize: "0.7rem", color: "#475569" }}>
+                                    <div style={{ fontSize: "0.7rem", color: "#1e293b" }}>
                                       {c.mobile || "No Phone"} • {c.customerCode || "CODE"}
                                     </div>
                                   </div>
                                   <div style={{ textAlign: "right", fontSize: "0.7rem" }}>
                                     <div style={{ color: "#059669" }}>Limit: ₹{c.creditLimit || 0}</div>
-                                    <div style={{ color: c.outstandingBalance > 0 ? "#dc2626" : "#64748b" }}>
+                                    <div style={{ color: c.outstandingBalance > 0 ? "#dc2626" : "#334155" }}>
                                       Due: ₹{c.outstandingBalance || 0}
                                     </div>
                                   </div>
@@ -1118,7 +1118,7 @@ export const PosBillingPage = () => {
                             Change
                           </button>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", fontSize: "0.72rem", marginTop: "2px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "#1e293b", fontSize: "0.72rem", marginTop: "2px" }}>
                           <span>Phone: {selectedCustomerProfile.mobile || "N/A"}</span>
                           <span>GSTIN: {selectedCustomerProfile.gstin || "N/A"}</span>
                         </div>
@@ -1135,10 +1135,10 @@ export const PosBillingPage = () => {
               {/* Cart Items List */}
               <div className="pos-cart-items">
                 {cart.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem 1rem", color: "#475569" }}>
+                  <div style={{ textAlign: "center", padding: "2rem 1rem", color: "#1e293b" }}>
                     <ShoppingCart size={28} style={{ margin: "0 auto 0.4rem", opacity: 0.4 }} />
                     <div style={{ fontSize: "0.85rem" }}>Cart is empty</div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Click products from catalog to add</div>
+                    <div style={{ fontSize: "0.75rem", color: "#334155" }}>Click products from catalog to add</div>
                   </div>
                 ) : (
                   cart.map((it) => (
@@ -1148,7 +1148,7 @@ export const PosBillingPage = () => {
                           <div className="pos-cart-item-name">{it.productName}</div>
                           <div className="pos-cart-item-rate">
                             ₹{it.unitPrice.toFixed(2)} each
-                            <span style={{ marginLeft: "6px", fontSize: "0.68rem", color: "#475569" }}>
+                            <span style={{ marginLeft: "6px", fontSize: "0.68rem", color: "#1e293b" }}>
                               ({it.source})
                             </span>
                           </div>
@@ -1176,30 +1176,30 @@ export const PosBillingPage = () => {
 
                       {/* Step 3: Asset Consumption & Wastage Controls Toggle (not for print services) */}
                       {!it.isService && (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.25rem" }}>
-                        <span style={{ fontSize: "0.7rem", color: "#475569" }}>
-                          Consumption: <strong>{it.quantity} {it.unit || "sheets"}</strong>
-                          {Number(it.wastageQuantity) > 0 && (
-                            <span style={{ color: "#dc2626", marginLeft: "4px" }}>
-                              (+{it.wastageQuantity} wastage)
-                            </span>
-                          )}
-                        </span>
-                        <button
-                          type="button"
-                          className="pos-consumption-toggle"
-                          onClick={() => updateCartConsumption(it.productId, "showConsumption", !it.showConsumption)}
-                        >
-                          <Sparkles size={11} /> {it.showConsumption ? "Hide Asset & Wastage" : "Adjust Consumption / Wastage"}
-                        </button>
-                      </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.25rem" }}>
+                          <span style={{ fontSize: "0.7rem", color: "#1e293b" }}>
+                            Consumption: <strong>{it.quantity} {it.unit || "sheets"}</strong>
+                            {Number(it.wastageQuantity) > 0 && (
+                              <span style={{ color: "#dc2626", marginLeft: "4px" }}>
+                                (+{it.wastageQuantity} wastage)
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            className="pos-consumption-toggle"
+                            onClick={() => updateCartConsumption(it.productId, "showConsumption", !it.showConsumption)}
+                          >
+                            <Sparkles size={11} /> {it.showConsumption ? "Hide Asset & Wastage" : "Adjust Consumption / Wastage"}
+                          </button>
+                        </div>
                       )}
 
                       {/* Step 3: Asset Consumption Drawer */}
                       {!it.isService && it.showConsumption && (
                         <div className="pos-consumption-box">
                           <div className="pos-consumption-row">
-                            <span style={{ color: "#475569", fontWeight: 600 }}>Extra Sheets / Wastage:</span>
+                            <span style={{ color: "#1e293b", fontWeight: 600 }}>Extra Sheets / Wastage:</span>
                             <input
                               type="number"
                               min="0"
@@ -1213,21 +1213,23 @@ export const PosBillingPage = () => {
                           {Number(it.wastageQuantity) > 0 && (
                             <div className="pos-consumption-row">
                               <span style={{ color: "#dc2626", fontWeight: 600 }}>Reason (Audited) *:</span>
-                              <select
-                                className="jf-select"
-                                style={{ width: "160px", padding: "0.15rem 0.35rem", fontSize: "0.72rem" }}
+                              <SelectField
+                                compact
+                                searchable={false}
+                                style={{ width: "190px" }}
+                                placeholder="-- Choose Reason --"
                                 value={it.wastageReason || ""}
                                 onChange={(e) => updateCartConsumption(it.productId, "wastageReason", e.target.value)}
-                              >
-                                <option value="">-- Choose Reason --</option>
-                                <option value="Paper Jam / Feeder Error">Paper Jam / Feeder Error</option>
-                                <option value="Color Calibration / Alignment">Color Calibration / Alignment</option>
-                                <option value="Test Print & Proofing">Test Print & Proofing</option>
-                                <option value="Damaged Media / Creased Paper">Damaged Media / Creased Paper</option>
-                                <option value="Customer Revision">Customer Revision</option>
-                                <option value="Machine Ink Smudge">Machine Ink Smudge</option>
-                                <option value="Other Consumable Waste">Other Consumable Waste</option>
-                              </select>
+                                options={[
+                                  "Paper Jam / Feeder Error",
+                                  "Color Calibration / Alignment",
+                                  "Test Print & Proofing",
+                                  "Damaged Media / Creased Paper",
+                                  "Customer Revision",
+                                  "Machine Ink Smudge",
+                                  "Other Consumable Waste",
+                                ]}
+                              />
                             </div>
                           )}
                           <input
@@ -1240,7 +1242,7 @@ export const PosBillingPage = () => {
                               borderBottom: "1px dashed #cbd5e1",
                               background: "transparent",
                               fontSize: "0.72rem",
-                              color: "#475569",
+                              color: "#1e293b",
                               padding: "0.1rem 0",
                             }}
                           />
@@ -1300,29 +1302,15 @@ export const PosBillingPage = () => {
 
                 <div style={{ padding: "0.45rem 0", borderBottom: "1px dashed #e2e8f0" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "#475569", fontWeight: 600 }}>GST / Taxes</span>
-                    <select
+                    <span style={{ fontSize: "0.8125rem", color: "#1e293b", fontWeight: 600 }}>GST / Taxes</span>
+                    <SelectField
+                      compact
+                      searchable={false}
+                      style={{ width: "78px" }}
                       value={Number(gstRate) || 0}
                       onChange={(e) => setGstRate(Number(e.target.value))}
-                      aria-label="GST rate"
-                      style={{
-                        width: "64px",
-                        padding: "0.15rem 0.25rem",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        color: "#475569",
-                        background: "#ffffff",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {[0, 5, 12, 18, 28].map((rate) => (
-                        <option key={rate} value={rate}>
-                          {rate}%
-                        </option>
-                      ))}
-                    </select>
+                      options={[0, 5, 12, 18, 28].map((rate) => ({ value: rate, label: `${rate}%` }))}
+                    />
                     <strong style={{ marginLeft: "auto", fontSize: "0.95rem", color: "#059669" }}>
                       ₹{taxAmount.toFixed(2)}
                     </strong>
@@ -1336,12 +1324,13 @@ export const PosBillingPage = () => {
 
                 {/* Payment Modes */}
                 <div style={{ marginTop: "0.25rem" }}>
-                  <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", marginBottom: "0.3rem" }}>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.3rem" }}>
                     PAYMENT MODE
                   </div>
-                  <select
+                  <SelectField
+                    searchable={false}
                     value={paymentMode}
-                    aria-label="Payment mode"
+                    options={["CASH", "UPI", "CARD", "BANK", "CREDIT", "SPLIT"]}
                     onChange={(e) => {
                       const mode = e.target.value;
                       setPaymentMode(mode);
@@ -1354,24 +1343,7 @@ export const PosBillingPage = () => {
                         });
                       }
                     }}
-                    style={{
-                      width: "100%",
-                      padding: "0.4rem 0.5rem",
-                      fontSize: "0.82rem",
-                      fontWeight: 600,
-                      color: "#475569",
-                      background: "#ffffff",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "7px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {["CASH", "UPI", "CARD", "BANK", "CREDIT", "SPLIT"].map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 {/* Split Payments Breakdown */}
@@ -1421,7 +1393,7 @@ export const PosBillingPage = () => {
                         onChange={(e) => setSplitPayments({ ...splitPayments, BANK: Number(e.target.value) || 0 })}
                       />
                     </div>
-                    <div style={{ gridColumn: "span 2", fontSize: "0.72rem", color: "#475569", textAlign: "right" }}>
+                    <div style={{ gridColumn: "span 2", fontSize: "0.72rem", color: "#1e293b", textAlign: "right" }}>
                       Allocated: ₹
                       {(
                         Number(splitPayments.CASH || 0) +
@@ -1491,239 +1463,181 @@ export const PosBillingPage = () => {
 
         {activeTab === "HISTORY" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {/* Step 8: Branch Sales & Payment Mode Split Summary Ribbon */}
-            <PrintzKpiGrid minWidth="190px" marginBottom="16px">
-              <PrintzKpiCard
-                title="Total Sales"
-                value={dailySummary.totalSales}
-                prefix="₹"
-                decimals={2}
-                color="green"
-                badge="Today"
-                icon={<IndianRupee size={20} strokeWidth={2.4} />}
-              />
-              <PrintzKpiCard
-                title="Cash Collections"
-                value={dailySummary.cashSales}
-                prefix="₹"
-                decimals={2}
-                color="teal"
-                badge="Cash Till"
-                icon={<Banknote size={20} strokeWidth={2.4} />}
-              />
-              <PrintzKpiCard
-                title="UPI / Digital"
-                value={dailySummary.upiSales}
-                prefix="₹"
-                decimals={2}
-                color="blue"
-                badge="QR / UPI"
-                icon={<QrCode size={20} strokeWidth={2.4} />}
-              />
-              <PrintzKpiCard
-                title="Card / Bank"
-                value={dailySummary.cardBankSales}
-                prefix="₹"
-                decimals={2}
-                color="purple"
-                badge="POS Terminal"
-                icon={<CreditCard size={20} strokeWidth={2.4} />}
-              />
-              <PrintzKpiCard
-                title="Credit / Due"
-                value={dailySummary.creditSales}
-                prefix="₹"
-                decimals={2}
-                color="orange"
-                badge="Receivable"
-                icon={<DollarSign size={20} strokeWidth={2.4} />}
-              />
-              <PrintzKpiCard
-                title="Voided Bills"
-                value={dailySummary.voidCount}
-                color="pink"
-                badge={`₹${dailySummary.voidTotal.toFixed(2)}`}
-                icon={<RotateCcw size={20} strokeWidth={2.4} />}
-              />
-            </PrintzKpiGrid>
 
-            <div className="jf-card">
-            <div className="jf-card-header" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
-              <div>
-                <h3 className="jf-card-title">
-                  <Receipt size={20} style={{ color: "#059669" }} />
-                  Sales Receipts Ledger & History
-                </h3>
-              </div>
+            <DataTable
+              mobileCards
+              title="Sales Receipts Ledger & History"
+              icon={<Receipt size={20} style={{ color: "#059669" }} />}
+              searchable={false}
+              loading={loadingHistory}
+              emptyMessage="No sale receipts found. Complete a counter sale to populate the ledger."
+              pageSize={10}
+              data={receiptsList.filter((r) => {
+                if (!historySearch) return true;
+                const q = historySearch.toLowerCase();
+                return (
+                  (r.receiptNo || "").toLowerCase().includes(q) ||
+                  (r.customerSnapshot?.name || r.customerName || "").toLowerCase().includes(q)
+                );
+              })}
+              filterComponent={
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    className="jf-input"
+                    style={{ width: "200px", fontSize: "0.82rem" }}
+                    placeholder="Filter receipt, customer..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                  />
 
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                <input
-                  type="text"
-                  className="jf-input"
-                  style={{ width: "200px", fontSize: "0.82rem" }}
-                  placeholder="Filter receipt, customer..."
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                />
+                  <SelectField
+                    searchable={false}
+                    style={{ width: "150px" }}
+                    value={historyStatusFilter}
+                    onChange={(e) => setHistoryStatusFilter(e.target.value)}
+                    options={[
+                      { value: "ALL", label: "All Statuses" },
+                      { value: "COMPLETED", label: "Completed" },
+                      { value: "DRAFT", label: "Draft" },
+                      { value: "VOID", label: "Voided" },
+                    ]}
+                  />
 
-                <select
-                  className="jf-select"
-                  style={{ width: "140px", fontSize: "0.82rem" }}
-                  value={historyStatusFilter}
-                  onChange={(e) => setHistoryStatusFilter(e.target.value)}
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="DRAFT">Draft</option>
-                  <option value="VOID">Voided</option>
-                </select>
-
-                <button
-                  type="button"
-                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                  onClick={loadHistory}
-                  disabled={loadingHistory}
-                >
-                  <RefreshCw size={14} className={loadingHistory ? "jf-spin" : ""} /> Refresh
-                </button>
-              </div>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th>Receipt No</th>
-                    <th>Date & Time</th>
-                    <th>Customer Name</th>
-                    <th>Payment Mode</th>
-                    <th>Grand Total</th>
-                    <th>Payment Status</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: "right" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loadingHistory ? (
-                    <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                        <RefreshCw size={20} className="jf-spin" style={{ margin: "0 auto 0.5rem" }} />
-                        <div>Loading receipts ledger...</div>
-                      </td>
-                    </tr>
-                  ) : receiptsList.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                        No sale receipts found. Complete a counter sale to populate the ledger.
-                      </td>
-                    </tr>
-                  ) : (
-                    receiptsList
-                      .filter((r) => {
-                        if (!historySearch) return true;
-                        const q = historySearch.toLowerCase();
-                        return (
-                          (r.receiptNo || "").toLowerCase().includes(q) ||
-                          (r.customerSnapshot?.name || r.customerName || "").toLowerCase().includes(q)
-                        );
-                      })
-                      .map((r) => {
-                        const dt = new Date(r.saleDate || r.createdAt).toLocaleString("en-IN", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        });
-                        const isVoided = r.status === "VOID";
-
-                        return (
-                          <tr key={r._id}>
-                            <td>
-                              <strong style={{ color: isVoided ? "#94a3b8" : "#0f172a" }}>{r.receiptNo}</strong>
-                            </td>
-                            <td style={{ fontSize: "0.82rem", color: "#475569" }}>{dt}</td>
-                            <td>
-                              <div style={{ fontWeight: 600 }}>{r.customerSnapshot?.name || r.customerName || "Walk-in"}</div>
-                              {(r.customerSnapshot?.mobile || r.customerMobile) && (
-                                <div style={{ fontSize: "0.75rem", color: "#475569" }}>{r.customerSnapshot?.mobile || r.customerMobile}</div>
-                              )}
-                            </td>
-                            <td>
-                              <span style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>
-                                {r.paymentMode || "CASH"}
-                              </span>
-                            </td>
-                            <td>
-                              <strong style={{ color: isVoided ? "#94a3b8" : "#059669" }}>
-                                ₹{Number(r.grandTotal || 0).toFixed(2)}
-                              </strong>
-                            </td>
-                            <td>
-                              <span
-                                className={`jf-badge-pill ${
-                                  r.paymentStatus === "PAID"
-                                    ? "jf-badge-success"
-                                    : r.paymentStatus === "CREDIT"
-                                    ? "jf-badge-warning"
-                                    : "jf-badge-danger"
-                                }`}
-                              >
-                                {r.paymentStatus || "PAID"}
-                              </span>
-                            </td>
-                            <td>
-                              <span
-                                className={`jf-badge-pill ${
-                                  isVoided ? "jf-badge-danger" : "jf-badge-success"
-                                }`}
-                              >
-                                {r.status || "COMPLETED"}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: "right" }}>
-                              <div style={{ display: "inline-flex", gap: "0.4rem" }}>
-                                <button
-                                  type="button"
-                                  className="jf-btn jf-btn-secondary jf-btn-sm"
-                                  onClick={async () => {
-                                    // The history list has no item lines, so load the full receipt first
-                                    setActiveReceipt(r);
-                                    setShowThermalModal(true);
-                                    try {
-                                      const full = await posApi.getReceiptById(r._id || r.id);
-                                      setActiveReceipt(full?.data || full || r);
-                                    } catch (err) {
-                                      toast.error("Could not load the receipt items.");
-                                    }
-                                  }}
-                                  title="Print Slip"
-                                >
-                                  <Printer size={14} /> Slip
-                                </button>
-                                {!isVoided && (
-                                  <button
-                                    type="button"
-                                    className="jf-btn jf-btn-secondary jf-btn-sm"
-                                    style={{ color: "#dc2626", borderColor: "#fecaca" }}
-                                    onClick={() => {
-                                      setReceiptToVoid(r);
-                                      setShowVoidModal(true);
-                                    }}
-                                    title="Void Sale"
-                                  >
-                                    <RotateCcw size={14} /> Void
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  <button
+                    type="button"
+                    className="jf-btn jf-btn-secondary jf-btn-sm"
+                    onClick={loadHistory}
+                    disabled={loadingHistory}
+                  >
+                    <RefreshCw size={14} className={loadingHistory ? "jf-spin" : ""} /> Refresh
+                  </button>
+                </div>
+              }
+              columns={[
+                {
+                  key: "receiptNo",
+                  className: "printz-cell-lead",
+                  label: "Receipt No",
+                  render: (r) => (
+                    <strong style={{ color: r.status === "VOID" ? "#94a3b8" : "#0f172a" }}>{r.receiptNo}</strong>
+                  ),
+                },
+                {
+                  key: "saleDate",
+                  label: "Date & Time",
+                  render: (r) => (
+                    <span style={{ fontSize: "0.82rem", color: "#1e293b" }}>
+                      {new Date(r.saleDate || r.createdAt).toLocaleString("en-IN", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  ),
+                },
+                {
+                  key: "customerName",
+                  label: "Customer Name",
+                  render: (r) => (
+                    <>
+                      <div style={{ fontWeight: 600 }}>{r.customerSnapshot?.name || r.customerName || "Walk-in"}</div>
+                      {(r.customerSnapshot?.mobile || r.customerMobile) && (
+                        <div style={{ fontSize: "0.75rem", color: "#1e293b" }}>
+                          {r.customerSnapshot?.mobile || r.customerMobile}
+                        </div>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: "paymentMode",
+                  label: "Payment Mode",
+                  render: (r) => (
+                    <span style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>
+                      {r.paymentMode || "CASH"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "grandTotal",
+                  label: "Grand Total",
+                  render: (r) => (
+                    <strong style={{ color: r.status === "VOID" ? "#94a3b8" : "#059669" }}>
+                      ₹{Number(r.grandTotal || 0).toFixed(2)}
+                    </strong>
+                  ),
+                },
+                {
+                  key: "paymentStatus",
+                  label: "Payment Status",
+                  render: (r) => (
+                    <span
+                      className={`jf-badge-pill ${r.paymentStatus === "PAID"
+                        ? "jf-badge-success"
+                        : r.paymentStatus === "CREDIT"
+                          ? "jf-badge-warning"
+                          : "jf-badge-danger"
+                        }`}
+                    >
+                      {r.paymentStatus || "PAID"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (r) => (
+                    <span className={`jf-badge-pill ${r.status === "VOID" ? "jf-badge-danger" : "jf-badge-success"}`}>
+                      {r.status || "COMPLETED"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "actions",
+                  className: "printz-cell-actions",
+                  label: "Actions",
+                  align: "right",
+                  render: (r) => (
+                    <div style={{ display: "inline-flex", gap: "0.4rem" }}>
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-secondary jf-btn-sm"
+                        onClick={async () => {
+                          // The history list has no item lines, so load the full receipt first
+                          setActiveReceipt(r);
+                          setShowThermalModal(true);
+                          try {
+                            const full = await posApi.getReceiptById(r._id || r.id);
+                            setActiveReceipt(full?.data || full || r);
+                          } catch (err) {
+                            toast.error("Could not load the receipt items.");
+                          }
+                        }}
+                        title="Print Slip"
+                      >
+                        <Printer size={14} /> Slip
+                      </button>
+                      {r.status !== "VOID" && (
+                        <button
+                          type="button"
+                          className="jf-btn jf-btn-secondary jf-btn-sm"
+                          style={{ color: "#dc2626", borderColor: "#fecaca" }}
+                          onClick={() => {
+                            setReceiptToVoid(r);
+                            setShowVoidModal(true);
+                          }}
+                          title="Void Sale"
+                        >
+                          <RotateCcw size={14} /> Void
+                        </button>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* ── MODAL 1: THERMAL RECEIPT SLIP ── */}
@@ -1773,23 +1687,21 @@ export const PosBillingPage = () => {
               <div className="jf-modal-body" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 <div className="jf-form-group">
                   <label className="jf-label">Side</label>
-                  <select className="jf-select" value={printSides} onChange={(e) => setPrintSides(e.target.value)}>
-                    {PRINT_SIDES.map((s) => (
-                      <option key={s.key} value={s.key}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
+                  <SelectField
+                    searchable={false}
+                    value={printSides}
+                    onChange={(e) => setPrintSides(e.target.value)}
+                    options={PRINT_SIDES.map((x) => ({ value: x.key, label: x.label }))}
+                  />
                 </div>
                 <div className="jf-form-group">
                   <label className="jf-label">Paper Type</label>
-                  <select className="jf-select" value={printPaper} onChange={(e) => setPrintPaper(e.target.value)}>
-                    {PRINT_PAPERS.map((p) => (
-                      <option key={p.key} value={p.key}>
-                        {p.label} = ₹{p.rate}
-                      </option>
-                    ))}
-                  </select>
+                  <SelectField
+                    searchable={false}
+                    value={printPaper}
+                    onChange={(e) => setPrintPaper(e.target.value)}
+                    options={PRINT_PAPERS.map((x) => ({ value: x.key, label: `${x.label} = ₹${x.rate}` }))}
+                  />
                 </div>
                 <div className="jf-form-group">
                   <label className="jf-label">Quantity</label>
@@ -1802,7 +1714,7 @@ export const PosBillingPage = () => {
                     onChange={(e) => setPrintQty(e.target.value)}
                   />
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#475569" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#1e293b" }}>
                   <span>₹{printUnitPrice.toFixed(2)} × {Math.max(0, Math.floor(Number(printQty)) || 0)}</span>
                   <strong style={{ color: "#059669" }}>
                     ₹{(printUnitPrice * Math.max(0, Math.floor(Number(printQty)) || 0)).toFixed(2)}
@@ -1952,7 +1864,7 @@ export const PosBillingPage = () => {
               <div style={{ background: "#fef2f2", padding: "0.75rem", borderRadius: "8px", border: "1px solid #fee2e2", fontSize: "0.82rem", color: "#991b1b" }}>
                 Item <strong>{blockedStockProduct.name}</strong> ({blockedStockProduct.itemCode || "ITEM"}) has <strong>0 available stock</strong> in branch <strong>{currentBranchName}</strong>.
               </div>
-              <p style={{ fontSize: "0.8rem", color: "#475569", margin: 0 }}>
+              <p style={{ fontSize: "0.8rem", color: "#1e293b", margin: 0 }}>
                 As per POS Flow Step 2, standard counter billing is blocked when branch stock is exhausted.
               </p>
             </div>
@@ -2011,7 +1923,7 @@ export const PosBillingPage = () => {
             </div>
             <div className="jf-modal-body">
               {heldBills.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "2rem", color: "#475569" }}>
+                <div style={{ textAlign: "center", padding: "2rem", color: "#1e293b" }}>
                   No held bills in queue.
                 </div>
               ) : (
@@ -2022,10 +1934,10 @@ export const PosBillingPage = () => {
                         <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "#0f172a" }}>
                           {b.customerName}
                         </div>
-                        <div style={{ fontSize: "0.78rem", color: "#475569" }}>
+                        <div style={{ fontSize: "0.78rem", color: "#1e293b" }}>
                           {b.cart?.length || 0} items • ₹{Number(b.grandTotal || 0).toFixed(2)}
                         </div>
-                        <div style={{ fontSize: "0.72rem", color: "#475569", marginTop: "2px" }}>
+                        <div style={{ fontSize: "0.72rem", color: "#1e293b", marginTop: "2px" }}>
                           Parked: {new Date(b.heldAt).toLocaleTimeString()}
                         </div>
                       </div>

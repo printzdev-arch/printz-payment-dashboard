@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { dashboardService } = require("../services/dashboard.service");
+const { getModuleDashboard } = require("../services/dashboardModules.service");
 const { asyncHandler, ResponseHelper, ApiError } = require("../../../utils");
 const TtlCache = require("../../../utils/helpers/ttlCache");
 
@@ -193,6 +194,26 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /api/dashboards/admin/module
+ * Query params: module (salesorders, joborders, production, inventory, attendance, salary, employees, invoices, qc),
+ * branchId, dateType, startDate, endDate. The numbers follow the branch and dates picked on the dashboard.
+ */
+const getAdminModuleDashboard = asyncHandler(async (req, res) => {
+  const authContext = extractAuthContext(req);
+  if (!authContext.isSuperAdmin && !(authContext.scopes || []).includes("ALL")) {
+    throw ApiError.forbidden("Access denied: Admin dashboard requires company-wide administrative privileges.");
+  }
+  validateDateFilters(req.query);
+  const { module, dateType, startDate, endDate, branchId } = req.query;
+  if (branchId !== undefined && branchId !== null && branchId !== "" && String(branchId).toUpperCase() !== "ALL" && !mongoose.Types.ObjectId.isValid(branchId)) {
+    throw ApiError.badRequest("Invalid 'branchId'. Must be a valid 24-character hexadecimal ObjectId.");
+  }
+  const params = { module: String(module || ""), dateType, startDate, endDate, branchId: branchId ? String(branchId).trim() : undefined };
+  const result = await cachedDashboard("admin-module", req, authContext, params, () => getModuleDashboard(params));
+  return ResponseHelper.success(res, result, "Module dashboard retrieved successfully");
+});
+
+/**
  * GET /api/dashboards/manager
  * Query params: dataType (overview, revenue, stocks, employees, designers, production, job orders, all), dateType, startDate, endDate, page, limit
  */
@@ -251,6 +272,7 @@ const getDesignerDashboard = asyncHandler(async (req, res) => {
 module.exports = {
   getAvailableDashboards,
   getAdminDashboard,
+  getAdminModuleDashboard,
   getManagerDashboard,
   getDesignerDashboard,
   validateDateFilters,

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import CustomerModal from "../components/CustomerModal";
 import JobOrderProcessDetailModal from "../../job-orders/components/JobOrderProcessDetailModal";
@@ -280,8 +280,8 @@ export const CustomerViewPage = () => {
         </div>
       </div>
 
-      {/* Summary Cards: Account Info on Left, Financial KPI Metrics on Right */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+      {/* Customer information */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
         {/* Contact & Registration Information */}
         <div className="jf-card" style={{ marginBottom: 0 }}>
           <h3 className="jf-card-title" style={{ fontSize: "1rem", marginBottom: "1rem" }}>
@@ -335,52 +335,6 @@ export const CustomerViewPage = () => {
         </div>
 
         {/* Commercial & Financial Summary Metrics */}
-        <div className="jf-card" style={{ marginBottom: 0 }}>
-          <h3 className="jf-card-title" style={{ fontSize: "1rem", marginBottom: "1rem" }}>
-            <Receipt size={18} style={{ color: "var(--jf-primary)" }} /> Financial Summary & Orders
-          </h3>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
-            <div style={{ background: "#f8fafc", padding: "0.875rem", borderRadius: "8px", border: "1px solid var(--jf-border)" }}>
-              <span style={{ fontSize: "0.75rem", color: "#475569" }}>Total Job Orders</span>
-              <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#0f172a" }}>
-                {stats.totalJobs}
-              </div>
-            </div>
-
-            <div style={{ background: "#eff6ff", padding: "0.875rem", borderRadius: "8px", border: "1px solid #bfdbfe" }}>
-              <span style={{ fontSize: "0.75rem", color: "#1e40af" }}>Active / In-Ops</span>
-              <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#2563eb" }}>
-                {stats.activeJobs}
-              </div>
-            </div>
-
-            <div style={{ background: "#f0fdf4", padding: "0.875rem", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-              <span style={{ fontSize: "0.75rem", color: "#166534" }}>Total Invoiced</span>
-              <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#15803d" }}>
-                ₹{(Number(stats.totalInvoiced) || 0).toFixed(2)}
-              </div>
-            </div>
-
-            <div style={{ background: "#fef2f2", padding: "0.875rem", borderRadius: "8px", border: "1px solid #fecaca" }}>
-              <span style={{ fontSize: "0.75rem", color: "#991b1b" }}>Outstanding Balance</span>
-              <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#dc2626" }}>
-                ₹{(Number(stats.outstanding) || 0).toFixed(2)}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ padding: "0.75rem", background: "#f8fafc", borderRadius: "6px", border: "1px solid var(--jf-border)", fontSize: "0.8125rem", color: "#475569" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-              <span>Advance Payments Collected:</span>
-              <strong>₹{(Number(stats.advancePaid) || 0).toFixed(2)}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Completed Orders:</span>
-              <strong style={{ color: "#15803d" }}>{stats.completedJobs} / {stats.totalJobs}</strong>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ──────────────── MAIN SECTION: ALL JOB ORDERS FOR THIS CUSTOMER ID ──────────────── */}
@@ -404,8 +358,8 @@ export const CustomerViewPage = () => {
           </button> */}
         </div>
 
-        {/* Common Reusable JobFlowDataTable with Search, Sorting, Rows per Page & Pagination */}
-        <JobFlowDataTable
+        {/* Common Reusable DataTable with Search, Sorting, Rows per Page & Pagination */}
+        <DataTable renderWithValue
           columns={[
             {
               key: "jobNo",
@@ -494,7 +448,7 @@ export const CustomerViewPage = () => {
           loading={loading}
           searchable={jobOrders.length > 0}
           searchPlaceholder="Search customer jobs by title, order no, or stage..."
-          initialPageSize={5}
+          pageSize={5}
           pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage="No job orders recorded for this customer yet. Click '+ Create Job Order' above to place an order."
           onRowClick={(row) => handleOpenProcessModal(row)}

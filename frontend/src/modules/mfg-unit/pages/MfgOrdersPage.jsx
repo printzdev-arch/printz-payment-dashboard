@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, PackageSearch, Search } from "lucide-react";
 import saleOrderApi from "../../sale-order/api/saleOrderApi";
-import Pagination from "../../../shared/ui/Pagination";
+import DataTable from "../../../shared/ui/DataTable/DataTable";
 import PageBanner from "../components/PageBanner";
 import { PriorityTag } from "../../sale-order/components/common/OrderStatusBadge";
 import { errorMessage, formatDate } from "../../sale-order/utils/format";
@@ -86,62 +86,56 @@ export default function MfgOrdersPage() {
 
       <div className="so-card spaced">
         {error && <div className="so-error-bar">{error}</div>}
-        <div className="so-table-wrap">
-          <table className="so-table">
-            <thead>
-              <tr>
-                <th style={{ width: 44 }}>#</th>
-                <th>Order No.</th>
-                <th>Customer</th>
-                <th>Deliver By</th>
-                <th>Priority</th>
-                <th>Taken By</th>
-                <th>Design</th>
-                <th>Current Stage</th>
-                <th className="right">Open</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={9} className="so-loading">Loading orders...</td></tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td colSpan={9}>
-                    <div className="so-empty">
-                      <PackageSearch size={34} />
-                      <strong>No orders found</strong>
-                      {status || search ? "Try changing or clearing the filters." : "Orders will appear here once the branches place them."}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                rows.map((o, i) => (
-                  <tr key={o._id} className="clickable" onClick={() => navigate(`/mfg/orders/${o._id}`)}>
-                    <td>{(page - 1) * pageSize + i + 1}</td>
-                    <td className="strong">{o.orderNo}</td>
-                    <td>{o.customerSnapshot?.name}<div className="muted">{o.customerSnapshot?.mobile}</div></td>
-                    <td>{formatDate(o.expectedDeliveryDate)}</td>
-                    <td><PriorityTag priority={o.priority} /></td>
-                    <td>{takenByLabel(o) || <span className="muted">Not taken</span>}</td>
-                    <td>{o.currentDesignVersion ? `v${o.currentDesignVersion}` : <span className="muted">—</span>}</td>
-                    <td>
-                      <span className={`so-badge ${stageInfo(o).tone}`}>{stageInfo(o).label}</span>
-                    </td>
-                    <td className="right"><button type="button" className="so-icon-btn" title="Open order"><Eye size={16} /></button></td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <Pagination
-          currentPage={page}
-          totalItems={total}
-          itemsPerPage={pageSize}
-          onPageChange={setPage}
-          onItemsPerPageChange={setPageSize}
-          pageSizeOptions={[10, 25, 50]}
-          itemLabel="orders"
+        <DataTable
+          searchable={false}
+          loading={loading}
+          data={rows}
+          onRowClick={(o) => navigate(`/mfg/orders/${o._id}`)}
+          emptyMessage={
+            <div className="so-empty">
+              <PackageSearch size={34} />
+              <strong>No orders found</strong>
+              {status || search ? "Try changing or clearing the filters." : "Orders will appear here once the branches place them."}
+            </div>
+          }
+          serverPagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: setPageSize }}
+          columns={[
+            { key: "sno", label: "#", width: "44px", render: (o, i) => i + 1 },
+            { key: "orderNo", label: "Order No.", render: (o) => <span className="strong">{o.orderNo}</span> },
+            {
+              key: "customer",
+              label: "Customer",
+              render: (o) => (
+                <>
+                  {o.customerSnapshot?.name}
+                  <div className="muted">{o.customerSnapshot?.mobile}</div>
+                </>
+              ),
+            },
+            { key: "expectedDeliveryDate", label: "Deliver By", render: (o) => formatDate(o.expectedDeliveryDate) },
+            { key: "priority", label: "Priority", render: (o) => <PriorityTag priority={o.priority} /> },
+            { key: "takenBy", label: "Taken By", render: (o) => takenByLabel(o) || <span className="muted">Not taken</span> },
+            {
+              key: "design",
+              label: "Design",
+              render: (o) => (o.currentDesignVersion ? `v${o.currentDesignVersion}` : <span className="muted">—</span>),
+            },
+            {
+              key: "stage",
+              label: "Current Stage",
+              render: (o) => <span className={`so-badge ${stageInfo(o).tone}`}>{stageInfo(o).label}</span>,
+            },
+            {
+              key: "open",
+              label: "Open",
+              align: "right",
+              render: () => (
+                <button type="button" className="so-icon-btn" title="Open order">
+                  <Eye size={16} />
+                </button>
+              ),
+            },
+          ]}
         />
       </div>
     </div>

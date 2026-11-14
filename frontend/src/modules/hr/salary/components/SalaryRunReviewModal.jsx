@@ -14,6 +14,7 @@ import {
   isConflictError,
   useSalaryMaintenance,
 } from "../utils/salaryGuards";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 
 const inr = (n) => `₹ ${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -220,53 +221,6 @@ export default function SalaryRunReviewModal({
             </div>
           )}
 
-          {/* KPI Strip */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginBottom: "20px" }}>
-            <div style={{ background: "#f8fafc", padding: "12px 14px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Status</span>
-              <div style={{ marginTop: "4px" }}>
-                <span className={`badge-salary-status ${status.toLowerCase()}`}>{status}</span>
-                {approval?.midMonth && (
-                  <span style={{ marginLeft: "6px", fontSize: "10.5px", color: "#b45309", background: "#fef3c7", borderRadius: "999px", padding: "1px 8px", fontWeight: 600 }}>
-                    Mid-Month Preview
-                  </span>
-                )}
-                {approval?.recalcRequired && (
-                  <span style={{ marginLeft: "6px", fontSize: "10.5px", color: "#1d4ed8", background: "#dbeafe", borderRadius: "999px", padding: "1px 8px", fontWeight: 600 }}>
-                    Recalculate Required
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ background: "#f8fafc", padding: "12px 14px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Staff Count</span>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginTop: "2px" }}>
-                {run?.employeeCount ?? records.length}
-              </div>
-            </div>
-
-            <div style={{ background: "#f8fafc", padding: "12px 14px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Gross Salary</span>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginTop: "2px" }}>
-                ₹ {Number(run?.totalGrossPay || 0).toLocaleString("en-IN")}
-              </div>
-            </div>
-
-            <div style={{ background: "#f8fafc", padding: "12px 14px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Total Deductions</span>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "#b91c1c", marginTop: "2px" }}>
-                ₹ {Number(run?.totalDeductions || 0).toLocaleString("en-IN")}
-              </div>
-            </div>
-
-            <div style={{ background: "#ecfdf5", padding: "12px 14px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-              <span style={{ fontSize: "11px", color: "#047857", textTransform: "uppercase", fontWeight: 600 }}>Total Net Pay</span>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "#107548", marginTop: "2px" }}>
-                ₹ {Number(run?.totalNetPay || 0).toLocaleString("en-IN")}
-              </div>
-            </div>
-          </div>
 
           {/* Table of Employee Calculations */}
           {records.some((r) => r.isDeficit) && (
@@ -289,88 +243,75 @@ export default function SalaryRunReviewModal({
             </div>
           )}
 
-          <div className="salary-table-card" style={{ marginBottom: 0 }}>
-            <div className="salary-table-responsive">
-              <table className="salary-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Monthly Salary</th>
-                    <th>Working Days</th>
-                    <th>Days Worked</th>
-                    <th>LOP Days</th>
-                    <th>LOP Deduction</th>
-                    <th>OT Hours</th>
-                    <th>OT Pay</th>
-                    <th>Loan EMI</th>
-                    <th>Other Deductions</th>
-                    <th>Gross Pay</th>
-                    <th>Final Pay</th>
-                    <th>Paid</th>
-                    <th>Balance</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={15} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-                        Loading employee records...
-                      </td>
-                    </tr>
-                  ) : records.length === 0 ? (
-                    <tr>
-                      <td colSpan={15} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-                        No employee calculations recorded yet. Click <strong>"Calculate Payroll"</strong> below to generate breakdown.
-                      </td>
-                    </tr>
-                  ) : (
-                    records.map((rec, index) => {
-                      const emp = rec.employeeId || {};
-                      return (
-                        <tr
-                          key={rec._id || index}
-                          style={{ cursor: "pointer" }}
-                          title="View salary breakdown"
-                          onClick={() => setSelectedRecord(rec)}
-                        >
-                          <td>
-                            <strong>{emp.name || "—"}</strong>
-                            <div style={{ fontSize: "11px", color: "#475569" }}>{emp.employeeCode || ""}</div>
-                          </td>
-                          <td>{inr(rec.monthlySalary)}</td>
-                          <td>{rec.salaryCalculationDays ?? "—"}</td>
-                          <td>{rec.daysWorked ?? "—"}</td>
-                          <td style={{ color: Number(rec.lopDays || 0) > 0 ? "#b91c1c" : "inherit" }}>{rec.lopDays ?? 0}</td>
-                          <td style={{ color: "#b91c1c" }}>{inr(rec.lopDeduction)}</td>
-                          <td>{rec.totalOtHours ?? 0}</td>
-                          <td style={{ color: Number(rec.otAmount || 0) > 0 ? "#15803d" : "inherit" }}>{inr(rec.otAmount)}</td>
-                          <td>{inr(rec.loanEmi)}</td>
-                          <td>{inr(rec.otherDeductions)}</td>
-                          <td style={{ fontWeight: 600 }}>{inr(rec.grossPay)}</td>
-                          <td style={{ fontWeight: 700, color: rec.isDeficit ? "#dc2626" : "#107548" }}>
-                            {inr(rec.roundPay)}
-                            {rec.isDeficit && (
-                              <div style={{ fontSize: "10px", color: "#b91c1c", fontWeight: 600 }}>
-                                Deficit: {inr(rec.deficitAmount)}
-                              </div>
-                            )}
-                          </td>
-                          <td>{inr(rec.paid)}</td>
-                          <td style={{ color: Number(rec.balance || 0) > 0 ? "#b45309" : "inherit" }}>{inr(rec.balance)}</td>
-                          <td>
-                            <span className={`badge-salary-status ${String(rec.status || "DRAFT").toLowerCase()}`}>
-                              {String(rec.status || "DRAFT").replace("_", " ")}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            searchable={false}
+            pagination={false}
+            loading={loading}
+            data={records}
+            onRowClick={(rec) => setSelectedRecord(rec)}
+            rowTitle={() => "View salary breakdown"}
+            emptyMessage={<>No employee calculations recorded yet. Click <strong>"Calculate Payroll"</strong> below to generate breakdown.</>}
+            columns={[
+              {
+                key: "employee",
+                label: "Employee",
+                render: (rec) => {
+                  const emp = rec.employeeId || {};
+                  return (
+                    <>
+                      <strong>{emp.name || "—"}</strong>
+                      <div style={{ fontSize: "11px", color: "#475569" }}>{emp.employeeCode || ""}</div>
+                    </>
+                  );
+                },
+              },
+              { key: "monthlySalary", label: "Monthly Salary", render: (rec) => inr(rec.monthlySalary) },
+              { key: "salaryCalculationDays", label: "Working Days", render: (rec) => rec.salaryCalculationDays ?? "—" },
+              { key: "daysWorked", label: "Days Worked", render: (rec) => rec.daysWorked ?? "—" },
+              {
+                key: "lopDays",
+                label: "LOP Days",
+                render: (rec) => <span style={{ color: Number(rec.lopDays || 0) > 0 ? "#b91c1c" : "inherit" }}>{rec.lopDays ?? 0}</span>,
+              },
+              { key: "lopDeduction", label: "LOP Deduction", render: (rec) => <span style={{ color: "#b91c1c" }}>{inr(rec.lopDeduction)}</span> },
+              { key: "totalOtHours", label: "OT Hours", render: (rec) => rec.totalOtHours ?? 0 },
+              {
+                key: "otAmount",
+                label: "OT Pay",
+                render: (rec) => <span style={{ color: Number(rec.otAmount || 0) > 0 ? "#15803d" : "inherit" }}>{inr(rec.otAmount)}</span>,
+              },
+              { key: "loanEmi", label: "Loan EMI", render: (rec) => inr(rec.loanEmi) },
+              { key: "otherDeductions", label: "Other Deductions", render: (rec) => inr(rec.otherDeductions) },
+              { key: "grossPay", label: "Gross Pay", render: (rec) => <span style={{ fontWeight: 600 }}>{inr(rec.grossPay)}</span> },
+              {
+                key: "roundPay",
+                label: "Final Pay",
+                render: (rec) => (
+                  <span style={{ fontWeight: 700, color: rec.isDeficit ? "#dc2626" : "#107548" }}>
+                    {inr(rec.roundPay)}
+                    {rec.isDeficit && (
+                      <div style={{ fontSize: "10px", color: "#b91c1c", fontWeight: 600 }}>Deficit: {inr(rec.deficitAmount)}</div>
+                    )}
+                  </span>
+                ),
+              },
+              { key: "paid", label: "Paid", render: (rec) => inr(rec.paid) },
+              {
+                key: "balance",
+                label: "Balance",
+                render: (rec) => <span style={{ color: Number(rec.balance || 0) > 0 ? "#b45309" : "inherit" }}>{inr(rec.balance)}</span>,
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (rec) => (
+                  <span className={`badge-salary-status ${String(rec.status || "DRAFT").toLowerCase()}`}>
+                    {String(rec.status || "DRAFT").replace("_", " ")}
+                  </span>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Footer State-Based Action Buttons */}

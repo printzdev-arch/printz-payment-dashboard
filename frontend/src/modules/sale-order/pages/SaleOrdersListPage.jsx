@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ClipboardList, Clock, Eye, FilePen, FileText, Hourglass, PackageCheck, Palette, Plus, Search, ShoppingBag } from "lucide-react";
+import { ClipboardList, Eye, FilePen, FileText, Hourglass, PackageCheck, Palette, Plus, Search, ShoppingBag } from "lucide-react";
 import saleOrderApi from "../api/saleOrderApi";
-import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
-import Pagination from "../../../shared/ui/Pagination";
+
+import DataTable from "../../../shared/ui/DataTable/DataTable";
 import SaleOrderInvoiceModal from "../components/common/SaleOrderInvoiceModal";
 import { OrderStatusBadge, PriorityTag } from "../components/common/OrderStatusBadge";
 import { LIST_STATUS_FILTERS } from "../utils/saleOrderStatus";
 import { errorMessage, formatDate, formatMoney } from "../utils/format";
+import BranchSelect from "../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../shared/ui/selects/CalendarSelect";
+import SelectField from "../../../shared/ui/selects/SelectField";
 import "../styles/sale-order.css";
 
 const IN_PROGRESS = "PLACED,WAITING_FOR_DESIGNER,ASSIGNED,IN_DESIGN,CHANGES_REQUESTED";
@@ -32,7 +35,6 @@ export default function SaleOrdersListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [kpis, setKpis] = useState({ total: 0, draft: 0, inProgress: 0, awaiting: 0, approved: 0 });
   const [invoiceModalOrder, setInvoiceModalOrder] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
@@ -76,20 +78,6 @@ export default function SaleOrdersListPage() {
     load();
   }, [load]);
 
-  // Summary cards follow the branch selection only (not the table filters)
-  useEffect(() => {
-    const base = branchId ? { branchId } : {};
-    Promise.all([
-      saleOrderApi.count(base),
-      saleOrderApi.count({ ...base, status: "DRAFT" }),
-      saleOrderApi.count({ ...base, status: IN_PROGRESS }),
-      saleOrderApi.count({ ...base, status: "SENT_FOR_APPROVAL" }),
-      saleOrderApi.count({ ...base, status: APPROVED_ONWARDS }),
-    ])
-      .then(([t, d, p, a, ap]) => setKpis({ total: t, draft: d, inProgress: p, awaiting: a, approved: ap }))
-      .catch(() => {});
-  }, [branchId]);
-
   const resetPage = (setter) => (value) => {
     setter(value);
     setPage(1);
@@ -104,12 +92,16 @@ export default function SaleOrdersListPage() {
         </div>
         <div className="so-header-actions">
           {scope.isAdmin && (
-            <select className="so-pill-select" value={branchId} onChange={(e) => resetPage(setBranchId)(e.target.value)}>
-              <option value="">All Branches</option>
-              {branches.map((b) => (
-                <option key={b._id} value={b._id}>{b.name}</option>
-              ))}
-            </select>
+            <BranchSelect
+              valueKey="id"
+              allowAll
+              allOptionLabel="All Branches"
+              allOptionValue=""
+              branches={branches}
+              value={branchId}
+              onChange={(e) => resetPage(setBranchId)(e.target.value)}
+              style={{ minWidth: "200px" }}
+            />
           )}
           <button type="button" className="btn-printz-primary so-btn primary" onClick={() => navigate("/sale-orders/new")}>
             <Plus size={16} /> New Sale Order
@@ -117,64 +109,30 @@ export default function SaleOrdersListPage() {
         </div>
       </div>
 
-      <PrintzKpiGrid minWidth="190px">
-        <PrintzKpiCard
-          icon={<ClipboardList size={20} />}
-          color="green"
-          value={kpis.total}
-          title="Total Orders"
-          active={!status}
-          onClick={() => resetPage(setStatus)("")}
-        />
-        <PrintzKpiCard
-          icon={<FilePen size={20} />}
-          color="blue"
-          value={kpis.draft}
-          title="Drafts"
-          active={status === "DRAFT"}
-          onClick={() => resetPage(setStatus)(status === "DRAFT" ? "" : "DRAFT")}
-        />
-        <PrintzKpiCard
-          icon={<Palette size={20} />}
-          color="purple"
-          value={kpis.inProgress}
-          title="With the Design Team"
-          active={status === IN_PROGRESS}
-          onClick={() => resetPage(setStatus)(status === IN_PROGRESS ? "" : IN_PROGRESS)}
-        />
-        <PrintzKpiCard
-          icon={<Hourglass size={20} />}
-          color="orange"
-          value={kpis.awaiting}
-          title="Awaiting Customer"
-          active={status === "SENT_FOR_APPROVAL"}
-          onClick={() => resetPage(setStatus)(status === "SENT_FOR_APPROVAL" ? "" : "SENT_FOR_APPROVAL")}
-        />
-        <PrintzKpiCard
-          icon={<PackageCheck size={20} />}
-          color="teal"
-          value={kpis.approved}
-          title="Approved & Beyond"
-          active={status === APPROVED_ONWARDS}
-          onClick={() => resetPage(setStatus)(status === APPROVED_ONWARDS ? "" : APPROVED_ONWARDS)}
-        />
-      </PrintzKpiGrid>
 
       <div className="so-filters">
-        <select className="so-select" value={status} onChange={(e) => resetPage(setStatus)(e.target.value)}>
-          {LIST_STATUS_FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>{f.label}</option>
-          ))}
-          {status === IN_PROGRESS && <option value={IN_PROGRESS}>With the Design Team</option>}
-          {status === APPROVED_ONWARDS && <option value={APPROVED_ONWARDS}>Approved & Beyond</option>}
-        </select>
-        <select className="so-select" value={priority} onChange={(e) => resetPage(setPriority)(e.target.value)}>
-          <option value="">All Priority</option>
-          <option value="URGENT">Urgent</option>
-          <option value="NORMAL">Normal</option>
-        </select>
-        <input type="date" className="so-input date" title="From date" value={fromDate} onChange={(e) => resetPage(setFromDate)(e.target.value)} />
-        <input type="date" className="so-input date" title="To date" value={toDate} onChange={(e) => resetPage(setToDate)(e.target.value)} />
+        <SelectField
+          searchable={false}
+          value={status}
+          onChange={(e) => resetPage(setStatus)(e.target.value)}
+          options={[
+            ...LIST_STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label })),
+            ...(status === IN_PROGRESS ? [{ value: IN_PROGRESS, label: "With the Design Team" }] : []),
+            ...(status === APPROVED_ONWARDS ? [{ value: APPROVED_ONWARDS, label: "Approved & Beyond" }] : []),
+          ]}
+        />
+        <SelectField
+          searchable={false}
+          value={priority}
+          onChange={(e) => resetPage(setPriority)(e.target.value)}
+          options={[
+            { value: "", label: "All Priority" },
+            { value: "URGENT", label: "Urgent" },
+            { value: "NORMAL", label: "Normal" },
+          ]}
+        />
+        <DateField title="From date" placeholder="From date" value={fromDate} onChange={(e) => resetPage(setFromDate)(e.target.value)} />
+        <DateField title="To date" placeholder="To date" value={toDate} onChange={(e) => resetPage(setToDate)(e.target.value)} />
         <div className="so-search">
           <Search size={16} />
           <input
@@ -188,105 +146,111 @@ export default function SaleOrdersListPage() {
 
       <div className="so-card spaced">
         {error && <div className="so-error-bar">{error}</div>}
-        <div className="so-table-wrap">
-          <table className="so-table">
-            <thead>
-              <tr>
-                <th style={{ width: 44 }}>#</th>
-                <th>Order No.</th>
-                <th>Customer</th>
-                <th>Deliver By</th>
-                <th>Priority</th>
-                <th className="right">Total</th>
-                <th className="right">Balance</th>
-                <th>Designer</th>
-                <th>Status</th>
-                <th className="right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={10} className="so-loading">Loading sale orders...</td></tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td colSpan={10}>
-                    <div className="so-empty">
-                      <ShoppingBag size={34} />
-                      <strong>No sale orders found</strong>
-                      {status || priority || search || fromDate || toDate
-                        ? "Try changing or clearing the filters."
-                        : "Create your first sale order to get started."}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                rows.map((o, i) => (
-                  <tr key={o._id} className="clickable" onClick={() => navigate(`/sale-orders/${o._id}`)}>
-                    <td>{(page - 1) * pageSize + i + 1}</td>
-                    <td>
-                      <span className="strong">{o.status === "DRAFT" ? "Draft" : o.orderNo}</span>
-                    </td>
-                    <td>
-                      <span className="strong">{o.customerSnapshot?.name || "—"}</span>
-                      <div className="muted">{o.customerSnapshot?.mobile}</div>
-                    </td>
-                    <td>
-                      <Clock size={12} style={{ verticalAlign: "-1px", color: "#94a3b8" }} /> {formatDate(o.expectedDeliveryDate)}
-                    </td>
-                    <td><PriorityTag priority={o.priority} /></td>
-                    <td className="right strong">{formatMoney(o.grandTotal)}</td>
-                    <td className="right" style={{ color: Number(o.balanceDue) > 0 ? "#b45309" : "#15803d", fontWeight: 600 }}>
-                      {formatMoney(o.balanceDue)}
-                    </td>
-                    <td>{o.currentAssignment?.designerName || <span className="muted">—</span>}</td>
-                    <td><OrderStatusBadge status={o.status} /></td>
-                    <td className="right" onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
-                        {/* 1. View Order Details (Eye Icon) */}
-                        <button
-                          type="button"
-                          className="so-icon-btn"
-                          title="View Order Details"
-                          onClick={() => navigate(`/sale-orders/${o._id}`)}
-                        >
-                          <Eye size={16} />
-                        </button>
+        <DataTable
+          mobileCards
+          searchable={false}
+          loading={loading}
+          data={rows}
+          onRowClick={(o) => navigate(`/sale-orders/${o._id}`)}
+          emptyMessage={
+            <div className="so-empty">
+              <ShoppingBag size={34} />
+              <strong>No sale orders found</strong>
+              {status || priority || search || fromDate || toDate
+                ? "Try changing or clearing the filters."
+                : "Create your first sale order to get started."}
+            </div>
+          }
+          serverPagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: setPageSize }}
+          columns={[
+            { key: "sno", label: "#", width: "44px", className: "printz-cell-hide-mobile", render: (o, i) => i + 1 },
+            {
+              key: "orderNo",
+              label: "Order No.",
+              className: "printz-cell-lead",
+              render: (o) => <span className="strong">{o.status === "DRAFT" ? "Draft" : o.orderNo}</span>,
+            },
+            {
+              key: "customer",
+              label: "Customer",
+              render: (o) => (
+                <>
+                  <span className="strong">{o.customerSnapshot?.name || "—"}</span>
+                  <div className="muted">{o.customerSnapshot?.mobile}</div>
+                </>
+              ),
+            },
+            {
+              key: "expectedDeliveryDate",
+              label: "Deliver By",
+              render: (o) => formatDate(o.expectedDeliveryDate),
+            },
+            { key: "priority", label: "Priority", render: (o) => <PriorityTag priority={o.priority} /> },
+            {
+              key: "grandTotal",
+              label: "Total",
+              align: "right",
+              render: (o) => <span className="strong">{formatMoney(o.grandTotal)}</span>,
+            },
+            {
+              key: "balanceDue",
+              label: "Balance",
+              align: "right",
+              render: (o) => (
+                <span style={{ color: Number(o.balanceDue) > 0 ? "#b45309" : "#15803d", fontWeight: 600 }}>
+                  {formatMoney(o.balanceDue)}
+                </span>
+              ),
+            },
+            {
+              key: "designer",
+              label: "Designer",
+              render: (o) => o.currentAssignment?.designerName || <span className="muted">—</span>,
+            },
+            { key: "status", label: "Status", render: (o) => <OrderStatusBadge status={o.status} /> },
+            {
+              key: "actions",
+              label: "Actions",
+              align: "right",
+              className: "printz-cell-actions",
+              render: (o) => (
+                <div
+                  style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* 1. View Order Details (Eye Icon) */}
+                  <button
+                    type="button"
+                    className="so-icon-btn"
+                    title="View Order Details"
+                    onClick={() => navigate(`/sale-orders/${o._id}`)}
+                  >
+                    <Eye size={16} />
+                  </button>
 
-                        {/* 2. View Invoice (Invoice Icon) */}
-                        <button
-                          type="button"
-                          className="so-icon-btn"
-                          title={o.status === "DRAFT" ? "Invoice not available for draft" : "View Invoice"}
-                          disabled={o.status === "DRAFT"}
-                          onClick={() => {
-                            if (o.status !== "DRAFT") {
-                              setInvoiceModalOrder(o);
-                              setShowInvoiceModal(true);
-                            }
-                          }}
-                          style={{
-                            color: o.status === "DRAFT" ? "#cbd5e1" : "#0284c7",
-                            cursor: o.status === "DRAFT" ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          <FileText size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <Pagination
-          currentPage={page}
-          totalItems={total}
-          itemsPerPage={pageSize}
-          onPageChange={setPage}
-          onItemsPerPageChange={setPageSize}
-          pageSizeOptions={[10, 25, 50]}
-          itemLabel="orders"
+                  {/* 2. View Invoice (Invoice Icon) */}
+                  <button
+                    type="button"
+                    className="so-icon-btn"
+                    title={o.status === "DRAFT" ? "Invoice not available for draft" : "View Invoice"}
+                    disabled={o.status === "DRAFT"}
+                    onClick={() => {
+                      if (o.status !== "DRAFT") {
+                        setInvoiceModalOrder(o);
+                        setShowInvoiceModal(true);
+                      }
+                    }}
+                    style={{
+                      color: o.status === "DRAFT" ? "#cbd5e1" : "#0284c7",
+                      cursor: o.status === "DRAFT" ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <FileText size={16} />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
         />
       </div>
 

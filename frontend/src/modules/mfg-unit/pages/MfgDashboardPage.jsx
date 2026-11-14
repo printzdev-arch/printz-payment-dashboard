@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Eye, Hourglass, ImageIcon, Palette, PackageCheck, Printer, RefreshCw, Truck, Workflow } from "lucide-react";
 import mfgApi from "../api/mfgApi";
+import DataTable from "../../../shared/ui/DataTable/DataTable";
 import PageBanner from "../components/PageBanner";
 import { currentUser } from "../utils/mfgStages";
 import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
@@ -77,42 +78,41 @@ export default function MfgDashboardPage() {
       <div className="so-detail-grid">
         <div className="so-detail-main">
           <Section icon={Workflow} title="Orders you took" subtitle="Still open. Anyone at the unit can work on them too." flush>
-            <div className="so-table-wrap">
-              <table className="so-table">
-                <thead>
-                  <tr>
-                    <th>Order No.</th><th>Customer</th><th>Deliver By</th><th>Priority</th><th>Design</th><th>Status</th><th className="right">Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {myOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={7}>
-                        <div className="so-empty">
-                          <ImageIcon size={32} />
-                          <strong>You have no open orders</strong>
-                          Take an order from the queue to start working on it.
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    myOrders.map((o) => (
-                      <tr key={o._id} className="clickable" onClick={() => navigate(`/mfg/orders/${o._id}`)}>
-                        <td className="strong">{o.orderNo}</td>
-                        <td>{o.customerSnapshot?.name}</td>
-                        <td>{formatDate(o.expectedDeliveryDate)}</td>
-                        <td><PriorityTag priority={o.priority} /></td>
-                        <td>{o.currentDesignVersion ? `v${o.currentDesignVersion}` : <span className="muted">—</span>}</td>
-                        <td><OrderStatusBadge status={o.status} /></td>
-                        <td className="right">
-                          <button type="button" className="so-icon-btn" title="Open order"><Eye size={16} /></button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              searchable={false}
+              data={myOrders}
+              pageSize={5}
+              onRowClick={(o) => navigate(`/mfg/orders/${o._id}`)}
+              emptyMessage={
+                <div className="so-empty">
+                  <ImageIcon size={32} />
+                  <strong>You have no open orders</strong>
+                  Take an order from the queue to start working on it.
+                </div>
+              }
+              columns={[
+                { key: "orderNo", label: "Order No.", render: (o) => <span className="strong">{o.orderNo}</span> },
+                { key: "customer", label: "Customer", render: (o) => o.customerSnapshot?.name },
+                { key: "expectedDeliveryDate", label: "Deliver By", render: (o) => formatDate(o.expectedDeliveryDate) },
+                { key: "priority", label: "Priority", render: (o) => <PriorityTag priority={o.priority} /> },
+                {
+                  key: "design",
+                  label: "Design",
+                  render: (o) => (o.currentDesignVersion ? `v${o.currentDesignVersion}` : <span className="muted">—</span>),
+                },
+                { key: "status", label: "Status", render: (o) => <OrderStatusBadge status={o.status} /> },
+                {
+                  key: "open",
+                  label: "Open",
+                  align: "right",
+                  render: () => (
+                    <button type="button" className="so-icon-btn" title="Open order">
+                      <Eye size={16} />
+                    </button>
+                  ),
+                },
+              ]}
+            />
           </Section>
         </div>
 

@@ -22,7 +22,7 @@ import salaryApi from "../api/salaryApi";
 import CreateSalaryRunModal from "../components/CreateSalaryRunModal";
 import SalaryRunReviewModal from "../components/SalaryRunReviewModal";
 import SalaryMaintenanceBanner from "../components/SalaryMaintenanceBanner";
-import SalaryPagination from "../components/SalaryPagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import {
   flagIfMaintenance,
   attendanceLinkFor,
@@ -31,6 +31,7 @@ import {
   isConflictError,
   useSalaryMaintenance,
 } from "../utils/salaryGuards";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
 
 export default function PayrollProcessingPage() {
@@ -197,20 +198,21 @@ export default function PayrollProcessingPage() {
 
         <div className="salary-header-actions">
           {/* Branch Selector */}
-          <select
-            className="salary-branch-pill-select"
-            disabled={!!salaryApi.getLockedBranchId()}
+          <BranchSelect
+            valueKey="id"
+            lockToUserBranch
+            allowAll
+            allOptionLabel="All Branches"
+            allOptionValue=""
+            branches={branches}
             value={selectedBranchId}
             onChange={(e) => {
               setSelectedBranchId(e.target.value);
               setPage(1);
             }}
-          >
-            {!salaryApi.getLockedBranchId() && <option value="">All Branches</option>}
-            {branches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name}</option>
-            ))}
-          </select>
+            style={{ minWidth: "210px" }}
+            triggerStyle={{ height: "38px", fontSize: "13px" }}
+          />
 
           {canProcess && (
             <button
@@ -277,68 +279,6 @@ export default function PayrollProcessingPage() {
         </div>
       </div>
 
-      {/* ── 6 Summary Cards Grid ───────────────────────────────────────── */}
-      <div className="salary-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box green">
-            <FileText size={20} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{totalRuns}</span>
-            <span className="salary-kpi-label">Total Runs</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box blue">
-            <Clock size={20} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{draftRuns}</span>
-            <span className="salary-kpi-label">Draft Runs</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box amber">
-            <Settings size={20} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{calculatedRuns}</span>
-            <span className="salary-kpi-label">Calculated</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box purple">
-            <CheckCircle2 size={20} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{approvedRuns}</span>
-            <span className="salary-kpi-label">Approved</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box teal">
-            <Wallet size={20} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{paidRuns}</span>
-            <span className="salary-kpi-label">Paid</span>
-          </div>
-        </div>
-
-        <div className="salary-kpi-card">
-          <div className="salary-kpi-icon-box red">
-            <Lock size={20} />
-          </div>
-          <div className="salary-kpi-details">
-            <span className="salary-kpi-value">{lockedRuns}</span>
-            <span className="salary-kpi-label">Locked</span>
-          </div>
-        </div>
-      </div>
 
       {/* ── Table Card ───────────────────────────────────────────────── */}
       <div className="salary-table-card">
@@ -357,175 +297,159 @@ export default function PayrollProcessingPage() {
           )
         )}
 
-        <div className="salary-table-responsive">
-          <table className="salary-table">
-            <thead>
-              <tr>
-                <th>Month / Year</th>
-                <th>Branch</th>
-                <th>Total Staff</th>
-                <th>Gross Amount</th>
-                <th>Total Deductions</th>
-                <th>Total Net</th>
-                <th>Status</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                    Loading salary runs...
-                  </td>
-                </tr>
-              ) : filteredRuns.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                    No salary runs found. Click <strong>"+ Create Salary Run"</strong> to start monthly payroll.
-                  </td>
-                </tr>
-              ) : (
-                paginatedRuns.map((r, index) => {
-                  const bName = branchNameOf(r.branchId, r.branchName);
-                  const isBusy = Boolean(actionLoadingId) || maintenance;
-                  const approval = r.status === "CALCULATED" ? getApprovalState(r) : null;
+        <DataTable
+          searchable={false}
+          loading={loading}
+          data={filteredRuns}
+          pageSize={10}
+          emptyMessage={<>No salary runs found. Click <strong>"+ Create Salary Run"</strong> to start monthly payroll.</>}
+          columns={[
+            {
+              key: "runLabel",
+              label: "Month / Year",
+              render: (r) => {
+                const approval = r.status === "CALCULATED" ? getApprovalState(r) : null;
+                return (
+                  <>
+                    <strong>{runLabel(r)}</strong>
+                    {r.status === "CALCULATED" && approval?.midMonth && (
+                      <span
+                        title={approval.reason}
+                        style={{ marginLeft: "6px", fontSize: "10.5px", color: "#b45309", background: "#fef3c7", borderRadius: "999px", padding: "1px 8px", fontWeight: 600 }}
+                      >
+                        Mid-Month Preview
+                      </span>
+                    )}
+                    {r.status === "CALCULATED" && approval?.recalcRequired && (
+                      <span
+                        title={approval.reason}
+                        style={{ marginLeft: "6px", fontSize: "10.5px", color: "#1d4ed8", background: "#dbeafe", borderRadius: "999px", padding: "1px 8px", fontWeight: 600 }}
+                      >
+                        Recalculate Required
+                      </span>
+                    )}
+                  </>
+                );
+              },
+            },
+            { key: "branch", label: "Branch", render: (r) => branchNameOf(r.branchId, r.branchName) },
+            { key: "employeeCount", label: "Total Staff", render: (r) => r.employeeCount || 0 },
+            {
+              key: "totalGrossPay",
+              label: "Gross Amount",
+              render: (r) => <span style={{ fontWeight: 600 }}>₹ {Number(r.totalGrossPay || 0).toLocaleString("en-IN")}</span>,
+            },
+            {
+              key: "totalDeductions",
+              label: "Total Deductions",
+              render: (r) => <span style={{ color: "#b91c1c" }}>₹ {Number(r.totalDeductions || 0).toLocaleString("en-IN")}</span>,
+            },
+            {
+              key: "totalNetPay",
+              label: "Total Net",
+              render: (r) => (
+                <span style={{ fontWeight: 700, color: "#107548" }}>₹ {Number(r.totalNetPay || 0).toLocaleString("en-IN")}</span>
+              ),
+            },
+            {
+              key: "status",
+              label: "Status",
+              render: (r) => (
+                <span className={`badge-salary-status ${(r.status || "DRAFT").toLowerCase()}`}>{r.status || "DRAFT"}</span>
+              ),
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              align: "right",
+              render: (r) => {
+                const isBusy = Boolean(actionLoadingId) || maintenance;
+                const approval = r.status === "CALCULATED" ? getApprovalState(r) : null;
+                return (
+                  <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
+                    {/* DRAFT Actions */}
+                    {r.status === "DRAFT" && canProcess && (
+                      <button
+                        type="button"
+                        className="salary-icon-btn primary"
+                        title="Calculate payroll"
+                        disabled={isBusy}
+                        onClick={() => handleQuickAction(r._id, "calculate")}
+                      >
+                        <Calculator size={15} />
+                      </button>
+                    )}
 
-                  return (
-                    <tr key={r._id || index}>
-                      <td>
-                        <strong>{runLabel(r)}</strong>
-                        {r.status === "CALCULATED" && approval?.midMonth && (
-                          <span
-                            title={approval.reason}
-                            style={{ marginLeft: "6px", fontSize: "10.5px", color: "#b45309", background: "#fef3c7", borderRadius: "999px", padding: "1px 8px", fontWeight: 600 }}
-                          >
-                            Mid-Month Preview
-                          </span>
-                        )}
-                        {r.status === "CALCULATED" && approval?.recalcRequired && (
-                          <span
-                            title={approval.reason}
-                            style={{ marginLeft: "6px", fontSize: "10.5px", color: "#1d4ed8", background: "#dbeafe", borderRadius: "999px", padding: "1px 8px", fontWeight: 600 }}
-                          >
-                            Recalculate Required
-                          </span>
-                        )}
-                      </td>
-                      <td>{bName}</td>
-                      <td>{r.employeeCount || 0}</td>
-                      <td style={{ fontWeight: 600 }}>₹ {Number(r.totalGrossPay || 0).toLocaleString("en-IN")}</td>
-                      <td style={{ color: "#b91c1c" }}>₹ {Number(r.totalDeductions || 0).toLocaleString("en-IN")}</td>
-                      <td style={{ fontWeight: 700, color: "#107548" }}>
-                        ₹ {Number(r.totalNetPay || 0).toLocaleString("en-IN")}
-                      </td>
-                      <td>
-                        <span className={`badge-salary-status ${(r.status || "DRAFT").toLowerCase()}`}>
-                          {r.status || "DRAFT"}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
-                          {/* DRAFT Actions */}
-                          {r.status === "DRAFT" && canProcess && (
-                            <button
-                              type="button"
-                              className="salary-icon-btn primary"
-                              title="Calculate payroll"
-                              disabled={isBusy}
-                              onClick={() => handleQuickAction(r._id, "calculate")}
-                            >
-                              <Calculator size={15} />
-                            </button>
-                          )}
-
-                          {/* CALCULATED Actions: recalculate until approved, then approve */}
-                          {r.status === "CALCULATED" && (
-                            <>
-                              {canProcess && (
-                                <button
-                                  type="button"
-                                  className="salary-icon-btn"
-                                  title="Recalculate payroll"
-                                  disabled={isBusy}
-                                  onClick={() => handleQuickAction(r._id, "calculate")}
-                                >
-                                  <RefreshCw size={15} />
-                                </button>
-                              )}
-                              {canApprove && (
-                                <button
-                                  type="button"
-                                  className="salary-icon-btn primary"
-                                  title={approval?.canApprove === false ? approval.reason : "Approve run"}
-                                  disabled={isBusy || approval?.canApprove === false}
-                                  onClick={() => setConfirmAction({ run: r, type: "approve" })}
-                                >
-                                  <CheckCircle2 size={15} />
-                                </button>
-                              )}
-                            </>
-                          )}
-
-                          {r.status === "CALCULATING" && (
-                            <span style={{ fontSize: "11.5px", color: "#b45309" }}>Calculating…</span>
-                          )}
-
-                          {/* APPROVED Actions */}
-                          {r.status === "APPROVED" && canProcess && (
-                            <button
-                              type="button"
-                              className="salary-icon-btn primary"
-                              title="Mark as paid"
-                              disabled={isBusy}
-                              onClick={() => setConfirmAction({ run: r, type: "pay" })}
-                            >
-                              <Wallet size={15} />
-                            </button>
-                          )}
-
-                          {/* PAID Actions */}
-                          {r.status === "PAID" && canProcess && (
-                            <button
-                              type="button"
-                              className="salary-icon-btn"
-                              title="Lock run (finalize)"
-                              disabled={isBusy}
-                              onClick={() => setConfirmAction({ run: r, type: "lock" })}
-                            >
-                              <Lock size={15} />
-                            </button>
-                          )}
-
-                          {/* Always allow Review/Details View */}
+                    {/* CALCULATED Actions: recalculate until approved, then approve */}
+                    {r.status === "CALCULATED" && (
+                      <>
+                        {canProcess && (
                           <button
                             type="button"
                             className="salary-icon-btn"
-                            title="Review details"
-                            onClick={() => setSelectedRunIdForReview(r._id)}
+                            title="Recalculate payroll"
+                            disabled={isBusy}
+                            onClick={() => handleQuickAction(r._id, "calculate")}
                           >
-                            <Eye size={15} />
+                            <RefreshCw size={15} />
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        )}
+                        {canApprove && (
+                          <button
+                            type="button"
+                            className="salary-icon-btn primary"
+                            title={approval?.canApprove === false ? approval.reason : "Approve run"}
+                            disabled={isBusy || approval?.canApprove === false}
+                            onClick={() => setConfirmAction({ run: r, type: "approve" })}
+                          >
+                            <CheckCircle2 size={15} />
+                          </button>
+                        )}
+                      </>
+                    )}
 
-        {/* ── Pagination Bar ─────────────────────────────────────────── */}
-        <SalaryPagination
-          total={filteredRuns.length}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
-          unit="runs"
+                    {r.status === "CALCULATING" && <span style={{ fontSize: "11.5px", color: "#b45309" }}>Calculating…</span>}
+
+                    {/* APPROVED Actions */}
+                    {r.status === "APPROVED" && canProcess && (
+                      <button
+                        type="button"
+                        className="salary-icon-btn primary"
+                        title="Mark as paid"
+                        disabled={isBusy}
+                        onClick={() => setConfirmAction({ run: r, type: "pay" })}
+                      >
+                        <Wallet size={15} />
+                      </button>
+                    )}
+
+                    {/* PAID Actions */}
+                    {r.status === "PAID" && canProcess && (
+                      <button
+                        type="button"
+                        className="salary-icon-btn"
+                        title="Lock run (finalize)"
+                        disabled={isBusy}
+                        onClick={() => setConfirmAction({ run: r, type: "lock" })}
+                      >
+                        <Lock size={15} />
+                      </button>
+                    )}
+
+                    {/* Always allow Review/Details View */}
+                    <button
+                      type="button"
+                      className="salary-icon-btn"
+                      title="Review details"
+                      onClick={() => setSelectedRunIdForReview(r._id)}
+                    >
+                      <Eye size={15} />
+                    </button>
+                  </div>
+                );
+              },
+            },
+          ]}
         />
       </div>
 

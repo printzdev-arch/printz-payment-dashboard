@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import Section from "./Section";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import { SPEC_FIELDS } from "../../utils/totals";
 import OrderProgress from "./OrderProgress";
 import DesignVersions from "./DesignVersions";
@@ -150,45 +151,56 @@ export default function OrderDetailBody({ order, events }) {
 
       {/* ── Row 2: item ─────────────────────────────────────────────────────── */}
       <Section icon={Package} title="Item" flush>
-        <div className="so-table-wrap">
-          <table className="so-table so-item-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th style={{ width: 110 }}>Qty</th>
-                {hasMoney && <th className="right" style={{ width: 120 }}>Rate</th>}
-                {hasMoney && <th className="right" style={{ width: 90 }}>Tax</th>}
-                {hasMoney && <th className="right" style={{ width: 130 }}>Total</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it) => {
+        <DataTable
+          searchable={false}
+          pagination={false}
+          data={items}
+          columns={[
+            {
+              key: "item",
+              label: "Item",
+              render: (it) => {
                 const chips = SPEC_FIELDS.map((f) => [f.label, it.specification?.[f.specKey]]).filter(([, v]) => v);
                 return (
-                  <tr key={it._id}>
-                    <td>
-                      <span className="strong">{typeLabel(it.productType)}</span>
-                      <div className="muted">{it.description}</div>
-                      {chips.length > 0 && (
-                        <div className="so-chips">
-                          {chips.map(([label, value]) => (
-                            <span className="so-chip" key={label}><em>{label}</em><b>{value}</b></span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <span className="strong">{it.quantity}</span> {String(it.unit || "").toLowerCase()}
-                    </td>
-                    {hasMoney && <td className="right">{formatMoney(it.unitPrice)}</td>}
-                    {hasMoney && <td className="right">{it.taxRate}%</td>}
-                    {hasMoney && <td className="right strong">{formatMoney(it.lineTotal)}</td>}
-                  </tr>
+                  <>
+                    <span className="strong">{typeLabel(it.productType)}</span>
+                    <div className="muted">{it.description}</div>
+                    {chips.length > 0 && (
+                      <div className="so-chips">
+                        {chips.map(([label, value]) => (
+                          <span className="so-chip" key={label}><em>{label}</em><b>{value}</b></span>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
+              },
+            },
+            {
+              key: "quantity",
+              label: "Qty",
+              width: "110px",
+              render: (it) => (
+                <span style={{ whiteSpace: "nowrap" }}>
+                  <span className="strong">{it.quantity}</span> {String(it.unit || "").toLowerCase()}
+                </span>
+              ),
+            },
+            ...(hasMoney
+              ? [
+                  { key: "unitPrice", label: "Rate", align: "right", width: "120px", render: (it) => formatMoney(it.unitPrice) },
+                  { key: "taxRate", label: "Tax", align: "right", width: "90px", render: (it) => `${it.taxRate}%` },
+                  {
+                    key: "lineTotal",
+                    label: "Total",
+                    align: "right",
+                    width: "130px",
+                    render: (it) => <span className="strong">{formatMoney(it.lineTotal)}</span>,
+                  },
+                ]
+              : []),
+          ]}
+        />
       </Section>
 
       {/* ── Row 3: files (design / reference tabs) | payment ────────────────── */}

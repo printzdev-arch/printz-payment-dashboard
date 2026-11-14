@@ -23,7 +23,7 @@ import "../../../../../shared/styles/printzTheme.css";
 import "../../../../../shared/styles/addAssets.css";
 import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
-import Pagination from "../../../../../shared/ui/Pagination";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import CalendarSelect from "../../../../../shared/ui/selects/CalendarSelect";
 
 const InventoryTracking = () => {
@@ -40,8 +40,6 @@ const InventoryTracking = () => {
     stocks: [],
     assets: [],
   });
-  const [currentStockPage, setCurrentStockPage] = useState(1);
-  const [stocksPerPage, setStocksPerPage] = useState(10);
 
   const todayStr = new Date().toISOString().split("T")[0];
   const yesterdayStr = (() => {
@@ -222,316 +220,185 @@ const InventoryTracking = () => {
     }
   };
 
-  // Printer tables renderer
-  const renderPrinterTable = (printers, title, icon) => {
-    const list = filterBySearch(printers);
-    if (list.length === 0) return null;
-
-    return (
-      <div className="add-assets-card" style={{ marginTop: "14px" }}>
-        <div className="add-assets-card-header" style={{ padding: "12px 18px" }}>
-          <div className="add-assets-card-header-left">
-            <div className="add-assets-card-icon" style={{ width: "32px", height: "32px" }}>
-              {icon}
-            </div>
-            <div>
-              <h3 className="add-assets-card-title" style={{ fontSize: "16px", fontWeight: 700 }}>
-                {title} <span style={{ color: "#059669", fontSize: "14px", fontWeight: 600 }}>({list.length})</span>
-              </h3>
-            </div>
+  // Shared column pieces for the movement tables
+  const timestampColumn = {
+    key: "movementDate",
+    label: "Timestamp",
+    align: "center",
+    width: "150px",
+    render: (m) => (
+      <span className="add-assets-id-badge" style={{ fontSize: "11.5px" }}>
+        {formatDateTime(m.movementDate)}
+      </span>
+    ),
+  };
+  const actionColumn = {
+    key: "action",
+    label: "Action",
+    align: "center",
+    width: "100px",
+    render: (m) => getActionBadge(m.action),
+  };
+  const idColumn = (key, label) => ({
+    key,
+    label,
+    align: "center",
+    width: "130px",
+    render: (m) => (
+      <span className="add-assets-id-badge" style={{ fontWeight: 700, color: "#0f172a" }}>
+        {m[key]}
+      </span>
+    ),
+  });
+  const nameColumn = (key, label) => ({
+    key,
+    label,
+    render: (m) => <span style={{ fontWeight: 600, color: "#0f172a" }}>{m[key]}</span>,
+  });
+  const quantityColumn = {
+    key: "quantity",
+    label: "Quantity",
+    align: "right",
+    width: "100px",
+    render: (m) => <span className="add-assets-qty-pill">{m.quantity}</span>,
+  };
+  const fromBranchColumn = {
+    key: "fromBranch",
+    label: "From Branch",
+    width: "160px",
+    render: (m) => (
+      <span
+        style={{
+          padding: "3px 9px",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: 600,
+          background: m.fromBranch ? "#f1f5f9" : "#ecfdf5",
+          color: m.fromBranch ? "#334155" : "#059669",
+          border: "1px solid #e2e8f0",
+          display: "inline-block",
+        }}
+      >
+        {m.fromBranch || "NEW"}
+      </span>
+    ),
+  };
+  const toBranchColumn = {
+    key: "toBranch",
+    label: "To Branch",
+    width: "160px",
+    render: (m) => (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          fontWeight: 600,
+          color: "#059669",
+          fontSize: "13px",
+        }}
+      >
+        <ArrowRight size={13} />
+        {m.toBranch}
+      </span>
+    ),
+  };
+  const amountColumn = {
+    key: "amount",
+    label: "Amount",
+    align: "right",
+    width: "130px",
+    render: (m) => (
+      <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "#0f172a" }}>
+        {m.details?.pageRanges && m.details.pageRanges.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px", alignItems: "flex-end" }}>
+            {m.details.pageRanges.map((range, idx) => (
+              <span key={idx} style={{ fontSize: "11.5px", color: "#475569" }}>
+                {range.range}: ₹{range.price}
+              </span>
+            ))}
           </div>
-        </div>
-
-        <div className="add-assets-table-wrap">
-          <table className="add-assets-table balance-directory-table">
-            <thead>
-              <tr>
-                <th style={{ width: "150px", textAlign: "center" }}>Timestamp</th>
-                <th style={{ width: "100px", textAlign: "center" }}>Action</th>
-                <th style={{ width: "130px", textAlign: "center" }}>Printer ID</th>
-                <th style={{ minWidth: "180px", textAlign: "left" }}>Printer Name</th>
-                <th style={{ width: "160px", textAlign: "left" }}>From Branch</th>
-                <th style={{ width: "160px", textAlign: "left" }}>To Branch</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((movement, index) => (
-                <tr key={index}>
-                  <td style={{ textAlign: "center" }}>
-                    <span className="add-assets-id-badge" style={{ fontSize: "11.5px" }}>
-                      {formatDateTime(movement.movementDate)}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>{getActionBadge(movement.action)}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className="add-assets-id-badge" style={{ fontWeight: 700, color: "#0f172a" }}>
-                      {movement.printerId}
-                    </span>
-                  </td>
-                  <td style={{ fontWeight: 600, color: "#0f172a" }}>
-                    {movement.printerName}
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        padding: "3px 9px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        background: movement.fromBranch ? "#f1f5f9" : "#ecfdf5",
-                        color: movement.fromBranch ? "#334155" : "#059669",
-                        border: "1px solid #e2e8f0",
-                        display: "inline-block",
-                      }}
-                    >
-                      {movement.fromBranch || "NEW"}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontWeight: 600,
-                        color: "#059669",
-                        fontSize: "13px",
-                      }}
-                    >
-                      <ArrowRight size={13} />
-                      {movement.toBranch}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
+        ) : (
+          `₹${(m.amount || 0).toLocaleString("en-IN")}`
+        )}
+      </span>
+    ),
   };
 
-  // Stocks table renderer
-  const renderStockTable = (stocks) => {
-    const list = filterBySearch(stocks);
+  const movementTitle = (label, count) => (
+    <>
+      {label} <span style={{ color: "#059669", fontSize: "14px", fontWeight: 600 }}>({count})</span>
+    </>
+  );
+
+  // One shared table for printer, stock and asset movements
+  const renderMovementTable = ({ list: rawList, title, icon, columns, itemLabel }) => {
+    const list = filterBySearch(rawList);
     if (list.length === 0) return null;
-
-    const totalStockPages = Math.ceil(list.length / stocksPerPage);
-    const indexOfLastStock = currentStockPage * stocksPerPage;
-    const indexOfFirstStock = indexOfLastStock - stocksPerPage;
-    const currentStocks = list.slice(indexOfFirstStock, indexOfLastStock);
-
     return (
-      <div className="add-assets-card" style={{ marginTop: "14px" }}>
-        <div className="add-assets-card-header" style={{ padding: "12px 18px" }}>
-          <div className="add-assets-card-header-left">
-            <div className="add-assets-card-icon" style={{ width: "32px", height: "32px" }}>
-              <Boxes size={16} color="#059669" />
-            </div>
-            <div>
-              <h3 className="add-assets-card-title" style={{ fontSize: "16px", fontWeight: 700 }}>
-                Stock Movements <span style={{ color: "#059669", fontSize: "14px", fontWeight: 600 }}>({list.length})</span>
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        <div className="add-assets-table-wrap">
-          <table className="add-assets-table balance-directory-table">
-            <thead>
-              <tr>
-                <th style={{ width: "150px", textAlign: "center" }}>Timestamp</th>
-                <th style={{ width: "100px", textAlign: "center" }}>Action</th>
-                <th style={{ minWidth: "180px", textAlign: "left" }}>Item Name</th>
-                <th style={{ width: "100px", textAlign: "right" }}>Quantity</th>
-                <th style={{ width: "130px", textAlign: "right" }}>Amount</th>
-                <th style={{ width: "150px", textAlign: "left" }}>From Branch</th>
-                <th style={{ width: "150px", textAlign: "left" }}>To Branch</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentStocks.map((movement, index) => (
-                <tr key={index}>
-                  <td style={{ textAlign: "center" }}>
-                    <span className="add-assets-id-badge" style={{ fontSize: "11.5px" }}>
-                      {formatDateTime(movement.movementDate)}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>{getActionBadge(movement.action)}</td>
-                  <td style={{ fontWeight: 600, color: "#0f172a" }}>
-                    {movement.itemName}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <span className="add-assets-qty-pill">
-                      {movement.quantity}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      textAlign: "right",
-                      fontFamily: "'Poppins', sans-serif",
-                      fontWeight: 700,
-                      color: "#0f172a",
-                    }}
-                  >
-                    {movement.details?.pageRanges &&
-                    movement.details.pageRanges.length > 0 ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", alignItems: "flex-end" }}>
-                        {movement.details.pageRanges.map((range, idx) => (
-                          <span key={idx} style={{ fontSize: "11.5px", color: "#475569" }}>
-                            {range.range}: ₹{range.price}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      `₹${(movement.amount || 0).toLocaleString("en-IN")}`
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        padding: "3px 9px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        background: movement.fromBranch ? "#f1f5f9" : "#ecfdf5",
-                        color: movement.fromBranch ? "#334155" : "#059669",
-                        border: "1px solid #e2e8f0",
-                        display: "inline-block",
-                      }}
-                    >
-                      {movement.fromBranch || "NEW"}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontWeight: 600,
-                        color: "#059669",
-                        fontSize: "13px",
-                      }}
-                    >
-                      <ArrowRight size={13} />
-                      {movement.toBranch}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Standard Pagination */}
-        <Pagination
-          currentPage={currentStockPage}
-          totalItems={list.length}
-          itemsPerPage={stocksPerPage}
-          onPageChange={setCurrentStockPage}
-          onItemsPerPageChange={setStocksPerPage}
-          pageSizeOptions={[10, 20, 50, 100]}
-          itemLabel="stocks"
+      <div style={{ marginTop: "14px" }}>
+        <DataTable
+          title={movementTitle(title, list.length)}
+          icon={icon}
+          columns={columns}
+          data={list}
+          searchable={false}
+          pageSize={10}
+          emptyMessage={`No ${itemLabel} found`}
         />
       </div>
     );
   };
 
-  // Assets table renderer
-  const renderAssetTable = (assets) => {
-    const list = filterBySearch(assets);
-    if (list.length === 0) return null;
+  const renderPrinterTable = (printers, title, icon) =>
+    renderMovementTable({
+      list: printers,
+      title,
+      icon,
+      itemLabel: "printer movements",
+      columns: [
+        timestampColumn,
+        actionColumn,
+        idColumn("printerId", "Printer ID"),
+        nameColumn("printerName", "Printer Name"),
+        fromBranchColumn,
+        toBranchColumn,
+      ],
+    });
 
-    return (
-      <div className="add-assets-card" style={{ marginTop: "14px" }}>
-        <div className="add-assets-card-header" style={{ padding: "12px 18px" }}>
-          <div className="add-assets-card-header-left">
-            <div className="add-assets-card-icon" style={{ width: "32px", height: "32px" }}>
-              <Box size={16} color="#059669" />
-            </div>
-            <div>
-              <h3 className="add-assets-card-title" style={{ fontSize: "16px", fontWeight: 700 }}>
-                Asset Movements <span style={{ color: "#059669", fontSize: "14px", fontWeight: 600 }}>({list.length})</span>
-              </h3>
-            </div>
-          </div>
-        </div>
+  const renderStockTable = (stocks) =>
+    renderMovementTable({
+      list: stocks,
+      title: "Stock Movements",
+      icon: <Boxes size={16} color="#059669" />,
+      itemLabel: "stock movements",
+      columns: [
+        timestampColumn,
+        actionColumn,
+        nameColumn("itemName", "Item Name"),
+        quantityColumn,
+        amountColumn,
+        fromBranchColumn,
+        toBranchColumn,
+      ],
+    });
 
-        <div className="add-assets-table-wrap">
-          <table className="add-assets-table balance-directory-table">
-            <thead>
-              <tr>
-                <th style={{ width: "150px", textAlign: "center" }}>Timestamp</th>
-                <th style={{ width: "100px", textAlign: "center" }}>Action</th>
-                <th style={{ width: "130px", textAlign: "center" }}>Asset ID</th>
-                <th style={{ minWidth: "180px", textAlign: "left" }}>Asset Name</th>
-                <th style={{ width: "100px", textAlign: "right" }}>Quantity</th>
-                <th style={{ width: "150px", textAlign: "left" }}>From Branch</th>
-                <th style={{ width: "150px", textAlign: "left" }}>To Branch</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((movement, index) => (
-                <tr key={index}>
-                  <td style={{ textAlign: "center" }}>
-                    <span className="add-assets-id-badge" style={{ fontSize: "11.5px" }}>
-                      {formatDateTime(movement.movementDate)}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>{getActionBadge(movement.action)}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className="add-assets-id-badge" style={{ fontWeight: 700, color: "#0f172a" }}>
-                      {movement.assetId}
-                    </span>
-                  </td>
-                  <td style={{ fontWeight: 600, color: "#0f172a" }}>
-                    {movement.assetName}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <span className="add-assets-qty-pill">
-                      {movement.quantity}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        padding: "3px 9px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        background: movement.fromBranch ? "#f1f5f9" : "#ecfdf5",
-                        color: movement.fromBranch ? "#334155" : "#059669",
-                        border: "1px solid #e2e8f0",
-                        display: "inline-block",
-                      }}
-                    >
-                      {movement.fromBranch || "NEW"}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontWeight: 600,
-                        color: "#059669",
-                        fontSize: "13px",
-                      }}
-                    >
-                      <ArrowRight size={13} />
-                      {movement.toBranch}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
+  const renderAssetTable = (assets) =>
+    renderMovementTable({
+      list: assets,
+      title: "Asset Movements",
+      icon: <Box size={16} color="#059669" />,
+      itemLabel: "asset movements",
+      columns: [
+        timestampColumn,
+        actionColumn,
+        idColumn("assetId", "Asset ID"),
+        nameColumn("assetName", "Asset Name"),
+        quantityColumn,
+        fromBranchColumn,
+        toBranchColumn,
+      ],
+    });
 
   return (
     <div className="add-assets-page-container">
@@ -736,90 +603,6 @@ const InventoryTracking = () => {
         </div>
       </div>
 
-      {/* Summary KPI Cards - Compact, neat size, professional */}
-      {selectedDate && (
-        <div className="inventory-metrics-grid">
-          {/* Card 1: Standard Printers */}
-          <div className="inventory-metric-card">
-            <div
-              className="inventory-metric-icon"
-              style={{
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                color: "#059669",
-              }}
-            >
-              <Printer size={18} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="inventory-metric-label">Standard Printers</div>
-              <div className="inventory-metric-value">
-                {filteredMovements.smallPrinters.length}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Large Format */}
-          <div className="inventory-metric-card">
-            <div
-              className="inventory-metric-icon"
-              style={{
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                color: "#2563eb",
-              }}
-            >
-              <Printer size={18} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="inventory-metric-label">Large Format (LFP)</div>
-              <div className="inventory-metric-value">
-                {filteredMovements.largePrinters.length}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Stocks */}
-          <div className="inventory-metric-card">
-            <div
-              className="inventory-metric-icon"
-              style={{
-                background: "#fef3c7",
-                border: "1px solid #fde68a",
-                color: "#d97706",
-              }}
-            >
-              <Boxes size={18} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="inventory-metric-label">Stock Items</div>
-              <div className="inventory-metric-value">
-                {filteredMovements.stocks.length}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Assets */}
-          <div className="inventory-metric-card">
-            <div
-              className="inventory-metric-icon"
-              style={{
-                background: "#faf5ff",
-                border: "1px solid #e9d5ff",
-                color: "#7e22ce",
-              }}
-            >
-              <Box size={18} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="inventory-metric-label">Branch Assets</div>
-              <div className="inventory-metric-value">
-                {filteredMovements.assets.length}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Movement Details Tables */}
       <div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Printer, FileSpreadsheet } from "lucide-react";
 import salaryApi from "../api/salaryApi";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -351,26 +352,17 @@ ${record.isDeficit ? `<div style="color:#b91c1c;font-size:12px;margin:4px 0;font
                   No loan repayments are linked to this salary record yet. Repayments are posted when the run is marked paid.
                 </div>
               ) : (
-                <table className="salary-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Previous Balance</th>
-                      <th>Remaining Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {repayments.map((r) => (
-                      <tr key={r._id}>
-                        <td>{r.repaymentDate ? new Date(r.repaymentDate).toLocaleDateString("en-GB") : "—"}</td>
-                        <td>{inr(r.amount)}</td>
-                        <td>{inr(r.previousBalance)}</td>
-                        <td>{inr(r.remainingBalance)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  searchable={false}
+                  pagination={false}
+                  data={repayments}
+                  columns={[
+                    { key: "repaymentDate", label: "Date", render: (r) => (r.repaymentDate ? new Date(r.repaymentDate).toLocaleDateString("en-GB") : "—") },
+                    { key: "amount", label: "Amount", render: (r) => inr(r.amount) },
+                    { key: "previousBalance", label: "Previous Balance", render: (r) => inr(r.previousBalance) },
+                    { key: "remainingBalance", label: "Remaining Balance", render: (r) => inr(r.remainingBalance) },
+                  ]}
+                />
               )}
             </div>
           )}

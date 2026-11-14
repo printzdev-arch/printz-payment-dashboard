@@ -254,6 +254,165 @@
   width: 100%;
 }
 
+/* Unified Card Header & Toolbar */
+.printz-unified-card-header {
+  padding: 16px 22px;
+  background: linear-gradient(90deg, #E8FAF2 0%, #F0FFF9 50%, #E8FAF2 100%);
+  border-bottom: 1px solid #dcfce7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.revenue-unified-title {
+  margin: 0 0 2px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.revenue-branch-subtitle-tag {
+  font-size: 15px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.revenue-unified-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.revenue-unified-toolbar {
+  padding: 14px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.revenue-unified-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.revenue-unified-filter-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+  line-height: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.revenue-unified-search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1.5 1 280px;
+  min-width: 240px;
+}
+
+.revenue-unified-search-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+  line-height: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+/* Match EXACT styling of BranchSelect and CalendarSelect triggers */
+.revenue-unified-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 42px;
+  width: 100%;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.revenue-unified-search-wrap:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.revenue-unified-search-wrap:focus-within {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  background: #ffffff;
+}
+
+.revenue-unified-search-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.revenue-unified-search-wrap:focus-within .revenue-unified-search-icon {
+  color: #059669;
+}
+
+.revenue-unified-search-input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  width: 100% !important;
+  font-size: 13.5px !important;
+  color: #0f172a !important;
+  font-family: 'Poppins', sans-serif !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.revenue-unified-search-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.revenue-unified-search-clear {
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.revenue-unified-search-clear:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 .revenue-card-header {
   padding: 14px 20px;
   background: #f8fafc;

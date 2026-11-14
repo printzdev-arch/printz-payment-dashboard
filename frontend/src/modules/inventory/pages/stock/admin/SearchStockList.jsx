@@ -16,7 +16,7 @@ import "../../../../../shared/styles/printzTheme.css";
 import "../../../styles/stocklist.css";
 import jsPDF from "jspdf";
 import autoTable, { applyPlugin } from "jspdf-autotable";
-import Pagination from "../../../../../shared/ui/Pagination";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 import CalendarSelect from "../../../../../shared/ui/selects/CalendarSelect.jsx";
 
@@ -464,162 +464,96 @@ const SearchStockList = () => {
             </div>
 
             {/* Table */}
-            <div className="stock-table-wrapper">
-              <table className="stock-readings-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "50px" }} className="center">
-                      S.No
-                    </th>
-                    <th>Items</th>
-                    <th>Category</th>
-                    <th className="center">Opening Stock</th>
-                    <th className="center">Added Stock</th>
-                    <th className="center">Closing Stock</th>
-                    <th>Sold (Pages)</th>
-                    <th className="center">Sold (Qty)</th>
-                    <th>Unit Price (₹)</th>
-                    <th style={{ textAlign: "right" }}>Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentStocks.map((stock, index) => {
-                    const rowSpan = stock.pageRanges
-                      ? stock.pageRanges.length
-                      : 1;
-
-                    return (
-                      <React.Fragment key={index}>
-                        <tr>
-                          <td rowSpan={rowSpan} className="center">
-                            {indexOfFirstStock + index + 1}
-                          </td>
-                          <td rowSpan={rowSpan} style={{ fontWeight: 600 }}>
-                            {stock.itemName}
-                          </td>
-                          <td rowSpan={rowSpan}>
-                            <span className="stock-category-chip">
-                              {stock.category || "General"}
-                            </span>
-                          </td>
-                          <td rowSpan={rowSpan} className="center">
-                            {stock.openingStock || "N/A"}
-                          </td>
-                          <td rowSpan={rowSpan} className="center">
-                            {stock.addedStock || "N/A"}
-                          </td>
-                          <td rowSpan={rowSpan} className="center">
-                            <span
-                              className={`stock-qty-badge ${Number(stock.closingStock) === 0
-                                  ? "zero-stock"
-                                  : Number(stock.closingStock) < 5
-                                    ? "low-stock"
-                                    : "in-stock"
-                                }`}
-                            >
-                              {stock.closingStock || 0}
-                            </span>
-                          </td>
-                          {(!stock.pageRanges || !Array.isArray(stock.pageRanges) || stock.pageRanges.length === 0) ? (
-                            <>
-                              <td>Standard</td>
-                              <td className="center" style={{ fontWeight: 600 }}>
-                                {stock.sold || 0}
-                              </td>
-                              <td className="stock-price-text">
-                                ₹{stock.amount}
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "right",
-                                  fontWeight: 700,
-                                  color: "#059669",
-                                }}
-                              >
-                                {formatCurrency(
-                                  (Number(stock.sold) || 0) *
-                                  (Number(stock.amount) || 0)
-                                )}
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td>{stock.pageRanges[0]?.range || "-"}</td>
-                              <td className="center" style={{ fontWeight: 600 }}>
-                                {stock.pageRanges[0]?.sold || 0}
-                              </td>
-                              <td className="stock-price-text">
-                                ₹{stock.pageRanges[0]?.price || 0}
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "right",
-                                  fontWeight: 700,
-                                  color: "#059669",
-                                }}
-                              >
-                                {formatCurrency(
-                                  (Number(stock.pageRanges[0]?.sold) || 0) *
-                                  Number(stock.pageRanges[0]?.price || 0)
-                                )}
-                              </td>
-                            </>
-                          )}
-                        </tr>
-
-                        {stock.pageRanges &&
-                          stock.pageRanges.slice(1).map((range, rangeIndex) => (
-                            <tr key={`${index}-${rangeIndex + 1}`}>
-                              <td>{range.range}</td>
-                              <td className="center" style={{ fontWeight: 600 }}>
-                                {range.sold || 0}
-                              </td>
-                              <td className="stock-price-text">
-                                ₹{range.price}
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "right",
-                                  fontWeight: 700,
-                                  color: "#059669",
-                                }}
-                              >
-                                {formatCurrency(
-                                  (Number(range.sold) || 0) *
-                                  Number(range.price)
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                      </React.Fragment>
-                    );
-                  })}
-
-                  {/* Grand Total Row */}
-                  <tr className="stock-grand-total-row">
-                    <td colSpan="9" style={{ textAlign: "right" }}>
-                      Grand Total Revenue:
-                    </td>
-                    <td className="stock-grand-total-value">
-                      {formatCurrency(totalAmount)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Standard Pagination */}
-            <Pagination
-              currentPage={currentPage}
-              totalItems={stocks.length}
-              itemsPerPage={stocksPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(val) => {
-                setStocksPerPage(val);
-                setCurrentPage(1);
-              }}
+            <DataTable
+              searchable={false}
+              data={stocks}
+              pageSize={stocksPerPage}
               pageSizeOptions={[10, 20, 50, 100]}
-              itemLabel="items"
+              summaryRow={{
+                itemName: "Grand Total Revenue:",
+                amount: formatCurrency(totalAmount),
+              }}
+              columns={(() => {
+                const tiers = (stock) => (stock.pageRanges && Array.isArray(stock.pageRanges) && stock.pageRanges.length > 0 ? stock.pageRanges : null);
+                const stack = { display: "flex", flexDirection: "column", gap: "6px" };
+                return [
+                  { key: "sno", label: "S.No", width: "50px", align: "center", render: (stock, index) => index + 1 },
+                  { key: "itemName", label: "Items", render: (stock) => <span style={{ fontWeight: 600 }}>{stock.itemName}</span> },
+                  {
+                    key: "category",
+                    label: "Category",
+                    render: (stock) => <span className="stock-category-chip">{stock.category || "General"}</span>,
+                  },
+                  { key: "openingStock", label: "Opening Stock", align: "center", render: (stock) => stock.openingStock || "N/A" },
+                  { key: "addedStock", label: "Added Stock", align: "center", render: (stock) => stock.addedStock || "N/A" },
+                  {
+                    key: "closingStock",
+                    label: "Closing Stock",
+                    align: "center",
+                    render: (stock) => (
+                      <span
+                        className={`stock-qty-badge ${
+                          Number(stock.closingStock) === 0 ? "zero-stock" : Number(stock.closingStock) < 5 ? "low-stock" : "in-stock"
+                        }`}
+                      >
+                        {stock.closingStock || 0}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "pages",
+                    label: "Sold (Pages)",
+                    render: (stock) =>
+                      tiers(stock) ? (
+                        <div style={stack}>
+                          {tiers(stock).map((r, i) => (
+                            <span key={i}>{r.range || "-"}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        "Standard"
+                      ),
+                  },
+                  {
+                    key: "soldQty",
+                    label: "Sold (Qty)",
+                    align: "center",
+                    render: (stock) => (
+                      <div style={stack}>
+                        {(tiers(stock) ? tiers(stock).map((r) => r.sold || 0) : [stock.sold || 0]).map((q, i) => (
+                          <span key={i} style={{ fontWeight: 600 }}>{q}</span>
+                        ))}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "unitPrice",
+                    label: "Unit Price (₹)",
+                    render: (stock) => (
+                      <div style={stack}>
+                        {(tiers(stock) ? tiers(stock).map((r) => r.price || 0) : [stock.amount]).map((pr, i) => (
+                          <span key={i} className="stock-price-text">₹{pr}</span>
+                        ))}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "amount",
+                    label: "Amount (₹)",
+                    align: "right",
+                    render: (stock) => (
+                      <div style={stack}>
+                        {(tiers(stock)
+                          ? tiers(stock).map((r) => (Number(r.sold) || 0) * Number(r.price || 0))
+                          : [(Number(stock.sold) || 0) * (Number(stock.amount) || 0)]
+                        ).map((v, i) => (
+                          <span key={i} style={{ fontWeight: 700, color: "#059669" }}>{formatCurrency(v)}</span>
+                        ))}
+                      </div>
+                    ),
+                  },
+                ];
+              })()}
             />
           </div>
         ) : (

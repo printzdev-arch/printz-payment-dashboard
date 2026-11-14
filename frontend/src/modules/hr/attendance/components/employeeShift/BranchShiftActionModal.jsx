@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Ban, CalendarX } from "lucide-react";
+import { X, Ban, CalendarX, ArrowRight } from "lucide-react";
 import branchShiftApi from "../../api/branchShiftApi";
 import { toDateKey, formatShiftDate, todayKey } from "./shiftUtils";
+import { DateField } from "../../../../../shared/ui/selects/CalendarSelect";
 
 // type: "cancel" (scheduled shifts) | "end" (end an active shift early)
 export default function BranchShiftActionModal({ isOpen, onClose, onSuccess, shift, type }) {
@@ -63,15 +64,28 @@ export default function BranchShiftActionModal({ isOpen, onClose, onSuccess, shi
           </button>
         </div>
 
-        {error && <div className="shift-modal-error">{error}</div>}
+        {error && <div className="attendance-alert error" role="alert" style={{ margin: "0 20px 12px" }}><span>{error}</span></div>}
 
         <div className="shift-modal-body">
-          <div className="shift-note">
-            <strong>{emp.name}</strong> {emp.employeeCode ? `(${emp.employeeCode})` : ""}
-            <br />
-            {shift.sourceBranchId?.name} &rarr; {shift.branchId?.name}
-            <br />
-            {formatShiftDate(shift.fromDate)} to {formatShiftDate(shift.toDate)}
+          <div className="shift-summary">
+            <div className="shift-summary-emp">
+              <div>
+                <div className="shift-summary-name">{emp.name || "Employee"}</div>
+                {emp.employeeCode && <div className="shift-summary-code">{emp.employeeCode}</div>}
+              </div>
+            </div>
+            <div className="shift-summary-rows">
+              <div className="shift-summary-row">
+                <span>Route</span>
+                <strong>
+                  {shift.sourceBranchId?.name || "-"} <ArrowRight size={13} /> {shift.branchId?.name || "-"}
+                </strong>
+              </div>
+              <div className="shift-summary-row">
+                <span>Period</span>
+                <strong>{formatShiftDate(shift.fromDate)} – {formatShiftDate(shift.toDate)}</strong>
+              </div>
+            </div>
           </div>
 
           {isCancel ? (
@@ -92,16 +106,13 @@ export default function BranchShiftActionModal({ isOpen, onClose, onSuccess, shi
               <label>
                 Last working day at destination branch <span className="required">*</span>
               </label>
-              <input
-                type="date"
+              <DateField
                 value={value}
                 min={fromKey}
                 max={toKey}
                 onChange={(e) => setValue(e.target.value)}
               />
-              <span className="shift-hint">
-                Must be before the current end date. After this day the employee returns to the home branch.
-              </span>
+              <span className="shift-hint">After this day the employee returns to the home branch.</span>
             </div>
           )}
         </div>

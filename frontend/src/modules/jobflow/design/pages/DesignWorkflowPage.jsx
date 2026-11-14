@@ -43,6 +43,7 @@ import {
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import RejectDesignModal from "../components/RejectDesignModal";
@@ -1924,77 +1925,34 @@ export const DesignWorkflowPage = () => {
             </div>
 
             {/* Table */}
-            <div style={{ overflowX: "auto" }}>
-              <table className="dq-jobs-table">
-                <thead>
-                  {statusFilter === "rejected" ? (
-                    <tr>
-                      <th>Job Order No.</th>
-                      <th>Priority</th>
-                      <th>Customer</th>
-                      <th>Job Item</th>
-                      <th>Rejected By</th>
-                      <th>Rejection Reason</th>
-                      <th>Rejected At</th>
-                      <th>Current Status</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  ) : statusFilter === "samples" ? (
-                    <tr>
-                      <th>Job Order No.</th>
-                      <th>Priority</th>
-                      <th>Customer</th>
-                      <th>Job Item</th>
-                      <th>Designer</th>
-                      <th>Sample Proof</th>
-                      <th>Submitted On</th>
-                      <th>Approval Status</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  ) : statusFilter === "redesign" || statusFilter === "revision" ? (
-                    <tr>
-                      <th>Job Order No.</th>
-                      <th>Priority</th>
-                      <th>Customer</th>
-                      <th>Job Item</th>
-                      <th>Assigned Designer</th>
-                      <th>Rejected Sample Preview</th>
-                      <th>Rejection Reason</th>
-                      <th>Rejection Date</th>
-                      <th>Current Revision Status</th>
-                      <th style={{ textAlign: "right" }}>Available Actions</th>
-                    </tr>
-                  ) : (
-                    <tr>
-                      <th>Job Order No.</th>
-                      <th>Customer</th>
-                      <th>Job Item</th>
-                      <th>Priority</th>
-                      <th>Designer</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  )}
-                </thead>
-                <tbody>
-                  {statusFilter === "rejected" ? (
-                    loading && combinedRejections.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-                            <RefreshCw size={18} className="jf-spin" style={{ color: "#16a34a" }} />
-                            <span>Loading rejected assignments...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : paginatedRejections.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                          No designer rejections recorded. All assignments accepted cleanly.
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedRejections.map((rej) => {
+            <DataTable
+              key={statusFilter}
+              searchable={false}
+              loading={loading && activeList.length === 0}
+              data={activeList}
+              pageSize={pageSize}
+              pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+              emptyMessage={
+                statusFilter === "rejected"
+                  ? "No designer rejections recorded. All assignments accepted cleanly."
+                  : statusFilter === "samples"
+                  ? "No sample designs currently awaiting approval."
+                  : statusFilter === "redesign" || statusFilter === "revision"
+                  ? "No sample revision / redesign orders found."
+                  : "No job orders found in design queue."
+              }
+              columns={
+                statusFilter === "rejected"
+                  ? [{ key: "c0", label: "Job Order No.", sortable: false }, { key: "c1", label: "Priority", sortable: false }, { key: "c2", label: "Customer", sortable: false }, { key: "c3", label: "Job Item", sortable: false }, { key: "c4", label: "Rejected By", sortable: false }, { key: "c5", label: "Rejection Reason", sortable: false }, { key: "c6", label: "Rejected At", sortable: false }, { key: "c7", label: "Current Status", sortable: false }, { key: "c8", label: "Actions", align: "right", sortable: false }]
+                  : statusFilter === "samples"
+                  ? [{ key: "c0", label: "Job Order No.", sortable: false }, { key: "c1", label: "Priority", sortable: false }, { key: "c2", label: "Customer", sortable: false }, { key: "c3", label: "Job Item", sortable: false }, { key: "c4", label: "Designer", sortable: false }, { key: "c5", label: "Sample Proof", sortable: false }, { key: "c6", label: "Submitted On", sortable: false }, { key: "c7", label: "Approval Status", sortable: false }, { key: "c8", label: "Actions", align: "right", sortable: false }]
+                  : statusFilter === "redesign" || statusFilter === "revision"
+                  ? [{ key: "c0", label: "Job Order No.", sortable: false }, { key: "c1", label: "Priority", sortable: false }, { key: "c2", label: "Customer", sortable: false }, { key: "c3", label: "Job Item", sortable: false }, { key: "c4", label: "Assigned Designer", sortable: false }, { key: "c5", label: "Rejected Sample Preview", sortable: false }, { key: "c6", label: "Rejection Reason", sortable: false }, { key: "c7", label: "Rejection Date", sortable: false }, { key: "c8", label: "Current Revision Status", sortable: false }, { key: "c9", label: "Available Actions", align: "right", sortable: false }]
+                  : [{ key: "c0", label: "Job Order No.", sortable: false }, { key: "c1", label: "Customer", sortable: false }, { key: "c2", label: "Job Item", sortable: false }, { key: "c3", label: "Priority", sortable: false }, { key: "c4", label: "Designer", sortable: false }, { key: "c5", label: "Status", sortable: false }, { key: "c6", label: "Actions", align: "right", sortable: false }]
+              }
+              rowRenderer={(row) => {
+                if (statusFilter === "rejected") {
+                  const rej = row;
                         const targetJob =
                           jobs.find((j) => String(j._id || j.id) === String(rej.jobId)) ||
                           (rej.jobOrder?._id
@@ -2187,26 +2145,10 @@ export const DesignWorkflowPage = () => {
                             </td>
                           </tr>
                         );
-                      })
-                    )
-                  ) : statusFilter === "samples" ? (
-                    loading && combinedSamples.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-                            <RefreshCw size={18} className="jf-spin" style={{ color: "#16a34a" }} />
-                            <span>Loading sample designs from database...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : paginatedSamples.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                          No sample designs currently awaiting approval.
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedSamples.map((sample) => {
+                      
+                }
+                if (statusFilter === "samples") {
+                  const sample = row;
                         const targetJob =
                           jobs.find((j) => String(j._id || j.id) === String(sample.jobId)) ||
                           sample.jobOrder ||
@@ -2350,28 +2292,9 @@ export const DesignWorkflowPage = () => {
                             </td>
                           </tr>
                         );
-                      })
-                    )
-                  ) : (
-                    loading && jobs.length === 0 ? (
-                      <tr>
-                        <td colSpan={statusFilter === "redesign" || statusFilter === "revision" ? 10 : 7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-                            <RefreshCw size={18} className="jf-spin" style={{ color: "#16a34a" }} />
-                            <span>Loading design orders from database...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : paginatedJobs.length === 0 ? (
-                      <tr>
-                        <td colSpan={statusFilter === "redesign" || statusFilter === "revision" ? 10 : 7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                          {statusFilter === "redesign" || statusFilter === "revision"
-                            ? "No sample revision / redesign orders found."
-                            : "No job orders found in design queue."}
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedJobs.map((job) => {
+                      
+                }
+                const job = row;
                         const isUnassigned = !job.designerName || job.designerName === "- Unassigned";
                         const isAllocated =
                           (!isUnassigned && Boolean(job.designerName)) ||
@@ -2764,31 +2687,8 @@ export const DesignWorkflowPage = () => {
                             </td>
                           </tr>
                         );
-                      })
-                    )
-                  )}
-                  {/* Keep the table the same height as the selected rows-per-page: blank rows fill the unused space */}
-                  {!loading &&
-                    activeList.length > 0 &&
-                    Array.from({ length: Math.max(0, pageSize - (endIndex - startIndex)) }, (_, i) => (
-                      <tr key={`dq-filler-${i}`} className="dq-filler-row" aria-hidden="true">
-                        <td colSpan={9} />
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Table Pagination Footer */}
-            <Pagination
-              variant="compact"
-              currentPage={currentPage}
-              totalItems={activeList.length}
-              itemsPerPage={pageSize}
-              onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), totalPages))}
-              onItemsPerPageChange={(n) => setPageSize(n)}
-              pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-              itemLabel={statusFilter === "rejected" ? "rejected orders" : "job orders"}
+                      
+              }}
             />
           </div>
 
@@ -2843,23 +2743,22 @@ export const DesignWorkflowPage = () => {
               </div>
             )}
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="dq-panel-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "35px" }}>#</th>
-                    <th>Designer Name</th>
-                    <th>Email / Code</th>
-                    <th style={{ textAlign: "center" }}>Current Load</th>
-                    <th style={{ textAlign: "center" }}>Max Load Limit</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: "right" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedDesigners.map((des, pageIndex) => {
-                    const index = designerStart + pageIndex;
-                    const desId = des._id || des.userId || des.employeeId;
+            <DataTable
+              searchable={false}
+              data={allDesigners}
+              pageSize={designerPageSize}
+              pageSizeOptions={[5, 10, 20, 25, 50, 100]}
+              columns={[
+                { key: "c0", label: "#", width: "35px", sortable: false },
+                { key: "c1", label: "Designer Name", sortable: false },
+                { key: "c2", label: "Email / Code", sortable: false },
+                { key: "c3", label: "Current Load", align: "center", sortable: false },
+                { key: "c4", label: "Max Load Limit", align: "center", sortable: false },
+                { key: "c5", label: "Status", sortable: false },
+                { key: "c6", label: "Actions", align: "right", sortable: false },
+              ]}
+              rowRenderer={(des, index) => {
+                                        const desId = des._id || des.userId || des.employeeId;
                     const isEditing = editingDesignerId === desId;
                     const loadCount = des.openJobs !== undefined ? des.openJobs : (des.currentLoad || 0);
 
@@ -2985,20 +2884,7 @@ export const DesignWorkflowPage = () => {
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <Pagination
-              variant="compact"
-              currentPage={safeDesignerPage}
-              totalItems={allDesigners.length}
-              itemsPerPage={designerPageSize}
-              onPageChange={(p) => setDesignerPage(Math.min(Math.max(1, p), designerTotalPages))}
-              onItemsPerPageChange={(n) => setDesignerPageSize(n)}
-              pageSizeOptions={[5, 10, 20, 25, 50, 100]}
-              itemLabel="designers"
+                  }}
             />
           </div>
         </>

@@ -4,11 +4,12 @@ import { toast } from "react-toastify";
 import { ArrowLeft, CheckCircle2, ClipboardList, Clock, Package, Paperclip, Receipt, Search, User } from "lucide-react";
 import saleOrderApi from "../api/saleOrderApi";
 import Section from "../components/common/Section";
-import { PrintzKpiCard, PrintzKpiGrid } from "../../../shared/ui/motion";
 import OrderItemsEditor from "../components/branch/OrderItemsEditor";
 import ReferenceFilePicker from "../components/branch/ReferenceFilePicker";
 import { SPEC_FIELDS, calcTotals, emptyItem, fromSpecification, toSpecification } from "../utils/totals";
 import { errorMessage, formatMoney, isoDay, toDateInput } from "../utils/format";
+import BranchSelect from "../../../shared/ui/selects/BranchSelect";
+import { DateField } from "../../../shared/ui/selects/CalendarSelect";
 import "../styles/sale-order.css";
 
 const blankForm = (branchId = "") => ({
@@ -245,13 +246,6 @@ export default function CreateSaleOrderPage() {
         </div>
       </div>
 
-      {/* ─── Dashboard UI KPI Cards ─────────────────────────────────── */}
-      <PrintzKpiGrid minWidth="190px">
-        <PrintzKpiCard icon={<ClipboardList size={20} />} color="blue" value={totalQuantity} title="Total Quantity" />
-        <PrintzKpiCard icon={<Clock size={20} />} color="orange" value={deliveryDisplay} title="Deliver By" />
-        <PrintzKpiCard icon={<Paperclip size={20} />} color="purple" value={files.length + attached} title="Reference Files" />
-        <PrintzKpiCard icon={<CheckCircle2 size={20} />} color="green" value={formatMoney(totals.grandTotal)} title="Estimated Total" />
-      </PrintzKpiGrid>
 
       {error && <div className="so-alert error"><span>{error}</span></div>}
 
@@ -328,12 +322,13 @@ export default function CreateSaleOrderPage() {
               <div className="so-field">
                 <label>Branch <span className="req">*</span></label>
                 {scope.isAdmin && !editing ? (
-                  <select className="so-select" value={form.branchId} onChange={set("branchId")}>
-                    <option value="">Select branch</option>
-                    {eligibleBranches.map((b) => (
-                      <option key={b._id} value={b._id}>{b.name}</option>
-                    ))}
-                  </select>
+                  <BranchSelect
+                    valueKey="id"
+                    branches={eligibleBranches}
+                    value={form.branchId}
+                    placeholder="Select branch"
+                    onChange={set("branchId")}
+                  />
                 ) : (
                   <input className="so-input" value={branchName || "Your branch"} disabled />
                 )}
@@ -397,9 +392,7 @@ export default function CreateSaleOrderPage() {
               )}
               <div className="so-field">
                 <label>Deliver by <span className="req">*</span></label>
-                <input
-                  type="date"
-                  className="so-input"
+                <DateField
                   min={form.priority === "URGENT" ? isoDay(0) : isoDay(1)}
                   value={form.expectedDeliveryDate}
                   onChange={set("expectedDeliveryDate")}

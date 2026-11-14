@@ -23,9 +23,8 @@ import { toast } from "react-toastify";
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
-import Pagination from "../../../../shared/ui/Pagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import settlementApi from "../api/settlementApi";
 import "../../../../shared/styles/printzTheme.css";
 import "../styles/settlement.css";
@@ -288,47 +287,6 @@ export const SettlementPage = () => {
       activeStep={7}
     >
       <div className="settlement-feature-container">
-        {/* KPI Summary Cards */}
-        <div className="printz-kpi-grid" style={{ marginBottom: 0 }}>
-          {[
-            {
-              label: "Total Outstanding Balance Due",
-              value: `₹${totalOutstandingDue.toFixed(2)}`,
-              iconClass: "pink",
-              Icon: Wallet,
-            },
-            {
-              label: "Total Collected Payments",
-              value: `₹${totalCollectedToday.toFixed(2)}`,
-              iconClass: "green",
-              Icon: CreditCard,
-            },
-            {
-              label: "Overdue / 30+ Days Aging",
-              value: overdueInvoicesCount,
-              iconClass: "orange",
-              Icon: AlertCircle,
-            },
-            {
-              label: "Jobs Closed & Locked",
-              value: `${allJobOrders.filter((j) => j.closureStatus === "CLOSED").length} / ${allJobOrders.length}`,
-              iconClass: "blue",
-              Icon: Lock,
-            },
-          ].map(({ label, value, iconClass, Icon }) => (
-            <div key={label} className="printz-kpi-card">
-              <div className="printz-kpi-top">
-                <div className={`printz-summary-icon ${iconClass}`}>
-                  <Icon size={20} strokeWidth={2.3} color="#ffffff" />
-                </div>
-                <div className="printz-kpi-values">
-                  <div className="printz-kpi-number">{value}</div>
-                  <div className="printz-kpi-label">{label}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* Search & Status Filters */}
         <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
@@ -385,79 +343,53 @@ export const SettlementPage = () => {
               </span>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th>Job Order No</th>
-                    <th>Priority</th>
-                    <th>Customer Name</th>
-                    <th>Print Material</th>
-                    <th>Estimated Amount</th>
-                    <th>Advance Paid</th>
-                    <th>Fulfillment Stage</th>
-                    <th style={{ textAlign: "right" }}>Billing Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingList.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                        No pending jobs currently waiting for tax invoicing.
-                      </td>
-                    </tr>
-                  ) : (
-                    pendingPage.rows.map((job) => (
-                      <tr key={job._id}>
-                        <td>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
-                        </td>
-                        <td><PriorityBadge priority={job.priority} /></td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{job.customerName}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.customerPhone}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{job.title}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#475569" }}>Qty: {job.quantity} pcs</div>
-                        </td>
-                        <td style={{ fontWeight: 700 }}>
-                          ₹{job.estimateAmount.toFixed(2)}
-                        </td>
-                        <td style={{ color: "#059669", fontWeight: 600 }}>
-                          ₹{job.advancePaid.toFixed(2)}
-                        </td>
-                        <td>
-                          <StatusBadge status={job.currentStage} domain="delivery" />
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <button
-                            type="button"
-                            className="jf-btn jf-btn-primary jf-btn-sm"
-                            onClick={() => setSelectedJobForInvoice(job._id)}
-                          >
-                            <Receipt size={14} /> Generate Tax Invoice
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                  {renderFillerRows(pendingPage.rows.length, 8)}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ borderTop: "1px solid #f1f5f9" }}>
-              <Pagination
-                variant="compact"
-                currentPage={pendingPage.safePage}
-                totalItems={pendingList.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), pendingPage.totalPages))}
-                onItemsPerPageChange={setItemsPerPage}
-                pageSizeOptions={[10, 20, 50, 100]}
-                itemLabel="jobs"
-              />
-            </div>
+            <DataTable
+              searchable={false}
+              data={pendingList}
+              pageSize={itemsPerPage}
+              emptyMessage="No pending jobs currently waiting for tax invoicing."
+              columns={[
+                { key: "jobNo", label: "Job Order No", render: (job) => <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div> },
+                { key: "priority", label: "Priority", render: (job) => <PriorityBadge priority={job.priority} /> },
+                {
+                  key: "customerName",
+                  label: "Customer Name",
+                  render: (job) => (
+                    <>
+                      <div style={{ fontWeight: 600 }}>{job.customerName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.customerPhone}</div>
+                    </>
+                  ),
+                },
+                {
+                  key: "title",
+                  label: "Print Material",
+                  render: (job) => (
+                    <>
+                      <div style={{ fontWeight: 600 }}>{job.title}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>Qty: {job.quantity} pcs</div>
+                    </>
+                  ),
+                },
+                { key: "estimateAmount", label: "Estimated Amount", render: (job) => <span style={{ fontWeight: 700 }}>₹{job.estimateAmount.toFixed(2)}</span> },
+                {
+                  key: "advancePaid",
+                  label: "Advance Paid",
+                  render: (job) => <span style={{ color: "#059669", fontWeight: 600 }}>₹{job.advancePaid.toFixed(2)}</span>,
+                },
+                { key: "currentStage", label: "Fulfillment Stage", render: (job) => <StatusBadge status={job.currentStage} domain="delivery" /> },
+                {
+                  key: "actions",
+                  label: "Billing Actions",
+                  align: "right",
+                  render: (job) => (
+                    <button type="button" className="jf-btn jf-btn-primary jf-btn-sm" onClick={() => setSelectedJobForInvoice(job._id)}>
+                      <Receipt size={14} /> Generate Tax Invoice
+                    </button>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
 
@@ -474,99 +406,62 @@ export const SettlementPage = () => {
               </span>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th>Invoice No</th>
-                    <th>Linked Job</th>
-                    <th>Priority</th>
-                    <th>Job Type</th>
-                    <th>Customer Name</th>
-                    <th>Aging Analysis</th>
-                    <th>Total Invoiced</th>
-                    <th>Balance Due</th>
-                    <th>Payment Status</th>
-                    <th style={{ textAlign: "right" }}>Cashier Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {outstandingList.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                        No invoices match the selected filter.
-                      </td>
-                    </tr>
-                  ) : (
-                    outstandingPage.rows.map((inv) => (
-                      <tr key={inv._id}>
-                        <td>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{inv.invoiceNumber}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{inv.jobNo}</div>
-                        </td>
-                        <td><PriorityBadge priority={inv.priority} /></td>
-                        <td>
-                          <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" />
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{inv.customerName}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{inv.customerPhone}</div>
-                        </td>
-                        <td>
-                          <span className={`settlement-aging-badge ${inv.daysOld > 30 || inv.isOverdue ? "overdue" : "current"}`}>
-                            {inv.daysOld > 30 ? `30+ Days (${inv.daysOld}d)` : `0-30 Days (${inv.daysOld}d)`}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 600 }}>
-                          ₹{inv.invoiceTotal.toFixed(2)}
-                        </td>
-                        <td style={{ fontWeight: 700, color: inv.balanceDue > 0 ? "#dc2626" : "#059669" }}>
-                          ₹{inv.balanceDue.toFixed(2)}
-                        </td>
-                        <td>
-                          <StatusBadge status={inv.paymentStatus} domain="settlement" />
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div style={{ display: "inline-flex", gap: "0.4rem" }}>
-                            <button
-                              type="button"
-                              className="jf-btn jf-btn-secondary jf-btn-sm"
-                              onClick={() => navigate(`/jobflow/invoice?jobId=${inv.jobOrderId || inv.jobNo}`)}
-                              title="View / Print Commercial Tax Invoice"
-                            >
-                              <FileText size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              className="jf-btn jf-btn-primary jf-btn-sm"
-                              onClick={() => setSelectedInvoiceForCashier(inv._id)}
-                              style={{ background: inv.balanceDue > 0 ? "#059669" : "#475569", borderColor: inv.balanceDue > 0 ? "#059669" : "#475569" }}
-                            >
-                              <Wallet size={13} /> {inv.balanceDue > 0 ? "Collect Payment" : "View Ledger"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                  {renderFillerRows(outstandingPage.rows.length, 10)}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ borderTop: "1px solid #f1f5f9" }}>
-              <Pagination
-                variant="compact"
-                currentPage={outstandingPage.safePage}
-                totalItems={outstandingList.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), outstandingPage.totalPages))}
-                onItemsPerPageChange={setItemsPerPage}
-                pageSizeOptions={[10, 20, 50, 100]}
-                itemLabel="invoices"
-              />
-            </div>
+            <DataTable
+              searchable={false}
+              data={outstandingList}
+              pageSize={itemsPerPage}
+              emptyMessage="No invoices match the selected filter."
+              columns={[
+                { key: "invoiceNumber", label: "Invoice No", render: (inv) => <div style={{ fontWeight: 700, color: "#0f172a" }}>{inv.invoiceNumber}</div> },
+                { key: "jobNo", label: "Linked Job", render: (inv) => <div style={{ fontWeight: 600 }}>{inv.jobNo}</div> },
+                { key: "priority", label: "Priority", render: (inv) => <PriorityBadge priority={inv.priority} /> },
+                { key: "jobType", label: "Job Type", render: (inv) => <JobTypeBadge jobType={inv.jobType || "Print Only"} size="sm" /> },
+                {
+                  key: "customerName",
+                  label: "Customer Name",
+                  render: (inv) => (
+                    <>
+                      <div style={{ fontWeight: 600 }}>{inv.customerName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{inv.customerPhone}</div>
+                    </>
+                  ),
+                },
+                { key: "invoiceTotal", label: "Total Invoiced", render: (inv) => <span style={{ fontWeight: 600 }}>₹{inv.invoiceTotal.toFixed(2)}</span> },
+                {
+                  key: "balanceDue",
+                  label: "Balance Due",
+                  render: (inv) => (
+                    <span style={{ fontWeight: 700, color: inv.balanceDue > 0 ? "#dc2626" : "#059669" }}>₹{inv.balanceDue.toFixed(2)}</span>
+                  ),
+                },
+                { key: "paymentStatus", label: "Payment Status", render: (inv) => <StatusBadge status={inv.paymentStatus} domain="settlement" /> },
+                {
+                  key: "actions",
+                  label: "Cashier Actions",
+                  align: "right",
+                  render: (inv) => (
+                    <div style={{ display: "inline-flex", gap: "0.4rem" }}>
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-secondary jf-btn-sm"
+                        onClick={() => navigate(`/jobflow/invoice?jobId=${inv.jobOrderId || inv.jobNo}`)}
+                        title="View / Print Commercial Tax Invoice"
+                      >
+                        <FileText size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-primary jf-btn-sm"
+                        onClick={() => setSelectedInvoiceForCashier(inv._id)}
+                        style={{ background: inv.balanceDue > 0 ? "#059669" : "#475569", borderColor: inv.balanceDue > 0 ? "#059669" : "#475569" }}
+                      >
+                        <Wallet size={13} /> {inv.balanceDue > 0 ? "Collect Payment" : "View Ledger"}
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
 
@@ -583,77 +478,46 @@ export const SettlementPage = () => {
               </span>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="jf-table">
-                <thead>
-                  <tr>
-                    <th>Job Order No</th>
-                    <th>Priority</th>
-                    <th>Customer Name</th>
-                    <th>Order Value</th>
-                    <th>Fulfillment Stage</th>
-                    <th>Closure Status</th>
-                    <th style={{ textAlign: "right" }}>Admin Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {closureList.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "2.5rem", color: "#475569" }}>
-                        No job orders found.
-                      </td>
-                    </tr>
-                  ) : (
-                    closurePage.rows.map((job) => (
-                      <tr key={job._id}>
-                        <td>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.title}</div>
-                        </td>
-                        <td><PriorityBadge priority={job.priority} /></td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{job.customerName}</div>
-                        </td>
-                        <td style={{ fontWeight: 600 }}>
-                          ₹{job.totalAmount.toFixed(2)}
-                        </td>
-                        <td>
-                          <StatusBadge status={job.status} domain="delivery" />
-                        </td>
-                        <td>
-                          <StatusBadge status={job.closureStatus} domain="closure" />
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div style={{ display: "inline-flex", gap: "0.4rem" }}>
-                            <button
-                              type="button"
-                              className="jf-btn jf-btn-primary jf-btn-sm"
-                              onClick={() => setSelectedJobForClosure(job._id)}
-                              style={{ background: job.closureStatus === "CLOSED" ? "#334155" : "#0f172a", borderColor: "#0f172a" }}
-                            >
-                              <Lock size={13} /> {job.closureStatus === "CLOSED" ? "View Closure 🔒" : "Verify & Close"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                  {renderFillerRows(closurePage.rows.length, 7)}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ borderTop: "1px solid #f1f5f9" }}>
-              <Pagination
-                variant="compact"
-                currentPage={closurePage.safePage}
-                totalItems={closureList.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), closurePage.totalPages))}
-                onItemsPerPageChange={setItemsPerPage}
-                pageSizeOptions={[10, 20, 50, 100]}
-                itemLabel="job orders"
-              />
-            </div>
+            <DataTable
+              searchable={false}
+              data={closureList}
+              pageSize={itemsPerPage}
+              emptyMessage="No job orders found."
+              columns={[
+                {
+                  key: "jobNo",
+                  label: "Job Order No",
+                  render: (job) => (
+                    <>
+                      <div style={{ fontWeight: 700, color: "#0f172a" }}>{job.jobNo}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#475569" }}>{job.title}</div>
+                    </>
+                  ),
+                },
+                { key: "priority", label: "Priority", render: (job) => <PriorityBadge priority={job.priority} /> },
+                { key: "customerName", label: "Customer Name", render: (job) => <div style={{ fontWeight: 600 }}>{job.customerName}</div> },
+                { key: "totalAmount", label: "Order Value", render: (job) => <span style={{ fontWeight: 600 }}>₹{job.totalAmount.toFixed(2)}</span> },
+                { key: "status", label: "Fulfillment Stage", render: (job) => <StatusBadge status={job.status} domain="delivery" /> },
+                { key: "closureStatus", label: "Closure Status", render: (job) => <StatusBadge status={job.closureStatus} domain="closure" /> },
+                {
+                  key: "actions",
+                  label: "Admin Actions",
+                  align: "right",
+                  render: (job) => (
+                    <div style={{ display: "inline-flex", gap: "0.4rem" }}>
+                      <button
+                        type="button"
+                        className="jf-btn jf-btn-primary jf-btn-sm"
+                        onClick={() => setSelectedJobForClosure(job._id)}
+                        style={{ background: job.closureStatus === "CLOSED" ? "#334155" : "#0f172a", borderColor: "#0f172a" }}
+                      >
+                        <Lock size={13} /> {job.closureStatus === "CLOSED" ? "View Closure 🔒" : "Verify & Close"}
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
       </div>

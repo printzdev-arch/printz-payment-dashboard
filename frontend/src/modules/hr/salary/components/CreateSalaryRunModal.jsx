@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Check, ArrowRight, ChevronRight, Users } from "lucide-react";
 import salaryApi from "../api/salaryApi";
 import { flagIfMaintenance } from "../utils/salaryGuards";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 
 export default function CreateSalaryRunModal({
   isOpen,
@@ -185,21 +186,18 @@ export default function CreateSalaryRunModal({
 
               <div className="salary-form-group">
                 <label>Branch <span className="req">*</span></label>
-                <select
-                  className="salary-form-select"
+                <BranchSelect
+                  valueKey="id"
+                  branches={branches}
                   value={formData.branchId}
+                  placeholder="Select Branch"
+                  required
                   onChange={(e) => {
                     const bId = e.target.value;
                     setFormData({ ...formData, branchId: bId });
                     loadEmployees(bId);
                   }}
-                  required
-                >
-                  <option value="">Select Branch</option>
-                  {branches.map((b) => (
-                    <option key={b._id} value={b._id}>{b.name}</option>
-                  ))}
-                </select>
+                />
               </div>
 
             </div>

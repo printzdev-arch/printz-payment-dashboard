@@ -19,7 +19,7 @@ import {
 import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import JobOrderProcessDetailModal from "../components/JobOrderProcessDetailModal";
 import CreateJobOrderPage from "./CreateJobOrderPage";
@@ -191,80 +191,6 @@ export const DesignerJobOrdersPage = () => {
         </button>
       }
     >
-      {/* 4 KPI Summary Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1.25rem",
-        }}
-      >
-        <div className="jf-card" style={{ padding: "1rem", borderLeft: "4px solid #3b82f6" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-                Total Designer Jobs
-              </div>
-              <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-                {kpiCounts.total}
-              </div>
-            </div>
-            <div style={{ background: "#eff6ff", padding: "10px", borderRadius: "8px", color: "#3b82f6" }}>
-              <Palette size={24} />
-            </div>
-          </div>
-        </div>
-
-        <div className="jf-card" style={{ padding: "1rem", borderLeft: "4px solid #f59e0b" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-                Pending Estimation
-              </div>
-              <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#b45309", marginTop: "4px" }}>
-                {kpiCounts.pendingEstimation}
-              </div>
-            </div>
-            <div style={{ background: "#fffbeb", padding: "10px", borderRadius: "8px", color: "#f59e0b" }}>
-              <Clock size={24} />
-            </div>
-          </div>
-        </div>
-
-        <div className="jf-card" style={{ padding: "1rem", borderLeft: "4px solid #10b981" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-                Approved Estimates
-              </div>
-              <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#047857", marginTop: "4px" }}>
-                {kpiCounts.approvedEstimates}
-              </div>
-            </div>
-            <div style={{ background: "#ecfdf5", padding: "10px", borderRadius: "8px", color: "#10b981" }}>
-              <CheckCircle size={24} />
-            </div>
-          </div>
-        </div>
-
-        <div className="jf-card" style={{ padding: "1rem", borderLeft: "4px solid #8b5cf6" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-                In Progress
-              </div>
-              <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#6d28d9", marginTop: "4px" }}>
-                {kpiCounts.inProgress}
-              </div>
-            </div>
-            <div style={{ background: "#f5f3ff", padding: "10px", borderRadius: "8px", color: "#8b5cf6" }}>
-              <TrendingUp size={24} />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Filter and Search Bar */}
       <div className="jf-filter-bar">
         <div className="jf-search-wrapper">
@@ -323,7 +249,7 @@ export const DesignerJobOrdersPage = () => {
       </div>
 
       {/* Designer Jobs DataTable */}
-      <JobFlowDataTable
+      <DataTable renderWithValue
         columns={[
           {
             key: "jobNo",
@@ -457,7 +383,7 @@ export const DesignerJobOrdersPage = () => {
         data={jobs}
         loading={loading}
         searchable={false}
-        initialPageSize={10}
+        pageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="No designer job orders found."
         selectedRowId={selectedJob?._id || selectedJob?.id}

@@ -15,6 +15,8 @@ import {
   ArrowUp,
   UserCheck,
   ArrowLeftRight,
+  AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import attendanceApi from "../api/attendanceApi";
 import CheckInModal from "../components/CheckInModal";
@@ -22,8 +24,9 @@ import CheckOutModal from "../components/CheckOutModal";
 import ViewAttendanceModal from "../components/ViewAttendanceModal";
 import ReconcileModal from "../components/ReconcileModal";
 import FinalizeModal from "../components/FinalizeModal";
-import SearchableBranchSelect from "../components/SearchableBranchSelect";
-import AttendancePagination from "../components/AttendancePagination";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 import "../styles/attendance.css";
 
 // Color palette for employee avatar initials matching reference image 2
@@ -43,6 +46,50 @@ const getAvatarColor = (name = "") => {
   if (!name) return AVATAR_COLORS[0];
   const charCode = name.charCodeAt(0) || 0;
   return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+};
+
+// Status label, badge class and the next action for an employee's attendance record
+const getRowDisplay = (att) => {
+  let displayStatus = "Not Yet";
+  let statusClass = "not-yet";
+  let actionType = "check-in";
+
+  if (att) {
+    if (att.checkIn && !att.checkOut) {
+      displayStatus = "Checked In";
+      statusClass = "checked-in";
+      actionType = "check-out";
+    } else if (att.status === "PRESENT") {
+      displayStatus = "Present";
+      statusClass = "present";
+      actionType = "view";
+    } else if (att.status === "HALF_DAY") {
+      displayStatus = "Half Day";
+      statusClass = "half-day";
+      actionType = "view";
+    } else if (att.status === "ABSENT") {
+      displayStatus = "Absent";
+      statusClass = "absent";
+      actionType = "check-in";
+    } else if (att.lateArrival) {
+      displayStatus = "Late";
+      statusClass = "late";
+      actionType = att.checkOut ? "view" : "check-out";
+    } else if (att.status === "HOLIDAY") {
+      displayStatus = "Holiday";
+      statusClass = "holiday";
+      actionType = "view";
+    } else if (att.status === "WEEKLY_OFF") {
+      displayStatus = "Weekly Off";
+      statusClass = "weekly-off";
+      actionType = "view";
+    } else if (att.status) {
+      displayStatus = att.status;
+      statusClass = att.status.toLowerCase().replace("_", "-");
+      actionType = att.checkOut ? "view" : "check-out";
+    }
+  }
+  return { displayStatus, statusClass, actionType };
 };
 
 export default function DailyAttendancePage() {
@@ -225,11 +272,11 @@ export default function DailyAttendancePage() {
         setError(failed[0].message);
       } else if (failed.length > 0) {
         setNotice(
-          `Showing ${targetBranches.length - failed.length} of ${targetBranches.length} branches. ${failed.length} skipped — select a branch to see its reason.`
+          `Showing ${targetBranches.length - failed.length} of ${targetBranches.length} branches. ${failed.length} could not be loaded. Select a branch to see why.`
         );
       } else if (noPolicyCount > 0) {
         setNotice(
-          `${noPolicyCount} branch${noPolicyCount === 1 ? " has" : "es have"} no active attendance policy and ${noPolicyCount === 1 ? "is" : "are"} not listed. Create and activate a policy in Attendance Setup to include ${noPolicyCount === 1 ? "it" : "them"}.`
+          `${noPolicyCount} branch${noPolicyCount === 1 ? " has" : "es have"} no active attendance policy, so ${noPolicyCount === 1 ? "it is" : "they are"} not listed. Add one in Attendance Setup.`
         );
       }
 
@@ -340,9 +387,7 @@ export default function DailyAttendancePage() {
       <div className="attendance-filter-bar">
         {/* Date Selector */}
         <div className="attendance-filter-item">
-          <input
-            type="date"
-            className="attendance-filter-input"
+          <DateField
             value={attendanceDate}
             onChange={(e) => setAttendanceDate(e.target.value)}
           />
@@ -357,10 +402,14 @@ export default function DailyAttendancePage() {
               <span className="attendance-branch-tag">Assigned</span>
             </div>
           ) : (
-            <SearchableBranchSelect
-              value={selectedBranchId}
-              onChange={setSelectedBranchId}
+            <BranchSelect
+              valueKey="id"
+              allowAll
+              allOptionLabel="All Branches"
+              allOptionValue=""
               branches={branches}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
             />
           )}
         </div>
@@ -377,268 +426,143 @@ export default function DailyAttendancePage() {
         </div>
       </div>
 
-      {/* ─── Dashboard UI KPI Cards ─────────────────────────────────── */}
-      <div className="printz-kpi-grid">
-        {/* Total Employees */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon teal">
-              <Users size={20} strokeWidth={2.3} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{totalCount}</div>
-              <div className="printz-kpi-label">Total Employees</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Checked In */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon green">
-              <CheckCircle2 size={20} strokeWidth={2.4} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{checkedInCount}</div>
-              <div className="printz-kpi-label">Checked In</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Checked Out */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon blue">
-              <UserCheck size={20} strokeWidth={2.3} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{checkedOutCount}</div>
-              <div className="printz-kpi-label">Checked Out</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Checkout */}
-        <div className="printz-kpi-card">
-          <div className="printz-kpi-top">
-            <div className="printz-summary-icon orange">
-              <Clock size={20} strokeWidth={2.3} color="#ffffff" />
-            </div>
-            <div className="printz-kpi-values">
-              <div className="printz-kpi-number">{pendingCheckoutCount}</div>
-              <div className="printz-kpi-label">Pending Checkout</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {notice && !error && (
-        <div style={{ backgroundColor: "#fffbeb", color: "#92400e", padding: "10px 18px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
-          {notice}
+        <div className="attendance-alert warn" role="status">
+          <AlertTriangle size={16} />
+          <span>{notice}</span>
         </div>
       )}
 
       {error && (
-        <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "10px 18px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
-          {error}
+        <div className="attendance-alert error" role="alert">
+          <AlertCircle size={16} />
+          <span>{error}</span>
         </div>
       )}
 
       {/* ─── Employee Attendance Table ───────────────────────────────── */}
-      <div className="attendance-table-card">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th style={{ width: "40px" }}>#</th>
-              <th>Employee</th>
-              <th>Check In</th>
-              <th>Check Out</th>
-              <th>Worked Hours</th>
-              <th>Status</th>
-              <th style={{ width: "120px" }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  Loading attendance records...
-                </td>
-              </tr>
-            ) : paginatedEmployees.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#475569" }}>
-                  No employees found for the selected branch and criteria.
-                </td>
-              </tr>
-            ) : (
-              paginatedEmployees.map((item, idx) => {
-                const emp = item.employee || {};
-                const att = item.attendance;
-                const indexNum = (currentPage - 1) * pageSize + idx + 1;
-
-                // Determine display status & action button
-                let displayStatus = "Not Yet";
-                let statusClass = "not-yet";
-                let actionType = "check-in";
-
-                if (att) {
-                  if (att.checkIn && !att.checkOut) {
-                    displayStatus = "Checked In";
-                    statusClass = "checked-in";
-                    actionType = "check-out";
-                  } else if (att.status === "PRESENT") {
-                    displayStatus = "Present";
-                    statusClass = "present";
-                    actionType = "view";
-                  } else if (att.status === "HALF_DAY") {
-                    displayStatus = "Half Day";
-                    statusClass = "half-day";
-                    actionType = "view";
-                  } else if (att.status === "ABSENT") {
-                    displayStatus = "Absent";
-                    statusClass = "absent";
-                    actionType = "check-in";
-                  } else if (att.lateArrival) {
-                    displayStatus = "Late";
-                    statusClass = "late";
-                    actionType = att.checkOut ? "view" : "check-out";
-                  } else if (att.status === "HOLIDAY") {
-                    displayStatus = "Holiday";
-                    statusClass = "holiday";
-                    actionType = "view";
-                  } else if (att.status === "WEEKLY_OFF") {
-                    displayStatus = "Weekly Off";
-                    statusClass = "weekly-off";
-                    actionType = "view";
-                  } else if (att.status) {
-                    displayStatus = att.status;
-                    statusClass = att.status.toLowerCase().replace("_", "-");
-                    actionType = att.checkOut ? "view" : "check-out";
-                  }
-                }
-
-                // Format worked duration
-                const workedHoursText =
-                  att && att.checkIn && att.checkOut
-                    ? `${att.workingHoursPerDay || 0}h`
-                    : "-";
-
-                return (
-                  <tr key={emp._id}>
-                    <td>{indexNum}</td>
-                    <td>
-                      <div className="attendance-employee-cell">
-                        <div
-                          className="attendance-avatar-circle"
-                          style={{ backgroundColor: getAvatarColor(emp.name) }}
-                        >
-                          {(emp.name || "E").charAt(0).toUpperCase()}
-                        </div>
-                        <div className="attendance-emp-info">
-                          <span className="attendance-emp-code">{emp.employeeCode}</span>
-                          <span className="attendance-emp-name">{emp.name}</span>
-                          {item.isShifted && (
-                            <span
-                              className="attendance-shift-badge"
-                              title={item.shiftInfo ? `Shifted ${item.shiftInfo.fromDate} to ${item.shiftInfo.toDate}` : ""}
-                            >
-                              Shifted from {item.homeBranch?.name || "home branch"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{att?.checkIn || "-"}</td>
-                    <td style={{ fontWeight: 600 }}>{att?.checkOut || "-"}</td>
-                    <td style={{ fontWeight: 600 }}>{workedHoursText}</td>
-                    <td>
-                      <span className={`status-badge ${statusClass}`}>{displayStatus}</span>
-                    </td>
-                    <td>
-                      {actionType === "check-out" && (
-                        <button
-                          type="button"
-                          className="action-btn-checkout"
-                          onClick={() => handleOpenCheckOut(emp, att, item.rosterBranchId)}
-                        >
-                          <LogOut size={13} strokeWidth={2.4} />
-                          <span>Check Out</span>
-                        </button>
-                      )}
-                      {actionType === "check-in" && (
-                        <button
-                          type="button"
-                          className="action-btn-checkin"
-                          onClick={() => handleOpenCheckIn(emp, att, item.rosterBranchId)}
-                        >
-                          <LogIn size={13} strokeWidth={2.4} />
-                          <span>Check In</span>
-                        </button>
-                      )}
-                      {actionType === "view" && (
-                        <button
-                          type="button"
-                          className="action-btn-view"
-                          onClick={() => handleOpenView(emp, att)}
-                        >
-                          <Eye size={13} strokeWidth={2.4} />
-                          <span>View</span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-
-        {/* ─── Modern Pagination with dynamic rows per page & Admin Actions ─── */}
-        <AttendancePagination
-          currentPage={currentPage}
-          totalItems={filteredEmployees.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
-          pageSizeOptions={[5, 10, 20, 50]}
-          itemName="employees"
-          extraActions={
-            <div className="attendance-footer-admin-actions">
-              <button
-                type="button"
-                className="btn-printz-outline"
-                disabled={!selectedBranchId}
-                title={!selectedBranchId ? "Select a branch first" : undefined}
-                onClick={() => setIsReconcileOpen(true)}
-              >
-                Mark Missing
-              </button>
-              <button
-                type="button"
-                className="btn-printz-outline"
-                disabled={!selectedBranchId}
-                title={!selectedBranchId ? "Select a branch first" : undefined}
-                onClick={() => setIsReconcileOpen(true)}
-              >
-                Resolve Attendance
-              </button>
-              <button
-                type="button"
-                className="btn-printz-primary"
-                disabled={!selectedBranchId}
-                title={!selectedBranchId ? "Select a branch first" : undefined}
-                onClick={() => setIsFinalizeOpen(true)}
-              >
-                Finalize Attendance
-              </button>
-            </div>
-          }
-        />
-      </div>
+      <DataTable
+        mobileCards
+        searchable={false}
+        loading={loading}
+        data={filteredEmployees}
+        pageSize={10}
+        emptyMessage="No employees found for the selected branch and criteria."
+        footer={
+          <div className="attendance-footer-admin-actions">
+            <button
+              type="button"
+              className="btn-printz-outline"
+              disabled={!selectedBranchId}
+              title={!selectedBranchId ? "Select a branch first" : undefined}
+              onClick={() => setIsReconcileOpen(true)}
+            >
+              Mark Missing
+            </button>
+            <button
+              type="button"
+              className="btn-printz-outline"
+              disabled={!selectedBranchId}
+              title={!selectedBranchId ? "Select a branch first" : undefined}
+              onClick={() => setIsReconcileOpen(true)}
+            >
+              Resolve Attendance
+            </button>
+            <button
+              type="button"
+              className="btn-printz-primary"
+              disabled={!selectedBranchId}
+              title={!selectedBranchId ? "Select a branch first" : undefined}
+              onClick={() => setIsFinalizeOpen(true)}
+            >
+              Finalize Attendance
+            </button>
+          </div>
+        }
+        columns={[
+          { key: "sno", label: "#", width: "40px", className: "printz-cell-hide-mobile", render: (item, idx) => idx + 1 },
+          {
+            key: "employee",
+            label: "Employee",
+            className: "printz-cell-lead",
+            render: (item) => {
+              const emp = item.employee || {};
+              return (
+                <div className="attendance-employee-cell">
+                  <div className="attendance-emp-info">
+                    <span className="attendance-emp-code">{emp.employeeCode}</span>
+                    <span className="attendance-emp-name">{emp.name}</span>
+                    {item.isShifted && (
+                      <span
+                        className="attendance-shift-badge"
+                        title={item.shiftInfo ? `Shifted ${item.shiftInfo.fromDate} to ${item.shiftInfo.toDate}` : ""}
+                      >
+                        Shifted from {item.homeBranch?.name || "home branch"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            },
+          },
+          { key: "checkIn", label: "Check In", render: (item) => <span style={{ fontWeight: 600 }}>{item.attendance?.checkIn || "-"}</span> },
+          { key: "checkOut", label: "Check Out", render: (item) => <span style={{ fontWeight: 600 }}>{item.attendance?.checkOut || "-"}</span> },
+          {
+            key: "workedHours",
+            label: "Worked Hours",
+            render: (item) => {
+              const att = item.attendance;
+              return (
+                <span style={{ fontWeight: 600 }}>
+                  {att && att.checkIn && att.checkOut ? `${att.workingHoursPerDay || 0}h` : "-"}
+                </span>
+              );
+            },
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (item) => {
+              const { displayStatus, statusClass } = getRowDisplay(item.attendance);
+              return <span className={`status-badge ${statusClass}`}>{displayStatus}</span>;
+            },
+          },
+          {
+            key: "action",
+            label: "Action",
+            width: "120px",
+            className: "printz-cell-actions",
+            render: (item) => {
+              const emp = item.employee || {};
+              const att = item.attendance;
+              const { actionType } = getRowDisplay(att);
+              return (
+                <>
+                  {actionType === "check-out" && (
+                    <button type="button" className="action-btn-checkout" onClick={() => handleOpenCheckOut(emp, att, item.rosterBranchId)}>
+                      <LogOut size={13} strokeWidth={2.4} />
+                      <span>Check Out</span>
+                    </button>
+                  )}
+                  {actionType === "check-in" && (
+                    <button type="button" className="action-btn-checkin" onClick={() => handleOpenCheckIn(emp, att, item.rosterBranchId)}>
+                      <LogIn size={13} strokeWidth={2.4} />
+                      <span>Check In</span>
+                    </button>
+                  )}
+                  {actionType === "view" && (
+                    <button type="button" className="action-btn-view" onClick={() => handleOpenView(emp, att)}>
+                      <Eye size={13} strokeWidth={2.4} />
+                      <span>View</span>
+                    </button>
+                  )}
+                </>
+              );
+            },
+          },
+        ]}
+      />
 
       {/* ─── Modals ─────────────────────────────────────────────────── */}
       <CheckInModal

@@ -5,6 +5,8 @@ import { toast } from "react-toastify";
 import employeesApi from "../api/employeesApi";
 import CapabilityGrid from "../components/CapabilityGrid";
 import { allLeafKeys, expandKeys, labelMap } from "../components/capabilityUtils";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
+import SelectField from "../../../../shared/ui/selects/SelectField";
 import "../styles/employees.css";
 
 /**
@@ -274,31 +276,36 @@ export default function RoleSetupPage() {
 
       <div className="emp-card" style={{ marginBottom: 16 }}>
         <div className="emp-filters" style={{ borderBottom: 0 }}>
-          <select className="emp-select" value={branchId} onChange={(e) => onBranchChange(e.target.value)} aria-label="Branch">
-            <option value="">All branches</option>
-            {branches.map((b) => (
-              <option key={b._id || b.id} value={b._id || b.id}>{b.name}</option>
-            ))}
-          </select>
-          <select
-            className="emp-select"
-            style={{ minWidth: 260 }}
-            value={selectedId}
-            onChange={(e) => {
-              const next = employees.find((x) => x._id === e.target.value);
-              if (next) pick(next);
-              else if (!dirty || window.confirm("You have unsaved changes for this employee. Switch anyway?")) clearSelection();
-            }}
-            aria-label="Employee"
-            disabled={loading}
-          >
-            <option value="">{loading ? "Loading employees..." : filtered.length === 0 ? "No employees found" : "Select employee"}</option>
-            {(selected && !filtered.some((x) => x._id === selected._id) ? [selected, ...filtered] : filtered).map((e) => (
-              <option key={e._id} value={e._id}>
-                {e.name} ({roleById(idOf(e.roleId))?.name || "No role"}){optionNote(e)}
-              </option>
-            ))}
-          </select>
+          <BranchSelect
+            valueKey="id"
+            allowAll
+            allOptionLabel="All branches"
+            allOptionValue=""
+            branches={branches}
+            value={branchId}
+            onChange={(e) => onBranchChange(e.target.value)}
+            style={{ minWidth: "200px" }}
+            triggerStyle={{ height: "40px" }}
+          />
+          <div className="emp-employee-pick">
+            <SelectField
+              value={selectedId}
+              disabled={loading}
+              placeholder={loading ? "Loading employees..." : filtered.length === 0 ? "No employees found" : "Select employee"}
+              options={[
+                { value: "", label: loading ? "Loading employees..." : filtered.length === 0 ? "No employees found" : "Select employee" },
+                ...(selected && !filtered.some((x) => x._id === selected._id) ? [selected, ...filtered] : filtered).map((e) => ({
+                  value: e._id,
+                  label: `${e.name} (${roleById(idOf(e.roleId))?.name || "No role"})${optionNote(e)}`,
+                })),
+              ]}
+              onChange={(e) => {
+                const next = employees.find((x) => x._id === e.target.value);
+                if (next) pick(next);
+                else if (!dirty || window.confirm("You have unsaved changes for this employee. Switch anyway?")) clearSelection();
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -322,12 +329,13 @@ export default function RoleSetupPage() {
             <div className="emp-role-fields" style={{ marginTop: 12 }}>
               <div className="emp-field">
                 <label className="emp-label emp-required">Role</label>
-                <select className="emp-select" value={roleId} onChange={(ev) => onRoleChange(ev.target.value)}>
-                  <option value="">Select role</option>
-                  {roles.map((r) => (
-                    <option key={r._id} value={r._id}>{r.name}{r.requiresLogin === false ? " (no login)" : ""}</option>
-                  ))}
-                </select>
+                <SelectField
+                  searchable={false}
+                  value={roleId}
+                  placeholder="Select role"
+                  onChange={(ev) => onRoleChange(ev.target.value)}
+                  options={[{ value: "", label: "Select role" }, ...roles.map((r) => ({ value: r._id, label: `${r.name}${r.requiresLogin === false ? " (no login)" : ""}` }))]}
+                />
               </div>
             </div>
 

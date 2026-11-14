@@ -18,6 +18,7 @@ import {
 import { toast } from "react-toastify";
 import invoiceApi from "../api/invoiceApi";
 import StatusBadge from "../../shared/components/StatusBadge";
+import { DateField } from "../../../../shared/ui/selects/CalendarSelect";
 import "../styles/invoice.css";
 
 export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized }) => {
@@ -475,13 +476,11 @@ export const InvoiceEditorModal = ({ isOpen, onClose, jobOrderId, onFinalized })
             </div>
             <div>
               <div style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase", fontWeight: 600 }}>Due Date</div>
-              <input
-                type="date"
-                className="jf-input"
+              <DateField
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 disabled={isFinalized}
-                style={{ padding: "0.3rem 0.5rem", fontSize: "0.85rem", marginTop: "0.2rem" }}
+                style={{ marginTop: "0.2rem" }}
               />
             </div>
           </div>

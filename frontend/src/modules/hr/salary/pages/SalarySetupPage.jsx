@@ -13,10 +13,11 @@ import salaryApi from "../api/salaryApi";
 import AssignSalaryStructureModal from "../components/AssignSalaryStructureModal";
 import CreateComponentModal from "../components/CreateComponentModal";
 import { useAuth } from "../../../../app/providers/AuthContext";
-import SalaryPagination from "../components/SalaryPagination";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import SalaryMaintenanceBanner from "../components/SalaryMaintenanceBanner";
 import { useSalaryMaintenance } from "../utils/salaryGuards";
 import { ageAt, formatDob } from "../utils/salaryExcel";
+import BranchSelect from "../../../../shared/ui/selects/BranchSelect";
 import "../styles/salary.css";
 
 export default function SalarySetupPage() {
@@ -204,20 +205,21 @@ export default function SalarySetupPage() {
 
         <div className="salary-header-actions">
           {/* Branch Selector */}
-          <select
-            className="salary-branch-pill-select"
-            disabled={!!salaryApi.getLockedBranchId()}
+          <BranchSelect
+            valueKey="id"
+            lockToUserBranch
+            allowAll
+            allOptionLabel="All Branches"
+            allOptionValue=""
+            branches={branches}
             value={selectedBranchId}
             onChange={(e) => {
               setSelectedBranchId(e.target.value);
               setPage(1);
             }}
-          >
-            {!salaryApi.getLockedBranchId() && <option value="">All Branches</option>}
-            {branches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name}</option>
-            ))}
-          </select>
+            style={{ minWidth: "210px" }}
+            triggerStyle={{ height: "38px", fontSize: "13px" }}
+          />
 
           {!canConfigure ? null : activeTab === "structures" ? (
             <button
@@ -318,71 +320,7 @@ export default function SalarySetupPage() {
         </div>
       </div>
 
-      {/* ── KPI Summary Cards ─────────────────────────────────────────── */}
-      {activeTab === "structures" && (
-        <div className="salary-kpi-grid">
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box green">
-              <Users size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{totalEmployeesCount}</span>
-              <span className="salary-kpi-label">Total Employees</span>
-            </div>
-          </div>
 
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box blue">
-              <FileText size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{withStructureCount}</span>
-              <span className="salary-kpi-label">With Salary Structure</span>
-            </div>
-          </div>
-
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box amber">
-              <AlertCircle size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{withoutStructureCount}</span>
-              <span className="salary-kpi-label">Without Structure</span>
-            </div>
-          </div>
-
-          <div className="salary-kpi-card">
-            <div className="salary-kpi-icon-box purple">
-              <XCircle size={22} />
-            </div>
-            <div className="salary-kpi-details">
-              <span className="salary-kpi-value">{inactiveStructuresCount}</span>
-              <span className="salary-kpi-label">Inactive Structures</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "components" && (
-        <div className="salary-kpi-grid">
-          {[
-            { label: "Total Components", value: components.length, tone: "green", Icon: FileText },
-            { label: "Earning Components", value: earningComponents, tone: "blue", Icon: CheckCircle },
-            { label: "Deduction Components", value: deductionComponents, tone: "amber", Icon: AlertCircle },
-            { label: "Active Components", value: activeComponents, tone: "purple", Icon: CheckCircle },
-          ].map(({ label, value, tone, Icon }) => (
-            <div className="salary-kpi-card" key={label}>
-              <div className={`salary-kpi-icon-box ${tone}`}>
-                <Icon size={22} />
-              </div>
-              <div className="salary-kpi-details">
-                <span className="salary-kpi-value">{value}</span>
-                <span className="salary-kpi-label">{label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* ── Table Card ───────────────────────────────────────────────── */}
       <div className="salary-table-card">
@@ -392,166 +330,141 @@ export default function SalarySetupPage() {
           </div>
         )}
 
-        <div className="salary-table-responsive">
-          {activeTab === "structures" ? (
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>Employee ID</th>
-                  <th>Employee Name</th>
-                  <th>DOB</th>
-                  <th>Age</th>
-                  <th>Monthly Salary</th>
-                  <th>Effective From</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      Loading salary structures...
-                    </td>
-                  </tr>
-                ) : filteredStructures.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      No salary structures found. Click <strong>"+ Assign Salary Structure"</strong> to setup an employee.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedStructures.map((s, index) => {
-                    const emp = s.employeeId || {};
-                    const empName = emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || s.employeeName || "Employee";
-                    const empCode = emp.employeeCode || s.employeeCode || "—";
-                    const effectiveDate = s.effectiveFrom
+        {activeTab === "structures" ? (
+          <DataTable
+            searchable={false}
+            loading={loading}
+            data={filteredStructures}
+            pageSize={10}
+            emptyMessage={<>No salary structures found. Click <strong>"+ Assign Salary Structure"</strong> to setup an employee.</>}
+            columns={[
+              {
+                key: "employeeCode",
+                label: "Employee ID",
+                render: (s) => {
+                  const emp = s.employeeId || {};
+                  return <strong>{emp.employeeCode || s.employeeCode || "—"}</strong>;
+                },
+              },
+              {
+                key: "employeeName",
+                label: "Employee Name",
+                render: (s) => {
+                  const emp = s.employeeId || {};
+                  return emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || s.employeeName || "Employee";
+                },
+              },
+              { key: "dob", label: "DOB", render: (s) => formatDob((s.employeeId || {}).dateOfBirth) || "—" },
+              { key: "age", label: "Age", render: (s) => ageAt((s.employeeId || {}).dateOfBirth) ?? "—" },
+              {
+                key: "monthlySalary",
+                label: "Monthly Salary",
+                render: (s) => (
+                  <span style={{ fontWeight: 600 }}>
+                    {s.noStructure ? "—" : `₹ ${Number(s.monthlySalary || 0).toLocaleString("en-IN")}`}
+                  </span>
+                ),
+              },
+              {
+                key: "effectiveFrom",
+                label: "Effective From",
+                render: (s) =>
+                  s.noStructure
+                    ? "—"
+                    : s.effectiveFrom
                       ? new Date(s.effectiveFrom).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                      : "—";
-                    const isActive = s.isActive !== false;
-                    const unassigned = Boolean(s.noStructure);
-                    const empId = String(emp._id || emp.id || (typeof s.employeeId === "string" ? s.employeeId : "") || "");
-                    const dobText = formatDob(emp.dateOfBirth);
-                    const ageValue = ageAt(emp.dateOfBirth);
-
-                    return (
-                      <tr key={s._id || index}>
-                        <td>
-                          <strong>{empCode}</strong>
-                        </td>
-                        <td>{empName}</td>
-                        <td>{dobText || "—"}</td>
-                        <td>{ageValue ?? "—"}</td>
-                        <td style={{ fontWeight: 600 }}>
-                          {unassigned ? "—" : `₹ ${Number(s.monthlySalary || 0).toLocaleString("en-IN")}`}
-                        </td>
-                        <td>{unassigned ? "—" : effectiveDate}</td>
-                        <td>
-                          <span className={`badge-salary-status ${unassigned ? "draft" : isActive ? "active" : "inactive"}`}>
-                            {unassigned ? "Not assigned" : isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
-                            <button
-                              type="button"
-                              className="salary-icon-btn primary"
-                              title={unassigned ? "Assign a salary structure" : "Assign a revised structure with a new effective date"}
-                              disabled={maintenance || !canConfigure}
-                              onClick={() => {
-                                setAssignEmployeeId(String(emp._id || emp.id || s.employeeId || ""));
-                                setIsAssignModalOpen(true);
-                              }}
-                            >
-                              <Plus size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>Component Code</th>
-                  <th>Component Name</th>
-                  <th>Type</th>
-                  <th>Calculation Type</th>
-                  <th>Default Amount / %</th>
-                  <th>Taxable</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      Loading salary components...
-                    </td>
-                  </tr>
-                ) : filteredComponents.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                      No salary components found. Click <strong>"+ Add Component"</strong> to create one.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredComponents.map((c, index) => (
-                    <tr key={c._id || index}>
-                      <td>
-                        <strong>{c.code}</strong>
-                      </td>
-                      <td>{c.name}</td>
-                      <td>
-                        <span
-                          style={{
-                            padding: "3px 8px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            background: c.componentType === "EARNING" ? "#dcfce7" : "#fee2e2",
-                            color: c.componentType === "EARNING" ? "#15803d" : "#b91c1c",
-                          }}
-                        >
-                          {c.componentType}
-                        </span>
-                      </td>
-                      <td>{c.calculationType}</td>
-                      <td>
-                        {c.calculationType === "PERCENTAGE"
-                          ? `${c.defaultAmount ?? 0}% of ${(c.percentageOf || "BASIC").replace("_", " ").toLowerCase()}`
-                          : `₹ ${Number(c.defaultAmount || 0).toLocaleString("en-IN")}`}
-                      </td>
-                      <td>{c.isTaxable ? "Yes" : "No"}</td>
-                      <td>
-                        <span className={`badge-salary-status ${c.isActive !== false ? "active" : "inactive"}`}>
-                          {c.isActive !== false ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* ── Pagination Bar ─────────────────────────────────────────── */}
-        <SalaryPagination
-          total={filteredStructures.length}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
-          hidden={activeTab !== "structures"}
-        />
+                      : "—",
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (s) => {
+                  const unassigned = Boolean(s.noStructure);
+                  const isActive = s.isActive !== false;
+                  return (
+                    <span className={`badge-salary-status ${unassigned ? "draft" : isActive ? "active" : "inactive"}`}>
+                      {unassigned ? "Not assigned" : isActive ? "Active" : "Inactive"}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "actions",
+                label: "Actions",
+                align: "right",
+                render: (s) => {
+                  const emp = s.employeeId || {};
+                  const unassigned = Boolean(s.noStructure);
+                  return (
+                    <div className="salary-action-group" style={{ justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        className="salary-icon-btn primary"
+                        title={unassigned ? "Assign a salary structure" : "Assign a revised structure with a new effective date"}
+                        disabled={maintenance || !canConfigure}
+                        onClick={() => {
+                          setAssignEmployeeId(String(emp._id || emp.id || s.employeeId || ""));
+                          setIsAssignModalOpen(true);
+                        }}
+                      >
+                        <Plus size={15} />
+                      </button>
+                    </div>
+                  );
+                },
+              },
+            ]}
+          />
+        ) : (
+          <DataTable
+            searchable={false}
+            pagination={false}
+            loading={loading}
+            data={filteredComponents}
+            emptyMessage={<>No salary components found. Click <strong>"+ Add Component"</strong> to create one.</>}
+            columns={[
+              { key: "code", label: "Component Code", render: (c) => <strong>{c.code}</strong> },
+              { key: "name", label: "Component Name", render: (c) => c.name },
+              {
+                key: "componentType",
+                label: "Type",
+                render: (c) => (
+                  <span
+                    style={{
+                      padding: "3px 8px",
+                      borderRadius: "4px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      background: c.componentType === "EARNING" ? "#dcfce7" : "#fee2e2",
+                      color: c.componentType === "EARNING" ? "#15803d" : "#b91c1c",
+                    }}
+                  >
+                    {c.componentType}
+                  </span>
+                ),
+              },
+              { key: "calculationType", label: "Calculation Type", render: (c) => c.calculationType },
+              {
+                key: "defaultAmount",
+                label: "Default Amount / %",
+                render: (c) =>
+                  c.calculationType === "PERCENTAGE"
+                    ? `${c.defaultAmount ?? 0}% of ${(c.percentageOf || "BASIC").replace("_", " ").toLowerCase()}`
+                    : `₹ ${Number(c.defaultAmount || 0).toLocaleString("en-IN")}`,
+              },
+              { key: "isTaxable", label: "Taxable", render: (c) => (c.isTaxable ? "Yes" : "No") },
+              {
+                key: "isActive",
+                label: "Status",
+                render: (c) => (
+                  <span className={`badge-salary-status ${c.isActive !== false ? "active" : "inactive"}`}>
+                    {c.isActive !== false ? "Active" : "Inactive"}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        )}
       </div>
 
       {/* ── Popups ───────────────────────────────────────────────────── */}

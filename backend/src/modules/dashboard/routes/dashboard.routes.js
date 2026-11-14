@@ -17,6 +17,13 @@ router.get(
   dashboardController.getAdminDashboard
 );
 
+// Admin Dashboard, one module at a time (sales orders, job orders, production, ...)
+router.get(
+  "/admin/module",
+  requirePermission(PERMISSIONS.DASHBOARDS.ADMIN_VIEW),
+  dashboardController.getAdminModuleDashboard
+);
+
 // Branch Manager Dashboard: branch-scoped view (BRANCH scope or Manager)
 router.get(
   "/manager",

@@ -8,7 +8,6 @@ import EmployeeFilters from "../components/EmployeeFilters";
 import EmployeeTable from "../components/EmployeeTable";
 import EmployeeForm from "../components/EmployeeForm";
 import EmployeeDetailsModal from "../components/EmployeeDetailsModal";
-import Pagination from "../../../../shared/ui/Pagination";
 import "../styles/employees.css";
 
 /**
@@ -217,19 +216,16 @@ export default function EmployeesPage() {
             setNewPassword("");
             setResetting(employee);
           }}
-        />
-        <Pagination
-          variant="compact"
-          currentPage={page}
-          totalItems={total}
-          itemsPerPage={pageSize}
-          onPageChange={(n) => setPage(Math.max(1, n))}
-          onItemsPerPageChange={(n) => {
-            setPageSize(n);
-            setPage(1);
+          serverPagination={{
+            page,
+            pageSize,
+            total,
+            onPageChange: (n) => setPage(Math.max(1, n)),
+            onPageSizeChange: (n) => {
+              setPageSize(n);
+              setPage(1);
+            },
           }}
-          pageSizeOptions={[10, 20, 50, 100]}
-          itemLabel="employees"
         />
       </div>
 

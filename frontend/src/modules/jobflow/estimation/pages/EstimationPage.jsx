@@ -8,7 +8,7 @@ import JobFlowLayout from "../../../../layouts/JobFlowLayout/JobFlowLayout";
 import StatusBadge from "../../shared/components/StatusBadge";
 import JobTypeBadge from "../../shared/components/JobTypeBadge";
 import EstimateReviewModal from "../components/EstimateReviewModal";
-import JobFlowDataTable from "../../shared/components/JobFlowDataTable";
+import DataTable from "../../../../shared/ui/DataTable/DataTable";
 import PriorityBadge from "../../shared/components/PriorityBadge";
 import estimationApi from "../api/estimationApi";
 import { printQuotation } from "../utils/printQuotation";
@@ -264,7 +264,7 @@ export const EstimationPage = () => {
           </div>
         </div>
 
-        <JobFlowDataTable
+        <DataTable renderWithValue
           columns={[
             {
               key: "jobNo",
@@ -391,7 +391,7 @@ export const EstimationPage = () => {
           loading={loading}
           searchable={true}
           searchPlaceholder="Search estimates by job, customer or estimate #..."
-          initialPageSize={10}
+          pageSize={10}
           pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage={
             statusFilter === "pending"

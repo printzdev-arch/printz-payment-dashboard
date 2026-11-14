@@ -13,8 +13,6 @@ import {
   Save,
   AlertTriangle,
   ChevronDown,
-  Square,
-  CheckSquare,
   Eye,
   Tag,
   IndianRupee,
@@ -26,7 +24,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "../../../../../shared/styles/printzTheme.css";
 import Popup from "../../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../../shared/hooks/usePopup";
-import Pagination from "../../../../../shared/ui/Pagination.jsx";
+import DataTable from "../../../../../shared/ui/DataTable/DataTable";
 import BranchSelect from "../../../../../shared/ui/selects/BranchSelect.jsx";
 
 const PrinterList = () => {
@@ -39,11 +37,6 @@ const PrinterList = () => {
   const [editFormData, setEditFormData] = useState({});
   const [editingJumboService, setEditingJumboService] = useState(null);
   const [editJumboFormData, setEditJumboFormData] = useState({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showInactivePrinters, setShowInactivePrinters] = useState(false);
   const [printerToDelete, setPrinterToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -102,20 +95,6 @@ const PrinterList = () => {
   useEffect(() => {
     fetchBranches();
   }, [fetchBranches]);
-
-  // Clear selected items when branch changes
-  useEffect(() => {
-    setSelectedItems([]);
-    setSelectAll(false);
-    setCurrentPage(1);
-  }, [selectedBranch]);
-
-  // Clear selected items when inactive printer toggle changes
-  useEffect(() => {
-    setSelectedItems([]);
-    setSelectAll(false);
-    setCurrentPage(1);
-  }, [showInactivePrinters]);
 
   const fetchAssets = useCallback(async () => {
     if (!selectedBranch) return;
@@ -701,68 +680,6 @@ const PrinterList = () => {
     });
   };
 
-  // Bulk delete functions
-  const handleSelectItem = (assetId) => {
-    setSelectedItems((prev) => {
-      if (prev.includes(assetId)) {
-        return prev.filter((id) => id !== assetId);
-      } else {
-        return [...prev, assetId];
-      }
-    });
-  };
-
-  const handleSelectAll = (filteredAssets) => {
-    if (selectAll) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(filteredAssets.map((asset) => asset.id));
-    }
-    setSelectAll(!selectAll);
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedItems.length === 0) {
-      showError("Please select items to delete");
-      return;
-    }
-    setShowBulkDeleteConfirm(true);
-  };
-
-  const confirmBulkDelete = async () => {
-    try {
-      if (showInactivePrinters) {
-        // Hard delete for inactive printers
-        const promises = selectedItems.map((assetId) =>
-          deletePrinter(assetId)
-        );
-        await Promise.all(promises);
-        showSuccess(
-          `Successfully permanently deleted ${selectedItems.length} printer(s)`
-        );
-      } else {
-        // Soft delete for active printers
-        const promises = selectedItems.map((assetId) =>
-          updatePrinter(assetId, { isActive: false })
-        );
-        await Promise.all(promises);
-        showSuccess(
-          `Successfully deactivated ${selectedItems.length} printer(s)`
-        );
-      }
-      setSelectedItems([]);
-      setSelectAll(false);
-      setShowBulkDeleteConfirm(false);
-      fetchAssets();
-    } catch (error) {
-      showError("Failed to delete selected printers: " + (error?.response?.data?.message || error.message));
-    }
-  };
-
-  const cancelBulkDelete = () => {
-    setShowBulkDeleteConfirm(false);
-  };
-
   const formatCurrency = (amount) => {
     if (amount == null || isNaN(amount)) {
       return "₹0";
@@ -821,7 +738,6 @@ const PrinterList = () => {
                 value={selectedBranch}
                 onChange={(e) => {
                   setSelectedBranch(e.target.value);
-                  setCurrentPage(1);
                 }}
                 branches={branches}
                 placeholder="Select Branch"
@@ -846,7 +762,6 @@ const PrinterList = () => {
               className={`printer-inactive-toggle-pill ${showInactivePrinters ? "active" : ""}`}
               onClick={() => {
                 setShowInactivePrinters(!showInactivePrinters);
-                setCurrentPage(1);
               }}
             >
               <span className="printer-inactive-indicator">
@@ -872,36 +787,6 @@ const PrinterList = () => {
             </div>
           </div>
           
-
-          {assets.length > 0 && (
-            <div className="printer-table-header-tools">
-              <button
-                type="button"
-                className={`printer-select-all-pill ${selectAll ? "active" : ""}`}
-                onClick={() => handleSelectAll(assets)}
-              >
-                {selectAll ? (
-                  <CheckSquare size={16} color="#047857" />
-                ) : (
-                  <Square size={16} color="#64748b" />
-                )}
-                <span>
-                  {selectAll ? "Deselect All" : `Select All (${assets.length})`}
-                </span>
-              </button>
-
-              {selectedItems.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBulkDelete}
-                  className="printer-bulk-delete-btn"
-                >
-                  <Trash2 size={14} />
-                  <span>Delete Selected ({selectedItems.length})</span>
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -922,279 +807,131 @@ const PrinterList = () => {
             </div>
           ) : assets.length > 0 ? (
             <>
-              {(() => {
-                const totalPages = Math.ceil(assets.length / itemsPerPage);
-                const startIndex = (currentPage - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const currentAssets = assets.slice(startIndex, endIndex);
-
-                const handlePageChange = (page) => {
-                  setCurrentPage(page);
-                };
-
-                return (
-                  <div>
-                    <div className="printer-table-scroll">
-                      <table className="printer-modern-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "48px", textAlign: "center" }}>
-                              <input
-                                type="checkbox"
-                                checked={selectAll}
-                                onChange={() => handleSelectAll(assets)}
-                                style={{
-                                  width: "16px",
-                                  height: "16px",
-                                  accentColor: "#059669",
-                                  cursor: "pointer",
-                                }}
-                              />
-                            </th>
-                            <th style={{ width: "60px", textAlign: "center" }}>
-                              S.No
-                            </th>
-                            <th style={{ width: "140px" }}>Printer ID</th>
-                            <th style={{ minWidth: "220px" }}>Printer Name</th>
-                            <th style={{ textAlign: "center", width: "120px" }}>
-                              Type
-                            </th>
-                            <th
-                              style={{
-                                width: "140px",
-                                textAlign: "center",
-                              }}
-                            >
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentAssets.map((asset, index) => (
-                            <tr
-                              key={asset.id}
-                              className={
-                                !asset.printerId || asset.printerId === ""
-                                  ? "row-needs-id"
-                                  : ""
-                              }
-                            >
-                              <td
-                                style={{ textAlign: "center", width: "48px" }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedItems.includes(asset.id)}
-                                  onChange={() => handleSelectItem(asset.id)}
-                                  style={{
-                                    width: "16px",
-                                    height: "16px",
-                                    accentColor: "#059669",
-                                    cursor: "pointer",
-                                  }}
-                                />
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "center",
-                                  color: "#475569",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                {startIndex + index + 1}
-                              </td>
-                              <td
-                                style={{
-                                  verticalAlign: "top",
-                                }}
-                              >
-                                {editingAsset === asset.id ? (
-                                  <input
-                                    type="text"
-                                    value={editFormData.printerId}
-                                    onChange={(e) =>
-                                      setEditFormData({
-                                        ...editFormData,
-                                        printerId: e.target.value,
-                                      })
-                                    }
-                                    className="printer-table-edit-input"
-                                    placeholder="Enter ID"
-                                    style={{
-                                      maxWidth: "130px",
-                                      textTransform: "uppercase",
-                                    }}
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "8px",
-                                    }}
-                                  >
-                                    {asset.printerId ? (
-                                      <span className="printer-id-badge">
-                                        {asset.printerId}
-                                      </span>
-                                    ) : (
-                                      <span className="printer-id-missing-badge">
-                                        <AlertTriangle size={12} /> ID Required
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                              <td
-                                style={{
-                                  verticalAlign: "top",
-                                }}
-                              >
-                                {editingAsset === asset.id ? (
-                                  <input
-                                    type="text"
-                                    value={editFormData.printerName}
-                                    onChange={(e) =>
-                                      setEditFormData({
-                                        ...editFormData,
-                                        printerName:
-                                          e.target.value.toUpperCase(),
-                                      })
-                                    }
-                                    className="printer-table-edit-input"
-                                    placeholder="Printer Name"
-                                    style={{
-                                      maxWidth: "200px",
-                                      textTransform: "uppercase",
-                                    }}
-                                  />
-                                ) : (
-                                  <span
-                                    style={{
-                                      fontSize: "13.5px",
-                                      fontWeight: "600",
-                                      color: "#0f172a",
-                                    }}
-                                  >
-                                    {asset.printerName}
-                                  </span>
-                                )}
-                              </td>
-                              <td
-                                style={{
-                                  verticalAlign: "top",
-                                  textAlign: "center",
-                                }}
-                              >
-                                <span
-                                  className={`printer-type-pill ${(
-                                    asset.printerType || "mfp"
-                                  ).toLowerCase()}`}
-                                >
-                                  {asset.printerType || "Standard"}
-                                </span>
-                              </td>
-                              <td
-                                style={{
-                                  verticalAlign: "top",
-                                  textAlign: "center",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "4px",
-                                    alignItems: "center",
-                                    justifyContent: "flex-start",
-                                  }}
-                                >
-                                  {editingAsset === asset.id ? (
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        gap: "6px",
-                                        justifyContent: "center",
-                                      }}
-                                    >
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleSaveEdit(asset.id)
-                                        }
-                                        className="printer-btn-edit"
-                                        title="Save Changes"
-                                      >
-                                        <Save size={15} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={handleCancelEdit}
-                                        className="printer-btn-delete"
-                                        title="Cancel"
-                                      >
-                                        <X size={15} />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className="printer-actions-cell"
-                                      style={{ justifyContent: "center" }}
-                                    >
-                                      <button
-                                        type="button"
-                                        onClick={() => handleView(asset)}
-                                        className="printer-btn-view"
-                                        title="View Details"
-                                      >
-                                        <Eye size={15} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleEdit(asset)}
-                                        className="printer-btn-edit"
-                                        title="Edit Details"
-                                      >
-                                        <Pencil size={15} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRequestDelete(asset)}
-                                        className="printer-btn-delete"
-                                        disabled={editingJumboService !== null}
-                                        title={
-                                          showInactivePrinters
-                                            ? "Permanently Delete"
-                                            : "Deactivate"
-                                        }
-                                      >
-                                        <Trash2 size={15} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Pagination */}
-                    {assets.length > 0 && (
-                      <Pagination
-                        currentPage={currentPage}
-                        totalItems={assets.length}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={setCurrentPage}
-                        onItemsPerPageChange={setItemsPerPage}
-                        pageSizeOptions={[10, 20, 50, 100]}
-                        itemLabel="printers"
-                      />
-                    )}
-                  </div>
-                );
-              })()}
+              <DataTable
+                key={`${selectedBranch}-${showInactivePrinters}`}
+                columns={[
+                  {
+                    key: "sno",
+                    label: "S.No",
+                    width: "60px",
+                    align: "center",
+                    render: (asset, index) => (
+                      <span style={{ color: "#475569", fontWeight: 600 }}>{index + 1}</span>
+                    ),
+                  },
+                  {
+                    key: "printerId",
+                    label: "Printer ID",
+                    width: "140px",
+                    render: (asset) =>
+                      editingAsset === asset.id ? (
+                        <input
+                          type="text"
+                          value={editFormData.printerId}
+                          onChange={(e) => setEditFormData({ ...editFormData, printerId: e.target.value })}
+                          className="printer-table-edit-input"
+                          placeholder="Enter ID"
+                          style={{ maxWidth: "130px", textTransform: "uppercase" }}
+                        />
+                      ) : asset.printerId ? (
+                        <span className="printer-id-badge">{asset.printerId}</span>
+                      ) : (
+                        <span className="printer-id-missing-badge">
+                          <AlertTriangle size={12} /> ID Required
+                        </span>
+                      ),
+                  },
+                  {
+                    key: "printerName",
+                    label: "Printer Name",
+                    width: "220px",
+                    render: (asset) =>
+                      editingAsset === asset.id ? (
+                        <input
+                          type="text"
+                          value={editFormData.printerName}
+                          onChange={(e) =>
+                            setEditFormData({ ...editFormData, printerName: e.target.value.toUpperCase() })
+                          }
+                          className="printer-table-edit-input"
+                          placeholder="Printer Name"
+                          style={{ maxWidth: "200px", textTransform: "uppercase" }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: "13.5px", fontWeight: 600, color: "#0f172a" }}>
+                          {asset.printerName}
+                        </span>
+                      ),
+                  },
+                  {
+                    key: "printerType",
+                    label: "Type",
+                    width: "120px",
+                    align: "center",
+                    render: (asset) => (
+                      <span className={`printer-type-pill ${(asset.printerType || "mfp").toLowerCase()}`}>
+                        {asset.printerType || "Standard"}
+                      </span>
+                    ),
+                  },
+                ]}
+                data={assets}
+                searchable={false}
+                pageSize={20}
+                paginationVariant="compact"
+                rowClassName={(asset) => (!asset.printerId ? "printz-row-warning" : "")}
+                emptyMessage="No printers found"
+                customActions={(asset) =>
+                  editingAsset === asset.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(asset.id)}
+                        className="printz-btn-action-edit"
+                        title="Save Changes"
+                      >
+                        <Save size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="printz-btn-action-delete"
+                        title="Cancel"
+                      >
+                        <X size={15} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleView(asset)}
+                        className="printz-btn-action-view"
+                        title="View Details"
+                      >
+                        <Eye size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(asset)}
+                        className="printz-btn-action-edit"
+                        title="Edit Details"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRequestDelete(asset)}
+                        className="printz-btn-action-delete"
+                        disabled={editingJumboService !== null}
+                        title={showInactivePrinters ? "Permanently Delete" : "Deactivate"}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </>
+                  )
+                }
+              />
             </>
           ) : (
             <div className="printer-empty-state">
@@ -1211,54 +948,6 @@ const PrinterList = () => {
           )}
         </div>
       </div>
-
-      {/* Bulk Delete Confirmation Dialog */}
-      {showBulkDeleteConfirm && (
-        <div className="printer-modal-overlay">
-          <div className="printer-modal-box">
-            <div className="printer-modal-alert-icon">
-              <Trash2 size={28} />
-            </div>
-            <h3 className="printer-modal-title">Confirm Bulk Action</h3>
-            <p className="printer-modal-text">
-              Are you sure you want to{" "}
-              <strong>
-                {showInactivePrinters ? "permanently delete" : "deactivate"}
-              </strong>{" "}
-              {selectedItems.length} selected printer{selectedItems.length !== 1 ? "s" : ""}?
-              <br />
-              <span
-                style={{
-                  fontSize: "12.5px",
-                  color: "#475569",
-                  display: "inline-block",
-                  marginTop: "6px",
-                }}
-              >
-                {showInactivePrinters
-                  ? "This action is permanent and cannot be undone."
-                  : "Printers can be reactivated by showing inactive printers."}
-              </span>
-            </p>
-            <div className="printer-modal-actions">
-              <button
-                type="button"
-                onClick={cancelBulkDelete}
-                className="printer-modal-btn-cancel"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmBulkDelete}
-                className="printer-modal-btn-confirm"
-              >
-                Delete {selectedItems.length} Item{selectedItems.length !== 1 ? "s" : ""}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Single Printer Delete Confirmation Dialog */}
       {showDeleteConfirm && printerToDelete && (

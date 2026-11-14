@@ -351,3 +351,146 @@
   background: #f1f5f9;
   color: #0f172a;
 }
+
+/* ==========================================================================
+   Polish: same look as the branch dropdown, error state, edge-aware menu,
+   bottom sheet on phones
+   ========================================================================== */
+.calendar-select-trigger {
+  min-height: 40px;
+  border-color: #dbe3ea;
+  border-radius: 10px;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.calendar-select-trigger:hover:not(.disabled) {
+  border-color: #b8c4cf;
+  background: #ffffff;
+}
+
+.calendar-select-trigger.open,
+.calendar-select-trigger:focus-visible {
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14);
+}
+
+.calendar-select-trigger.disabled {
+  box-shadow: none;
+}
+
+.calendar-select-trigger.error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.calendar-select-trigger-icon {
+  color: #059669;
+}
+
+.calendar-select-trigger.disabled .calendar-select-trigger-icon {
+  color: #94a3b8;
+}
+
+.calendar-select-trigger-text.placeholder {
+  color: #475569;
+}
+
+.calendar-select-dropdown {
+  max-width: min(320px, calc(100vw - 24px));
+  border-radius: 14px;
+}
+
+/* Near the right edge of the screen the calendar opens towards the left */
+.calendar-select-dropdown.align-right {
+  left: auto;
+  right: 0;
+}
+
+.calendar-day-cell {
+  border-radius: 10px;
+}
+
+.calendar-day-cell.disabled {
+  opacity: 0.35;
+}
+
+@media (max-width: 640px) {
+  .calendar-select-trigger {
+    min-height: 44px;
+  }
+
+  /* A small calendar under the field (the right-hand field opens towards the left) */
+  .calendar-select-dropdown:not(.inline) {
+    width: 256px;
+    min-width: 0;
+    max-width: calc(100vw - 32px);
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .calendar-header { margin-bottom: 8px; padding-bottom: 6px; }
+  .calendar-weekday-cell { font-size: 10.5px; padding: 2px 0; }
+  .calendar-days-grid { gap: 1px; }
+  .calendar-day-cell {
+    aspect-ratio: auto;
+    height: 30px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+  .calendar-month-select,
+  .calendar-year-select {
+    font-size: 12.5px;
+    padding: 3px 4px;
+  }
+  .calendar-nav-btn { width: 26px; height: 26px; }
+  .calendar-footer { margin-top: 8px; padding-top: 6px; }
+}
+
+@keyframes calSheetAnim {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Month and year pickers inside the calendar (same styled dropdown as everywhere) */
+.calendar-select-dropdown .calendar-header-title { gap: 6px; }
+.calendar-select-dropdown .calendar-month-pick { width: 118px; }
+.calendar-select-dropdown .calendar-year-pick { width: 78px; }
+.calendar-select-dropdown .select-compact .branch-select-trigger { height: 32px; min-height: 32px; padding: 0 8px; background: #f8fafc; box-shadow: none; }
+.calendar-select-dropdown .select-compact .branch-select-trigger-text { font-size: 13px; font-weight: 600; }
+.calendar-select-dropdown .select-compact .branch-select-dropdown,
+.calendar-select-dropdown .select-compact .branch-select-dropdown {
+  position: absolute; top: calc(100% + 4px); bottom: auto; left: 0; right: auto;
+  min-width: 100%; width: max-content; max-height: 210px; animation: branchDropdownAnim 0.14s ease-out;
+}
+.calendar-select-dropdown .select-compact .branch-select-options-list { max-height: 198px; }
+@media (max-width: 640px) {
+  .calendar-select-dropdown .calendar-month-pick { width: 108px; }
+  .calendar-select-dropdown .calendar-year-pick { width: 72px; }
+}
+
+/* ---------- Time picker (hour / minute / AM-PM) ---------- */
+.time-popup {
+  z-index: 9999; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
+  box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.2), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+  padding: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif; width: max-content; max-width: calc(100vw - 16px);
+  animation: calDropdownAnim 0.14s ease-out;
+}
+.time-cols { display: flex; gap: 6px; }
+.time-col { display: flex; flex-direction: column; gap: 2px; max-height: 200px; overflow-y: auto; padding-right: 2px; overscroll-behavior: contain; min-width: 56px; }
+.time-col::-webkit-scrollbar { width: 5px; }
+.time-col::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.time-col-ampm { min-width: 56px; }
+.time-opt {
+  border: none; background: transparent; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-weight: 500;
+  color: #1e293b; cursor: pointer; font-family: inherit; text-align: center; transition: background-color 0.12s ease;
+}
+.time-opt:hover { background: #f1f5f9; }
+.time-opt.selected { background: #059669; color: #ffffff; font-weight: 600; }
+.time-foot { display: flex; justify-content: flex-end; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9; }

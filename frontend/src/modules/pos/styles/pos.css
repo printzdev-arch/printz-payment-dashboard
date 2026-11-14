@@ -79,7 +79,7 @@
 }
 .pos-tab-btn:not(.active) {
   background: #ffffff !important;
-  color: #475569 !important;
+  color: #1e293b !important;
 }
 .pos-tab-btn:not(.active):hover {
   background: #f0fdf6 !important;
@@ -216,7 +216,7 @@
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #475569;
+  color: #1e293b;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s var(--pos-ease);
@@ -636,7 +636,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: #475569;
+  color: #1e293b;
 }
 .pos-grand-total-row {
   display: flex;
@@ -678,7 +678,7 @@
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: #475569;
+  color: #1e293b;
   cursor: pointer;
   text-align: center;
   transition: all 0.2s var(--pos-ease);
@@ -713,7 +713,7 @@
   justify-content: space-between;
   gap: 0.35rem;
 }
-.pos-split-label { font-size: 0.75rem; font-weight: 650; color: #475569; }
+.pos-split-label { font-size: 0.75rem; font-weight: 650; color: #1e293b; }
 
 /* Checkout */
 .pos-checkout-btn {
@@ -914,7 +914,7 @@
   text-transform: uppercase;
   color: #047857;
 }
-.thermal-sub { font-size: 0.75rem; color: #475569; line-height: 1.3; }
+.thermal-sub { font-size: 0.75rem; color: #1e293b; line-height: 1.3; }
 .thermal-meta-row {
   display: flex;
   justify-content: space-between;
@@ -957,7 +957,7 @@
   text-align: center;
   margin-top: 0.75rem;
   font-size: 0.72rem;
-  color: #475569;
+  color: #1e293b;
 }
 
 /* A4 invoice horizontal scroll on small screens */
@@ -1017,9 +1017,8 @@
    ========================================================================== */
 @media print {
   /* Print only the receipt: hide the whole app, keep the modal portal */
-  /* Only while a receipt is open: on every other page the whole app must stay printable */
-  body:has(> .pos-print-portal) > *:not(.pos-print-portal) { display: none !important; }
-  body:has(> .pos-print-portal), html:has(> body > .pos-print-portal) { height: auto !important; overflow: visible !important; background: #ffffff !important; }
+  body:has(.pos-print-portal) > *:not(.pos-print-portal) { display: none !important; }
+  html, body { height: auto !important; overflow: visible !important; background: #ffffff !important; }
   .pos-print-portal .jf-modal-overlay {
     position: static !important;
     display: block !important;
@@ -1076,3 +1075,8 @@
   }
   .no-print { display: none !important; }
 }
+
+/* POS: darker text and tidy dropdowns */
+.pos-split-label, .pos-consumption-row { color: #1e293b; }
+.pos-consumption-row .branch-select-trigger { height: 30px; min-height: 30px; }
+@media (max-width: 640px) { .pos-consumption-row .branch-select-container { width: 100% !important; } }

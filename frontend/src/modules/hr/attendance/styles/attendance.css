@@ -38,6 +38,34 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+.attendance-branch-wrap { width: 230px; }
+.attendance-year-wrap { width: 110px; }
+.attendance-year-wrap .branch-select-trigger-text,
+.attendance-header-actions .branch-select-trigger-text { font-weight: 500; font-size: 13px; color: #0f172a; }
+
+@media (max-width: 640px) {
+  .attendance-header-row { gap: 12px; margin-bottom: 14px; }
+  .attendance-title-area h1 { font-size: 20px; }
+  .attendance-header-actions { width: 100%; gap: 10px; }
+  .attendance-branch-wrap { flex: 1 1 100%; width: 100%; }
+  .attendance-year-wrap { flex: 0 0 96px; width: 96px; }
+  .attendance-header-actions .btn-printz-primary { flex: 1 1 0; min-height: 42px; white-space: nowrap; }
+
+  /* Tabs share the row and scroll if they ever overflow */
+  .attendance-tabs-nav { gap: 0; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
+  .attendance-tabs-nav::-webkit-scrollbar { display: none; }
+  .attendance-tab-btn { flex: 1 1 0; white-space: nowrap; font-size: 13.5px; padding: 10px 8px 12px; text-align: center; }
+
+  /* Small dropdowns under the field */
+  .attendance-year-wrap { position: relative; }
+  .attendance-header-actions .branch-select-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: auto; bottom: auto;
+    min-width: 110px; width: max-content; max-height: 200px; padding: 4px; border-radius: 10px;
+  }
+  .attendance-header-actions .branch-select-options-list { max-height: 188px; }
+  .attendance-header-actions .branch-select-option-item { font-size: 12.5px; padding: 7px 10px; }
 }
 
 /* Top Branch Selector */
@@ -2052,12 +2080,152 @@ input:checked + .slider:before {
   white-space: nowrap;
 }
 
-/* Printed report: the full list of the period instead of the paged on-screen table */
-.attendance-print-only { display: none; }
+/* Attendance Setup: darker table text */
+.attendance-page-container .printz-dt-card tbody td { color: #0f172a; }
+.attendance-page-container .printz-dt-card tbody td .status-badge { color: inherit; }
+.attendance-page-container .printz-dt-card [class*="info"],
+.attendance-page-container .printz-dt-card .printz-pagination-info { color: #334155; }
+
+/* ─── Daily Attendance: filter bar, dropdowns, phones ─────────────────── */
+.attendance-filter-item .calendar-select-container { width: 190px; }
+.attendance-filter-item .branch-select-container { width: 230px; }
+.attendance-filter-item .branch-select-trigger-text { font-weight: 500; font-size: 13px; color: #0f172a; }
+.attendance-filter-item .branch-select-option-item { font-size: 12.5px; padding: 7px 10px; color: #1e293b; font-weight: 500; }
+.attendance-filter-item .branch-select-option-item.selected { color: #047857; font-weight: 600; }
+.attendance-filter-item .branch-select-dropdown { padding: 5px; }
+.attendance-filter-item .calendar-select-trigger-text { font-weight: 500; color: #0f172a; }
+.attendance-search-box input::placeholder { color: #475569; }
+.attendance-emp-code { color: #334155; }
+
+@media (max-width: 640px) {
+  .attendance-filter-bar { padding: 10px; gap: 10px; }
+  .attendance-filter-item { flex: 1 1 100%; width: 100%; }
+  .attendance-filter-item .calendar-select-container,
+  .attendance-filter-item .branch-select-container { width: 100%; position: static; }
+  .attendance-search-box { flex: 1 1 100%; min-width: 0; }
+  .attendance-search-box input { font-size: 14px !important; }
+
+  /* Small menus under the field */
+  .attendance-filter-item .branch-select-dropdown,
+  .attendance-filter-item .calendar-select-dropdown:not(.inline) {
+    position: absolute; top: calc(100% + 4px); left: 0; right: auto; bottom: auto;
+    border-radius: 10px;
+  }
+  .attendance-filter-item .branch-select-dropdown { right: 0; min-width: 0; max-height: 240px; padding: 4px; }
+  .attendance-filter-item .branch-select-options-list { max-height: 228px; }
+  .attendance-filter-item .calendar-select-dropdown.align-right:not(.inline) { left: 0; right: auto; }
+
+  /* Footer buttons wrap and fill the width */
+  .attendance-footer-admin-actions { flex-wrap: wrap; width: 100%; }
+  .attendance-footer-admin-actions > button { flex: 1 1 calc(50% - 5px); min-height: 42px; white-space: nowrap; }
+  .attendance-footer-admin-actions > .btn-printz-primary { flex-basis: 100%; }
+}
+
+/* Daily Attendance: darker table text */
+.attendance-page-container .printz-dt-card tbody td .attendance-emp-name { color: #0f172a; }
+
+/* Daily Attendance: no outer box around the filters; search matches the other fields */
+.attendance-page-container > .attendance-filter-bar { background: transparent; border: none; box-shadow: none; padding: 0; }
+.attendance-page-container > .attendance-filter-bar .attendance-search-box {
+  background: #ffffff; border: 1px solid #dbe3ea; border-radius: 10px; height: 42px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.attendance-page-container > .attendance-filter-bar .attendance-search-box:focus-within {
+  border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14);
+}
+
+/* Simple notices: one line, a small icon, soft colour */
+.attendance-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  border: 1px solid transparent; border-left-width: 3px; border-radius: 8px;
+  font-size: 13px; line-height: 1.45; font-weight: 500;
+}
+.attendance-alert svg { flex-shrink: 0; margin-top: 2px; }
+.attendance-alert.warn { background: #fffbeb; border-color: #fde68a; border-left-color: #f59e0b; color: #78350f; }
+.attendance-alert.warn svg { color: #d97706; }
+.attendance-alert.error { background: #fef2f2; border-color: #fecaca; border-left-color: #ef4444; color: #7f1d1d; }
+.attendance-alert.error svg { color: #dc2626; }
+
+/* Branch Shifts: status dropdown a little narrower, darker table text */
+.shift-filter-bar .attendance-filter-item .branch-select-container { width: 200px; }
+@media (max-width: 640px) { .shift-filter-bar .attendance-filter-item .branch-select-container { width: 100%; } }
+.shift-route-cell, .shift-period-cell, .shift-reason-cell { color: #0f172a; }
+
+/* Permissions & Reports: month picker, right-hand actions */
+.month-field { display: flex; align-items: center; gap: 8px; }
+.month-field .month-field-month { width: 160px; }
+.month-field .month-field-year { width: 92px; }
+.month-field .branch-select-trigger-text { font-weight: 500; font-size: 13px; color: #0f172a; }
+.month-field .branch-select-option-item { font-size: 12.5px; padding: 7px 10px; color: #1e293b; font-weight: 500; }
+.month-field .branch-select-option-item.selected { color: #047857; font-weight: 600; }
+.month-field .branch-select-dropdown { min-width: 100%; padding: 5px; }
+.attendance-bar-action { margin-left: auto; }
+.attendance-bar-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+@media (max-width: 640px) {
+  .attendance-filter-item .month-field,
+  .attendance-filter-bar > .attendance-filter-item:has(.month-field) { width: 100%; }
+  .month-field .month-field-month { flex: 1 1 auto; width: auto; }
+  .month-field .month-field-year { flex: 0 0 96px; width: 96px; }
+  .month-field .branch-select-container { position: relative; }
+  .month-field .branch-select-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: auto; bottom: auto;
+    min-width: 100%; width: max-content; max-height: 240px; padding: 4px; border-radius: 10px;
+  }
+  .month-field .branch-select-options-list { max-height: 228px; }
+  .attendance-bar-action,
+  .attendance-bar-actions { margin-left: 0; width: 100%; }
+  .attendance-bar-actions > button { flex: 1 1 0; min-height: 42px; white-space: nowrap; }
+  .attendance-bar-action { min-height: 42px; }
+  .attendance-filter-bar > .attendance-search-box { max-width: none !important; flex: 1 1 100% !important; }
+}
+
+/* Branch shift action popup: neat summary */
+.shift-summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.shift-summary-emp { display: flex; align-items: center; gap: 10px; }
+.shift-summary-avatar { width: 34px; height: 34px; border-radius: 50%; color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.shift-summary-name { font-size: 14px; font-weight: 600; color: #0f172a; line-height: 1.2; }
+.shift-summary-code { font-size: 12px; color: #334155; }
+.shift-summary-rows { border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.shift-summary-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12.5px; color: #334155; }
+.shift-summary-row strong { color: #0f172a; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; text-align: right; flex-wrap: wrap; justify-content: flex-end; }
+.shift-summary-row strong svg { color: #64748b; }
+.shift-hint { color: #334155; }
+.shift-modal-body .form-field label { font-size: 13px; font-weight: 600; color: #0f172a; }
+@media (max-width: 640px) {
+  .shift-modal-body { padding: 16px; }
+  .shift-summary-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .shift-summary-row strong { justify-content: flex-start; text-align: left; }
+}
+
+/* Create Branch Shift popup: clean and simple */
+.shift-modal-body .form-field > label { font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 6px; display: block; }
+.shift-modal-body .form-field > label .optional { font-weight: 400; color: #475569; font-size: 12px; }
+.shift-modal-body textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid #dbe3ea; border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; font-family: inherit; color: #0f172a; resize: vertical; min-height: 64px; background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.shift-modal-body textarea::placeholder { color: #64748b; }
+.shift-modal-body textarea:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14); }
+.shift-footnote { margin: 0; font-size: 12px; line-height: 1.5; color: #334155; }
+.shift-modal-body .form-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .shift-modal-body .form-group-row { grid-template-columns: 1fr; gap: 12px; } }
+
+/* ─── Attendance report: print layout ─────────────────────────────────── */
+.attendance-print-root { display: none; }
 @media print {
-  .attendance-print-only { display: block; }
-  .attendance-page-container .attendance-table-card { display: none !important; }
-  .attendance-print-only .attendance-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  .attendance-print-only .attendance-table th,
-  .attendance-print-only .attendance-table td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
+  body:has(.attendance-print-root) > *:not(.attendance-print-root) { display: none !important; }
+  html, body { height: auto !important; overflow: visible !important; background: #ffffff !important; }
+  .attendance-print-root { display: block !important; padding: 0; font-family: 'Poppins', Arial, sans-serif; color: #0f172a; }
+  .attendance-print-root h1 { font-size: 18px; margin: 0 0 2px; }
+  .attendance-print-meta { font-size: 11px; color: #334155; margin: 0 0 12px; }
+  .attendance-print-root table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  .attendance-print-root th { background: #0d6245 !important; color: #ffffff !important; text-align: left; padding: 6px 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .attendance-print-root td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  .attendance-print-root td small { display: block; color: #475569; font-size: 9.5px; }
+  .attendance-print-root tr { page-break-inside: avoid; }
+  .attendance-print-root thead { display: table-header-group; }
+  @page { size: A4 landscape; margin: 12mm; }
 }
