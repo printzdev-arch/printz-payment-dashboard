@@ -2096,3 +2096,13 @@ body .dq-main-table-card .dq-table-toolbar { background: transparent; border-bot
 body .dq-main-table-card .dq-main-tabs { background: transparent; border-bottom: none; padding: 0 0 14px; }
 body .dq-main-table-card .printz-dt-card { border: none; box-shadow: none; margin-top: 0; }
 @media (max-width: 760px) { body .dq-main-table-card .dq-table-toolbar { padding: 0 0 12px; } }
+
+/* Phones: the tab buttons scroll sideways and the filter row wraps instead of running off the screen */
+body .dq-main-table-card { min-width: 0; max-width: 100%; }
+body .dq-main-table-card .dq-main-tabs { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; }
+body .dq-main-table-card .dq-main-tab-btn { flex-shrink: 0; }
+@media (max-width: 768px) {
+  body .dq-main-table-card .dq-table-toolbar > div[style*="nowrap"] { flex-wrap: wrap !important; width: 100%; justify-content: flex-start !important; }
+  body .dq-main-table-card .dq-table-toolbar > div[style*="nowrap"] > * { flex: 1 1 100% !important; width: auto !important; max-width: none !important; }
+  body .dq-main-table-card .dq-table-toolbar > div[style*="nowrap"] .branch-select-container { flex: 1 1 calc(50% - 6px) !important; }
+}

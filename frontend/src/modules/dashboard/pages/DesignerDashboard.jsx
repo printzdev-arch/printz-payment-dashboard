@@ -145,15 +145,15 @@ const DesignerDashboard = () => {
     loadDesignerMetrics();
   }, [loadDesignerMetrics]);
 
-  // Apply filters handler
-  const handleApplyFilters = () => {
+  // Filters apply as soon as one is changed (there is no Apply button)
+  useEffect(() => {
     setAppliedFilters({
       dateRange,
       designStatus: designStatusFilter,
       priority: priorityFilter,
     });
     setCurrentPage(1);
-  };
+  }, [dateRange, designStatusFilter, priorityFilter]);
 
   // Reset filters handler
   const handleResetFilters = () => {
@@ -563,15 +563,8 @@ const DesignerDashboard = () => {
             </div>
           </div>
 
-          {/* Action Buttons: Apply & Reset */}
+          {/* Reset */}
           <div className="printz-dash-actions-row">
-            <button
-              type="button"
-              className="printz-dash-btn-apply"
-              onClick={handleApplyFilters}
-            >
-              Apply
-            </button>
             <button
               type="button"
               className="printz-dash-btn-reset"

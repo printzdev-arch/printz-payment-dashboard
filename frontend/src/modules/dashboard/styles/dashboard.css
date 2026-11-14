@@ -824,3 +824,19 @@ body table.printz-data-table tbody td { color: #0f172a !important; }
   body table.printz-data-table tbody td[data-label]::before { content: attr(data-label); flex: 0 0 38%; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #334155; }
   body table.printz-data-table tbody td[data-label="#"] { display: none !important; }
 }
+
+/* Filter row: compact dropdowns side by side, and a proper Reset button */
+body .printz-dash-filter-card .printz-dash-filter-flex { justify-content: flex-start; align-items: center; gap: 12px; }
+body .printz-dash-filter-card .printz-dash-inputs-row { display: flex !important; flex: 0 1 auto; flex-wrap: wrap; gap: 12px; }
+body .printz-dash-filter-card .printz-dash-field-group { flex: 0 0 auto; width: 230px; min-width: 0; }
+body .printz-dash-filter-card .printz-dash-actions-row { display: flex; align-items: center; gap: 8px; }
+body .printz-dash-filter-card .printz-dash-btn-reset {
+  height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center;
+  background: #ffffff; color: #0f172a; border: 1px solid #dbe3ea; border-radius: 10px; font-size: 13px; font-weight: 600;
+  cursor: pointer; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+body .printz-dash-filter-card .printz-dash-btn-reset:hover { background: #f1f5f9; }
+@media (max-width: 640px) {
+  body .printz-dash-filter-card .printz-dash-field-group { flex: 1 1 100%; width: 100%; }
+  body .printz-dash-filter-card .printz-dash-btn-reset { width: 100%; }
+}
