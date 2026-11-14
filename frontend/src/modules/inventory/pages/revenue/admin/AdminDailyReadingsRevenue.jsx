@@ -681,14 +681,6 @@ const AdminDailyReadingsRevenue = () => {
       });
 
       pdf.setFontSize(10);
-      pdf.text("Printz Shop", pageWidth - 30, yPos + 4, { align: "center" });
-      pdf.setFontSize(6);
-      pdf.text(
-        "One Stop Shop For All Your Printing Needs",
-        pageWidth - 30,
-        yPos + 8,
-        { align: "center" }
-      );
 
       pdf.setFontSize(8);
       pdf.text("DATE", pageWidth - 40, yPos + 13);

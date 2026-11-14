@@ -80,7 +80,6 @@ class InvoicePdfService {
   <div class="header">
     <div>
       ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />` : ""}
-      <div class="company-title">PRINTZ PAYMENT DASHBOARD</div>
       <div style="font-size: 13px; color: #475569; margin-top: 4px;">
         <strong>${esc(branch.name || "Main Branch")}</strong> (${esc(branch.code || "HQ")})<br>
         ${esc(branch.address || "Printing & Digital Graphics Center")}<br>

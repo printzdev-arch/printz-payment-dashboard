@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { liveCollection } = require("../../../utils/softDelete/liveCollection");
 const dns = require("dns");
 const ApiError = require("../../../utils/errors/ApiError");
 
@@ -313,7 +314,7 @@ class DashboardService {
         throw ApiError.badRequest("Invalid 'branchId'. Must be a valid 24-character hexadecimal ObjectId.");
       }
       bIdObj = new mongoose.Types.ObjectId(branchId);
-      branchDoc = await db.collection("branches").findOne({ _id: bIdObj });
+      branchDoc = await liveCollection(db, "branches").findOne({ _id: bIdObj });
       if (!branchDoc) {
         throw ApiError.notFound("Branch not found.");
       }
@@ -350,13 +351,13 @@ class DashboardService {
       upcomingDeliveriesRaw,
     ] = await Promise.all([
       // 1. Total Revenue in Period
-      db.collection("saleReceipts").aggregate([
+      liveCollection(db, "saleReceipts").aggregate([
         { $match: { ...branchMatch, status: { $nin: ["VOID", "DRAFT", "CANCELLED"] }, saleDate: { $gte: period.start, $lte: period.end } } },
         { $group: { _id: null, total: { $sum: "$grandTotal" } } },
       ]).toArray(),
 
       // 2. Amount Collected
-      db.collection("invoices").aggregate([
+      liveCollection(db, "invoices").aggregate([
         {
           $match: {
             ...(bIdObj ? { branchId: { $in: [bIdObj, String(branchId)] } } : {}),
@@ -367,7 +368,7 @@ class DashboardService {
       ]).toArray(),
 
       // 3. Pending Amount
-      db.collection("invoices").aggregate([
+      liveCollection(db, "invoices").aggregate([
         {
           $match: {
             ...(bIdObj ? { branchId: { $in: [bIdObj, String(branchId)] } } : {}),
@@ -379,19 +380,19 @@ class DashboardService {
       ]).toArray(),
 
       // 4. Total Job Orders
-      db.collection("jobOrders").countDocuments({
+      liveCollection(db, "jobOrders").countDocuments({
         ...branchMatch,
         createdAt: { $gte: period.start, $lte: period.end },
       }),
 
       // 5. Completed Jobs
-      db.collection("jobOrders").countDocuments({
+      liveCollection(db, "jobOrders").countDocuments({
         ...branchMatch,
         $or: [{ status: { $in: ["COMPLETED", "DELIVERED", "CLOSED"] } }, { stage: { $in: ["COMPLETED", "DELIVERED", "CLOSED"] } }],
       }),
 
       // 6. In Progress Jobs
-      db.collection("jobOrders").countDocuments({
+      liveCollection(db, "jobOrders").countDocuments({
         ...branchMatch,
         $or: [
           { status: { $in: ["IN_PRODUCTION", "DESIGNING", "PRINTING", "QC_PENDING", "PROCESSING"] } },
@@ -400,37 +401,37 @@ class DashboardService {
       }),
 
       // 7. Pending Jobs
-      db.collection("jobOrders").countDocuments({
+      liveCollection(db, "jobOrders").countDocuments({
         ...branchMatch,
         $or: [{ status: { $in: ["PENDING", "SUBMITTED", "NEW", "DRAFT"] } }, { stage: { $in: ["NEW_ENQUIRY", "ESTIMATION", "DESIGN_ASSIGNED"] } }],
       }),
 
       // 8. On Hold Jobs
-      db.collection("jobOrders").countDocuments({
+      liveCollection(db, "jobOrders").countDocuments({
         ...branchMatch,
         $or: [{ status: { $in: ["ON_HOLD", "HOLD", "BLOCKED"] } }, { stage: { $in: ["ON_HOLD", "REWORK", "REVISION_REQUIRED"] } }],
       }),
 
       // 9. Total Employees
-      db.collection("employees").countDocuments({
+      liveCollection(db, "employees").countDocuments({
         ...(bIdObj ? { branchId: { $in: [bIdObj, String(branchId)] } } : {}),
         $or: [{ employmentStatus: "ACTIVE" }, { isActive: true }],
       }),
 
       // 10. Stock Available
-      db.collection("inventoryBalances").aggregate([
+      liveCollection(db, "inventoryBalances").aggregate([
         { $match: { ...invBranchMatch, quantity: { $gt: 0 } } },
         { $group: { _id: null, total: { $sum: "$quantity" } } },
       ]).toArray(),
 
       // 11. Stock Reserved (estimated from in-progress jobs or transfer dispatch)
-      db.collection("inventoryBalances").aggregate([
+      liveCollection(db, "inventoryBalances").aggregate([
         { $match: invBranchMatch },
         { $group: { _id: null, total: { $sum: { $ifNull: ["$reservedQuantity", 0] } } } },
       ]).toArray(),
 
       // 12. Low stock items count
-      db.collection("inventoryBalances").aggregate([
+      liveCollection(db, "inventoryBalances").aggregate([
         { $match: invBranchMatch },
         {
           $lookup: {
@@ -455,13 +456,13 @@ class DashboardService {
       ]).toArray(),
 
       // 13. Out of stock items count
-      db.collection("inventoryBalances").countDocuments({
+      liveCollection(db, "inventoryBalances").countDocuments({
         ...invBranchMatch,
         quantity: { $lte: 0 },
       }),
 
       // 14. Daily Revenue Trend (for Graph 1)
-      db.collection("saleReceipts").aggregate([
+      liveCollection(db, "saleReceipts").aggregate([
         { $match: { ...branchMatch, status: { $nin: ["VOID", "DRAFT", "CANCELLED"] }, saleDate: { $gte: period.start, $lte: period.end } } },
         {
           $group: {
@@ -474,14 +475,14 @@ class DashboardService {
       ]).toArray(),
 
       // 15. Recent Job Orders (Table 1)
-      db.collection("jobOrders").aggregate([
+      liveCollection(db, "jobOrders").aggregate([
         { $match: branchMatch },
         { $sort: { createdAt: -1 } },
         { $limit: 8 },
       ]).toArray(),
 
       // 16. Low Stock Items (Table 2)
-      db.collection("inventoryBalances").aggregate([
+      liveCollection(db, "inventoryBalances").aggregate([
         { $match: invBranchMatch },
         {
           $lookup: {
@@ -501,7 +502,7 @@ class DashboardService {
       ]).toArray(),
 
       // 17. Pending Payments (Table 3)
-      db.collection("invoices").aggregate([
+      liveCollection(db, "invoices").aggregate([
         {
           $match: {
             ...(bIdObj ? { branchId: { $in: [bIdObj, String(branchId)] } } : {}),
@@ -514,7 +515,7 @@ class DashboardService {
       ]).toArray(),
 
       // 18. Upcoming Deliveries (Table 4)
-      db.collection("jobOrders").aggregate([
+      liveCollection(db, "jobOrders").aggregate([
         {
           $match: {
             ...branchMatch,
@@ -534,15 +535,15 @@ class DashboardService {
     // now describe the same business, so a counter sale paid in full no longer shows as revenue with nothing collected.
     const saleOk = { status: { $nin: ["VOID", "DRAFT", "CANCELLED"] } };
     const [paymentsInPeriodAgg, receiptsPaidAgg, receiptsDueAgg] = await Promise.all([
-      db.collection("payments").aggregate([
+      liveCollection(db, "payments").aggregate([
         { $match: { ...branchMatch, status: { $in: ["COMPLETED", "PAID", "SUCCESS"] }, isDeleted: { $ne: true }, paymentDate: { $gte: period.start, $lte: period.end } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]).toArray(),
-      db.collection("saleReceipts").aggregate([
+      liveCollection(db, "saleReceipts").aggregate([
         { $match: { ...branchMatch, ...saleOk, saleDate: { $gte: period.start, $lte: period.end } } },
         { $group: { _id: null, total: { $sum: { $ifNull: ["$amountPaid", 0] } } } },
       ]).toArray(),
-      db.collection("saleReceipts").aggregate([
+      liveCollection(db, "saleReceipts").aggregate([
         { $match: { ...branchMatch, ...saleOk, balanceDue: { $gt: 0 } } },
         { $group: { _id: null, total: { $sum: "$balanceDue" } } },
       ]).toArray(),
@@ -625,11 +626,11 @@ class DashboardService {
     ].filter((a) => a.count > 0);
 
     // ---- Branch figures for the company view (all real: nothing is estimated) ----
-    const branchDocs = await db.collection("branches").find({}).project({ name: 1, code: 1, isActive: 1, branchType: 1 }).toArray();
+    const branchDocs = await liveCollection(db, "branches").find({}).project({ name: 1, code: 1, isActive: 1, branchType: 1 }).toArray();
     const retailBranches = branchDocs.filter((b) => String(b.branchType || "").toLowerCase() !== "manufacturing");
     const dateRange = { $gte: period.start, $lte: period.end };
     const byBranch = async (collection, pipeline) => {
-      const rows = await db.collection(collection).aggregate(pipeline).toArray();
+      const rows = await liveCollection(db, collection).aggregate(pipeline).toArray();
       return new Map(rows.map((r) => [String(r._id), r]));
     };
     const [receiptsByBranch, jobsByBranch, dueByBranch, staffRows] = await Promise.all([
@@ -651,7 +652,7 @@ class DashboardService {
         { $match: { isDeleted: { $ne: true }, balanceDue: { $gt: 0 } } },
         { $group: { _id: { $toString: "$branchId" }, pending: { $sum: "$balanceDue" } } },
       ]),
-      db.collection("users").find({ isActive: { $ne: false } }).project({ name: 1, role: 1, branchId: 1 }).toArray(),
+      liveCollection(db, "users").find({ isActive: { $ne: false } }).project({ name: 1, role: 1, branchId: 1 }).toArray(),
     ]);
     const roundTwo = (v) => Math.round((Number(v) || 0) * 100) / 100;
     const managerByBranch = new Map();
@@ -774,7 +775,7 @@ class DashboardService {
     }
 
     if (!effectiveBranchId) {
-      const fallback = await mongoose.connection.db.collection("branches").findOne();
+      const fallback = await liveCollection(mongoose.connection.db, "branches").findOne();
       if (fallback) effectiveBranchId = fallback._id.toString();
     }
 
@@ -827,36 +828,36 @@ class DashboardService {
       ratingsAgg,
       activeAssignments,
     ] = await Promise.all([
-      db.collection("jobAssignments").countDocuments({
+      liveCollection(db, "jobAssignments").countDocuments({
         ...designerMatch,
         status: { $in: ["ACTIVE", "COMPLETED"] },
       }),
-      db.collection("jobSamples").countDocuments({
+      liveCollection(db, "jobSamples").countDocuments({
         ...(designerIds.length > 0 ? { submittedBy: { $in: designerIds } } : {}),
         status: "APPROVED",
         updatedAt: { $gte: period.start, $lte: period.end },
       }),
-      db.collection("jobSamples").countDocuments({
+      liveCollection(db, "jobSamples").countDocuments({
         ...(designerIds.length > 0 ? { submittedBy: { $in: designerIds } } : {}),
         status: { $in: ["REJECTED", "REVISION_REQUIRED"] },
         updatedAt: { $gte: period.start, $lte: period.end },
       }),
-      db.collection("jobOrders").countDocuments({
+      liveCollection(db, "jobOrders").countDocuments({
         stage: { $regex: /design|sample/i },
       }),
-      db.collection("jobAssignments").countDocuments({
+      liveCollection(db, "jobAssignments").countDocuments({
         ...designerMatch,
         status: "ACTIVE",
       }),
-      db.collection("jobSamples").countDocuments({
+      liveCollection(db, "jobSamples").countDocuments({
         ...(designerIds.length > 0 ? { submittedBy: { $in: designerIds } } : {}),
         status: "SUBMITTED",
       }),
-      db.collection("designerRatings").aggregate([
+      liveCollection(db, "designerRatings").aggregate([
         { $match: designerIds.length > 0 ? { designerId: { $in: designerIds } } : {} },
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } },
       ]).toArray(),
-      db.collection("jobAssignments").aggregate([
+      liveCollection(db, "jobAssignments").aggregate([
         { $match: { ...designerMatch, status: "ACTIVE" } },
         { $sort: { assignedAt: -1 } },
         { $skip: (page - 1) * limit },

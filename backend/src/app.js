@@ -1,3 +1,4 @@
+require("./utils/softDelete/softDeletePlugin").registerSoftDelete(); // must run before any model is created
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");

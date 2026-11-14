@@ -1,7 +1,8 @@
 import api from "../../../shared/services/api";
+import { dedupedGet } from "./dedupedGet";
 
 export const getJumboXeroxReadings = (config) => api.get("/jumbo-xerox/readings", config);
-export const searchJumboXeroxReadings = (query) => api.get(`/jumbo-xerox/readings?${query}`);
+export const searchJumboXeroxReadings = (query) => dedupedGet(`/jumbo-xerox/readings?${query}`);
 export const createJumboXeroxReading = (data) => api.post("/jumbo-xerox/readings", data);
 export const updateJumboXeroxReading = (id, data) => api.put(`/jumbo-xerox/readings/${id}`, data);
 

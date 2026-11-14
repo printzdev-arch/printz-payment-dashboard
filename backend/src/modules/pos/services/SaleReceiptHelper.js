@@ -3,6 +3,7 @@
  * Monetary calculation and print/export rendering utilities for POS.
  */
 const { escapeHtml: esc } = require("../../../utils/validation/escapeHtml");
+const { logoDataUri } = require("../../../utils/helpers/brandLogo");
 
 class SaleReceiptHelper {
   static round2(val) {
@@ -95,7 +96,7 @@ class SaleReceiptHelper {
 </head>
 <body>
   <div class="header">
-    <div class="title">PRINTZ DIGITAL PRINTING</div>
+    ${logoDataUri ? `<img src="${logoDataUri}" alt="PrintZ" style="height:${isThermal ? 44 : 64}px;width:auto;display:block;margin:0 auto 6px;" />` : '<div class="title">PRINTZ DIGITAL PRINTING</div>'}
     <div>${title}</div>
     <div>Receipt No: <strong>${esc(receipt.receiptNo)}</strong></div>
     <div>Date: ${new Date(receipt.saleDate).toLocaleString()}</div>

@@ -69,7 +69,6 @@ function buildThermalSlipHtml({ order, branch, customer: c, items, payments, inv
   <div class="so-slip">
     <div class="c">
       <img class="logo" src="${logoUrl}" alt="PrintZ" />
-      <div class="brand">PRINTZ</div>
       <div class="sub">${escapeHtml(branch.name || "Main Branch")} · Printing & Digital Solutions</div>
       ${branch.address ? `<div class="sub">${escapeHtml(branch.address)}</div>` : ""}
       <div class="title">TAX INVOICE${isFullyPaid ? " · PAID" : ""}</div>
@@ -301,7 +300,6 @@ export default function SaleOrderInvoiceModal({ isOpen, order: initialOrder, onC
   <div class="header">
     <div class="brand">
       <img src="${logoUrl}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />
-      <h1>PRINTZ</h1>
       <p><strong>${branch.name || "Main Branch"}</strong> · Printing & Digital Solutions</p>
       ${branch.address ? `<p style="font-size: 12px; color: #64748b;">${branch.address}</p>` : ""}
     </div>

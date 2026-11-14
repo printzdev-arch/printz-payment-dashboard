@@ -14,11 +14,8 @@ jspm_packages/
 !.yarn/versions
 
 # ===================================================
-# Nested Duplicates & Local Working Folders
+# Local Working & Temporary Folders
 # ===================================================
-/backend/
-backend/
-backend/backend/
 New folder/
 New\ folder/
 
@@ -34,7 +31,7 @@ New\ folder/
 .env.production.local
 .env.staging.local
 
-# Preserve example and template configs
+# Preserve template and example configs
 !.env.example
 !.env.template
 !.env.sample
@@ -112,25 +109,20 @@ test-reports/
 dist/
 build/
 out/
-.next/
 *.tsbuildinfo
 
 # ===================================================
 # File Uploads, Caches & Temporary Files
 # ===================================================
+# Ignore all uploaded files but preserve folder via .gitkeep
 uploads/*
 !uploads/.gitkeep
-!uploads/*/
-uploads/**/*
-!uploads/**/.gitkeep
 temp_uploads/
 tmp/
 temp/
 .cache/
 .eslintcache
 .npm/
-.parcel-cache/
-.turbo/
 
 # ===================================================
 # Compressed Archives
@@ -176,3 +168,8 @@ ehthumbs_vista.db
 $RECYCLE.BIN/
 Network Trash Folder/
 Temporary Items/
+
+# ===================================================
+# Always Preserve .gitkeep Files
+# ===================================================
+!.gitkeep

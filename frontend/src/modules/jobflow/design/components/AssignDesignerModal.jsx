@@ -37,6 +37,9 @@ export const AssignDesignerModal = ({
     if (isOpen) {
       setAllocationMethod("ROUND_ROBIN");
       setSelectedDesignerId("");
+      setLivePool(null);
+      setLiveNextDesignerId(null);
+      setLiveLastAssignedId(null);
 
       const fetchPool = async () => {
         setFetchingPool(true);
@@ -65,7 +68,8 @@ export const AssignDesignerModal = ({
 
   // Active designer list
   const activeDesigners = React.useMemo(() => {
-    if (Array.isArray(livePool) && livePool.length > 0) {
+    // Once the branch's pool has loaded it is the truth, even when it is empty (no designer in this branch)
+    if (Array.isArray(livePool)) {
       return livePool;
     }
     if (Array.isArray(designerPool) && designerPool.length > 0) {
@@ -77,7 +81,7 @@ export const AssignDesignerModal = ({
   // Determine next eligible designer in round robin rotation
   const nextEligibleDesigner = React.useMemo(() => {
     const pool = activeDesigners;
-    if (!pool || pool.length === 0) return defaultDesigners[0];
+    if (!pool || pool.length === 0) return null;
 
     // 1. Check if backend pool provided nextDesigner ID
     const targetNextId = liveNextDesignerId || nextDesignerId;
@@ -114,7 +118,7 @@ export const AssignDesignerModal = ({
     const eligible = pool.find(
       (d) => (d.currentLoad ?? d.openJobs ?? 0) < (d.maxLoad || 5) && d.isActive !== false
     );
-    return eligible || pool[0] || defaultDesigners[0];
+    return eligible || pool[0] || null;
   }, [activeDesigners, liveNextDesignerId, nextDesignerId, liveLastAssignedId]);
 
   if (!isOpen || !job) return null;
@@ -156,7 +160,8 @@ export const AssignDesignerModal = ({
         (d) => String(d._id || d.employeeId || d.id) === String(selectedDesignerId)
       );
 
-  const targetDesignerName = targetDesigner?.name || "Priya Raman";
+  const noDesigner = !fetchingPool && activeDesigners.length === 0;
+  const targetDesignerName = targetDesigner?.name || "";
   const currentJobsCount = targetDesigner?.currentLoad ?? targetDesigner?.openJobs ?? 0;
   const maxJobsLimit = targetDesigner?.maxLoad || 5;
 
@@ -167,6 +172,11 @@ export const AssignDesignerModal = ({
     if (isPrintOnlyJob) {
       toast.error("Print Only jobs bypass design and go directly to production. No designer allocation needed.");
       onClose();
+      return;
+    }
+
+    if (noDesigner) {
+      toast.warning("No designer is available for this job's branch.");
       return;
     }
 
@@ -449,35 +459,45 @@ export const AssignDesignerModal = ({
                   </div>
                 </div>
 
-                <div className="alloc-next-details-row">
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#0f172a" }}>
-                      {fetchingPool ? "Loading next in rotation..." : (nextEligibleDesigner?.name || "Priya Raman")}
-                    </span>
-                    <span
-                      style={{
-                        background: "#dcfce7",
-                        color: "#15803d",
-                        fontSize: "0.72rem",
-                        fontWeight: 600,
-                        padding: "0.15rem 0.55rem",
-                        borderRadius: "9999px",
-                      }}
-                    >
-                      Eligible
-                    </span>
+                {noDesigner || (!fetchingPool && !nextEligibleDesigner) ? (
+                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#b45309" }}>
+                    No designer available for this branch
                   </div>
+                ) : (
+                  <div className="alloc-next-details-row">
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#0f172a" }}>
+                        {fetchingPool ? "Loading next in rotation..." : nextEligibleDesigner?.name}
+                      </span>
+                      {!fetchingPool && (
+                        <span
+                          style={{
+                            background: "#dcfce7",
+                            color: "#15803d",
+                            fontSize: "0.72rem",
+                            fontWeight: 600,
+                            padding: "0.15rem 0.55rem",
+                            borderRadius: "9999px",
+                          }}
+                        >
+                          Eligible
+                        </span>
+                      )}
+                    </div>
 
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "#475569" }}>
-                      Current Active Jobs
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: "0.875rem", color: "#0f172a" }}>
-                      {nextEligibleDesigner?.currentLoad ?? nextEligibleDesigner?.openJobs ?? 0} /{" "}
-                      {nextEligibleDesigner?.maxLoad || 5}
-                    </div>
+                    {!fetchingPool && (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "0.6875rem", color: "#475569" }}>
+                          Current Active Jobs
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: "0.875rem", color: "#0f172a" }}>
+                          {nextEligibleDesigner?.currentLoad ?? nextEligibleDesigner?.openJobs ?? 0} /{" "}
+                          {nextEligibleDesigner?.maxLoad || 5}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Right Box: Select Designer * */}
@@ -524,6 +544,7 @@ export const AssignDesignerModal = ({
           </div>
 
           {/* Card 4: Please Confirm Callout */}
+          {noDesigner || !targetDesignerName ? null : (
           <div className="alloc-confirm-alert">
             <AlertCircle size={18} style={{ color: "#f59e0b", flexShrink: 0, marginTop: "1px" }} />
             <div className="alloc-confirm-content">
@@ -545,6 +566,7 @@ export const AssignDesignerModal = ({
               </p>
             </div>
           </div>
+          )}
         </div>
 
         {/* Footer Buttons */}
@@ -561,7 +583,7 @@ export const AssignDesignerModal = ({
             type="button"
             className="alloc-btn-confirm"
             onClick={handleConfirm}
-            disabled={loading}
+            disabled={loading || noDesigner}
           >
             {loading
               ? isRejected

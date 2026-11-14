@@ -267,7 +267,6 @@ export const InvoiceBillModal = ({ isOpen, invoice, onClose, autoPrint = false, 
           <div class="bill-header">
             <div>
               <img src="${logoUrl}" alt="PrintZ" style="height:56px;width:auto;display:block;margin-bottom:6px;" />
-              <div class="brand-title">GUNA PRINTZ</div>
               <div class="brand-subtitle">Commercial Printing, Designing & Offset Press</div>
               <div class="brand-address">
                 ${branch.address || "12/4, 2nd Main Road, Banaswadi, Bangalore - 560043"}<br>

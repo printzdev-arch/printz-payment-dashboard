@@ -632,7 +632,7 @@ export function startCartoonScene(root, opts = {}) {
   fitCard();on(window,'resize',fitCard);{const fitIv=setInterval(fitCard,700);disposers.push(()=>clearInterval(fitIv));}
 
   
-  if(reduce){phase='done';tl=9.1;prevT=9.1;}
+  // The entrance always plays, even when the system asks for reduced motion (parallax and sparkles stay off in that case)
   requestAnimationFrame(loop);
 
   return {toast, dispose(){disposers.forEach(f=>{try{f();}catch(e){}});}};

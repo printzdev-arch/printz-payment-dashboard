@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { logoBuffer } = require("../helpers/brandLogo");
 
 class EmailService {
   constructor() {
@@ -80,7 +81,7 @@ class EmailService {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h2 style="color: #059669; margin: 0;">Printz Enterprise</h2>
+          <img src="cid:printz-logo" alt="PrintZ" style="height: 64px; width: auto; display: inline-block;" />
           <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Password Reset Request</p>
         </div>
         
@@ -115,6 +116,7 @@ class EmailService {
       to,
       subject: "Password Reset Request — Printz Portal",
       html: htmlContent,
+      attachments: logoBuffer ? [{ filename: "logo.png", content: logoBuffer, contentType: "image/png", cid: "printz-logo" }] : [],
       text: `Hello ${name || "User"},\n\nA password reset was requested for your account. Reset your password here: ${resetUrl}\n\nThis link is valid for 1 hour.`,
     });
 

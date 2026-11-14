@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getBranches, createBranch, updateBranch, deleteBranch } from "../../api";
+import { clearBranchesCache } from "../../../../shared/services/branchStore";
 import Popup from "../../../../shared/ui/Popup/Popup.jsx";
 import { usePopup } from "../../../../shared/hooks/usePopup";
 import DataTable from "../../../../shared/ui/DataTable/DataTable";
@@ -8,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import "../../../../shared/styles/printzTheme.css";
 import "../../styles/addmanager.css";
+import { onlyMobile, mobileError } from "../../../../shared/utils/validation";
 
 import {
   Building2,
@@ -250,6 +252,11 @@ const AddBranch = () => {
 
   const handleAddBranch = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    const phoneProblem = mobileError(branchPhone, { label: "Phone number", required: false });
+    if (phoneProblem) {
+      showError("Invalid Phone Number", phoneProblem);
+      return;
+    }
     if (!branchName.trim() || !branchCode.trim() || !branchAddress.trim()) {
       showError(
         "Missing Information",
@@ -327,6 +334,12 @@ const AddBranch = () => {
       return;
     }
 
+    const phoneProblem = mobileError(branchPhone, { label: "Phone number", required: false });
+    if (phoneProblem) {
+      showError("Invalid Phone Number", phoneProblem);
+      return;
+    }
+
     if (!editingBranch || (!editingBranch.id && !editingBranch._id)) {
       showError(
         "No Branch Selected",
@@ -384,6 +397,7 @@ const AddBranch = () => {
       setLoading(true);
       const branchId = branchToDelete.id || branchToDelete._id || branchToDelete.docId;
       await deleteBranch(branchId);
+      clearBranchesCache(); // other screens must not keep showing the deleted branch
       setBranches((prev) =>
         prev.filter(
           (branch) => branch.id !== branchId && branch._id !== branchId && branch.docId !== branchId
@@ -394,7 +408,7 @@ const AddBranch = () => {
       setBranchToDelete(null);
       showSuccess(
         "Branch Deleted Successfully",
-        `Branch "${deletedName}" has been deleted successfully`
+        `Branch "${deletedName}" and all its data are now hidden everywhere. The records stay stored in the database.`
       );
     } catch (error) {
       console.error("Error deleting branch: ", error);
@@ -718,10 +732,13 @@ const AddBranch = () => {
                       </span>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        autoComplete="off"
                         className="printz-input-clean"
                         placeholder="e.g. 9876543210"
                         value={branchPhone}
-                        onChange={(e) => setBranchPhone(e.target.value)}
+                        onChange={(e) => setBranchPhone(onlyMobile(e.target.value))}
                         disabled={loading}
                         style={{
                           border: "none",
@@ -733,6 +750,11 @@ const AddBranch = () => {
                         }}
                       />
                     </div>
+                    {branchPhone && branchPhone.length < 10 && (
+                      <div style={{ color: "#dc2626", fontSize: "12px", marginTop: "4px" }}>
+                        Phone number must be exactly 10 digits ({branchPhone.length}/10)
+                      </div>
+                    )}
                   </div>
 
                   <div className="printz-form-field">
@@ -900,7 +922,8 @@ const AddBranch = () => {
               }}
             >
               Are you sure you want to delete{" "}
-              <strong>{branchToDelete?.name}</strong>? This action cannot be undone.
+              <strong>{branchToDelete?.name}</strong>? The branch and all its data (customers, employees, orders, invoices,
+              payments, attendance, stock and every other module) will disappear from the screens. Nothing is erased from the database.
             </p>
             <div
               style={{
